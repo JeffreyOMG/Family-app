@@ -74,7 +74,7 @@ def participar():
     if not evento:
         # Crear evento automáticamente si no existe
         cur = con.execute(
-            "INSERT INTO amigo_secreto_eventos(nombre) VALUES(%s) ON CONFLICT DO NOTHING",
+            "INSERT INTO amigo_secreto_eventos(nombre) VALUES(%s) RETURNING id",
             ("Amigo Secreto Familiar",)
         )
         evento_id = cur.fetchone()[0]
@@ -158,7 +158,7 @@ def reiniciar():
     if evento:
         con.execute("UPDATE amigo_secreto_eventos SET activo=0 WHERE id=?", (evento["id"],))
     con.execute(
-        "INSERT INTO amigo_secreto_eventos(nombre) VALUES(%s) ON CONFLICT DO NOTHING",
+        "INSERT INTO amigo_secreto_eventos(nombre) VALUES(%s) RETURNING id",
         ("Amigo Secreto Familiar",)
     )
     con.commit()

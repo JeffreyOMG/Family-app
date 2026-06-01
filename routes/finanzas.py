@@ -50,7 +50,7 @@ def _aporte_familia():
         if not nombre:
             return _err("Nombre requerido")
         cur = con.execute(
-            "INSERT INTO cajitas_ahorro(nombre,descripcion,creador_id) VALUES(%s,%s,%s) ON CONFLICT DO NOTHING",
+            "INSERT INTO cajitas_ahorro(nombre,descripcion,creador_id) VALUES(%s,%s,%s) RETURNING id",
             (nombre, desc, uid)
         )
         cajita_id = cur.fetchone()[0]

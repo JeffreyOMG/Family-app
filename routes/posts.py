@@ -114,7 +114,7 @@ def _guardar_post():
         return None
     con = get_db()
     cur = con.execute(
-        "INSERT INTO publicaciones(usuario_id,texto,media,media_tipo) VALUES(%s,%s,%s,%s) ON CONFLICT DO NOTHING",
+        "INSERT INTO publicaciones(usuario_id,texto,media,media_tipo) VALUES(%s,%s,%s,%s) RETURNING id",
         (uid, texto, media, media_tipo)
     )
     con.commit()
@@ -192,7 +192,7 @@ def crear_noticia():
     contenido = request.form.get("contenido", "").strip()
     if titulo and contenido:
         con = get_db()
-        cur = con.execute("INSERT INTO noticias(titulo,contenido) VALUES(%s,%s) ON CONFLICT DO NOTHING", (titulo, contenido))
+        cur = con.execute("INSERT INTO noticias(titulo,contenido) VALUES(%s,%s) RETURNING id", (titulo, contenido))
         con.commit()
         if _is_ajax():
             return jsonify({"ok": True, "id": cur.fetchone()[0], "titulo": titulo})

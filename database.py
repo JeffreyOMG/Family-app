@@ -68,7 +68,14 @@ def _to_pg(sql, params):
 # ─────────────────────────────────────────────
 
 class _Row(dict):
+    @staticmethod
+    def _conv(v):
+        import datetime
+        if isinstance(v, (datetime.datetime, datetime.date)):
+            return str(v)
+        return v
     def __init__(self, keys, values):
+        values = [self._conv(v) for v in values]
         super().__init__(zip(keys, values))
         self._list = list(values)
     def __getitem__(self, key):

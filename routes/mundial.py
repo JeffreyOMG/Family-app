@@ -455,7 +455,7 @@ def _seed_eliminacion(con):
         con.execute("""
             INSERT INTO partidos_eliminacion
                 (id, fase, slot_local, slot_visit, fecha, sede)
-            VALUES (?,%s,%s,%s,%s,%s)
+            VALUES (%s,%s,%s,%s,%s,%s)
         """, fila)
     con.commit()
 

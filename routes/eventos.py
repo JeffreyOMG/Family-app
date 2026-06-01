@@ -18,7 +18,7 @@ def crear_evento():
     if titulo and fecha_ev:
         con = get_db()
         cur = con.execute(
-            "INSERT INTO eventos(usuario_id,titulo,descripcion,fecha_evento,hora_evento,tipo) VALUES(%s,%s,%s,%s,%s,%s) ON CONFLICT DO NOTHING",
+            "INSERT INTO eventos(usuario_id,titulo,descripcion,fecha_evento,hora_evento,tipo) VALUES(%s,%s,%s,%s,%s,%s) RETURNING id",
             (session["uid"], titulo, descripcion, fecha_ev, hora_ev, tipo)
         )
         con.commit()
