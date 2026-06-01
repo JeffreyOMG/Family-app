@@ -884,60 +884,6 @@ function _renderBracket(bracket, eliPartidos) {
             : '';
           const lLabel = eqL.conocido ? eqL.nombre : `<em>${_esc(eqL.nombre)}</em>`;
           const vLabel = eqV.conocido ? eqV.nombre : `<em>${_esc(eqV.nombre)}</em>`;
-
-          // Sección pronóstico
-          let pronSection = '';
-          if (!p.bloqueado && completado) {
-            if (p.p_local != null) {
-              let penInfo = (+p.p_local === +p.p_vis && p.p_penales) ? `<div class="bk-pen-guardado">Pen: ${_esc(p.p_penales)}</div>` : '';
-              pronSection = `<div class="bk-pron-guardado"><span class="bk-pron-score">${p.p_local}–${p.p_vis}</span>${penInfo}<div class="pron-badge pron-guardado" style="font-size:.65rem;">✓ Guardado</div></div>`;
-            } else {
-              pronSection = `<form method="POST" action="/pronostico_eli?s=mundial" class="eli-form bk-pron-form">
-                <div class="bk-pron-inputs">
-                  <input class="pron-input bk-input" type="number" name="local_${p.id}" min="0" max="20" placeholder="0"
-                    onchange="_checkBkEmpate(${p.id},'${_esc(eqL.nombre)}','${_esc(eqV.nombre)}')">
-                  <span class="pron-sep">–</span>
-                  <input class="pron-input bk-input" type="number" name="vis_${p.id}" min="0" max="20" placeholder="0"
-                    onchange="_checkBkEmpate(${p.id},'${_esc(eqL.nombre)}','${_esc(eqV.nombre)}')">
-                  <button type="submit" class="bk-pron-btn" title="Guardar"><span class="material-symbols-outlined">save</span></button>
-                </div>
-                <div class="pron-penales-sel" id="bk-pen-${p.id}" style="display:none;">
-                  <div class="pron-pen-label" style="font-size:.7rem;"><span class="material-symbols-outlined" style="font-size:14px;">sports_score</span> Penales:</div>
-                  <div class="pron-pen-opciones">
-                    <label><input type="radio" name="pen_${p.id}" value="${_esc(eqL.nombre)}"> ${_esc(eqL.nombre)}</label>
-                    <label><input type="radio" name="pen_${p.id}" value="${_esc(eqV.nombre)}"> ${_esc(eqV.nombre)}</label>
-                  </div>
-                </div>
-              </form>`;
-            }
-          } else if (p.bloqueado && p.p_local != null) {
-            const gl = p.goles_local, gv2 = p.goles_visit;
-            const esEmpateReal = (gl === gv2);
-            const esEmpateP = (+p.p_local === +p.p_vis);
-            let badge = '';
-            if (p.p_local == gl && p.p_vis == gv2) {
-              if (esEmpateReal && p.penales_ganador && p.p_penales) {
-                badge = p.p_penales === p.penales_ganador
-                  ? '<div class="pron-badge pron-exacto" style="font-size:.65rem;">⚽ +3pts</div>'
-                  : '<div class="pron-badge pron-exacto" style="font-size:.65rem;">⚽ +2pts</div>';
-              } else {
-                badge = '<div class="pron-badge pron-exacto" style="font-size:.65rem;">⚽ +3pts</div>';
-              }
-            } else if ((+p.p_local > +p.p_vis && gl > gv2)||(+p.p_local < +p.p_vis && gl < gv2)||(esEmpateP && esEmpateReal)) {
-              if (esEmpateReal && p.penales_ganador && p.p_penales) {
-                badge = p.p_penales === p.penales_ganador
-                  ? '<div class="pron-badge pron-ganador" style="font-size:.65rem;">✓ +2pts</div>'
-                  : '<div class="pron-badge pron-ganador" style="font-size:.65rem;">✓ +1pt</div>';
-              } else {
-                badge = '<div class="pron-badge pron-ganador" style="font-size:.65rem;">✓ +1pt</div>';
-              }
-            } else {
-              badge = '<div class="pron-badge pron-fallo" style="font-size:.65rem;">✗ 0pts</div>';
-            }
-            let penBk = (esEmpateReal && p.p_penales) ? `<span style="font-size:.65rem;opacity:.7"> Pen:${_esc(p.p_penales)}</span>` : '';
-            pronSection = `<div class="bk-pron-guardado"><span class="bk-pron-score">${p.p_local}–${p.p_vis}${penBk}</span>${badge}</div>`;
-          }
-
           return `
             <div class="bracket-cruce ${completado?'cruce-ok':'cruce-pend'}">
               <div class="cruce-num">${p.id}</div>
@@ -946,7 +892,6 @@ function _renderBracket(bracket, eliPartidos) {
                 <div class="cruce-vs">${result || 'VS'}</div>
                 <div class="cruce-eq ${!eqV.conocido?'eq-pend':''}">${vFlag}<span class="cruce-nombre">${vLabel}</span></div>
               </div>
-              ${pronSection ? `<div class="bk-pron-area">${pronSection}</div>` : ''}
               <div class="cruce-meta">${_esc(p.fecha||'')} · ${_esc(p.sede||'')}</div>
             </div>`;
         }).join('')}
