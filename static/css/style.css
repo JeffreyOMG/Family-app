@@ -4036,7 +4036,7 @@ body.dark-mode .admin-btn-edit {
   flex-shrink: 0;
 }
 body.dark-mode .cruce-num {
-  color: var(--text);
+  color: #000;
 }
 
 .cruce-pend .cruce-num { background: var(--border); color: var(--text2); }
