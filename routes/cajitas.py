@@ -99,7 +99,7 @@ def cajita_miembros(cid):
         JOIN usuarios u ON u.id = mb.usuario_id
         LEFT JOIN cajita_movimientos cm ON cm.cajita_id=mb.cajita_id AND cm.usuario_id=u.id
         WHERE mb.cajita_id=?
-        GROUP BY u.id
+        GROUP BY u.id, u.nombre
         ORDER BY total_aportado DESC
     """, (cid,)).fetchall()]
     return jsonify(miembros)

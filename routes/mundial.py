@@ -125,7 +125,7 @@ def api_mundial_datos():
                COUNT(CASE WHEN pr.puntos=1 THEN 1 END) AS ganadores
         FROM usuarios u
         LEFT JOIN pronosticos pr ON pr.usuario_id=u.id
-        GROUP BY u.id
+        GROUP BY u.id, u.nombre
         ORDER BY puntos DESC, exactos DESC
     """).fetchall()]
 
@@ -350,7 +350,7 @@ def ranking_mundial():
         FROM usuarios u
         LEFT JOIN pronosticos p
             ON p.usuario_id=u.id
-        GROUP BY u.id
+        GROUP BY u.id, u.nombre
         ORDER BY puntos DESC
     """).fetchall()]
 
@@ -796,7 +796,7 @@ def ranking_global():
         FROM usuarios u
         LEFT JOIN pronosticos    pr ON pr.usuario_id=u.id
         LEFT JOIN pronosticos_eli pe ON pe.usuario_id=u.id
-        GROUP BY u.id ORDER BY puntos DESC, exactos DESC
+        GROUP BY u.id, u.nombre ORDER BY puntos DESC, exactos DESC
     """).fetchall()]
     return jsonify(ranking)
 

@@ -142,7 +142,7 @@ def get_ctx(uid, con, extra=None):
     ranking = [dict(r, porcentaje=min(round((r["total"]/META)*100,1),100)) for r in con.execute("""
         SELECT u.nombre, COALESCE(SUM(a.monto),0) AS total
         FROM usuarios u LEFT JOIN aportes a ON a.usuario_id=u.id
-        GROUP BY u.id ORDER BY total DESC
+        GROUP BY u.id, u.nombre ORDER BY total DESC
     """).fetchall()]
 
     todos_aportes = [dict(a) for a in con.execute("""
@@ -207,7 +207,8 @@ def get_ctx(uid, con, extra=None):
                COUNT(CASE WHEN pr.puntos=3 THEN 1 END) AS exactos,
                COUNT(CASE WHEN pr.puntos=1 THEN 1 END) AS ganadores
         FROM usuarios u LEFT JOIN pronosticos pr ON pr.usuario_id=u.id
-        GROUP BY u.id HAVING puntos>0 OR (SELECT COUNT(*) FROM pronosticos WHERE usuario_id=u.id)>0
+        GROUP BY u.id, u.nombre
+        HAVING COALESCE(SUM(pr.puntos),0)>0 OR (SELECT COUNT(*) FROM pronosticos WHERE usuario_id=u.id)>0
         ORDER BY puntos DESC, exactos DESC
     """).fetchall()]
 
