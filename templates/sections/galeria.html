@@ -1,0 +1,71 @@
+<section class="section active" id="sec-galeria">
+  <h1><span class="material-symbols-outlined">photo_library</span> Galería Familiar</h1>
+
+  <div class="stats-grid">
+    <div class="stat-card"><span class="material-symbols-outlined">photo</span><div>Fotos</div><strong>{{ total_fotos }}</strong></div>
+    <div class="stat-card"><span class="material-symbols-outlined">videocam</span><div>Videos</div><strong>{{ total_videos }}</strong></div>
+    <div class="stat-card"><span class="material-symbols-outlined">folder</span><div>Álbumes</div><strong>{{ total_albumes }}</strong></div>
+  </div>
+
+  <!-- SUBIR -->
+  <div class="content-card">
+    <h3>📤 Subir a la galería</h3>
+    <form method="POST" action="/subir_archivo" enctype="multipart/form-data">
+      <label style="cursor:pointer;display:inline-flex;align-items:center;gap:8px;padding:10px 18px;background:rgba(255,255,255,.08);border-radius:10px;margin-bottom:10px;">
+        <span class="material-symbols-outlined">upload</span>
+        Seleccionar foto o video
+        <input type="file" name="archivo" accept="image/*,video/*" style="display:none" onchange="document.getElementById('fn').textContent=this.files[0]?.name||''" required>
+      </label>
+      <span id="fn" style="font-size:.8rem;opacity:.6;margin-left:8px;"></span>
+      <input type="text" name="descripcion" class="form-input" placeholder="Descripción (opcional)" style="margin-top:8px;">
+      <button type="submit" class="btn btn-primary" style="margin-top:10px;">Subir</button>
+    </form>
+  </div>
+
+  <!-- GALERÍA -->
+  <div class="content-card">
+    <h3>📸 Fotos y Videos</h3>
+    {% if archivos %}
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;margin-top:12px;">
+      {% for a in archivos %}
+      <div style="border-radius:10px;overflow:hidden;aspect-ratio:1;background:#111;position:relative;">
+        {% if a.tipo == 'imagen' %}
+          <img src="{{ a.ruta }}" style="width:100%;height:100%;object-fit:cover;" loading="lazy" onclick="abrirModal('{{ a.ruta }}','imagen')">
+        {% else %}
+          <video src="{{ a.ruta }}" style="width:100%;height:100%;object-fit:cover;cursor:pointer;" onclick="abrirModal('{{ a.ruta }}','video')"></video>
+          <span style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:2rem;pointer-events:none;">▶️</span>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p style="opacity:.5;text-align:center;padding:20px 0;">Aún no hay fotos ni videos. ¡Sube el primero! 📷</p>
+    {% endif %}
+  </div>
+
+  <!-- MODAL visor -->
+  <div id="modal-galeria" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:9999;justify-content:center;align-items:center;" onclick="this.style.display='none'">
+    <div id="modal-content" style="max-width:90vw;max-height:90vh;"></div>
+  </div>
+
+  <style>
+  /* ── GALERÍA DARK MODE ── */
+  body.dark-mode #sec-galeria .stats-grid .stat-card { background: var(--card); border-color: var(--border); }
+  body.dark-mode #sec-galeria .form-input { background: var(--bg2); border-color: var(--border); color: var(--text); }
+  body.dark-mode #sec-galeria .form-input::placeholder { color: var(--text3); }
+  body.dark-mode #sec-galeria .form-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(0,149,246,.1); }
+  body.dark-mode #sec-galeria label { background: rgba(255,255,255,.06) !important; color: var(--text); }
+  body.dark-mode #sec-galeria label:hover { background: rgba(255,255,255,.1) !important; }
+  </style>
+</section>
+
+<script>
+function abrirModal(src, tipo){
+  const modal   = document.getElementById('modal-galeria');
+  const content = document.getElementById('modal-content');
+  content.innerHTML = tipo==='imagen'
+    ? `<img src="${src}" style="max-width:90vw;max-height:90vh;border-radius:10px;">`
+    : `<video src="${src}" controls autoplay style="max-width:90vw;max-height:90vh;border-radius:10px;"></video>`;
+  modal.style.display='flex';
+}
+</script>

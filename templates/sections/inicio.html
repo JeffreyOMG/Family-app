@@ -1,0 +1,1690 @@
+{% macro render_post(p) %}
+<article class="post-card" id="post-{{ p.id }}">
+  <div class="post-header">
+    {% if p.foto %}
+      <img src="{{ p.foto }}" class="user-avatar-img post-av">
+    {% else %}
+      <div class="user-avatar post-av">{{ (p.nombre[0] if p.nombre else 'U')|upper }}</div>
+    {% endif %}
+    <div class="post-meta-block">
+      <span class="post-name">{{ p.nombre }}</span>
+      <span class="post-handle">@{{ p.usuario }} · {{ p.fecha[:10] }}</span>
+    </div>
+    {% if p.usuario_id == usuario.id or usuario.rol == 'admin' %}
+    <form method="POST" action="/eliminar_post/{{ p.id }}" class="post-delete-form">
+      <button type="submit" class="post-delete-btn" title="Eliminar">
+        <span class="material-symbols-outlined">more_horiz</span>
+      </button>
+    </form>
+    {% endif %}
+  </div>
+
+  {% if p.texto %}<p class="post-text">{{ p.texto }}</p>{% endif %}
+
+  {% if p.media %}
+    {% if p.media_tipo == 'imagen' %}
+      <img src="{{ p.media }}" class="post-media" onclick="abrirMediaModal('{{ p.media }}','imagen')">
+    {% elif p.media_tipo == 'video' %}
+      <video controls class="post-media"><source src="{{ p.media }}"></video>
+    {% endif %}
+  {% endif %}
+
+  <div class="post-actions">
+    <button type="button"
+      class="post-action-btn like-btn {% if p.liked %}liked{% endif %}"
+      onclick="darLike({{ p.id }}, this)">
+      <span class="material-symbols-outlined heart-icon">favorite</span>
+      <span class="like-count">{{ p.total_likes }}</span>
+    </button>
+    <button type="button" class="post-action-btn" onclick="abrirComentarios({{ p.id }})">
+      <span class="material-symbols-outlined">chat_bubble</span>
+      <span id="cmt-count-{{ p.id }}">{{ comentarios_por_post.get(p.id, [])|length }}</span>
+    </button>
+    <button type="button" class="post-action-btn repost-btn {% if p.get('reposted') %}reposted{% endif %}"
+      onclick="repostear({{ p.id }}, this)">
+      <span class="material-symbols-outlined">repeat</span>
+      <span class="repost-count">{{ p.total_reposts if p.total_reposts is defined else 0 }}</span>
+    </button>
+    <button type="button" class="post-action-btn share-btn"
+      onclick="compartirPost({{ p.id }}, `{{ p.texto|truncate(80)|replace('`','') if p.texto else '' }}`)">
+      <span class="material-symbols-outlined">share</span>
+    </button>
+    <button type="button"
+      class="post-action-btn bookmark-btn {% if p.bookmarked %}saved{% endif %}"
+      style="margin-left:auto;"
+      onclick="toggleBookmark({{ p.id }}, this)">
+      <span class="material-symbols-outlined">bookmark</span>
+    </button>
+  </div>
+
+  <div id="comentarios-{{ p.id }}" class="comments-section">
+    {% for c in comentarios_por_post.get(p.id, []) %}
+    <div class="comment-row">
+      {% if c.foto %}
+        <img src="{{ c.foto }}" class="user-avatar-img" style="width:28px;height:28px;flex-shrink:0;">
+      {% else %}
+        <div class="user-avatar" style="width:28px;height:28px;font-size:11px;flex-shrink:0;">{{ c.nombre[0]|upper }}</div>
+      {% endif %}
+      <div class="comment-bubble">
+        <strong class="comment-author">{{ c.nombre }}</strong>
+        <span class="comment-text">{{ c.texto }}</span>
+        <span class="comment-date">{{ c.fecha[:10] }}</span>
+      </div>
+    </div>
+    {% endfor %}
+    <div class="comment-form">
+      {% if usuario.foto %}
+        <img src="{{ usuario.foto }}" class="user-avatar-img comment-av">
+      {% else %}
+        <div class="user-avatar comment-av">{{ usuario.nombre[0]|upper }}</div>
+      {% endif %}
+      <input type="text" class="comment-input"
+        placeholder="Escribe un comentario..."
+        id="cinput-{{ p.id }}"
+        onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();enviarComentario({{ p.id }},this);}">
+      <button type="button" class="btn-comment"
+        onclick="enviarComentario({{ p.id }}, document.getElementById('cinput-{{ p.id }}'))">
+        <span class="material-symbols-outlined">arrow_upward</span>
+      </button>
+    </div>
+  </div>
+</article>
+{% endmacro %}
+
+<section class="section" id="sec-inicio">
+  <div class="inicio-layout">
+
+    <!-- ─── FEED CENTRAL ─── -->
+    <div class="feed-col">
+
+      <!-- TABS -->
+      <div class="feed-tabs">
+        <button class="feed-tab active" data-feed="posts">
+          <span class="material-symbols-outlined">home</span>
+          <span>Para ti</span>
+        </button>
+        <button class="feed-tab" data-feed="guardados">
+          <span class="material-symbols-outlined">bookmark</span>
+          <span>Guardados</span>
+        </button>
+        <button class="feed-tab" data-feed="tendencias">
+          <span class="material-symbols-outlined">trending_up</span>
+          <span>Tendencias</span>
+        </button>
+      </div>
+
+      <!-- COUNTDOWN -->
+      <div class="countdown-card">
+        <div class="cd-label-top">
+          <span class="material-symbols-outlined" style="font-size:14px;vertical-align:-2px;">timer</span>
+          Cuenta regresiva · 24 Dic 2026
+        </div>
+        <div class="cd-nums">
+          <div class="cd-unit"><span class="cd-num" id="cd-dias">--</span><span class="cd-lbl">Días</span></div>
+          <span class="cd-sep">:</span>
+          <div class="cd-unit"><span class="cd-num" id="cd-horas">--</span><span class="cd-lbl">Horas</span></div>
+          <span class="cd-sep">:</span>
+          <div class="cd-unit"><span class="cd-num" id="cd-min">--</span><span class="cd-lbl">Min</span></div>
+          <span class="cd-sep">:</span>
+          <div class="cd-unit"><span class="cd-num" id="cd-seg">--</span><span class="cd-lbl">Seg</span></div>
+        </div>
+      </div>
+
+      <!-- COMPOSER TRIGGER -->
+      <div class="compose-card" onclick="abrirComposer()" role="button" tabindex="0">
+        <div class="compose-row">
+          {% if usuario.foto %}
+            <img src="{{ usuario.foto }}" class="user-avatar-img compose-av">
+          {% else %}
+            <div class="user-avatar compose-av">{{ usuario.nombre[0]|upper }}</div>
+          {% endif %}
+          <div class="compose-fake-input">¿Qué está pasando hoy en la familia?</div>
+        </div>
+        <div class="compose-quick-actions" onclick="event.stopPropagation()">
+          <button class="cq-btn" onclick="abrirComposer('foto')">
+            <span class="material-symbols-outlined">photo_camera</span>
+            <span>Foto</span>
+          </button>
+          <button class="cq-btn" onclick="abrirComposer('gif')">
+            <span class="material-symbols-outlined">gif</span>
+            <span>GIF</span>
+          </button>
+          <button class="cq-btn" onclick="abrirComposer()">
+            <span class="material-symbols-outlined">edit</span>
+            <span>Publicar</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- POSTS FEED: PARA TI -->
+      <div id="feed-posts">
+      {% for p in publicaciones %}
+      {{ render_post(p) }}
+      {% else %}
+      <div class="feed-empty">
+        <span class="material-symbols-outlined">auto_awesome</span>
+        <p>Sé el primero en publicar algo para la familia</p>
+      </div>
+      {% endfor %}
+      </div>
+
+      <!-- FEED: GUARDADOS -->
+      <div id="feed-guardados" style="display:none;">
+      {% for p in guardados %}
+      {{ render_post(p) }}
+      {% else %}
+      <div class="feed-empty">
+        <span class="material-symbols-outlined">bookmark</span>
+        <p>Aún no tienes guardados. Guarda posts con <span class="material-symbols-outlined" style="font-size:16px;vertical-align:-3px;">bookmark</span> o repostéalos.</p>
+      </div>
+      {% endfor %}
+      </div>
+
+      <!-- FEED: TENDENCIAS -->
+      <div id="feed-tendencias" style="display:none;">
+      {% for p in tendencias %}
+      {{ render_post(p) }}
+      {% else %}
+      <div class="feed-empty">
+        <span class="material-symbols-outlined">trending_up</span>
+        <p>Aún no hay publicaciones</p>
+      </div>
+      {% endfor %}
+      </div>
+
+    </div><!-- /feed-col -->
+
+    <!-- ─── PANEL DERECHO ─── -->
+    <aside class="right-panel">
+
+      <!-- MIEMBROS -->
+      <div class="panel-card">
+        <div class="panel-header">
+          <h3>Miembros</h3>
+          {% if miembros|length > 5 %}
+          <button class="panel-ver-mas" id="btn-ver-mas" onclick="toggleMiembros()">Ver más</button>
+          {% endif %}
+        </div>
+        {% if miembros %}
+          <div class="miembros-list" id="miembros-principales">
+            {% for m in miembros[:5] %}
+            <div class="miembro-item">
+              {% if m.foto %}
+                <img src="{{ m.foto }}" class="user-avatar-img miembro-av">
+              {% else %}
+                <div class="user-avatar miembro-av">{{ m.nombre[0]|upper }}</div>
+              {% endif %}
+              <div class="miembro-info">
+                <strong>{{ m.nombre }}</strong>
+                <span>@{{ m.usuario }}</span>
+              </div>
+              {% if m.rol == 'admin' %}<span class="badge-admin">Admin</span>{% endif %}
+            </div>
+            {% endfor %}
+          </div>
+          {% if miembros|length > 5 %}
+          <div class="miembros-list" id="miembros-extra" style="display:none;">
+            {% for m in miembros[5:] %}
+            <div class="miembro-item">
+              {% if m.foto %}
+                <img src="{{ m.foto }}" class="user-avatar-img miembro-av">
+              {% else %}
+                <div class="user-avatar miembro-av">{{ m.nombre[0]|upper }}</div>
+              {% endif %}
+              <div class="miembro-info">
+                <strong>{{ m.nombre }}</strong>
+                <span>@{{ m.usuario }}</span>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+          {% endif %}
+        {% else %}
+          <div class="panel-empty">
+            <span class="material-symbols-outlined">group</span>
+            <p>Sin miembros registrados</p>
+          </div>
+        {% endif %}
+      </div>
+
+      <!-- NOTICIAS -->
+      <div class="panel-card">
+        <div class="panel-header">
+          <h3>Últimas noticias</h3>
+          <button class="panel-ver-mas" onclick="irSeccion('noticias')">Ver todo</button>
+        </div>
+        {% if noticias_recientes %}
+          <div class="noticias-list">
+            {% for n in noticias_recientes %}
+            <div class="noticia-item">
+              <div class="noticia-dot {% if n.categoria == 'finanzas' %}dot-ok{% elif n.categoria in ['galeria','galería'] %}dot-info{% elif n.categoria == 'mundial' %}dot-warn{% else %}dot-def{% endif %}"></div>
+              <div>
+                <p class="noticia-titulo">{{ n.titulo }}</p>
+                <span class="noticia-meta">{{ n.fecha[:10] }} · {{ n.categoria|capitalize if n.categoria else 'General' }}</span>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="panel-empty">
+            <span class="material-symbols-outlined">newspaper</span>
+            <p>Sin noticias por ahora</p>
+          </div>
+        {% endif %}
+      </div>
+
+    </aside>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════
+     MODAL COMPOSITOR
+═══════════════════════════════ -->
+<div id="modal-composer" class="mc-overlay" onclick="if(event.target===this)cerrarComposer()">
+  <div class="mc-box">
+
+    <!-- Header -->
+    <div class="mc-header">
+      <button class="mc-close" onclick="cerrarComposer()">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+      <span class="mc-title">Nueva publicación</span>
+      <button class="mc-publish-btn" id="btn-publicar-modal" onclick="submitComposer()" disabled>
+        Publicar
+      </button>
+    </div>
+
+    <!-- Body: avatar + textarea -->
+    <div class="mc-body">
+      <div id="mc-av-slot"></div>
+      <div class="mc-right">
+        <textarea
+          id="mc-texto"
+          class="mc-textarea"
+          placeholder="¿Qué está pasando hoy en la familia?"
+          rows="4"
+          maxlength="500"
+          oninput="onComposerInput()"></textarea>
+
+        <!-- Tags de menciones -->
+        <div id="mc-tags" class="mc-tags-row"></div>
+
+        <!-- Autocompletado de miembros -->
+        <div id="mc-mention-drop" class="mc-mention-drop" style="display:none;"></div>
+
+        <!-- Ubicación -->
+        <div id="mc-location-row" class="mc-meta-row" style="display:none;">
+          <span class="material-symbols-outlined mc-meta-icon">location_on</span>
+          <input type="text" id="mc-location-input" class="mc-meta-input" placeholder="¿Dónde estás?">
+          <button onclick="quitarUbicacion()" class="mc-meta-remove">
+            <span class="material-symbols-outlined">close</span>
+          </button>
+        </div>
+
+        <div class="mc-char-bar">
+          <div class="mc-char-fill" id="mc-char-fill"></div>
+        </div>
+        <span class="mc-char-count"><span id="mc-chars">0</span>/500</span>
+      </div>
+    </div>
+
+    <!-- Preview de media -->
+    <div id="mc-media-preview" class="mc-media-preview" style="display:none;"></div>
+
+    <!-- Selector de emojis -->
+    <div id="mc-emoji-panel" class="mc-emoji-panel" style="display:none;">
+      <div class="mc-emoji-grid" id="mc-emoji-grid"></div>
+    </div>
+
+    <!-- Selector de GIF (input file filtrado a gif) -->
+    <div id="mc-gif-panel" class="mc-gif-panel" style="display:none;">
+      <div class="mc-gif-header">
+        <span class="material-symbols-outlined">gif_box</span>
+        <span>Subir GIF</span>
+      </div>
+      <label class="mc-gif-label">
+        <span class="material-symbols-outlined">upload_file</span>
+        <span>Seleccionar archivo GIF</span>
+        <input type="file" id="mc-gif-input" accept=".gif,image/gif" style="display:none" onchange="previewGif(this)">
+      </label>
+    </div>
+
+    <!-- Footer de acciones -->
+    <div class="mc-footer">
+      <div class="mc-footer-actions">
+        <label class="mc-act-btn" title="Foto o video">
+          <span class="material-symbols-outlined">photo_camera</span>
+          <input type="file" id="mc-file-input" accept="image/*,video/*" style="display:none" onchange="previewMedia(this)">
+        </label>
+        <button class="mc-act-btn" title="GIF" id="btn-gif-toggle" onclick="togglePanel('gif')">
+          <span class="mc-gif-label-txt">GIF</span>
+        </button>
+        <button class="mc-act-btn" title="Emoji" id="btn-emoji-toggle" onclick="togglePanel('emoji')">
+          <span class="material-symbols-outlined">sentiment_satisfied</span>
+        </button>
+        <button class="mc-act-btn" title="Etiquetar miembro" onclick="insertarArroba()">
+          <span class="material-symbols-outlined">alternate_email</span>
+        </button>
+        <button class="mc-act-btn" title="Ubicación" onclick="toggleUbicacion()">
+          <span class="material-symbols-outlined">location_on</span>
+        </button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════════════════════════════
+     MODAL COMPARTIR
+═══════════════════════════════ -->
+<div id="modal-compartir" class="mc-overlay" onclick="if(event.target===this)this.style.display='none'">
+  <div class="share-box">
+    <div class="mc-header">
+      <button class="mc-close" onclick="document.getElementById('modal-compartir').style.display='none'">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+      <span class="mc-title">Compartir</span>
+    </div>
+    <div class="share-opts">
+      <button class="share-opt" onclick="copiarEnlace()">
+        <span class="material-symbols-outlined">link</span>
+        <span>Copiar enlace</span>
+      </button>
+      <button class="share-opt" onclick="shareWhatsApp()">
+        <span class="material-symbols-outlined">chat</span>
+        <span>WhatsApp</span>
+      </button>
+      <button class="share-opt" onclick="shareNativo()">
+        <span class="material-symbols-outlined">ios_share</span>
+        <span>Más opciones</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL MEDIA (zoom) -->
+<div id="media-modal" onclick="this.style.display='none'"
+  style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.93);z-index:10100;justify-content:center;align-items:center;cursor:zoom-out;">
+  <div id="media-modal-content" style="max-width:92vw;max-height:92vh;"></div>
+</div>
+
+<!-- BOTTOM NAV MÓVIL -->
+<nav class="bottom-nav" id="bottom-nav">
+  {% set nav_items = [
+    ('inicio','home','Inicio'),
+    ('recaudacion','savings','Recaud.'),
+    ('noticias','calendar_month','Noticias'),
+    ('mundial','sports_soccer','Mundial'),
+    ('perfil','person','Perfil'),
+  ] %}
+  {% for sec,icon,label in nav_items %}
+  <a class="bottom-nav-item {% if seccion_activa==sec %}active{% endif %}"
+     data-sec="{{ sec }}" href="#{{ sec }}"
+     onclick="irSeccion('{{ sec }}');updateBottomNav(this);return false;">
+    <span class="material-symbols-outlined">{{ icon }}</span>
+    <span class="bnav-label">{{ label }}</span>
+  </a>
+  {% endfor %}
+</nav>
+
+<!-- DATA MIEMBROS para JS -->
+<script id="miembros-data" type="application/json">
+{{ miembros | tojson }}
+</script>
+
+<style>
+/* ════════════════════════════════════════════════
+   PALETA LIMPIA — variables locales de inicio
+   Nota: colores base vienen del :root / dark-mode
+════════════════════════════════════════════════ */
+
+/* Acento principal: rojo oscuro tipo Instagram en light, blanco en dark */
+:root {
+  --ac: #c0392b;       /* rojo oscuro elegante */
+  --ac-soft: rgba(192,57,43,.10);
+  --ac-hover: rgba(192,57,43,.07);
+}
+body.dark-mode {
+  --ac: #e0e0e0;
+  --ac-soft: rgba(255,255,255,.10);
+  --ac-hover: rgba(255,255,255,.06);
+}
+
+/* Layout 2 col */
+.inicio-layout {
+  display: grid;
+  grid-template-columns: 1fr 290px;
+  gap: 20px;
+  align-items: start;
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 16px 0 80px;
+}
+
+/* ── FEED TABS ── */
+.feed-tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 14px;
+}
+.feed-tab {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 11px 8px;
+  border: none;
+  background: transparent;
+  color: var(--text2);
+  font-family: var(--font);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  position: relative;
+  transition: color .18s;
+}
+.feed-tab .material-symbols-outlined { font-size: 18px; }
+.feed-tab::after {
+  content:'';
+  position: absolute;
+  bottom: -1px;
+  left: 20%;
+  right: 20%;
+  height: 2px;
+  background: var(--text);
+  border-radius: 2px 2px 0 0;
+  opacity: 0;
+  transition: opacity .18s;
+}
+.feed-tab.active { color: var(--text); font-weight: 700; }
+.feed-tab.active::after { opacity: 1; }
+.feed-tab:hover { color: var(--text); background: var(--ac-hover); }
+
+/* ── COUNTDOWN ── */
+.countdown-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 12px 16px;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.cd-label-top { font-size: 11.5px; font-weight: 600; color: var(--text2); letter-spacing: .2px; }
+.cd-nums { display: flex; align-items: center; gap: 4px; }
+.cd-unit { display: flex; flex-direction: column; align-items: center; min-width: 36px; }
+.cd-num { font-size: 20px; font-weight: 800; color: var(--text); font-variant-numeric: tabular-nums; line-height: 1.1; }
+.cd-lbl { font-size: 9px; color: var(--text3); text-transform: uppercase; letter-spacing: .6px; margin-top: 1px; }
+.cd-sep { font-size: 16px; font-weight: 700; color: var(--text3); padding-bottom: 8px; }
+
+/* ── COMPOSE CARD ── */
+.compose-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 14px;
+  margin-bottom: 12px;
+  cursor: pointer;
+  transition: border-color .2s, box-shadow .2s;
+}
+.compose-card:hover { border-color: var(--text3); box-shadow: 0 2px 12px rgba(0,0,0,.06); }
+.compose-row { display: flex; gap: 10px; align-items: center; }
+.compose-av { width: 38px !important; height: 38px !important; flex-shrink: 0; }
+.compose-fake-input {
+  flex: 1;
+  color: var(--text3);
+  font-size: 14.5px;
+  padding: 6px 0;
+}
+.compose-quick-actions {
+  display: flex;
+  gap: 0;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+.cq-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  background: none;
+  border: none;
+  color: var(--text2);
+  font-family: var(--font);
+  font-size: 12.5px;
+  font-weight: 600;
+  padding: 6px 0;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: background .15s, color .15s;
+}
+.cq-btn:hover { background: var(--ac-hover); color: var(--ac); }
+.cq-btn .material-symbols-outlined { font-size: 18px; }
+
+/* ── POST CARD ── */
+.post-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 16px;
+  margin-bottom: 10px;
+  transition: box-shadow .2s;
+}
+.post-card:hover { box-shadow: 0 1px 12px rgba(0,0,0,.06); }
+
+.post-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.post-av { width: 40px !important; height: 40px !important; }
+.post-meta-block { display: flex; flex-direction: column; gap: 1px; flex: 1; min-width: 0; }
+.post-name { font-size: 14px; font-weight: 700; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.post-handle { font-size: 12px; color: var(--text3); }
+.post-delete-form { margin-left: auto; }
+.post-delete-btn {
+  background: transparent;
+  border: none;
+  color: var(--text3);
+  cursor: pointer;
+  padding: 5px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  transition: background .15s, color .15s;
+}
+.post-delete-btn:hover { background: var(--bg2); color: var(--text); }
+.post-delete-btn .material-symbols-outlined { font-size: 18px; }
+
+.post-text { font-size: 14.5px; line-height: 1.65; color: var(--text); margin-bottom: 10px; white-space: pre-wrap; word-break: break-word; }
+.post-media { width: 100%; border-radius: 12px; margin-bottom: 10px; max-height: 480px; object-fit: cover; cursor: pointer; }
+
+/* ── POST ACTIONS ── */
+.post-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+  margin-top: 4px;
+}
+.post-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 10px;
+  background: transparent;
+  border: none;
+  color: var(--text3);
+  font-family: var(--font);
+  font-size: 12.5px;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: background .15s, color .15s;
+}
+.post-action-btn:hover { background: var(--bg2); color: var(--text2); }
+.post-action-btn .material-symbols-outlined { font-size: 19px; }
+
+/* Like */
+.like-btn.liked { color: #e03030; }
+.like-btn.liked .material-symbols-outlined { font-variation-settings: 'FILL' 1; color: #e03030; }
+.like-btn:hover { background: rgba(224,48,48,.08) !important; color: #e03030 !important; }
+
+/* Repost */
+.repost-btn.reposted { color: #16a34a; }
+.repost-btn.reposted .material-symbols-outlined { color: #16a34a; }
+.repost-btn:hover { background: rgba(22,163,74,.08) !important; color: #16a34a !important; }
+
+/* Bookmark */
+.bookmark-btn.saved .material-symbols-outlined { font-variation-settings: 'FILL' 1; color: var(--ac); }
+
+/* ── COMMENTS ── */
+.comments-section {
+  display: none;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+.comments-section.open { display: block; }
+
+.comment-row { display: flex; gap: 8px; margin-bottom: 10px; align-items: flex-start; }
+.comment-bubble {
+  background: var(--bg2);
+  border-radius: 12px;
+  padding: 8px 11px;
+  flex: 1;
+  min-width: 0;
+}
+.comment-author { font-size: 12.5px; font-weight: 700; color: var(--text); margin-right: 5px; }
+.comment-text { font-size: 13px; color: var(--text2); line-height: 1.45; word-break: break-word; }
+.comment-date { display: block; font-size: 10.5px; color: var(--text3); margin-top: 3px; }
+
+.comment-form { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
+.comment-av { width: 28px !important; height: 28px !important; font-size: 11px !important; flex-shrink: 0; }
+.comment-input {
+  flex: 1;
+  padding: 8px 14px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 22px;
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 13px;
+  outline: none;
+  transition: border-color .2s;
+}
+.comment-input:focus { border-color: var(--text2); }
+.comment-input::placeholder { color: var(--text3); }
+
+.btn-comment {
+  background: var(--text);
+  color: var(--bg);
+  border: none;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  cursor: pointer;
+  transition: opacity .2s, transform .15s;
+}
+.btn-comment:hover { opacity: .8; transform: scale(1.05); }
+.btn-comment .material-symbols-outlined { font-size: 16px; }
+
+/* FEED EMPTY */
+.feed-empty {
+  text-align: center;
+  padding: 52px 20px;
+  color: var(--text3);
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+}
+.feed-empty .material-symbols-outlined { font-size: 40px; margin-bottom: 10px; display: block; opacity: .4; }
+.feed-empty p { font-size: 14px; }
+
+/* ── RIGHT PANEL ── */
+.right-panel { display: flex; flex-direction: column; gap: 14px; position: sticky; top: 76px; }
+.panel-card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
+.panel-header {
+  display: flex;
+  align-items: center;
+  padding: 13px 16px;
+  border-bottom: 1px solid var(--border);
+}
+.panel-header h3 { font-size: 14px; font-weight: 700; color: var(--text); flex: 1; margin: 0; }
+.panel-ver-mas { background: none; border: none; font-family: var(--font); font-size: 12.5px; color: var(--ac); cursor: pointer; font-weight: 600; padding: 3px 7px; border-radius: 8px; transition: background .15s; }
+.panel-ver-mas:hover { background: var(--ac-soft); }
+
+.miembros-list { padding: 6px 10px; }
+.miembro-item { display: flex; align-items: center; gap: 10px; padding: 7px 6px; border-radius: 10px; cursor: pointer; transition: background .15s; }
+.miembro-item:hover { background: var(--bg2); }
+.miembro-av { width: 34px !important; height: 34px !important; font-size: 13px !important; }
+.miembro-info { flex: 1; min-width: 0; }
+.miembro-info strong { font-size: 13px; font-weight: 600; color: var(--text); display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.miembro-info span { font-size: 11px; color: var(--text3); }
+.badge-admin { font-size: 10px; font-weight: 700; color: var(--ac); background: var(--ac-soft); padding: 2px 8px; border-radius: 20px; white-space: nowrap; }
+
+.panel-empty { text-align: center; padding: 24px 16px; color: var(--text3); }
+.panel-empty .material-symbols-outlined { font-size: 28px; display: block; margin-bottom: 6px; opacity: .4; }
+.panel-empty p { font-size: 12.5px; }
+
+.noticias-list { padding: 6px 10px; }
+.noticia-item { display: flex; align-items: flex-start; gap: 10px; padding: 9px 6px; border-bottom: 1px solid var(--border); cursor: pointer; border-radius: 8px; transition: background .15s; }
+.noticia-item:hover { background: var(--bg2); }
+.noticia-item:last-child { border-bottom: none; }
+.noticia-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: 4px; }
+.dot-ok   { background: #16a34a; }
+.dot-info { background: var(--ac); }
+.dot-warn { background: #d97706; }
+.dot-def  { background: var(--text3); }
+.noticia-titulo { font-size: 13px; font-weight: 600; color: var(--text); line-height: 1.4; margin-bottom: 2px; }
+.noticia-meta { font-size: 11px; color: var(--text3); }
+
+/* ── BOTTOM NAV ── */
+.bottom-nav {
+  display: none;
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  height: 58px;
+  background: var(--card);
+  border-top: 1px solid var(--border);
+  z-index: 500;
+  flex-direction: row;
+  align-items: stretch;
+  box-shadow: 0 -2px 12px rgba(0,0,0,.07);
+}
+.bottom-nav-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  color: var(--text3);
+  text-decoration: none;
+  cursor: pointer;
+  transition: color .18s;
+}
+.bottom-nav-item .material-symbols-outlined { font-size: 22px; }
+.bnav-label { font-size: 10px; font-weight: 500; }
+.bottom-nav-item.active { color: var(--text); }
+
+/* ════════════════════════════════════════
+   MODAL COMPOSITOR
+════════════════════════════════════════ */
+.mc-overlay {
+  display: none;
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  max-width: none !important;
+  max-height: none !important;
+
+  background: rgba(0,0,0,.6);
+  z-index: 10000;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 6vh;
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+}
+
+.mc-box {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  width: 100%;
+  max-width: 580px;
+  margin: 0 16px;
+  overflow: hidden;
+  animation: mcIn .22s ease;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+}
+
+@keyframes mcIn {
+  from { opacity:0; transform:translateY(-18px) scale(.98); }
+  to   { opacity:1; transform:translateY(0) scale(1); }
+}
+
+.mc-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.mc-close {
+  background: none;
+  border: none;
+  color: var(--text2);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px; height: 34px;
+  border-radius: 50%;
+  transition: background .15s;
+  flex-shrink: 0;
+}
+
+.mc-close:hover { background: var(--bg2); }
+.mc-close .material-symbols-outlined { font-size: 20px; }
+
+.mc-title { flex: 1; font-size: 15px; font-weight: 700; color: var(--text); }
+
+.mc-publish-btn {
+  background: var(--text);
+  color: var(--bg);
+  border: none;
+  border-radius: 22px;
+  padding: 8px 20px;
+  font-family: var(--font);
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity .18s, transform .1s;
+  white-space: nowrap;
+}
+.mc-publish-btn:hover:not(:disabled) { opacity: .85; transform: scale(1.02); }
+.mc-publish-btn:disabled { opacity: .35; cursor: default; }
+
+.mc-body {
+  display: flex;
+  gap: 12px;
+  padding: 16px;
+  align-items: flex-start;
+  flex: 1;
+  overflow-y: auto;
+}
+
+#mc-av-slot .user-avatar,
+#mc-av-slot .user-avatar-img {
+  width: 40px !important;
+  height: 40px !important;
+  flex-shrink: 0;
+  font-size: 16px !important;
+}
+
+.mc-right { flex: 1; min-width: 0; }
+
+.mc-textarea {
+  width: 100%;
+  background: transparent;
+  border: none;
+  resize: none;
+  color: var(--text);
+  font-size: 15px;
+  line-height: 1.6;
+  outline: none;
+  font-family: var(--font);
+  min-height: 90px;
+}
+.mc-textarea::placeholder { color: var(--text3); }
+
+/* Tags de menciones */
+.mc-tags-row { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 4px; min-height: 0; }
+.mc-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--ac-soft);
+  color: var(--ac);
+  border-radius: 20px;
+  padding: 3px 10px 3px 8px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.mc-tag button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: inherit;
+  padding: 0;
+  display: flex;
+  line-height: 1;
+}
+.mc-tag button .material-symbols-outlined { font-size: 13px; }
+
+/* Mention dropdown */
+.mc-mention-drop {
+  position: absolute;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 4px 24px rgba(0,0,0,.14);
+  z-index: 10010;
+  max-height: 180px;
+  overflow-y: auto;
+  min-width: 200px;
+}
+.mc-mention-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 10px 14px;
+  cursor: pointer;
+  transition: background .15s;
+  font-size: 13px;
+}
+.mc-mention-item:hover { background: var(--bg2); }
+.mc-mention-item strong { color: var(--text); font-weight: 600; }
+.mc-mention-item span { color: var(--text3); font-size: 12px; }
+
+/* Meta row (ubicación) */
+.mc-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  background: var(--bg2);
+  border-radius: 10px;
+  padding: 7px 10px;
+}
+.mc-meta-icon { font-size: 16px; color: var(--ac); }
+.mc-meta-input {
+  flex: 1;
+  background: none;
+  border: none;
+  outline: none;
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 13px;
+}
+.mc-meta-input::placeholder { color: var(--text3); }
+.mc-meta-remove {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text3);
+  display: flex;
+  padding: 2px;
+  transition: color .15s;
+}
+.mc-meta-remove:hover { color: var(--text); }
+.mc-meta-remove .material-symbols-outlined { font-size: 15px; }
+
+/* Barra de chars */
+.mc-char-bar {
+  height: 2px;
+  background: var(--border);
+  border-radius: 2px;
+  margin-top: 10px;
+  overflow: hidden;
+}
+.mc-char-fill {
+  height: 100%;
+  background: var(--text);
+  border-radius: 2px;
+  width: 0%;
+  transition: width .15s, background .2s;
+}
+.mc-char-count {
+  font-size: 11px;
+  color: var(--text3);
+  display: block;
+  text-align: right;
+  margin-top: 3px;
+}
+
+/* Media preview */
+.mc-media-preview {
+  padding: 0 16px 12px;
+  position: relative;
+}
+.mc-media-preview img,
+.mc-media-preview video {
+  max-width: 100%;
+  max-height: 200px;
+  border-radius: 12px;
+  object-fit: cover;
+}
+.mc-media-rm {
+  position: absolute;
+  top: 6px; right: 22px;
+  background: rgba(0,0,0,.6);
+  color: #fff;
+  border: none;
+  width: 26px; height: 26px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.mc-media-rm .material-symbols-outlined { font-size: 14px; }
+
+/* Emoji panel */
+.mc-emoji-panel {
+  padding: 10px 16px;
+  border-top: 1px solid var(--border);
+  max-height: 160px;
+  overflow-y: auto;
+  flex-shrink: 0;
+}
+.mc-emoji-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+}
+.mc-emoji-btn {
+  font-size: 22px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 8px;
+  line-height: 1;
+  transition: background .12s, transform .1s;
+}
+.mc-emoji-btn:hover { background: var(--bg2); transform: scale(1.2); }
+
+/* GIF panel */
+.mc-gif-panel {
+  padding: 12px 16px;
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.mc-gif-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text2);
+  margin-bottom: 10px;
+}
+.mc-gif-header .material-symbols-outlined { font-size: 18px; color: var(--ac); }
+.mc-gif-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background: var(--bg2);
+  border: 1.5px dashed var(--border);
+  border-radius: 12px;
+  cursor: pointer;
+  color: var(--text2);
+  font-size: 13.5px;
+  font-weight: 500;
+  transition: border-color .2s, background .2s;
+}
+.mc-gif-label:hover { border-color: var(--ac); background: var(--ac-soft); color: var(--ac); }
+.mc-gif-label .material-symbols-outlined { font-size: 20px; }
+
+/* Footer */
+.mc-footer {
+  border-top: 1px solid var(--border);
+  padding: 10px 14px;
+  flex-shrink: 0;
+}
+.mc-footer-actions { display: flex; gap: 2px; align-items: center; }
+.mc-act-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  color: var(--ac);
+  cursor: pointer;
+  width: 38px; height: 38px;
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: 800;
+  transition: background .15s;
+}
+.mc-act-btn:hover { background: var(--ac-soft); }
+.mc-act-btn .material-symbols-outlined { font-size: 20px; }
+.mc-gif-label-txt { font-size: 12.5px; font-weight: 800; letter-spacing: .5px; }
+
+/* Solución para ocupar toda la pantalla dentro de main-content */
+.main-content > .mc-overlay {
+  width: 100vw !important;
+  max-width: none !important;
+}
+
+/* ── SHARE MODAL ── */
+.share-box {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  width: 100%;
+  max-width: 340px;
+  margin: 0 16px;
+  overflow: hidden;
+  animation: mcIn .2s ease;
+}
+.share-opts { padding: 6px 0 14px; }
+.share-opt {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: none;
+  border: none;
+  color: var(--text);
+  padding: 14px 20px;
+  width: 100%;
+  text-align: left;
+  font-family: var(--font);
+  font-size: 14px;
+  cursor: pointer;
+  transition: background .15s;
+}
+.share-opt:hover { background: var(--bg2); }
+.share-opt .material-symbols-outlined { font-size: 21px; color: var(--text2); }
+
+/* ═══════════════════════════════
+   RESPONSIVE MOBILE
+═══════════════════════════════ */
+@media (max-width: 900px) {
+  .inicio-layout { grid-template-columns: 1fr; padding: 10px 0 70px; }
+  .right-panel { display: none; }
+}
+@media (max-width: 768px) {
+  .bottom-nav { display: flex; }
+  .feed-col { padding: 0 2px; }
+  .mc-overlay { padding-top: 0; align-items: flex-end; }
+  .mc-box {
+    border-radius: 20px 20px 0 0;
+    margin: 0;
+    max-width: 100%;
+    max-height: 88vh;
+    animation: mcUp .22s ease;
+  }
+  .share-box {
+    border-radius: 20px 20px 0 0;
+    margin: 0;
+    max-width: 100%;
+    animation: mcUp .2s ease;
+  }
+  @keyframes mcUp {
+    from { opacity:0; transform:translateY(30px); }
+    to   { opacity:1; transform:translateY(0); }
+  }
+  .post-card { border-radius: 12px; padding: 13px; }
+  .post-action-btn { padding: 6px 8px; font-size: 12px; }
+  .post-action-btn .material-symbols-outlined { font-size: 18px; }
+  .feed-tab span:not(.material-symbols-outlined) { display: none; }
+}
+@media (max-width: 480px) {
+  .countdown-card { flex-direction: column; align-items: flex-start; gap: 8px; }
+  .cd-num { font-size: 18px; }
+  .compose-av { width: 34px !important; height: 34px !important; }
+  .mc-publish-btn { padding: 7px 16px; font-size: 13px; }
+}
+</style>
+
+<script>
+/* ── TABS ── */
+const _feeds = {
+  'posts':      'feed-posts',
+  'guardados':  'feed-guardados',
+  'tendencias': 'feed-tendencias'
+};
+document.querySelectorAll('.feed-tab').forEach(tab => {
+  tab.addEventListener('click', function(){
+    document.querySelectorAll('.feed-tab').forEach(t=>t.classList.remove('active'));
+    this.classList.add('active');
+    const feedKey = this.dataset.feed;
+    Object.values(_feeds).forEach(id => {
+      const el = document.getElementById(id);
+      if(el) el.style.display = 'none';
+    });
+    const target = document.getElementById(_feeds[feedKey] || 'feed-posts');
+    if(target) target.style.display = 'block';
+  });
+});
+
+/* ── TOGGLE MIEMBROS ── */
+function toggleMiembros(){
+  const extra = document.getElementById('miembros-extra');
+  const btn   = document.getElementById('btn-ver-mas');
+  if(!extra||!btn) return;
+  const vis = extra.style.display!=='none';
+  extra.style.display = vis?'none':'block';
+  btn.textContent = vis?'Ver más':'Ver menos';
+}
+
+/* ── BOTTOM NAV ── */
+function updateBottomNav(el){
+  document.querySelectorAll('.bottom-nav-item').forEach(i=>i.classList.remove('active'));
+  if(el) el.classList.add('active');
+}
+
+/* ── COMENTARIOS ── */
+function abrirComentarios(id){
+  const sec = document.getElementById('comentarios-'+id);
+  if(!sec) return;
+  sec.classList.toggle('open');
+  if(sec.classList.contains('open')){
+    setTimeout(()=>{ sec.querySelector('.comment-input')?.focus(); }, 50);
+  }
+}
+
+async function enviarComentario(postId, input){
+  const texto = input?.value?.trim();
+  if(!texto) return;
+  input.disabled = true;
+  try {
+    const fd = new FormData();
+    fd.append('post_id', postId);
+    fd.append('comentario', texto);
+    const res  = await fetch('/comentar_ajax',{method:'POST',body:fd});
+    const data = await res.json();
+    if(data.ok){
+      input.value = '';
+      const sec  = document.getElementById('comentarios-'+postId);
+      const form = sec?.querySelector('.comment-form');
+      if(form && sec){
+        const row = document.createElement('div');
+        row.className = 'comment-row';
+        row.innerHTML = `
+          <div class="user-avatar" style="width:28px;height:28px;font-size:11px;flex-shrink:0;">${data.inicial}</div>
+          <div class="comment-bubble">
+            <strong class="comment-author">${escHTML(data.nombre)}</strong>
+            <span class="comment-text">${escHTML(data.texto)}</span>
+            <span class="comment-date">ahora</span>
+          </div>`;
+        sec.insertBefore(row, form);
+      }
+      const cnt = document.getElementById('cmt-count-'+postId);
+      if(cnt) cnt.textContent = parseInt(cnt.textContent||0)+1;
+    } else { mostrarToast('Error al comentar','err'); }
+  } catch(e){ mostrarToast('Error de red','err'); }
+  input.disabled = false;
+  input.focus();
+}
+
+function escHTML(s){ const d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
+
+/* ── LIKE ── */
+async function darLike(id, btn){
+  if(btn.disabled) return;
+  btn.disabled = true;
+  try {
+    const res  = await fetch('/like/'+id,{method:'POST'});
+    const data = await res.json();
+    if(data.ok){
+      btn.querySelector('.like-count').textContent = data.likes;
+      btn.classList.toggle('liked', data.liked);
+      btn.classList.add('pop');
+      setTimeout(()=>btn.classList.remove('pop'),200);
+    }
+  } catch(e){}
+  setTimeout(()=>btn.disabled=false,350);
+}
+
+/* ── REPOST (real) ── */
+async function repostear(id, btn){
+  if(btn.disabled) return;
+  btn.disabled = true;
+  try {
+    const res  = await fetch('/repost/'+id, {method:'POST'});
+    const data = await res.json();
+    if(data.ok){
+      const on = data.reposted;
+      btn.classList.toggle('reposted', on);
+      const cnt = btn.querySelector('.repost-count');
+      if(cnt) cnt.textContent = data.reposts;
+      mostrarToast(on ? '🔁 Reposteado y guardado' : 'Repost quitado');
+      // Si está guardado, sincronizar feed guardados
+      _syncGuardados(id, on || _bookmarkState(id));
+    }
+  } catch(e){ mostrarToast('Error de red','err'); }
+  setTimeout(()=>btn.disabled=false, 350);
+}
+
+/* ── BOOKMARK (real) ── */
+async function toggleBookmark(id, btn){
+  if(btn.disabled) return;
+  btn.disabled = true;
+  try {
+    const res  = await fetch('/bookmark/'+id, {method:'POST'});
+    const data = await res.json();
+    if(data.ok){
+      btn.classList.toggle('saved', data.saved);
+      // Sincronizar todos los botones de ese post en todos los feeds
+      document.querySelectorAll(`#post-${id} .bookmark-btn`).forEach(b=>{
+        b.classList.toggle('saved', data.saved);
+      });
+      mostrarToast(data.saved ? '🔖 Guardado' : 'Quitado de guardados');
+      _syncGuardados(id, data.saved);
+    }
+  } catch(e){ mostrarToast('Error de red','err'); }
+  setTimeout(()=>btn.disabled=false, 350);
+}
+
+function _bookmarkState(id){
+  const btn = document.querySelector(`#post-${id} .bookmark-btn`);
+  return btn ? btn.classList.contains('saved') : false;
+}
+
+/* Mueve/oculta el post en feed-guardados según estado */
+function _syncGuardados(id, shouldBeSaved){
+  const feedG = document.getElementById('feed-guardados');
+  if(!feedG) return;
+  const existing = feedG.querySelector(`#post-${id}`);
+  if(shouldBeSaved && !existing){
+    // Clonar del feed principal
+    const orig = document.querySelector(`#feed-posts #post-${id}`) ||
+                 document.querySelector(`#feed-tendencias #post-${id}`);
+    if(orig){
+      const clone = orig.cloneNode(true);
+      // Poner al inicio
+      const firstEmpty = feedG.querySelector('.feed-empty');
+      if(firstEmpty) feedG.removeChild(firstEmpty);
+      feedG.prepend(clone);
+    }
+  } else if(!shouldBeSaved && existing){
+    existing.style.opacity = '0';
+    existing.style.transform = 'translateY(-6px)';
+    existing.style.transition = 'all .25s';
+    setTimeout(()=>{
+      existing.remove();
+      if(!feedG.querySelector('.post-card')){
+        feedG.innerHTML = `<div class="feed-empty">
+          <span class="material-symbols-outlined">bookmark</span>
+          <p>Aún no tienes guardados. Guarda posts con <span class="material-symbols-outlined" style="font-size:16px;vertical-align:-3px;">bookmark</span> o repostéalos.</p>
+        </div>`;
+      }
+    }, 260);
+  }
+}
+
+/* ── MEDIA MODAL ── */
+function abrirMediaModal(src, tipo){
+  const m = document.getElementById('media-modal');
+  document.getElementById('media-modal-content').innerHTML =
+    tipo==='imagen'
+      ? `<img src="${src}" style="max-width:92vw;max-height:92vh;border-radius:12px;">`
+      : `<video src="${src}" controls autoplay style="max-width:92vw;max-height:92vh;border-radius:12px;"></video>`;
+  m.style.display='flex';
+}
+
+/* ── COMPARTIR ── */
+let _share = {id:null,texto:''};
+function compartirPost(id,texto){ _share={id,texto}; document.getElementById('modal-compartir').style.display='flex'; }
+function copiarEnlace(){
+  navigator.clipboard?.writeText(window.location.origin+'/dashboard#inicio').then(()=>mostrarToast('🔗 Enlace copiado'));
+  document.getElementById('modal-compartir').style.display='none';
+}
+function shareWhatsApp(){
+  const t = encodeURIComponent('Mira esta publicación: '+_share.texto+' '+window.location.origin);
+  window.open('https://api.whatsapp.com/send?text='+t,'_blank');
+  document.getElementById('modal-compartir').style.display='none';
+}
+function shareNativo(){
+  if(navigator.share){ navigator.share({title:'Familia Nueva',text:_share.texto,url:window.location.origin}).catch(()=>{}); }
+  else copiarEnlace();
+  document.getElementById('modal-compartir').style.display='none';
+}
+
+/* ════════════════════════════════
+   COMPOSITOR MODAL
+════════════════════════════════ */
+let _miembros = [];
+try {
+  const raw = document.getElementById('miembros-data')?.textContent;
+  if(raw) _miembros = JSON.parse(raw);
+} catch(e){}
+
+let _menciones = []; // {nombre, usuario}
+let _gifFile = null;
+
+function abrirComposer(modo){
+  const overlay = document.getElementById('modal-composer');
+  overlay.style.display = 'flex';
+
+  // Copiar avatar
+  const avOrig = document.querySelector('.compose-av');
+  const slot   = document.getElementById('mc-av-slot');
+  if(slot && avOrig) slot.innerHTML = avOrig.outerHTML;
+
+  // Reset
+  document.getElementById('mc-texto').value = '';
+  document.getElementById('mc-chars').textContent = '0';
+  document.getElementById('mc-char-fill').style.width = '0%';
+  document.getElementById('mc-char-fill').style.background = 'var(--text)';
+  document.getElementById('mc-media-preview').style.display = 'none';
+  document.getElementById('mc-media-preview').innerHTML = '';
+  document.getElementById('mc-emoji-panel').style.display = 'none';
+  document.getElementById('mc-gif-panel').style.display = 'none';
+  document.getElementById('mc-location-row').style.display = 'none';
+  document.getElementById('mc-location-input').value = '';
+  document.getElementById('mc-tags').innerHTML = '';
+  document.getElementById('mc-mention-drop').style.display = 'none';
+  if(document.getElementById('mc-file-input')) document.getElementById('mc-file-input').value = '';
+  if(document.getElementById('mc-gif-input'))  document.getElementById('mc-gif-input').value  = '';
+  _menciones = [];
+  _gifFile = null;
+  actualizarPublicarBtn();
+
+  setTimeout(()=>{ document.getElementById('mc-texto')?.focus(); }, 120);
+  if(modo==='foto') setTimeout(()=>document.getElementById('mc-file-input')?.click(), 200);
+  if(modo==='gif')  setTimeout(()=>document.getElementById('mc-gif-input')?.click(), 200);
+}
+
+function cerrarComposer(){
+  document.getElementById('modal-composer').style.display = 'none';
+}
+
+function onComposerInput(){
+  const ta  = document.getElementById('mc-texto');
+  const len = ta.value.length;
+  document.getElementById('mc-chars').textContent = len;
+  const pct = (len/500)*100;
+  const fill = document.getElementById('mc-char-fill');
+  fill.style.width = Math.min(pct,100)+'%';
+  fill.style.background = pct>90 ? '#e03030' : pct>70 ? '#d97706' : 'var(--text)';
+  actualizarPublicarBtn();
+  gestionarMenciones(ta);
+}
+
+function actualizarPublicarBtn(){
+  const texto = document.getElementById('mc-texto')?.value.trim();
+  const file  = document.getElementById('mc-file-input')?.files[0];
+  const gif   = document.getElementById('mc-gif-input')?.files[0] || _gifFile;
+  const btn   = document.getElementById('btn-publicar-modal');
+  if(btn) btn.disabled = !(texto || file || gif);
+}
+
+/* ── Emojis ── */
+const EMOJIS = ['😀','😂','😍','🥰','😎','🤩','😭','😅','🙏','❤️','🔥','✨','🎉','👏','💪','🤝','👨‍👩‍👧‍👦','🏠','⚽','🎵','📸','🌟','💯','🎊','🥳','😏','🤔','😬','👋','🫶'];
+
+function initEmojis(){
+  const grid = document.getElementById('mc-emoji-grid');
+  if(!grid || grid.children.length) return;
+  EMOJIS.forEach(e=>{
+    const btn = document.createElement('button');
+    btn.className = 'mc-emoji-btn';
+    btn.textContent = e;
+    btn.onclick = ()=> insertEmoji(e);
+    grid.appendChild(btn);
+  });
+}
+
+function insertEmoji(emoji){
+  const ta = document.getElementById('mc-texto');
+  const s  = ta.selectionStart, end = ta.selectionEnd;
+  ta.value = ta.value.slice(0,s)+emoji+ta.value.slice(end);
+  ta.selectionStart = ta.selectionEnd = s+emoji.length;
+  ta.focus();
+  onComposerInput();
+}
+
+function togglePanel(tipo){
+  const emojiP = document.getElementById('mc-emoji-panel');
+  const gifP   = document.getElementById('mc-gif-panel');
+  if(tipo==='emoji'){
+    const open = emojiP.style.display!=='none';
+    emojiP.style.display = open?'none':'block';
+    gifP.style.display   = 'none';
+    if(!open) initEmojis();
+  } else {
+    const open = gifP.style.display!=='none';
+    gifP.style.display   = open?'none':'block';
+    emojiP.style.display = 'none';
+  }
+}
+
+/* ── Ubicación ── */
+function toggleUbicacion(){
+  const row = document.getElementById('mc-location-row');
+  const vis = row.style.display!=='none';
+  row.style.display = vis?'none':'flex';
+  if(!vis) document.getElementById('mc-location-input')?.focus();
+}
+function quitarUbicacion(){
+  document.getElementById('mc-location-row').style.display='none';
+  document.getElementById('mc-location-input').value='';
+}
+
+/* ── Menciones ── */
+function insertarArroba(){
+  const ta = document.getElementById('mc-texto');
+  const s  = ta.selectionStart;
+  ta.value = ta.value.slice(0,s)+'@'+ta.value.slice(s);
+  ta.selectionStart = ta.selectionEnd = s+1;
+  ta.focus();
+  onComposerInput();
+}
+
+function gestionarMenciones(ta){
+  const val = ta.value;
+  const pos = ta.selectionStart;
+  // Buscar @ antes del cursor
+  const before = val.slice(0,pos);
+  const match  = before.match(/@(\w*)$/);
+  const drop   = document.getElementById('mc-mention-drop');
+  if(!match){
+    drop.style.display='none';
+    return;
+  }
+  const query = match[1].toLowerCase();
+  const results = _miembros.filter(m=>
+    !_menciones.find(me=>me.usuario===m.usuario) &&
+    (m.nombre.toLowerCase().includes(query) || m.usuario.toLowerCase().includes(query))
+  ).slice(0,5);
+
+  if(!results.length){ drop.style.display='none'; return; }
+  drop.innerHTML = results.map(m=>`
+    <div class="mc-mention-item" onclick="seleccionarMencion('${escHTML(m.nombre)}','${escHTML(m.usuario)}')">
+      <div class="user-avatar" style="width:28px;height:28px;font-size:11px;flex-shrink:0;">${m.nombre[0].toUpperCase()}</div>
+      <div>
+        <strong>${escHTML(m.nombre)}</strong>
+        <span>@${escHTML(m.usuario)}</span>
+      </div>
+    </div>`).join('');
+  drop.style.display='block';
+
+  // Posicionar debajo del textarea
+  const rect = ta.getBoundingClientRect();
+  const boxRect = document.querySelector('.mc-box')?.getBoundingClientRect();
+  if(boxRect){
+    drop.style.left   = (rect.left - boxRect.left)+'px';
+    drop.style.top    = (rect.bottom - boxRect.top + 4)+'px';
+  }
+}
+
+function seleccionarMencion(nombre, usuario){
+  const ta  = document.getElementById('mc-texto');
+  const pos = ta.selectionStart;
+  const val = ta.value;
+  const before = val.slice(0,pos);
+  const newBefore = before.replace(/@\w*$/, '');
+  ta.value = newBefore + val.slice(pos);
+  ta.selectionStart = ta.selectionEnd = newBefore.length;
+  ta.focus();
+
+  _menciones.push({nombre, usuario});
+  renderTags();
+  document.getElementById('mc-mention-drop').style.display='none';
+  actualizarPublicarBtn();
+}
+
+function renderTags(){
+  const row = document.getElementById('mc-tags');
+  row.innerHTML = _menciones.map((m,i)=>`
+    <span class="mc-tag">
+      <span class="material-symbols-outlined" style="font-size:13px;">person</span>
+      ${escHTML(m.nombre)}
+      <button onclick="quitarTag(${i})"><span class="material-symbols-outlined">close</span></button>
+    </span>`).join('');
+}
+
+function quitarTag(i){
+  _menciones.splice(i,1);
+  renderTags();
+}
+
+/* ── Media preview ── */
+function previewMedia(input){
+  const file = input.files[0];
+  mostrarPreviewMedia(file);
+}
+
+function previewGif(input){
+  const file = input.files[0];
+  if(!file) return;
+  _gifFile = file;
+  mostrarPreviewMedia(file);
+  actualizarPublicarBtn();
+}
+
+function mostrarPreviewMedia(file){
+  if(!file) return;
+  const prev = document.getElementById('mc-media-preview');
+  prev.innerHTML = '';
+  prev.style.display = 'block';
+  const url = URL.createObjectURL(file);
+  if(file.type.startsWith('video')){
+    prev.innerHTML = `<video src="${url}" controls style="max-width:100%;max-height:200px;border-radius:12px;"></video>
+      <button class="mc-media-rm" onclick="quitarMedia()"><span class="material-symbols-outlined">close</span></button>`;
+  } else {
+    prev.innerHTML = `<img src="${url}" style="max-width:100%;max-height:200px;border-radius:12px;object-fit:cover;">
+      <button class="mc-media-rm" onclick="quitarMedia()"><span class="material-symbols-outlined">close</span></button>`;
+  }
+  // Cerrar panels
+  document.getElementById('mc-gif-panel').style.display='none';
+  actualizarPublicarBtn();
+}
+
+function quitarMedia(){
+  document.getElementById('mc-file-input').value='';
+  if(document.getElementById('mc-gif-input')) document.getElementById('mc-gif-input').value='';
+  _gifFile = null;
+  const p=document.getElementById('mc-media-preview');
+  p.innerHTML=''; p.style.display='none';
+  actualizarPublicarBtn();
+}
+
+/* ── SUBMIT ── */
+async function submitComposer(){
+  const texto = document.getElementById('mc-texto')?.value.trim();
+  const file  = document.getElementById('mc-file-input')?.files[0];
+  const gif   = document.getElementById('mc-gif-input')?.files[0] || _gifFile;
+  const loc   = document.getElementById('mc-location-input')?.value.trim();
+
+  if(!texto && !file && !gif){ mostrarToast('Escribe algo o adjunta media','err'); return; }
+
+  const btn = document.getElementById('btn-publicar-modal');
+  if(btn){ btn.disabled=true; btn.textContent='Publicando...'; }
+
+  // Construir texto con menciones y ubicación
+  let textoFinal = texto;
+  if(_menciones.length) textoFinal += '\n' + _menciones.map(m=>'@'+m.usuario).join(' ');
+  if(loc) textoFinal += '\n📍 '+loc;
+
+  const fd = new FormData();
+  if(textoFinal) fd.append('texto', textoFinal);
+  if(file) fd.append('media', file);
+  else if(gif) fd.append('media', gif);
+
+  try {
+    const res  = await fetch('/publicar_ajax',{method:'POST',body:fd});
+    const data = await res.json();
+    if(data.ok){
+      cerrarComposer();
+      const feed = document.getElementById('feed-posts');
+      if(feed && data.html){
+        const div=document.createElement('div');
+        div.innerHTML=data.html;
+        const el = div.firstElementChild;
+        el.style.opacity='0';
+        el.style.transform='translateY(-10px)';
+        feed.prepend(el);
+        requestAnimationFrame(()=>{
+          el.style.transition='opacity .35s ease, transform .35s ease';
+          el.style.opacity='1';
+          el.style.transform='translateY(0)';
+        });
+      }
+      mostrarToast('✅ ¡Publicado!');
+    } else { mostrarToast('Error al publicar','err'); }
+  } catch(e){ mostrarToast('Error de red','err'); }
+
+  if(btn){ btn.disabled=false; btn.textContent='Publicar'; actualizarPublicarBtn(); }
+}
+
+/* ── TOAST ── */
+function mostrarToast(msg, tipo='ok'){
+  let c = document.getElementById('toast-container');
+  if(!c){ c=document.createElement('div'); c.id='toast-container'; Object.assign(c.style,{position:'fixed',bottom:'74px',left:'50%',transform:'translateX(-50%)',zIndex:'20000',display:'flex',flexDirection:'column',alignItems:'center',gap:'6px',pointerEvents:'none'}); document.body.appendChild(c); }
+  const t=document.createElement('div');
+  Object.assign(t.style,{background:tipo==='err'?'rgba(220,38,38,.95)':'rgba(30,30,32,.94)',color:'#fff',padding:'9px 18px',borderRadius:'22px',fontSize:'13px',fontWeight:'600',fontFamily:'var(--font)',boxShadow:'0 4px 18px rgba(0,0,0,.22)',opacity:'0',transform:'translateY(8px)',transition:'all .2s',pointerEvents:'none',backdropFilter:'blur(6px)',whiteSpace:'nowrap'});
+  t.textContent=msg;
+  c.appendChild(t);
+  requestAnimationFrame(()=>{ t.style.opacity='1'; t.style.transform='translateY(0)'; });
+  setTimeout(()=>{ t.style.opacity='0'; t.style.transform='translateY(6px)'; setTimeout(()=>t.remove(),220); },3000);
+}
+</script>

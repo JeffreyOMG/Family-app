@@ -1,0 +1,46 @@
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-brand">
+    <div class="brand-name">
+      <span class="material-symbols-outlined">groups</span>
+      <span class="menu-text">FAMILIA</span>
+    </div>
+    <div class="brand-sub menu-text">2026</div>
+  </div>
+
+  <nav class="sidebar-nav">
+    {% set nav_items = [
+      ('inicio',    'home',          'Inicio'),
+      ('recaudacion','savings',      'Recaudación'),
+      ('noticias',  'calendar_month','Noticias'),
+      ('mundial',   'sports_soccer', 'Mundial'),
+      ('galeria',   'photo_library', 'Galería'),
+      ('buscador',  'search',        'Buscador'),
+      ('perfil',    'person',        'Perfil'),
+      ('ajustes',   'settings',      'Ajustes'),
+    ] %}
+    {% for sec, icon, label in nav_items %}
+    <a class="nav-item {% if seccion_activa==sec %}active{% endif %}" data-sec="{{ sec }}" href="#{{ sec }}">
+      <span class="material-symbols-outlined">{{ icon }}</span>
+      <span class="menu-text">{{ label }}</span>
+    </a>
+    {% endfor %}
+  </nav>
+
+  <div class="sidebar-footer">
+    <div class="user-info">
+      {% if usuario.foto %}
+        <img src="{{ usuario.foto }}" class="user-avatar-img" alt="foto">
+      {% else %}
+        <div class="user-avatar">{{ usuario.nombre[0]|upper }}</div>
+      {% endif %}
+      <div class="user-details menu-text">
+        <div class="user-name">{{ usuario.nombre.split()[0] }}</div>
+        <div class="user-role">{{ usuario.rol }}</div>
+      </div>
+    </div>
+    <a href="/logout" class="logout-btn" title="Cerrar sesión">
+      <span class="material-symbols-outlined">logout</span>
+      <span class="menu-text">Salir</span>
+    </a>
+  </div>
+</aside>

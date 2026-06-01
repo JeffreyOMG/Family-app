@@ -1,0 +1,211 @@
+from flask import Flask, render_template, request, redirect, session, jsonify
+import sqlite3, os
+from werkzeug.security import generate_password_hash, check_password_hash
+from datetime import datetime
+
+app = Flask(__name__)
+app.secret_key = "familia-secreta-2025"
+DB = "familia.db"
+
+# ── Base de datos ─────────────────────────────
+def db():
+    con = sqlite3.connect(DB)
+    con.row_factory = sqlite3.Row
+    return con
+
+def init_db():
+    con = db()
+    cur = con.cursor()
+    cur.executescript("""
+        CREATE TABLE IF NOT EXISTS usuarios (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            nombre TEXT NOT NULL,
+            usuario TEXT UNIQUE NOT NULL,
+            password TEXT NOT NULL,
+            rol TEXT DEFAULT 'miembro',
+            fecha TEXT DEFAULT CURRENT_TIMESTAMP
+        );
+        CREATE TABLE IF NOT EXISTS aportes (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            usuario_id INTEGER,
+            monto REAL,
+            descripcion TEXT,
+            fecha TEXT DEFAULT CURRENT_TIMESTAMP
+        );
+        CREATE TABLE IF NOT EXISTS actividades (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            titulo TEXT,
+            descripcion TEXT,
+            usuario_id INTEGER,
+            fecha TEXT DEFAULT CURRENT_TIMESTAMP
+        );
+        CREATE TABLE IF NOT EXISTS publicaciones (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            usuario_id INTEGER,
+            texto TEXT,
+            likes INTEGER DEFAULT 0,
+            fecha TEXT DEFAULT CURRENT_TIMESTAMP
+        );
+        CREATE TABLE IF NOT EXISTS noticias (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            titulo TEXT,
+            contenido TEXT,
+            fecha TEXT DEFAULT CURRENT_TIMESTAMP
+        );
+    """)
+    # Admin por defecto
+    existe = cur.execute("SELECT id FROM usuarios WHERE usuario='admin'").fetchone()
+    if not existe:
+        cur.execute("INSERT INTO usuarios(nombre,usuario,password,rol) VALUES(?,?,?,?)",
+            ("Administrador","admin", generate_password_hash("Admin123!"), "admin"))
+        cur.execute("INSERT INTO aportes(usuario_id,monto,descripcion) VALUES(1,50000,'Aporte inicial')")
+        cur.execute("INSERT INTO aportes(usuario_id,monto,descripcion) VALUES(1,30000,'Colecta semana 1')")
+        cur.execute("INSERT INTO actividades(titulo,descripcion,usuario_id) VALUES(?,?,1)",
+            ("Reunión de planificación","Se definió destino y presupuesto."))
+        cur.execute("INSERT INTO noticias(titulo,contenido) VALUES(?,?)",
+            ("¡Bienvenidos!","La plataforma familiar está lista. ¡Empecemos a recaudar!"))
+    con.commit()
+    con.close()
+
+init_db()
+
+# ── Helpers ───────────────────────────────────
+def usuario_actual():
+    if 'uid' in session:
+        con = db()
+        u = con.execute("SELECT * FROM usuarios WHERE id=?", (session['uid'],)).fetchone()
+        con.close()
+        return u
+    return None
+
+# ── LOGIN ─────────────────────────────────────
+@app.route('/', methods=['GET','POST'])
+def login():
+    if 'uid' in session:
+        return redirect('/dashboard')
+    error = ""
+    if request.method == 'POST':
+        usu = request.form.get('usuario','').strip()
+        pwd = request.form.get('password','')
+        con = db()
+        row = con.execute("SELECT * FROM usuarios WHERE usuario=?", (usu,)).fetchone()
+        con.close()
+        if row and check_password_hash(row['password'], pwd):
+            session['uid'] = row['id']
+            session['nombre'] = row['nombre']
+            session['rol'] = row['rol']
+            return redirect('/dashboard')
+        error = "Usuario o contraseña incorrectos"
+    return render_template('login.html', error=error)
+
+# ── REGISTRO ──────────────────────────────────
+@app.route('/registro', methods=['GET','POST'])
+def registro():
+    error = ""
+    if request.method == 'POST':
+        nombre = request.form.get('nombre','').strip()
+        usu    = request.form.get('usuario','').strip()
+        pwd    = request.form.get('password','')
+        conf   = request.form.get('confirmar','')
+        if not all([nombre, usu, pwd, conf]):
+            error = "Completa todos los campos"
+        elif pwd != conf:
+            error = "Las contraseñas no coinciden"
+        elif len(pwd) < 8:
+            error = "Contraseña: mínimo 8 caracteres"
+        else:
+            try:
+                con = db()
+                con.execute("INSERT INTO usuarios(nombre,usuario,password) VALUES(?,?,?)",
+                    (nombre, usu, generate_password_hash(pwd)))
+                con.commit()
+                con.close()
+                return redirect('/')
+            except sqlite3.IntegrityError:
+                error = "Ese usuario ya existe"
+    return render_template('registro.html', error=error)
+
+# ── DASHBOARD ─────────────────────────────────
+@app.route('/dashboard')
+def dashboard():
+    u = usuario_actual()
+    if not u: return redirect('/')
+    con = db()
+    total = con.execute("SELECT COALESCE(SUM(monto),0) FROM aportes").fetchone()[0]
+    actividades = con.execute("""
+        SELECT a.titulo, a.descripcion, a.fecha, u.nombre
+        FROM actividades a JOIN usuarios u ON a.usuario_id=u.id
+        ORDER BY a.fecha DESC LIMIT 5
+    """).fetchall()
+    ranking = con.execute("""
+        SELECT u.nombre, COALESCE(SUM(ap.monto),0) as total
+        FROM usuarios u LEFT JOIN aportes ap ON u.id=ap.usuario_id
+        GROUP BY u.id ORDER BY total DESC LIMIT 8
+    """).fetchall()
+    publicaciones = con.execute("""
+        SELECT p.*, u.nombre, u.usuario
+        FROM publicaciones p JOIN usuarios u ON p.usuario_id=u.id
+        ORDER BY p.fecha DESC LIMIT 20
+    """).fetchall()
+    noticias = con.execute("SELECT * FROM noticias ORDER BY fecha DESC LIMIT 5").fetchall()
+    con.close()
+    META = 500000
+    return render_template('dashboard.html',
+        usuario=u,
+        total=total,
+        meta=META,
+        pct=round((total/META)*100, 1),
+        actividades=actividades,
+        ranking=ranking,
+        publicaciones=publicaciones,
+        noticias=noticias,
+        ahora=datetime.now().strftime("%d/%m/%Y")
+    )
+
+# ── PUBLICAR ──────────────────────────────────
+@app.route('/publicar', methods=['POST'])
+def publicar():
+    u = usuario_actual()
+    if not u: return redirect('/')
+    texto = request.form.get('texto','').strip()
+    if texto:
+        con = db()
+        con.execute("INSERT INTO publicaciones(usuario_id,texto) VALUES(?,?)", (u['id'], texto))
+        con.commit()
+        con.close()
+    return redirect('/dashboard#feed')
+
+# ── LIKE ─────────────────────────────────────
+@app.route('/like/<int:pid>', methods=['POST'])
+def like(pid):
+    if 'uid' not in session: return jsonify({'ok': False})
+    con = db()
+    con.execute("UPDATE publicaciones SET likes=likes+1 WHERE id=?", (pid,))
+    con.commit()
+    likes = con.execute("SELECT likes FROM publicaciones WHERE id=?", (pid,)).fetchone()[0]
+    con.close()
+    return jsonify({'ok': True, 'likes': likes})
+
+# ── AGREGAR APORTE (admin) ────────────────────
+@app.route('/aporte', methods=['POST'])
+def aporte():
+    u = usuario_actual()
+    if not u: return redirect('/')
+    monto = float(request.form.get('monto', 0))
+    desc  = request.form.get('descripcion','')
+    if monto > 0:
+        con = db()
+        con.execute("INSERT INTO aportes(usuario_id,monto,descripcion) VALUES(?,?,?)",
+            (u['id'], monto, desc))
+        con.commit()
+        con.close()
+    return redirect('/dashboard#aportes')
+
+# ── LOGOUT ────────────────────────────────────
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect('/')
+
+if __name__ == '__main__':
+    app.run(debug=True, port=5000)

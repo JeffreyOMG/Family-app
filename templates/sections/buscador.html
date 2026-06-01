@@ -1,0 +1,474 @@
+<section class="section" id="sec-buscador">
+
+  <!-- HEADER -->
+  <div class="bus-header">
+    <h1>
+      <span class="material-symbols-outlined">search</span>
+      Buscador
+    </h1>
+    <p class="bus-header-sub">Encuentra personas, publicaciones, eventos y noticias</p>
+  </div>
+
+  <!-- BARRA DE BÚSQUEDA -->
+  <form method="GET" action="/buscar" id="form-buscar" autocomplete="off">
+    <div class="bus-search-wrap">
+      <span class="material-symbols-outlined bus-search-icon">search</span>
+      <input
+        type="text" name="q" id="input-bq" class="bus-search-input"
+        placeholder="Buscar en toda la app..."
+        value="{{ busqueda or '' }}"
+        autocomplete="off"
+        autofocus
+      >
+      {% if busqueda %}
+      <button type="button" class="bus-clear-btn" onclick="limpiarBusqueda()" title="Limpiar">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+      {% endif %}
+      <button type="submit" class="bus-submit-btn">
+        <span class="material-symbols-outlined">arrow_forward</span>
+      </button>
+    </div>
+
+    <!-- CHIPS FILTRO -->
+    <div class="bus-chips">
+      {% for val, label, icon in [
+        ('todo','Todo','apps'),
+        ('usuarios','Usuarios','group'),
+        ('publicaciones','Posts','article'),
+        ('eventos','Eventos','event'),
+        ('noticias','Noticias','newspaper')
+      ] %}
+      <label class="bus-chip {% if (filtro_tipo or 'todo')==val %}active{% endif %}">
+        <input type="radio" name="tipo" value="{{ val }}"
+          {% if (filtro_tipo or 'todo')==val %}checked{% endif %}
+          onchange="this.form.submit()" style="display:none;">
+        <span class="material-symbols-outlined">{{ icon }}</span>
+        {{ label }}
+      </label>
+      {% endfor %}
+    </div>
+  </form>
+
+  <!-- RESULTADOS -->
+  {% if resultados is not none %}
+
+    {% if busqueda %}
+    <div class="bus-results-meta">
+      <span class="bus-count">{{ resultados|length }}</span>
+      resultado{{ 's' if resultados|length != 1 else '' }} para
+      <strong>"{{ busqueda }}"</strong>
+    </div>
+    {% endif %}
+
+    {% if resultados %}
+      {% set tipo_config = {
+        'Usuario':     ('group',   'bus-icon-blue',   'blue'),
+        'Publicación': ('article', 'bus-icon-purple', 'purple'),
+        'Evento':      ('event',   'bus-icon-green',  'green'),
+        'Noticia':     ('newspaper','bus-icon-orange','orange')
+      } %}
+      {% for tipo_grp in ['Usuario','Publicación','Evento','Noticia'] %}
+        {% set items = resultados|selectattr('tipo','equalto',tipo_grp)|list %}
+        {% if items %}
+        <div class="bus-group">
+          <div class="bus-group-header">
+            {% set cfg = tipo_config[tipo_grp] %}
+            <span class="material-symbols-outlined bus-group-icon {{ cfg[1] }}">{{ cfg[0] }}</span>
+            <span class="bus-group-label">{{ tipo_grp }}s</span>
+            <span class="bus-group-count">{{ items|length }}</span>
+          </div>
+
+          <div class="bus-group-items">
+            {% for r in items %}
+            <div class="bus-result-item">
+
+              <!-- Icono/Avatar -->
+              {% if r.tipo == 'Usuario' %}
+                {% if r.foto %}
+                  <img src="{{ r.foto }}" class="bus-avatar-img" alt="{{ r.titulo }}">
+                {% else %}
+                  <div class="bus-avatar-letter {{ cfg[1] }}">{{ r.titulo[0]|upper }}</div>
+                {% endif %}
+              {% else %}
+                <div class="bus-tipo-icon {{ cfg[1] }}">
+                  <span class="material-symbols-outlined">{{ cfg[0] }}</span>
+                </div>
+              {% endif %}
+
+              <!-- Contenido -->
+              <div class="bus-item-info">
+                <div class="bus-item-title">{{ r.titulo }}</div>
+                <div class="bus-item-desc">{{ r.descripcion }}</div>
+                {% if r.get('fecha') %}
+                  <div class="bus-item-meta">
+                    <span class="material-symbols-outlined">schedule</span>
+                    {{ r.fecha }}
+                    {% if r.get('autor') %}· {{ r.autor }}{% endif %}
+                  </div>
+                {% endif %}
+              </div>
+
+              <!-- Badge tipo -->
+              <span class="bus-badge bus-badge-{{ tipo_grp|lower|replace('ó','o')|replace('ú','u')|replace('é','e') }}">{{ r.tipo }}</span>
+
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+      {% endfor %}
+
+    {% elif busqueda %}
+    <!-- SIN RESULTADOS -->
+    <div class="bus-empty">
+      <div class="bus-empty-icon">
+        <span class="material-symbols-outlined">search_off</span>
+      </div>
+      <h3>Sin resultados</h3>
+      <p>No encontramos nada para <strong>"{{ busqueda }}"</strong></p>
+      <div class="bus-sugerencias">
+        <p>Sugerencias:</p>
+        <ul>
+          <li>Revisa que no haya errores ortográficos</li>
+          <li>Prueba con términos más generales</li>
+          <li>Cambia el filtro de categoría</li>
+        </ul>
+      </div>
+    </div>
+    {% endif %}
+
+  {% else %}
+  <!-- ESTADO INICIAL -->
+  <div class="bus-inicio">
+    <div class="bus-inicio-icon">
+      <span class="material-symbols-outlined">travel_explore</span>
+    </div>
+    <h3>Explora la app</h3>
+    <p>Busca personas, publicaciones, eventos o noticias usando la barra de arriba</p>
+    <div class="bus-categorias-grid">
+      {% for val, label, icon, col in [
+        ('usuarios','Usuarios','group','blue'),
+        ('publicaciones','Publicaciones','article','purple'),
+        ('eventos','Eventos','event','green'),
+        ('noticias','Noticias','newspaper','orange')
+      ] %}
+      <button class="bus-cat-card bus-icon-{{ col }}" onclick="buscarCategoria('{{ val }}')">
+        <span class="material-symbols-outlined">{{ icon }}</span>
+        <span>{{ label }}</span>
+      </button>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+</section>
+
+<style>
+/* ---- HEADER ---- */
+.bus-header { margin-bottom: 20px; }
+.bus-header h1 {
+  display: flex; align-items: center; gap: 10px;
+  font-size: 1.5rem; font-weight: 700; margin-bottom: 4px;
+}
+.bus-header h1 .material-symbols-outlined { font-size: 26px; color: var(--accent, #0095f6); }
+.bus-header-sub { font-size: .85rem; color: var(--text2, #666); margin-left: 36px; }
+
+/* ---- BARRA ---- */
+.bus-search-wrap {
+  display: flex; align-items: center; gap: 0;
+  background: var(--card, #fff);
+  border: 1.5px solid var(--border, #dbdbdb);
+  border-radius: 14px;
+  padding: 6px 6px 6px 16px;
+  margin-bottom: 12px;
+  transition: border-color .2s, box-shadow .2s;
+}
+.bus-search-wrap:focus-within {
+  border-color: var(--accent, #0095f6);
+  box-shadow: 0 0 0 3px rgba(0,149,246,.1);
+}
+.bus-search-icon {
+  font-size: 20px; color: var(--text3, #999);
+  flex-shrink: 0; margin-right: 8px;
+}
+.bus-search-input {
+  flex: 1; background: none; border: none; outline: none;
+  font-size: .95rem; color: var(--text, #111);
+  font-family: inherit; padding: 6px 0;
+}
+.bus-search-input::placeholder { color: var(--text3, #999); }
+.bus-clear-btn {
+  background: none; border: none; cursor: pointer;
+  color: var(--text3); padding: 4px;
+  display: flex; align-items: center;
+  border-radius: 6px; transition: color .15s, background .15s;
+}
+.bus-clear-btn:hover { color: var(--text); background: var(--bg2, #f5f5f5); }
+.bus-clear-btn .material-symbols-outlined { font-size: 18px; }
+.bus-submit-btn {
+  background: var(--text, #111); color: var(--bg, #fff);
+  border: none; cursor: pointer;
+  width: 36px; height: 36px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; transition: opacity .15s;
+  margin-left: 4px;
+}
+.bus-submit-btn:hover { opacity: .8; }
+.bus-submit-btn .material-symbols-outlined { font-size: 18px; }
+
+/* ---- CHIPS ---- */
+.bus-chips {
+  display: flex; gap: 8px; flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+.bus-chip {
+  display: flex; align-items: center; gap: 5px;
+  padding: 6px 14px;
+  border-radius: 20px; cursor: pointer;
+  font-size: .82rem; font-weight: 500;
+  border: 1px solid var(--border, #dbdbdb);
+  background: var(--card, #fff);
+  color: var(--text2, #666);
+  transition: all .15s; user-select: none;
+}
+.bus-chip .material-symbols-outlined { font-size: 15px; }
+.bus-chip:hover {
+  border-color: var(--accent, #0095f6);
+  color: var(--accent, #0095f6);
+}
+.bus-chip.active {
+  background: var(--accent, #0095f6);
+  border-color: var(--accent, #0095f6);
+  color: #fff; font-weight: 600;
+}
+
+/* ---- META RESULTADOS ---- */
+.bus-results-meta {
+  font-size: .88rem; color: var(--text2, #666);
+  margin-bottom: 16px; padding-bottom: 14px;
+  border-bottom: 1px solid var(--border, #dbdbdb);
+}
+.bus-count {
+  font-size: 1rem; font-weight: 700;
+  color: var(--text, #111); margin-right: 4px;
+}
+
+/* ---- GRUPOS ---- */
+.bus-group { margin-bottom: 24px; }
+.bus-group-header {
+  display: flex; align-items: center; gap: 8px;
+  margin-bottom: 10px;
+}
+.bus-group-icon {
+  font-size: 17px;
+  font-variation-settings: 'FILL' 1;
+}
+.bus-group-label {
+  font-size: .78rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .06em;
+  color: var(--text2, #666);
+}
+.bus-group-count {
+  font-size: .72rem; font-weight: 700;
+  background: var(--bg2, #f5f5f5);
+  border: 1px solid var(--border);
+  color: var(--text2);
+  padding: 1px 7px; border-radius: 20px;
+  margin-left: 2px;
+}
+.bus-group-items {
+  background: var(--card, #fff);
+  border: 1px solid var(--border, #dbdbdb);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+/* ---- ITEMS ---- */
+.bus-result-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border, #dbdbdb);
+  transition: background .12s;
+  cursor: default;
+}
+.bus-result-item:last-child { border-bottom: none; }
+.bus-result-item:hover { background: var(--bg2, #f5f5f5); }
+
+.bus-avatar-img {
+  width: 42px; height: 42px;
+  border-radius: 50%; object-fit: cover;
+  border: 2px solid var(--border);
+  flex-shrink: 0;
+}
+.bus-avatar-letter {
+  width: 42px; height: 42px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: .95rem; font-weight: 700; color: #fff;
+  flex-shrink: 0;
+}
+.bus-tipo-icon {
+  width: 42px; height: 42px;
+  border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.bus-tipo-icon .material-symbols-outlined {
+  font-size: 20px;
+  font-variation-settings: 'FILL' 1;
+}
+
+/* Color variants */
+.bus-icon-blue   { background: rgba(0,149,246,.15);  color: #0095f6; }
+.bus-icon-purple { background: rgba(156,39,176,.15); color: #9c27b0; }
+.bus-icon-green  { background: rgba(76,175,80,.15);  color: #4caf50; }
+.bus-icon-orange { background: rgba(255,152,0,.15);  color: #ff9800; }
+
+.bus-item-info { flex: 1; min-width: 0; }
+.bus-item-title {
+  font-weight: 600; font-size: .9rem;
+  color: var(--text, #111);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.bus-item-desc {
+  font-size: .82rem; color: var(--text2, #666);
+  margin-top: 2px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.bus-item-meta {
+  display: flex; align-items: center; gap: 3px;
+  font-size: .75rem; color: var(--text3, #999);
+  margin-top: 4px;
+}
+.bus-item-meta .material-symbols-outlined { font-size: 13px; }
+
+/* ---- BADGES ---- */
+.bus-badge {
+  font-size: .7rem; font-weight: 700;
+  padding: 2px 8px; border-radius: 20px;
+  flex-shrink: 0; white-space: nowrap;
+}
+.bus-badge-usuario     { background: rgba(0,149,246,.12);  color: #0095f6; }
+.bus-badge-publicacion { background: rgba(156,39,176,.12); color: #9c27b0; }
+.bus-badge-evento      { background: rgba(76,175,80,.12);  color: #4caf50; }
+.bus-badge-noticia     { background: rgba(255,152,0,.12);  color: #ff9800; }
+
+/* ---- VACÍO ---- */
+.bus-empty {
+  text-align: center; padding: 48px 20px;
+  background: var(--card, #fff);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+}
+.bus-empty-icon {
+  width: 72px; height: 72px;
+  border-radius: 20px;
+  background: var(--bg2, #f5f5f5);
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 16px;
+}
+.bus-empty-icon .material-symbols-outlined { font-size: 36px; color: var(--text3); }
+.bus-empty h3 { font-size: 1.1rem; margin-bottom: 6px; }
+.bus-empty p { font-size: .88rem; color: var(--text2); }
+.bus-sugerencias {
+  text-align: left;
+  display: inline-block;
+  margin-top: 20px;
+  background: var(--bg2, #f5f5f5);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px 20px;
+  font-size: .83rem; color: var(--text2);
+}
+.bus-sugerencias p { font-weight: 600; margin-bottom: 8px; color: var(--text); }
+.bus-sugerencias ul { padding-left: 18px; line-height: 2; }
+
+/* ---- ESTADO INICIAL ---- */
+.bus-inicio {
+  text-align: center; padding: 48px 20px 36px;
+  background: var(--card, #fff);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+}
+.bus-inicio-icon {
+  width: 80px; height: 80px;
+  border-radius: 22px;
+  background: linear-gradient(135deg, rgba(0,149,246,.15), rgba(156,39,176,.12));
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 18px;
+}
+.bus-inicio-icon .material-symbols-outlined {
+  font-size: 40px; color: var(--accent, #0095f6);
+  font-variation-settings: 'FILL' 1;
+}
+.bus-inicio h3 { font-size: 1.15rem; margin-bottom: 6px; }
+.bus-inicio > p { font-size: .88rem; color: var(--text2); margin-bottom: 24px; }
+.bus-categorias-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  max-width: 340px;
+  margin: 0 auto;
+}
+.bus-cat-card {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 14px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--bg2, #f5f5f5);
+  cursor: pointer; font-size: .88rem; font-weight: 600;
+  font-family: inherit;
+  transition: transform .12s, box-shadow .12s;
+}
+.bus-cat-card:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(0,0,0,.08); }
+.bus-cat-card .material-symbols-outlined { font-size: 20px; font-variation-settings: 'FILL' 1; }
+
+/* ---- DARK MODE ---- */
+body.dark-mode .bus-search-wrap {
+  background: var(--card); border-color: var(--border);
+}
+body.dark-mode .bus-search-input { color: var(--text); }
+body.dark-mode .bus-submit-btn { background: #fff; color: #0f0f10; }
+body.dark-mode .bus-chip {
+  background: var(--card); border-color: var(--border); color: var(--text2);
+}
+body.dark-mode .bus-chip.active {
+  background: #fff; border-color: #fff; color: #0f0f10;
+}
+body.dark-mode .bus-group-items { background: var(--card); border-color: var(--border); }
+body.dark-mode .bus-result-item { border-bottom-color: var(--border); }
+body.dark-mode .bus-result-item:hover { background: var(--card2); }
+body.dark-mode .bus-item-title { color: var(--text); }
+body.dark-mode .bus-group-count { background: var(--card2); border-color: var(--border); }
+body.dark-mode .bus-empty,
+body.dark-mode .bus-inicio { background: var(--card); border-color: var(--border); }
+body.dark-mode .bus-empty-icon,
+body.dark-mode .bus-sugerencias,
+body.dark-mode .bus-cat-card { background: var(--card2); border-color: var(--border); }
+body.dark-mode .bus-avatar-img { border-color: var(--border); }
+body.dark-mode .bus-clear-btn:hover { background: var(--card2); }
+</style>
+
+<script>
+function limpiarBusqueda() {
+  document.getElementById('input-bq').value = '';
+  document.getElementById('form-buscar').submit();
+}
+
+function buscarCategoria(tipo) {
+  const form = document.getElementById('form-buscar');
+  // activar radio del tipo
+  const radio = form.querySelector(`input[name="tipo"][value="${tipo}"]`);
+  if (radio) radio.checked = true;
+  form.submit();
+}
+
+// Enviar con Enter
+document.getElementById('input-bq')?.addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    document.getElementById('form-buscar').submit();
+  }
+});
+</script>

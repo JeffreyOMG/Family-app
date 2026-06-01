@@ -1,0 +1,19 @@
+templates/
+│
+├── base.html
+├── dashboard.html
+│
+├── partials/
+│   ├── sidebar.html
+│   ├── navbar.html
+│   ├── loader.html
+│
+├── sections/
+│   ├── inicio.html
+│   ├── recaudacion.html
+│   ├── noticias.html
+│   ├── mundial.html
+│   ├── galeria.html
+│   ├── buscador.html
+│   ├── perfil.html
+│   ├── ajustes.html

@@ -1,0 +1,1576 @@
+<section class="section main-content-v2" id="sec-recaudacion">
+
+  <!-- HEADER -->
+  <div class="rec-header">
+    <div class="rec-header-title">
+      <span class="material-symbols-outlined">savings</span>
+      <h1>Finanzas Familiares</h1>
+    </div>
+    <div class="rec-header-actions">
+      {% if usuario.rol == 'admin' %}
+      <button class="btn-admin-meta" onclick="abrirModalMeta()" title="Editar meta de recaudación">
+        <span class="material-symbols-outlined">edit</span>
+        Editar meta
+      </button>
+      {% endif %}
+      <button class="btn-aporte-principal" onclick="abrirModalAporte()">
+        <span class="material-symbols-outlined">add_circle</span>
+        Registrar Aporte
+      </button>
+    </div>
+  </div>
+
+  <!-- STATS GRID -->
+  <div class="rec-stats">
+    <div class="rec-stat">
+      <div class="rec-stat-icon green"><span class="material-symbols-outlined">account_balance_wallet</span></div>
+      <div class="rec-stat-info">
+        <span class="rec-stat-label">Total recaudado</span>
+        <strong class="rec-stat-value">${{ total|int }}</strong>
+      </div>
+    </div>
+    <div class="rec-stat">
+      <div class="rec-stat-icon blue"><span class="material-symbols-outlined">flag</span></div>
+      <div class="rec-stat-info">
+        <span class="rec-stat-label">Meta</span>
+        <strong class="rec-stat-value">${{ meta|int }}</strong>
+      </div>
+    </div>
+    <div class="rec-stat">
+      <div class="rec-stat-icon gold"><span class="material-symbols-outlined">trending_up</span></div>
+      <div class="rec-stat-info">
+        <span class="rec-stat-label">Progreso</span>
+        <strong class="rec-stat-value">{{ pct }}%</strong>
+      </div>
+    </div>
+    <div class="rec-stat">
+      <div class="rec-stat-icon purple"><span class="material-symbols-outlined">person</span></div>
+      <div class="rec-stat-info">
+        <span class="rec-stat-label">Mis aportes</span>
+        <strong class="rec-stat-value">${{ total_aportes|int }}</strong>
+      </div>
+    </div>
+  </div>
+
+  <!-- ALCANCÍA + PROGRESO -->
+  <div class="content-card rec-progress-card">
+    <div class="rec-pig-section">
+      <div class="pig-wrap">
+        <div class="piggy-bank">
+          <div class="coin"></div>
+          <div class="pig-body">
+            <div class="pig-fill" style="height:{{ pct }};"></div>
+            <div class="pig-ear"></div><div class="pig-slot"></div>
+            <div class="pig-eye"></div><div class="pig-snout"></div>
+            <div class="pig-tail"></div>
+            <div class="pig-leg leg1"></div><div class="pig-leg leg2"></div>
+          </div>
+        </div>
+        <div class="pig-pct">{{ pct }}%</div>
+        <div class="pig-status">${{ total|int }} de ${{ meta|int }}</div>
+      </div>
+    </div>
+    <div class="rec-progress-info">
+      <div class="rec-prog-label">
+        {% if pct >= 100 %}🎉 ¡Meta alcanzada!
+        {% elif pct >= 75 %}🚀 Muy cerca de la meta
+        {% elif pct >= 50 %}💰 Más de la mitad ahorrada
+        {% else %}📈 Sigue aportando — ¡van muy bien!{% endif %}
+      </div>
+      <div class="rec-prog-bar-wrap">
+        <div class="progress-bar-bg">
+          <div class="progress-bar-fill" style="width:{{ pct }}%;"></div>
+        </div>
+        <span class="rec-prog-pct-label">{{ pct }}%</span>
+      </div>
+      <div class="rec-prog-numbers">
+        <span>${{ total|int }} ahorrados</span>
+        <span>Meta: ${{ meta|int }}</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- HISTORIAL COMPLETO CON FILTROS -->
+  <div class="content-card">
+    <div class="rec-table-header">
+      <h3>📋 Historial de Registros</h3>
+      <div class="rec-filtros">
+        <div class="rec-filtro-input">
+          <span class="material-symbols-outlined">search</span>
+          <input type="text" id="filtro-usuario" placeholder="Buscar..." oninput="filtrarHistorial()">
+        </div>
+        <select id="filtro-tipo" class="rec-select-filter" onchange="filtrarHistorial()">
+          <option value="">Todos los tipos</option>
+          <option value="evento">📅 Eventos</option>
+          <option value="familia">🏠 Familia</option>
+          <option value="polla">⚽ Polla Mundial</option>
+        </select>
+        <select id="filtro-estado" class="rec-select-filter" onchange="filtrarHistorial()">
+          <option value="">Todos los estados</option>
+          <option value="pendiente">⏳ Pendiente</option>
+          <option value="verificado">✅ Verificado</option>
+          <option value="pagado">💳 Pagado</option>
+        </select>
+        <div class="rec-filtros-fechas">
+          <input type="date" id="filtro-desde" class="rec-date-input" onchange="filtrarHistorial()" title="Desde">
+          <input type="date" id="filtro-hasta" class="rec-date-input" onchange="filtrarHistorial()" title="Hasta">
+        </div>
+        <div class="rec-filtros-btns">
+          <button class="rec-filtro-clear" onclick="limpiarFiltros()" title="Limpiar filtros">
+            <span class="material-symbols-outlined">filter_alt_off</span>
+          </button>
+          <button class="rec-btn-export" onclick="exportarHistorial()" title="Exportar CSV">
+            <span class="material-symbols-outlined">download</span> <span class="rec-export-txt">Exportar</span>
+          </button>
+        </div>
+      </div>
+    </div>
+    <div id="hist-loading" class="rec-loading-state">
+      <span class="material-symbols-outlined">hourglass_empty</span>
+      <p>Cargando historial...</p>
+    </div>
+    <div class="rec-table-wrap" id="hist-table-wrap" style="display:none;">
+      <table class="tabla-aportes" id="tabla-historial">
+        <thead>
+          <tr>
+            <th>Usuario</th>
+            <th>Tipo</th>
+            <th class="col-desc">Descripción</th>
+            <th>Monto</th>
+            <th class="col-fecha">Fecha</th>
+            <th class="col-soporte">Soporte</th>
+            <th>Estado</th>
+            {% if usuario.rol=='admin' %}<th>Acciones</th>{% endif %}
+          </tr>
+        </thead>
+        <tbody id="hist-tbody"></tbody>
+      </table>
+    </div>
+    <div class="rec-resultados" id="rec-resultados" style="display:none;">
+      <span id="rec-count">0</span> resultado(s)
+      <button onclick="limpiarFiltros()">Limpiar</button>
+    </div>
+  </div>
+
+  <!-- RANKING -->
+  <div class="content-card">
+    <h3 style="margin-bottom:18px;">🏆 Ranking Comunitario</h3>
+    <div class="rec-ranking">
+      {% for r in ranking %}
+      <div class="rec-ranking-item">
+        <div class="rec-ranking-pos {% if loop.index <= 3 %}top-{{ loop.index }}{% endif %}">
+          {% if loop.index==1 %}🥇{% elif loop.index==2 %}🥈{% elif loop.index==3 %}🥉{% else %}#{{ loop.index }}{% endif %}
+        </div>
+        <div class="rec-ranking-info">
+          <div class="rec-ranking-top">
+            <span class="rec-ranking-name">{{ r.nombre }}</span>
+            <span class="rec-ranking-amount">${{ r.total|int }}</span>
+          </div>
+          <div class="progress-bar-bg" style="height:6px;">
+            <div class="progress-bar-fill" style="width:{{ r.porcentaje }}%;"></div>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+</section>
+
+<!-- ===================================================================
+     MODAL PRINCIPAL: SELECCIONAR TIPO DE APORTE
+=================================================================== -->
+<div id="modal-aporte" class="rec-modal-overlay" onclick="cerrarModalAporte(event)" role="dialog" aria-modal="true" style="display:none;">
+  <div class="rec-modal-box" onclick="event.stopPropagation()" style="max-width:520px;">
+
+    <div class="rec-modal-header">
+      <div class="rec-modal-title-wrap">
+        <div class="rec-modal-icon green"><span class="material-symbols-outlined">add_circle</span></div>
+        <div>
+          <h3 id="modal-aporte-title">Registrar Aporte</h3>
+          <p>Selecciona el tipo de registro</p>
+        </div>
+      </div>
+      <button class="rec-modal-close" onclick="cerrarModalAporte()" aria-label="Cerrar">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
+
+    <div class="rec-modal-body">
+      <div class="tipo-aporte-grid">
+        <button class="tipo-aporte-card" onclick="abrirSubModal('familia')">
+          <div class="tipo-icon" style="background:rgba(76,175,80,.15);color:#4caf50;">
+            <span class="material-symbols-outlined">home</span>
+          </div>
+          <div class="tipo-info">
+            <strong>Ahorro por Familia</strong>
+            <span>Cajitas privadas de ahorro familiar</span>
+          </div>
+          <span class="material-symbols-outlined tipo-arrow">chevron_right</span>
+        </button>
+        <button class="tipo-aporte-card" onclick="abrirSubModal('evento')">
+          <div class="tipo-icon" style="background:rgba(0,149,246,.15);color:#0095f6;">
+            <span class="material-symbols-outlined">celebration</span>
+          </div>
+          <div class="tipo-info">
+            <strong>Recaudación por Eventos</strong>
+            <span>Suma a la meta general · requiere soporte</span>
+          </div>
+          <span class="material-symbols-outlined tipo-arrow">chevron_right</span>
+        </button>
+        <button class="tipo-aporte-card" onclick="abrirSubModal('polla')">
+          <div class="tipo-icon" style="background:rgba(255,193,7,.15);color:#f9a825;">
+            <span class="material-symbols-outlined">sports_soccer</span>
+          </div>
+          <div class="tipo-info">
+            <strong>Polla Mundialista</strong>
+            <span>Inscripción por fases · pronósticos</span>
+          </div>
+          <span class="material-symbols-outlined tipo-arrow">chevron_right</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================================================================
+     MODAL: AHORRO POR FAMILIA
+=================================================================== -->
+<div id="modal-familia" class="rec-modal-overlay" onclick="cerrarSubModal('familia', event)" role="dialog" aria-modal="true" style="display:none;">
+  <div class="rec-modal-box" onclick="event.stopPropagation()" style="max-width:560px;">
+    <div class="rec-modal-header">
+      <div class="rec-modal-title-wrap">
+        <button class="btn-back-modal" onclick="volverAlPrincipal('familia')">
+          <span class="material-symbols-outlined">arrow_back</span>
+        </button>
+        <div class="rec-modal-icon" style="background:rgba(76,175,80,.15);color:#4caf50;">
+          <span class="material-symbols-outlined">home</span>
+        </div>
+        <div>
+          <h3>Ahorro por Familia</h3>
+          <p>Cajitas privadas de ahorro</p>
+        </div>
+      </div>
+      <button class="rec-modal-close" onclick="cerrarSubModal('familia')" aria-label="Cerrar">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
+    <div class="rec-modal-body">
+      <div class="familia-tabs">
+        <button class="familia-tab active" id="ftab-crear" onclick="familiaTab('crear')">
+          <span class="material-symbols-outlined">add</span> Crear cajita
+        </button>
+        <button class="familia-tab" id="ftab-unirse" onclick="familiaTab('unirse')">
+          <span class="material-symbols-outlined">group_add</span> Unirse
+        </button>
+        <button class="familia-tab" id="ftab-sel" onclick="familiaTab('seleccionar')">
+          <span class="material-symbols-outlined">folder_open</span> Mis cajitas
+        </button>
+      </div>
+
+      <!-- PANEL UNIRSE A CAJITA -->
+      <div id="familia-panel-unirse" style="display:none;">
+        <p style="color:var(--text2);font-size:13px;margin-bottom:16px;">
+          Ingresa el código de 8 caracteres que te compartieron para unirte a la cajita.
+        </p>
+        <div class="rec-form-group">
+          <label class="rec-form-label"><span class="material-symbols-outlined">key</span> Código de cajita *</label>
+          <input type="text" id="input-codigo-cajita" class="rec-input" placeholder="Ej: A1B2C3D4"
+                 maxlength="8" style="text-transform:uppercase;letter-spacing:3px;font-size:18px;text-align:center;"
+                 oninput="this.value=this.value.toUpperCase()">
+        </div>
+        <div id="cajita-unirse-resultado" style="min-height:32px;font-size:13px;margin-bottom:8px;"></div>
+        <div class="rec-modal-footer" style="margin-top:12px;">
+          <button type="button" class="rec-btn-cancel" onclick="cerrarSubModal('familia')">Cancelar</button>
+          <button type="button" class="rec-btn-submit" style="background:#4caf50;" onclick="unirseACajita()">
+            <span class="material-symbols-outlined">login</span> Unirme
+          </button>
+        </div>
+      </div>
+
+      <div id="familia-panel-crear">
+        <form method="POST" action="/aporte" id="form-familia-crear">
+          <input type="hidden" name="tipo_aporte" value="familia">
+          <input type="hidden" name="accion_familia" value="crear">
+          <div class="rec-form-group">
+            <label class="rec-form-label"><span class="material-symbols-outlined">label</span> Nombre de la familia *</label>
+            <input type="text" name="nombre_cajita" class="rec-input" placeholder="Ej: Familia Ramírez" required maxlength="100">
+          </div>
+          <div class="rec-form-group">
+            <label class="rec-form-label"><span class="material-symbols-outlined">description</span> Descripción (opcional)</label>
+            <textarea name="desc_cajita" class="rec-input rec-textarea" placeholder="Para qué es esta cajita..." maxlength="300" rows="2"></textarea>
+          </div>
+          <div class="rec-form-group">
+            <label class="rec-form-label"><span class="material-symbols-outlined">group</span> Integrantes</label>
+            <div class="miembros-lista" id="lista-miembros-cajita">
+              {% for m in miembros %}
+              {% if m.id != usuario.id %}
+              <label class="miembro-check">
+                <input type="checkbox" name="miembros_cajita" value="{{ m.id }}">
+                <div class="miembro-avatar">{{ m.nombre[0]|upper }}</div>
+                <span>{{ m.nombre }}</span>
+              </label>
+              {% endif %}
+              {% endfor %}
+            </div>
+            <small style="color:var(--text2);font-size:12px;">Tú siempre eres miembro. Selecciona quiénes más pueden ver y aportar.</small>
+          </div>
+          <div class="rec-modal-footer">
+            <button type="button" class="rec-btn-cancel" onclick="cerrarSubModal('familia')">Cancelar</button>
+            <button type="submit" class="rec-btn-submit" style="background:#4caf50;">
+              <span class="material-symbols-outlined">add_home</span> Crear Cajita
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <div id="familia-panel-seleccionar" style="display:none;">
+        <div id="cajitas-lista" class="cajitas-lista">
+          <div style="text-align:center;padding:20px;color:var(--text2);">Cargando cajitas...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal detalle cajita -->
+<div id="modal-cajita-detalle" class="rec-modal-overlay" onclick="cerrarCajitaDetalle(event)" role="dialog" style="display:none;">
+  <div class="rec-modal-box" onclick="event.stopPropagation()" style="max-width:540px;">
+    <div class="rec-modal-header">
+      <div class="rec-modal-title-wrap">
+        <button class="btn-back-modal" onclick="volverACajitas()"><span class="material-symbols-outlined">arrow_back</span></button>
+        <div class="rec-modal-icon" style="background:rgba(76,175,80,.15);color:#4caf50;">
+          <span class="material-symbols-outlined">savings</span>
+        </div>
+        <div>
+          <h3 id="cajita-detalle-nombre">Cajita</h3>
+          <p id="cajita-detalle-total">Total: $0</p>
+        </div>
+      </div>
+      <button class="rec-modal-close" onclick="cerrarCajitaDetalle()" aria-label="Cerrar"><span class="material-symbols-outlined">close</span></button>
+    </div>
+    <div class="rec-modal-body">
+      <form method="POST" action="/aporte" id="form-movimiento">
+        <input type="hidden" name="tipo_aporte" value="familia">
+        <input type="hidden" name="accion_familia" value="movimiento">
+        <input type="hidden" name="cajita_id" id="input-cajita-id" value="">
+        <div class="rec-form-group">
+          <label class="rec-form-label"><span class="material-symbols-outlined">payments</span> Monto a aportar (COP) *</label>
+          <div class="rec-input-wrap">
+            <span class="rec-input-prefix">$</span>
+            <input type="number" name="monto_cajita" class="rec-input" placeholder="50,000" min="1" required>
+          </div>
+        </div>
+        <div class="rec-form-group">
+          <label class="rec-form-label"><span class="material-symbols-outlined">description</span> Descripción</label>
+          <input type="text" name="desc_movimiento" class="rec-input" placeholder="Ej: Cuota semana 1" maxlength="200">
+        </div>
+        <div class="rec-modal-footer">
+          <button type="button" class="rec-btn-cancel" onclick="volverACajitas()">Atrás</button>
+          <button type="submit" class="rec-btn-submit" style="background:#4caf50;">
+            <span class="material-symbols-outlined">check</span> Registrar Aporte
+          </button>
+        </div>
+      </form>
+      <hr style="margin:16px 0;border-color:var(--border);">
+      <h4 style="margin-bottom:10px;">📜 Movimientos</h4>
+      <div id="cajita-movimientos-lista" style="max-height:200px;overflow-y:auto;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================================================================
+     MODAL: RECAUDACIÓN POR EVENTOS
+=================================================================== -->
+<div id="modal-evento" class="rec-modal-overlay" onclick="cerrarSubModal('evento', event)" role="dialog" aria-modal="true" style="display:none;">
+  <div class="rec-modal-box" onclick="event.stopPropagation()" style="max-width:560px;">
+    <div class="rec-modal-header">
+      <div class="rec-modal-title-wrap">
+        <button class="btn-back-modal" onclick="volverAlPrincipal('evento')"><span class="material-symbols-outlined">arrow_back</span></button>
+        <div class="rec-modal-icon" style="background:rgba(0,149,246,.15);color:#0095f6;">
+          <span class="material-symbols-outlined">celebration</span>
+        </div>
+        <div>
+          <h3>Recaudación por Eventos</h3>
+          <p>Suma a la meta general comunitaria</p>
+        </div>
+      </div>
+      <button class="rec-modal-close" onclick="cerrarSubModal('evento')"><span class="material-symbols-outlined">close</span></button>
+    </div>
+    <div class="rec-modal-body">
+      <div class="rec-info-banner" style="background:rgba(0,149,246,.08);border:1px solid rgba(0,149,246,.2);border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:13px;color:var(--text2);">
+        <span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle;color:#0095f6;">info</span>
+        Este aporte <strong>sumará automáticamente</strong> a la meta general y al ranking, y quedará en estado <em>pendiente de verificación</em> hasta ser validado por el administrador.
+      </div>
+      <form method="POST" action="/aporte" enctype="multipart/form-data" onsubmit="return validarEvento(this)">
+        <input type="hidden" name="tipo_aporte" value="evento">
+        <div class="rec-form-group">
+          <label class="rec-form-label"><span class="material-symbols-outlined">event</span> Nombre del evento *</label>
+          <input type="text" name="nombre_evento" class="rec-input" placeholder="Ej: Bingo navideño" required maxlength="150">
+        </div>
+        <div class="rec-form-group">
+          <label class="rec-form-label"><span class="material-symbols-outlined">description</span> Descripción (opcional)</label>
+          <textarea name="desc_evento" class="rec-input rec-textarea" placeholder="Detalles del evento..." maxlength="400" rows="2"></textarea>
+        </div>
+        <div class="rec-form-group">
+          <label class="rec-form-label"><span class="material-symbols-outlined">payments</span> Monto recaudado (COP) *</label>
+          <div class="rec-input-wrap">
+            <span class="rec-input-prefix">$</span>
+            <input type="number" name="monto_evento" class="rec-input" placeholder="200,000" min="1" required>
+          </div>
+        </div>
+        <div class="rec-form-group">
+          <label class="rec-form-label"><span class="material-symbols-outlined">manage_accounts</span> Responsables</label>
+          <input type="text" name="responsables" class="rec-input" placeholder="Ej: Juan Pérez, María López" maxlength="300">
+        </div>
+        <div class="rec-form-group">
+          <label class="rec-form-label"><span class="material-symbols-outlined">attach_file</span> Soporte obligatorio (PDF o imagen) *</label>
+          <label class="rec-upload-area" id="upload-area-ev">
+            <input type="file" name="soporte_evento" id="input-soporte-ev" accept=".pdf,image/*" required onchange="previewFile(this,'preview-ev','placeholder-ev')" style="display:none;">
+            <div id="placeholder-ev">
+              <span class="material-symbols-outlined rec-upload-icon">cloud_upload</span>
+              <span class="rec-upload-text">Arrastra o <strong>haz clic</strong></span>
+              <span class="rec-upload-hint">PNG, JPG, PDF — máx. 10MB</span>
+            </div>
+            <div id="preview-ev" style="display:none;"></div>
+          </label>
+        </div>
+        <div class="rec-modal-footer">
+          <button type="button" class="rec-btn-cancel" onclick="cerrarSubModal('evento')">Cancelar</button>
+          <button type="submit" class="rec-btn-submit">
+            <span class="material-symbols-outlined">check</span> Registrar Evento
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ===================================================================
+     MODAL: POLLA MUNDIALISTA
+=================================================================== -->
+<div id="modal-polla" class="rec-modal-overlay" onclick="cerrarSubModal('polla', event)" role="dialog" aria-modal="true" style="display:none;">
+  <div class="rec-modal-box" onclick="event.stopPropagation()" style="max-width:580px;">
+    <div class="rec-modal-header">
+      <div class="rec-modal-title-wrap">
+        <button class="btn-back-modal" onclick="volverAlPrincipal('polla')"><span class="material-symbols-outlined">arrow_back</span></button>
+        <div class="rec-modal-icon" style="background:rgba(255,193,7,.15);color:#f9a825;">
+          <span class="material-symbols-outlined">sports_soccer</span>
+        </div>
+        <div>
+          <h3>Polla Mundialista</h3>
+          <p>Selecciona la fase e inscríbete</p>
+        </div>
+      </div>
+      <button class="rec-modal-close" onclick="cerrarSubModal('polla')"><span class="material-symbols-outlined">close</span></button>
+    </div>
+    <div class="rec-modal-body">
+      <div class="fases-grid" id="fases-grid">
+        <!-- Fase 1 -->
+        <div class="fase-card" id="fase-card-1">
+          <div class="fase-header">
+            <div class="fase-icon">⚽</div>
+            <div class="fase-info">
+              <strong>Fase 1 — Grupos</strong>
+              <span>Pronósticos de la fase de grupos</span>
+            </div>
+            <div class="fase-precio">$20.000</div>
+          </div>
+          <div class="fase-estado" id="fase-estado-1">
+            <span class="badge-pend">⏳ No inscrito</span>
+          </div>
+          <button class="fase-btn" id="fase-btn-1" onclick="seleccionarFase(1)">
+            Inscribirme — $20.000
+          </button>
+        </div>
+        <!-- Fase 2 -->
+        <div class="fase-card" id="fase-card-2">
+          <div class="fase-header">
+            <div class="fase-icon">🏆</div>
+            <div class="fase-info">
+              <strong>Fase 2 — Eliminatorias</strong>
+              <span>Pronósticos de octavos, cuartos y cuartos</span>
+            </div>
+            <div class="fase-precio">$10.000</div>
+          </div>
+          <div class="fase-estado" id="fase-estado-2">
+            <span class="badge-pend">⏳ No inscrito</span>
+          </div>
+          <button class="fase-btn" id="fase-btn-2" onclick="seleccionarFase(2)">
+            Inscribirme — $10.000
+          </button>
+        </div>
+        <!-- Fase 3 -->
+        <div class="fase-card" id="fase-card-3">
+          <div class="fase-header">
+            <div class="fase-icon">🥇</div>
+            <div class="fase-info">
+              <strong>Fase 3 — Semifinal y Final</strong>
+              <span>Pronósticos de las últimas rondas</span>
+            </div>
+            <div class="fase-precio">$10.000</div>
+          </div>
+          <div class="fase-estado" id="fase-estado-3">
+            <span class="badge-pend">⏳ No inscrito</span>
+          </div>
+          <button class="fase-btn" id="fase-btn-3" onclick="seleccionarFase(3)">
+            Inscribirme — $10.000
+          </button>
+        </div>
+      </div>
+
+      <div id="panel-pago-fase" style="display:none;">
+        <div class="pago-fase-header" id="pago-fase-titulo"></div>
+        <form method="POST" action="/aporte" enctype="multipart/form-data" onsubmit="return validarPolla(this)">
+          <input type="hidden" name="tipo_aporte" value="polla">
+          <input type="hidden" name="fase_polla" id="input-fase-polla" value="">
+          <div class="rec-form-group">
+            <label class="rec-form-label"><span class="material-symbols-outlined">attach_file</span> Comprobante de pago *</label>
+            <label class="rec-upload-area" id="upload-area-polla">
+              <input type="file" name="soporte_polla" id="input-soporte-polla" accept=".pdf,image/*" required onchange="previewFile(this,'preview-polla','placeholder-polla')" style="display:none;">
+              <div id="placeholder-polla">
+                <span class="material-symbols-outlined rec-upload-icon">cloud_upload</span>
+                <span class="rec-upload-text">Adjunta tu comprobante de pago</span>
+                <span class="rec-upload-hint">PNG, JPG, PDF</span>
+              </div>
+              <div id="preview-polla" style="display:none;"></div>
+            </label>
+          </div>
+          <div class="rec-modal-footer">
+            <button type="button" class="rec-btn-cancel" onclick="volverAFases()">Atrás</button>
+            <button type="submit" class="rec-btn-submit" style="background:#f9a825;color:#000;">
+              <span class="material-symbols-outlined">payments</span> Confirmar Pago
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== MODAL: EDITAR META (ADMIN) ===================== -->
+<div id="modal-meta" class="rec-modal-overlay" onclick="cerrarModalMeta(event)" role="dialog" aria-modal="true" style="display:none;">
+  <div class="rec-modal-box" onclick="event.stopPropagation()" style="max-width:440px;">
+    <div class="rec-modal-header">
+      <div class="rec-modal-title-wrap">
+        <div class="rec-modal-icon" style="background:rgba(76,175,80,.15);color:#4caf50;">
+          <span class="material-symbols-outlined">edit</span>
+        </div>
+        <div>
+          <h3>Editar meta de recaudación</h3>
+          <p>Solo el administrador puede modificar este valor</p>
+        </div>
+      </div>
+      <button class="rec-modal-close" onclick="cerrarModalMeta()" aria-label="Cerrar">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
+    <div class="rec-modal-body">
+      <div class="rec-meta-actual">
+        <span class="material-symbols-outlined" style="font-size:18px;color:#4caf50;vertical-align:middle;">flag</span>
+        Meta actual: <strong id="meta-actual-display">${{ meta|int }}</strong>
+      </div>
+      <div class="rec-form-group" style="margin-top:14px;">
+        <label class="rec-form-label">
+          <span class="material-symbols-outlined">payments</span>
+          Nueva meta (COP) *
+        </label>
+        <div class="rec-input-wrap">
+          <span class="rec-input-prefix">$</span>
+          <input type="number" id="input-nueva-meta" class="rec-input" placeholder="Ej: 2000000" min="1" step="1000" value="{{ meta|int }}">
+        </div>
+      </div>
+      <div class="rec-meta-presets">
+        <span class="rec-preset-label">Valores rápidos:</span>
+        <button class="rec-preset-btn" onclick="setMeta(500000)">$500.000</button>
+        <button class="rec-preset-btn" onclick="setMeta(1000000)">$1.000.000</button>
+        <button class="rec-preset-btn" onclick="setMeta(2000000)">$2.000.000</button>
+        <button class="rec-preset-btn" onclick="setMeta(5000000)">$5.000.000</button>
+      </div>
+    </div>
+    <div class="rec-modal-footer">
+      <button class="rec-btn-cancel" onclick="cerrarModalMeta()">Cancelar</button>
+      <button class="rec-btn-submit" style="background:#4caf50;" onclick="guardarMeta()">
+        <span class="material-symbols-outlined">check</span> Guardar meta
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== MODAL: VER COMPROBANTE ===================== -->
+<div id="modal-comp" class="rec-modal-overlay" onclick="cerrarModalComp(event)" role="dialog" style="display:none;">
+  <div class="rec-modal-box rec-modal-comp-box" onclick="event.stopPropagation()">
+    <div class="rec-modal-header">
+      <div class="rec-modal-title-wrap">
+        <div class="rec-modal-icon blue"><span class="material-symbols-outlined">image</span></div>
+        <h3>Comprobante</h3>
+      </div>
+      <button class="rec-modal-close" onclick="cerrarModalComp()"><span class="material-symbols-outlined">close</span></button>
+    </div>
+    <div class="rec-comp-img-wrap">
+      <img id="modal-comp-img" src="" alt="Comprobante">
+    </div>
+    <div class="rec-modal-footer" style="justify-content:center;">
+      <a id="modal-comp-link" href="#" target="_blank" class="rec-btn-submit">
+        <span class="material-symbols-outlined">open_in_new</span> Ver completo
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== MODAL: CONFIRMAR ELIMINAR ===================== -->
+<div id="modal-confirmar" class="rec-modal-overlay" onclick="cancelarEliminar(event)" role="dialog" style="display:none;">
+  <div class="rec-modal-box rec-modal-confirm" onclick="event.stopPropagation()">
+    <div class="rec-modal-header">
+      <div class="rec-modal-title-wrap">
+        <div class="rec-modal-icon red"><span class="material-symbols-outlined">warning</span></div>
+        <div><h3>Eliminar registro</h3><p>Esta acción no se puede deshacer</p></div>
+      </div>
+      <button class="rec-modal-close" onclick="cancelarEliminar()"><span class="material-symbols-outlined">close</span></button>
+    </div>
+    <div class="rec-modal-body"><p style="text-align:center;padding:8px 0;">¿Confirmas eliminar este registro?</p></div>
+    <div class="rec-modal-footer">
+      <button class="rec-btn-cancel" onclick="cancelarEliminar()">Cancelar</button>
+      <button class="rec-btn-danger" id="btn-confirmar-eliminar">
+        <span class="material-symbols-outlined">delete</span> Eliminar
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== CSS RECAUDACIÓN ===================== -->
+<style>
+/* ======================================================
+   RECAUDACION — ESTILOS COMPLETOS (LIGHT + DARK + MOBILE)
+====================================================== */
+
+/* ---- SCROLLBAR visible en modo claro ---- */
+:root {
+  --scrollbar-thumb: #c1c1c1;
+  --scrollbar-thumb-hover: #a0a0a0;
+  --scrollbar-track: #f0f0f0;
+}
+body.dark-mode {
+  --scrollbar-thumb: rgba(255,255,255,.18);
+  --scrollbar-thumb-hover: rgba(255,255,255,.32);
+  --scrollbar-track: transparent;
+}
+
+/* Scrollbar global */
+::-webkit-scrollbar { width:6px; height:6px; }
+::-webkit-scrollbar-track { background: var(--scrollbar-track); }
+::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius:10px; }
+::-webkit-scrollbar-thumb:hover { background: var(--scrollbar-thumb-hover); }
+
+/* Scrollbar dentro de elementos de rec */
+.rec-modal-body,
+.miembros-lista,
+#cajita-movimientos-lista,
+.rec-table-wrap {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+}
+
+/* ---- HEADER ACTIONS ---- */
+.rec-header-actions { display:flex;align-items:center;gap:10px;flex-wrap:wrap; }
+.btn-admin-meta {
+  display:flex;align-items:center;gap:6px;
+  padding:10px 16px;
+  background:transparent;
+  color:var(--text2);
+  border:1.5px solid var(--border,#dbdbdb);
+  border-radius:12px;
+  font-size:14px;font-weight:600;
+  cursor:pointer;
+  transition:all .15s;
+  white-space:nowrap;
+}
+.btn-admin-meta:hover {
+  background:rgba(76,175,80,.1);
+  border-color:#4caf50;
+  color:#4caf50;
+}
+.btn-admin-meta .material-symbols-outlined { font-size:18px; }
+
+/* ---- MODAL META ADMIN ---- */
+.rec-meta-actual {
+  background:var(--bg2,#f5f5f5);
+  border:1px solid var(--border);
+  border-radius:10px;
+  padding:12px 14px;
+  font-size:14px;
+  color:var(--text2);
+}
+.rec-meta-actual strong { color:var(--text);font-size:16px; }
+.rec-meta-presets { margin-top:10px;display:flex;flex-wrap:wrap;gap:8px;align-items:center; }
+.rec-preset-label { font-size:12px;color:var(--text2);margin-right:2px; }
+.rec-preset-btn {
+  padding:5px 12px;
+  border:1px solid var(--border);
+  border-radius:20px;
+  background:var(--bg2);
+  color:var(--text);
+  font-size:12px;font-weight:600;
+  cursor:pointer;
+  transition:all .15s;
+}
+.rec-preset-btn:hover { background:rgba(76,175,80,.1);border-color:#4caf50;color:#4caf50; }
+
+/* ---- LAYOUT ---- */
+.rec-header { display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px; }
+.rec-header-title { display:flex;align-items:center;gap:10px; }
+.rec-header-title h1 { font-size:1.5rem;font-weight:700;margin:0; }
+.rec-header-title .material-symbols-outlined { font-size:28px;color:var(--accent,#0095f6); }
+
+/* ---- STATS ---- */
+.rec-stats { display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:18px; }
+.rec-stat { background:var(--card,#fff);border:1px solid var(--border,#dbdbdb);border-radius:var(--r,12px);padding:14px 16px;display:flex;align-items:center;gap:12px;transition:transform .15s,box-shadow .15s; }
+.rec-stat:hover { transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,0,0,.08); }
+.rec-stat-icon { width:42px;height:42px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0; }
+.rec-stat-icon.green { background:rgba(76,175,80,.15);color:#4caf50; }
+.rec-stat-icon.blue  { background:rgba(0,149,246,.15);color:#0095f6; }
+.rec-stat-icon.gold  { background:rgba(255,193,7,.15);color:#f9a825; }
+.rec-stat-icon.purple{ background:rgba(156,39,176,.15);color:#9c27b0; }
+.rec-stat-label { font-size:11px;color:var(--text2);display:block; }
+.rec-stat-value { font-size:1.15rem;font-weight:700; }
+
+/* ---- PROGRESS CARD ---- */
+.rec-progress-card { display:flex;gap:28px;align-items:center;flex-wrap:wrap; }
+.rec-pig-section { display:flex;justify-content:center;min-width:110px; }
+.pig-wrap { display:flex;flex-direction:column;align-items:center;gap:6px; }
+.pig-pct { font-size:1.3rem;font-weight:700;color:var(--accent); }
+.pig-status { font-size:12px;color:var(--text2);text-align:center; }
+.rec-progress-info { flex:1;min-width:180px; }
+.rec-prog-label { font-size:14px;font-weight:600;margin-bottom:10px; }
+.rec-prog-bar-wrap { display:flex;align-items:center;gap:10px;margin-bottom:8px; }
+.rec-prog-pct-label { font-size:12px;color:var(--text2);white-space:nowrap; }
+.rec-prog-numbers { display:flex;justify-content:space-between;font-size:12px;color:var(--text2); }
+
+/* ---- LOADING STATE ---- */
+.rec-loading-state { text-align:center;padding:40px;color:var(--text2); }
+.rec-loading-state .material-symbols-outlined { font-size:36px;display:block;margin-bottom:8px; }
+
+/* ---- TABLE HEADER ---- */
+.rec-table-header { display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:16px; }
+.rec-table-header h3 { font-size:1rem;font-weight:700;margin:0; }
+
+/* ---- FILTROS ---- */
+.rec-filtros { display:flex;gap:8px;flex-wrap:wrap;align-items:center; }
+.rec-filtro-input { display:flex;align-items:center;gap:6px;background:var(--bg2,#f5f5f5);border:1px solid var(--border,#dbdbdb);border-radius:8px;padding:6px 10px; }
+.rec-filtro-input .material-symbols-outlined { font-size:18px;color:var(--text2); }
+.rec-filtro-input input { border:none;background:transparent;outline:none;color:var(--text);font-size:13px;width:130px;min-width:0; }
+.rec-select-filter { border:1px solid var(--border,#dbdbdb);border-radius:8px;padding:6px 10px;font-size:13px;background:var(--bg2,#f5f5f5);color:var(--text);cursor:pointer; }
+.rec-date-input { border:1px solid var(--border,#dbdbdb);border-radius:8px;padding:6px 8px;font-size:12px;background:var(--bg2,#f5f5f5);color:var(--text);min-width:0; }
+.rec-filtros-fechas { display:flex;gap:6px;align-items:center;flex-wrap:wrap; }
+.rec-filtros-btns { display:flex;gap:6px;align-items:center; }
+.rec-filtro-clear { border:1px solid var(--border,#dbdbdb);border-radius:8px;padding:6px 10px;background:var(--bg2,#f5f5f5);color:var(--text2);cursor:pointer;display:flex;align-items:center; }
+.rec-filtro-clear:hover { background:var(--border); }
+.rec-btn-export { border:1px solid var(--border,#dbdbdb);border-radius:8px;padding:6px 12px;background:var(--bg2,#f5f5f5);color:var(--text);cursor:pointer;font-size:13px;display:flex;align-items:center;gap:4px;white-space:nowrap; }
+.rec-btn-export:hover { background:var(--border); }
+
+/* ---- TABLE ---- */
+.rec-table-wrap { overflow-x:auto; }
+.tabla-aportes { width:100%;border-collapse:collapse;font-size:13px; }
+.tabla-aportes th { text-align:left;padding:10px 12px;background:var(--bg2,#f5f5f5);color:var(--text2);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.5px;border-bottom:2px solid var(--border,#dbdbdb);white-space:nowrap; }
+.tabla-aportes td { padding:10px 12px;border-bottom:1px solid var(--border,#dbdbdb);vertical-align:middle; }
+.fila-aporte:hover td { background:var(--bg2,#f5f5f5); }
+.rec-user-cell { display:flex;align-items:center;gap:8px; }
+.rec-avatar { width:30px;height:30px;border-radius:50%;background:var(--accent,#0095f6);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0; }
+.rec-desc-cell { max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
+.rec-monto { font-weight:700;color:#4caf50; }
+.rec-fecha { color:var(--text2);font-size:12px;white-space:nowrap; }
+.rec-empty { text-align:center;padding:40px!important;color:var(--text2); }
+.rec-empty .material-symbols-outlined { font-size:40px;display:block;margin-bottom:8px; }
+.rec-resultados { display:flex;align-items:center;gap:8px;padding:10px 0;font-size:13px;color:var(--text2); }
+.rec-resultados button { border:1px solid var(--border);border-radius:6px;padding:3px 10px;font-size:12px;cursor:pointer;background:var(--bg2); }
+.rec-sin-comp { color:var(--text2);font-size:12px; }
+.rec-thumb-btn { border:1px solid var(--border);border-radius:6px;overflow:hidden;cursor:pointer;padding:0;background:transparent;width:36px;height:36px; }
+.rec-thumb-btn img { width:100%;height:100%;object-fit:cover; }
+.btn-comp { font-size:12px;padding:4px 8px;border:1px solid var(--border);border-radius:6px;text-decoration:none;color:var(--text);display:inline-flex;align-items:center;gap:4px;background:var(--bg2); }
+
+/* ---- BADGES ---- */
+.badge-ok     { background:rgba(76,175,80,.15);color:#4caf50;padding:3px 8px;border-radius:20px;font-size:11px;font-weight:700;white-space:nowrap; }
+.badge-pend   { background:rgba(255,152,0,.15);color:#ff9800;padding:3px 8px;border-radius:20px;font-size:11px;font-weight:700;white-space:nowrap; }
+.badge-pagado { background:rgba(76,175,80,.15);color:#4caf50;padding:3px 8px;border-radius:20px;font-size:11px;font-weight:700;white-space:nowrap; }
+.badge-tipo { padding:3px 8px;border-radius:20px;font-size:11px;font-weight:700;white-space:nowrap; }
+.badge-tipo-evento  { background:rgba(0,149,246,.12);color:#0095f6; }
+.badge-tipo-familia { background:rgba(76,175,80,.12);color:#4caf50; }
+.badge-tipo-polla   { background:rgba(255,193,7,.15);color:#f9a825; }
+
+/* ---- ACCIONES ADMIN ---- */
+.rec-acciones { display:flex;gap:6px; }
+.btn-accion { width:30px;height:30px;border-radius:8px;border:1px solid var(--border);background:var(--bg2);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--text2); }
+.btn-accion .material-symbols-outlined { font-size:17px; }
+.btn-verificar:hover { background:rgba(76,175,80,.15);border-color:#4caf50;color:#4caf50; }
+.btn-eliminar:hover  { background:rgba(244,67,54,.15);border-color:#f44336;color:#f44336; }
+
+/* ---- RANKING ---- */
+.rec-ranking { display:flex;flex-direction:column;gap:10px; }
+.rec-ranking-item { display:flex;align-items:center;gap:14px; }
+.rec-ranking-pos { width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;background:var(--bg2); }
+.rec-ranking-pos.top-1 { background:rgba(255,215,0,.2); }
+.rec-ranking-pos.top-2 { background:rgba(192,192,192,.2); }
+.rec-ranking-pos.top-3 { background:rgba(205,127,50,.2); }
+.rec-ranking-info { flex:1; }
+.rec-ranking-top { display:flex;justify-content:space-between;margin-bottom:4px;font-size:14px; }
+.rec-ranking-name { font-weight:600; }
+.rec-ranking-amount { font-weight:700;color:#4caf50; }
+
+/* ---- MODAL BASE ---- */
+.rec-modal-overlay { position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(4px); }
+.rec-modal-box { background:var(--card,#fff);border-radius:18px;width:100%;max-width:500px;overflow:hidden;box-shadow:0 24px 64px rgba(0,0,0,.25);animation:slideUp .2s ease; }
+@keyframes slideUp { from{transform:translateY(30px);opacity:0} to{transform:translateY(0);opacity:1} }
+.rec-modal-header { display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border); }
+.rec-modal-title-wrap { display:flex;align-items:center;gap:10px;flex:1;min-width:0; }
+.rec-modal-title-wrap h3 { margin:0;font-size:15px;font-weight:700; }
+.rec-modal-title-wrap p { margin:0;font-size:12px;color:var(--text2); }
+.rec-modal-icon { width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0; }
+.rec-modal-icon.green { background:rgba(76,175,80,.15);color:#4caf50; }
+.rec-modal-icon.blue  { background:rgba(0,149,246,.15);color:#0095f6; }
+.rec-modal-icon.red   { background:rgba(244,67,54,.15);color:#f44336; }
+.rec-modal-close { width:32px;height:32px;border-radius:50%;border:1px solid var(--border);background:var(--bg2);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--text2);flex-shrink:0; }
+.rec-modal-body { padding:18px 20px;max-height:65vh;overflow-y:auto; }
+.rec-modal-footer { display:flex;gap:10px;justify-content:flex-end;padding:14px 20px;border-top:1px solid var(--border);flex-wrap:wrap; }
+
+/* ---- FORMULARIOS ---- */
+.rec-form-group { margin-bottom:14px; }
+.rec-form-label { display:flex;align-items:center;gap:6px;font-size:11.5px;font-weight:700;margin-bottom:7px;color:#444;text-transform:uppercase;letter-spacing:.04em; }
+.rec-form-label .material-symbols-outlined { font-size:15px;color:#666; }
+.rec-input { width:100%;border:1.5px solid #d0d0d0;border-radius:10px;padding:11px 14px;font-size:14px;background:#ffffff;color:#111111;transition:border-color .15s,box-shadow .15s;box-sizing:border-box;font-family:inherit; }
+.rec-input::placeholder { color:#aaa; }
+.rec-input:hover { border-color:#aaa; }
+.rec-input:focus { outline:none;border-color:var(--accent,#0095f6);box-shadow:0 0 0 3px rgba(0,149,246,.15);background:#fff; }
+.rec-textarea { resize:vertical;min-height:60px; }
+.rec-input-wrap { position:relative; }
+.rec-input-prefix { position:absolute;left:12px;top:50%;transform:translateY(-50%);color:#555;font-weight:700;font-size:15px; }
+.rec-input-wrap .rec-input { padding-left:26px; }
+.rec-upload-area { display:flex;flex-direction:column;align-items:center;justify-content:center;border:2px dashed var(--border);border-radius:12px;padding:20px 16px;cursor:pointer;text-align:center;min-height:80px;transition:border-color .15s; }
+.rec-upload-area:hover { border-color:var(--accent,#0095f6); }
+.rec-upload-icon { font-size:32px;color:var(--text2);display:block;margin-bottom:6px; }
+.rec-upload-text { font-size:13px;color:var(--text2); }
+.rec-upload-hint { font-size:11px;color:var(--text3,#999);display:block;margin-top:4px; }
+.rec-btn-cancel { padding:10px 18px;border:1.5px solid #c0c0c0;border-radius:10px;background:#f0f0f0;color:#222;cursor:pointer;font-size:14px;font-weight:700;transition:background .15s,border-color .15s;font-family:inherit; }
+.rec-btn-cancel:hover { background:#e0e0e0;border-color:#aaa; }
+.rec-btn-submit { padding:10px 18px;border:none;border-radius:10px;background:var(--accent,#0095f6);color:#fff;cursor:pointer;font-size:14px;font-weight:700;display:flex;align-items:center;gap:6px;white-space:nowrap;font-family:inherit;transition:opacity .15s,transform .1s; }
+.rec-btn-submit:hover { opacity:.88; }
+.rec-btn-submit:active { transform:scale(.97); }
+.rec-btn-danger { padding:10px 18px;border:none;border-radius:10px;background:#f44336;color:#fff;cursor:pointer;font-size:14px;font-weight:600;display:flex;align-items:center;gap:6px; }
+.btn-aporte-principal {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 11px 20px;
+
+    border: none;
+    border-radius: 12px;
+
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+
+    white-space: nowrap;
+
+    transition: opacity .15s, transform .1s, background .2s, color .2s;
+}
+
+/* =========================
+   MODO CLARO (ROSA SUAVE)
+========================= */
+body:not(.dark-mode) .btn-aporte-principal {
+    background: #ff4d8d;
+    color: #ffffff;
+}
+
+/* =========================
+   MODO OSCURO
+========================= */
+body.dark-mode .btn-aporte-principal {
+    background: #f8fafc;
+    color: #111111;
+}
+
+/* =========================
+   INTERACCIONES SIMPLES
+========================= */
+.btn-aporte-principal:hover {
+    opacity: .90;
+    transform: translateY(-1px);
+}
+
+.btn-aporte-principal:active {
+    transform: translateY(0);
+    opacity: .85;
+}
+.btn-aporte-principal:hover { opacity:.88; }
+.btn-aporte-principal:active { transform:scale(0.97); }
+.btn-aporte-principal .material-symbols-outlined { font-size:20px; }
+.btn-back-modal { width:32px;height:32px;border-radius:50%;border:1px solid var(--border);background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--text2);flex-shrink:0; }
+
+/* ---- TIPO APORTE GRID ---- */
+.tipo-aporte-grid { display:flex;flex-direction:column;gap:10px; }
+.tipo-aporte-card { display:flex;align-items:center;gap:14px;padding:14px 16px;border:1px solid var(--border);border-radius:14px;background:var(--bg2);cursor:pointer;text-align:left;transition:border-color .15s,box-shadow .15s; }
+.tipo-aporte-card:hover { border-color:var(--accent,#0095f6);box-shadow:0 4px 16px rgba(0,149,246,.12); }
+.tipo-icon { width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0; }
+.tipo-info { flex:1;text-align:left; }
+.tipo-info strong {
+  display: block;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+body.dark-mode .tipo-info strong {
+  color: #ffffff;
+}
+.tipo-info span { font-size:12px;color:var(--text2); }
+.tipo-arrow { color:var(--text2); }
+
+/* ---- FAMILIA TABS ---- */
+.familia-tabs { display:flex;gap:6px;margin-bottom:16px; }
+.familia-tab { flex:1;padding:8px;border:1px solid var(--border);border-radius:10px;background:var(--bg2);cursor:pointer;font-size:13px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:4px;color:var(--text2);transition:all .15s; }
+.familia-tab.active { background:var(--accent,#0095f6);color:#fff;border-color:var(--accent,#0095f6); }
+
+/* ---- CAJITAS ---- */
+.cajitas-lista { display:flex;flex-direction:column;gap:8px; }
+.cajita-item { display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border:1px solid var(--border);border-radius:12px;background:var(--bg2);cursor:pointer;transition:border-color .15s; }
+.cajita-item:hover { border-color:var(--accent,#0095f6); }
+.cajita-item-info strong { display:block;font-size:14px; }
+.cajita-item-info span { font-size:12px;color:var(--text2); }
+.cajita-total { font-weight:700;color:#4caf50;font-size:13px; }
+.miembros-lista { display:flex;flex-direction:column;gap:6px;max-height:150px;overflow-y:auto;border:1px solid var(--border);border-radius:10px;padding:8px; }
+.miembro-check { display:flex;align-items:center;gap:8px;cursor:pointer;padding:4px;border-radius:8px; }
+.miembro-check:hover { background:var(--bg2); }
+.miembro-check input { accent-color:var(--accent,#0095f6); }
+.miembro-avatar { width:26px;height:26px;border-radius:50%;background:var(--accent,#0095f6);color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0; }
+
+/* ---- FASES POLLA ---- */
+.fases-grid { display:flex;flex-direction:column;gap:10px; }
+.fase-card { border:2px solid var(--border);border-radius:14px;padding:14px;transition:border-color .15s; }
+.fase-card.pagada { border-color:#4caf50;background:rgba(76,175,80,.04); }
+.fase-header { display:flex;align-items:center;gap:12px;margin-bottom:8px; }
+.fase-icon { font-size:22px;flex-shrink:0; }
+.fase-info { flex:1;min-width:0; }
+.fase-info strong { display:block;font-size:14px;font-weight:700; }
+.fase-info span { font-size:12px;color:var(--text2); }
+.fase-precio { font-weight:700;color:var(--accent);font-size:14px;white-space:nowrap; }
+.fase-estado { margin-bottom:8px; }
+
+.fase-btn{width:100%;padding:10px;border:none;border-radius:10px;background:#ff4d8d;color:#fff;font-weight:600;font-size:14px;cursor:pointer;transition:opacity .15s ease,transform .1s ease,background .2s ease}
+.fase-btn:hover{opacity:.88}
+.fase-btn:active{opacity:.8;transform:translateY(0)}
+.fase-btn:disabled{background:var(--bg2);color:var(--text2);border:1px solid var(--border);cursor:not-allowed;opacity:.8}
+
+.fase-btn-pagada{width:100%;padding:10px;border:2px solid #4caf50;border-radius:10px;background:rgba(76,175,80,.1);color:#4caf50;font-weight:700;font-size:14px;cursor:default;display:flex;align-items:center;justify-content:center;gap:6px}
+
+/* ===== DARK MODE ===== */
+body.dark-mode .fase-btn{color:#000}
+
+body.dark-mode .fase-btn-pagada{background:rgba(0,166,80,.08);border-color:rgba(0,166,80,.4);color:#4caf50}
+
+.pago-fase-header { padding:12px 14px;background:rgba(255,193,7,.1);border:1px solid rgba(255,193,7,.3);border-radius:10px;margin-bottom:14px;font-size:14px;font-weight:600; }
+.rec-comp-img-wrap { padding:16px;text-align:center; }
+.rec-comp-img-wrap img { max-width:100%;max-height:380px;border-radius:10px; }
+.rec-modal-comp-box { max-width:560px; }
+.rec-modal-confirm { max-width:420px; }
+.rec-upload-filename { display:flex;align-items:center;gap:6px;font-size:13px;margin-top:6px; }
+
+/* ---- DARK MODE ESPECÍFICO RECAUDACION ---- */
+body.dark-mode .btn-admin-meta { color:var(--text2);border-color:var(--border); }
+body.dark-mode .btn-admin-meta:hover { background:rgba(76,175,80,.12);border-color:#4caf50;color:#4caf50; }
+body.dark-mode .rec-meta-actual { background:var(--bg2);border-color:var(--border); }
+body.dark-mode .rec-preset-btn { background:var(--bg2);border-color:var(--border);color:var(--text); }
+body.dark-mode .rec-preset-btn:hover { background:rgba(76,175,80,.12);border-color:#4caf50;color:#4caf50; }
+body.dark-mode .rec-stat { background:var(--card);border-color:var(--border); }
+body.dark-mode .rec-stat:hover { box-shadow:0 6px 20px rgba(0,0,0,.3); }
+body.dark-mode .rec-modal-box { background:var(--card);border:1px solid var(--border); }
+body.dark-mode .tipo-aporte-card { background:var(--bg2);border-color:var(--border); }
+body.dark-mode .tipo-aporte-card:hover { border-color:var(--accent);box-shadow:0 4px 16px rgba(255,255,255,.06); }
+body.dark-mode .fase-card { border-color:var(--border);background:var(--bg2); }
+body.dark-mode .fase-card.pagada { border-color:#4caf50;background:rgba(76,175,80,.06); }
+body.dark-mode .cajita-item { background:var(--bg2);border-color:var(--border); }
+body.dark-mode .rec-filtro-input { background:var(--bg2);border-color:var(--border); }
+body.dark-mode .rec-select-filter,
+body.dark-mode .rec-date-input { background:var(--bg2);border-color:var(--border);color:var(--text); }
+body.dark-mode .rec-filtro-clear,
+body.dark-mode .rec-btn-export { background:var(--bg2);border-color:var(--border);color:var(--text); }
+body.dark-mode .tabla-aportes th { background:var(--bg2);color:var(--text2);border-color:var(--border); }
+body.dark-mode .tabla-aportes td { border-color:var(--border); }
+body.dark-mode .fila-aporte:hover td { background:var(--bg2); }
+/* ── DARK MODE FORMS ── */
+body.dark-mode .rec-form-label { color:#c0c0c0; }
+body.dark-mode .rec-form-label .material-symbols-outlined { color:#888; }
+body.dark-mode .rec-input { background:#1e1e22;border-color:#3a3a40;color:#f0f0f0; }
+body.dark-mode .rec-input::placeholder { color:#555; }
+body.dark-mode .rec-input:hover { border-color:#666; }
+body.dark-mode .rec-input:focus { border-color:var(--accent);box-shadow:0 0 0 3px rgba(255,255,255,.08);background:#252529; }
+body.dark-mode .rec-input-prefix { color:#999; }
+body.dark-mode .rec-btn-cancel { background:#2a2a2e;border-color:#444;color:#e0e0e0; }
+body.dark-mode .rec-btn-cancel:hover { background:#333;border-color:#666; }
+/* submit en dark: blanco con letra negra */
+body.dark-mode .rec-btn-submit { background:#ffffff !important;color:#111111 !important;border:none; }
+body.dark-mode .rec-btn-submit:hover { opacity:.88; }
+body.dark-mode .familia-tab { background:var(--bg2);border-color:var(--border);color:var(--text2); }
+body.dark-mode .familia-tab.active { background:var(--accent);color:var(--bg);border-color:var(--accent); }
+body.dark-mode .rec-modal-header { border-color:var(--border); }
+body.dark-mode .rec-modal-footer { border-color:var(--border); }
+body.dark-mode .rec-upload-area { border-color:var(--border); }
+body.dark-mode .rec-upload-area:hover { border-color:var(--accent); }
+body.dark-mode .btn-accion { background:var(--bg2);border-color:var(--border);color:var(--text2); }
+body.dark-mode .rec-ranking-pos { background:var(--bg2); }
+body.dark-mode .btn-comp { background:var(--bg2);border-color:var(--border);color:var(--text); }
+body.dark-mode .rec-resultados button { background:var(--bg2);border-color:var(--border);color:var(--text); }
+body.dark-mode .miembros-lista { border-color:var(--border); }
+body.dark-mode .rec-modal-close { background:var(--bg2);border-color:var(--border);color:var(--text2); }
+
+/* ======================================================
+   MOBILE — RESPONSIVE
+====================================================== */
+@media (max-width: 768px) {
+  /* Header */
+  .rec-header { flex-direction:column;align-items:flex-start;gap:10px; }
+  .rec-header-title h1 { font-size:1.25rem; }
+  .rec-header-actions { width:100%;display:flex;flex-direction:column;gap:8px; }
+  .btn-aporte-principal { width:100%;justify-content:center; }
+  .btn-admin-meta { width:100%;justify-content:center; }
+
+  /* Stats grid: 2 columnas */
+  .rec-stats { grid-template-columns:repeat(2,1fr);gap:10px; }
+  .rec-stat { padding:12px; }
+  .rec-stat-value { font-size:1rem; }
+
+  /* Progress card: apilado */
+  .rec-progress-card { flex-direction:column;gap:16px; }
+  .rec-pig-section { width:100%;justify-content:center; }
+  .rec-progress-info { width:100%;min-width:0; }
+
+  /* Filtros: columna */
+  .rec-table-header { flex-direction:column;gap:10px;align-items:flex-start; }
+  .rec-filtros { flex-direction:column;gap:8px;width:100%; }
+  .rec-filtro-input { width:100%;box-sizing:border-box; }
+  .rec-filtro-input input { width:100%; }
+  .rec-select-filter,
+  .rec-date-input { width:100%;box-sizing:border-box; }
+  .rec-filtros-fechas { width:100%;display:grid;grid-template-columns:1fr 1fr;gap:6px; }
+  .rec-filtros-btns { width:100%;justify-content:flex-end;flex-wrap:wrap; }
+  .rec-btn-export { flex:1;justify-content:center; }
+
+  /* Tabla: scroll horizontal con col ocultas en móvil */
+  .rec-table-wrap { overflow-x:auto;-webkit-overflow-scrolling:touch; }
+  .tabla-aportes { min-width:420px; }
+  .col-desc { display:none; }
+  .col-fecha { display:none; }
+
+  /* Mobile refinements para pantallas muy angostas */
+  .rec-stats { grid-template-columns:1fr; }
+  .rec-filtros-fechas { grid-template-columns:1fr; }
+  .rec-table-header { width:100%; }
+  .rec-filtros-btns { justify-content:flex-start; }
+  .rec-table-wrap { min-width:auto; }
+  .tabla-aportes { min-width:360px; }
+
+  /* Modal: full screen en mobile */
+  .rec-modal-overlay { padding:0;align-items:flex-end; }
+  .rec-modal-box {
+    border-radius:20px 20px 0 0;
+    max-height:92vh;
+    max-width:100%;
+    display:flex;
+    flex-direction:column;
+  }
+  .rec-modal-body { flex:1;overflow-y:auto; }
+  .rec-modal-header { padding:14px 16px; }
+  .rec-modal-body { padding:14px 16px; }
+  .rec-modal-footer { padding:12px 16px;flex-wrap:wrap; }
+  .rec-modal-footer .rec-btn-cancel,
+  .rec-modal-footer .rec-btn-submit,
+  .rec-modal-footer .rec-btn-danger { flex:1;justify-content:center; }
+
+  /* Tipo aporte cards */
+  .tipo-aporte-card { padding:12px; }
+  .tipo-icon { width:38px;height:38px; }
+
+  /* Fases polla */
+  .fase-header { flex-wrap:wrap;gap:8px; }
+  .fase-precio { width:100%;text-align:right;font-size:13px; }
+
+  /* Familia tabs */
+  .familia-tab { font-size:12px;padding:7px; }
+
+  /* Ranking */
+  .rec-ranking-top { flex-direction:column;gap:2px; }
+  .rec-ranking-amount { font-size:13px; }
+
+  /* Export txt en mobile: solo icono */
+  .rec-export-txt { display:none; }
+}
+
+@media (max-width: 420px) {
+  /* Stats: 2 columnas en pantallas pequeñas */
+  .rec-stats { grid-template-columns:1fr 1fr; }
+  .rec-stat-icon { width:36px;height:36px; }
+  .rec-stat-value { font-size:.95rem; }
+  .rec-modal-title-wrap h3 { font-size:14px; }
+}
+
+@media (max-width: 360px) {
+  .rec-stats { grid-template-columns:1fr; }
+  .rec-header-title h1 { font-size:1.1rem; }
+  .rec-filtros-fechas { grid-template-columns:1fr; }
+  .rec-filtros-btns { justify-content:flex-start; }
+  .rec-table-header { width:100%; }
+  .tabla-aportes { min-width:320px; }
+  .rec-export-txt { display:none; }
+  .rec-modal-title-wrap h3 { font-size:13px; }
+}
+</style>
+
+<!-- ===================== JS RECAUDACIÓN ===================== -->
+<script>
+/* ===================== MODAL PRINCIPAL ===================== */
+function abrirModalAporte() {
+  show('modal-aporte');
+  cargarEstadoPolla();
+}
+function cerrarModalAporte(e) {
+  if (!e || e.target === document.getElementById('modal-aporte')) {
+    hide('modal-aporte');
+  }
+}
+
+/* ===================== SUB-MODALES ===================== */
+function abrirSubModal(tipo) {
+  hide('modal-aporte');
+  if (tipo === 'familia') {
+    show('modal-familia');
+    cargarCajitas();
+  } else if (tipo === 'evento') {
+    show('modal-evento');
+  } else if (tipo === 'polla') {
+    show('modal-polla');
+    cargarEstadoPolla();
+  }
+}
+function cerrarSubModal(tipo, e) {
+  const id = 'modal-' + tipo;
+  if (!e || e.target === document.getElementById(id)) {
+    hide(id);
+  }
+}
+function volverAlPrincipal(tipo) {
+  hide('modal-' + tipo);
+  show('modal-aporte');
+}
+
+/* ===================== UTILS ===================== */
+function show(id) {
+  const el = document.getElementById(id);
+  if (el) { el.style.display = 'flex'; document.body.style.overflow = 'hidden'; }
+}
+function hide(id) {
+  const el = document.getElementById(id);
+  if (el) { el.style.display = 'none'; document.body.style.overflow = ''; }
+}
+
+/* ===================== FAMILIA / CAJITAS ===================== */
+function familiaTab(tab) {
+  document.querySelectorAll('.familia-tab').forEach(b => b.classList.remove('active'));
+  document.getElementById('ftab-' + tab).classList.add('active');
+  document.getElementById('familia-panel-crear').style.display = tab === 'crear' ? '' : 'none';
+  document.getElementById('familia-panel-seleccionar').style.display = tab === 'seleccionar' ? '' : 'none';
+  const pu = document.getElementById('familia-panel-unirse');
+  if (pu) pu.style.display = tab === 'unirse' ? '' : 'none';
+  if (tab === 'seleccionar') cargarCajitas();
+}
+
+async function unirseACajita() {
+  const input = document.getElementById('input-codigo-cajita');
+  const res = document.getElementById('cajita-unirse-resultado');
+  const codigo = (input.value || '').trim().toUpperCase();
+  if (!codigo || codigo.length < 4) {
+    res.innerHTML = '<span style="color:#e53935;">Ingresa un c\u00f3digo v\u00e1lido.</span>';
+    return;
+  }
+  res.innerHTML = '<span style="color:var(--text2);">Buscando cajita...</span>';
+  try {
+    const r = await fetch('/api/cajita/unirse', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+      body: JSON.stringify({ codigo })
+    });
+    const data = await r.json();
+    if (data.ok) {
+      res.innerHTML = '<span style="color:#4caf50;">\u2705 \u00a1Te uniste a <strong>' + data.cajita.nombre + '</strong>!</span>';
+      input.value = '';
+      setTimeout(() => { familiaTab('seleccionar'); }, 1400);
+    } else {
+      res.innerHTML = '<span style="color:#e53935;">\u274c ' + (data.error || 'C\u00f3digo no encontrado') + '</span>';
+    }
+  } catch(e) {
+    res.innerHTML = '<span style="color:#e53935;">Error de conexi\u00f3n</span>';
+  }
+}
+
+async function copiarCodigoCajita(cid, btn) {
+  try {
+    const r = await fetch('/api/cajita/' + cid + '/codigo');
+    const data = await r.json();
+    if (data.ok) {
+      await navigator.clipboard.writeText(data.codigo);
+      const viejo = btn.textContent;
+      btn.textContent = '\u2705 Copiado';
+      setTimeout(() => btn.textContent = viejo, 2000);
+    }
+  } catch(e) {
+    alert('No se pudo obtener el c\u00f3digo');
+  }
+}
+
+function cargarCajitas() {
+  fetch('/api/mis_cajitas').then(r => r.json()).then(cajitas => {
+    const el = document.getElementById('cajitas-lista');
+    if (!cajitas.length) {
+      el.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text2);">No tienes cajitas aún.<br><small>Crea una nueva en la pestaña anterior.</small></div>';
+      return;
+    }
+    el.innerHTML = cajitas.map(c => `
+      <div class="cajita-item" onclick="abrirCajitaDetalle(${c.id},'${c.nombre.replace(/'/g,"\\'")}',${c.total})">
+        <div class="cajita-item-info">
+          <strong>🏠 ${c.nombre}</strong>
+          <span>${c.descripcion || 'Sin descripción'}</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div class="cajita-total">$${Math.round(c.total).toLocaleString()}</div>
+          <button onclick="event.stopPropagation();copiarCodigoCajita(${c.id},this)"
+                  style="font-size:11px;padding:3px 8px;border:1px solid var(--border);border-radius:6px;background:transparent;color:var(--text2);cursor:pointer;white-space:nowrap;"
+                  title="Compartir c\u00f3digo">\U0001f517</button>
+        </div>
+      </div>
+    `).join('');
+  }).catch(() => {
+    document.getElementById('cajitas-lista').innerHTML = '<div style="color:var(--text2);text-align:center;padding:20px;">Error cargando cajitas.</div>';
+  });
+}
+
+function abrirCajitaDetalle(id, nombre, total) {
+  hide('modal-familia');
+  document.getElementById('cajita-detalle-nombre').textContent = '🏠 ' + nombre;
+  document.getElementById('cajita-detalle-total').textContent = 'Total: $' + Math.round(total).toLocaleString();
+  document.getElementById('input-cajita-id').value = id;
+  show('modal-cajita-detalle');
+  fetch(`/api/cajita/${id}/movimientos`).then(r => r.json()).then(movs => {
+    const el = document.getElementById('cajita-movimientos-lista');
+    if (!movs.length) {
+      el.innerHTML = '<p style="color:var(--text2);font-size:13px;text-align:center;">Sin movimientos aún.</p>';
+      return;
+    }
+    el.innerHTML = movs.map(m => `
+      <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px;">
+        <div><strong>${m.nombre}</strong><br><span style="color:var(--text2);">${m.descripcion || '—'}</span></div>
+        <div style="text-align:right;"><span style="color:#4caf50;font-weight:700;">+$${Math.round(m.monto).toLocaleString()}</span><br><span style="color:var(--text2);font-size:11px;">${m.fecha.slice(0,10)}</span></div>
+      </div>
+    `).join('');
+  });
+}
+
+function volverACajitas() {
+  hide('modal-cajita-detalle');
+  show('modal-familia');
+  familiaTab('seleccionar');
+}
+
+function cerrarCajitaDetalle(e) {
+  if (!e || e.target === document.getElementById('modal-cajita-detalle')) {
+    hide('modal-cajita-detalle');
+  }
+}
+
+/* ===================== POLLA MUNDIALISTA ===================== */
+const FASES_PRECIO = {1: 20000, 2: 10000, 3: 10000};
+const FASES_NOMBRE = {1: '⚽ Fase 1 — Grupos', 2: '🏆 Fase 2 — Eliminatorias', 3: '🥇 Fase 3 — Semifinal y Final'};
+let _pollaData = {};
+
+function cargarEstadoPolla() {
+  fetch('/api/mi_polla').then(r => r.json()).then(pagos => {
+    _pollaData = pagos;
+    [1,2,3].forEach(f => {
+      const estadoEl = document.getElementById('fase-estado-' + f);
+      const btnEl    = document.getElementById('fase-btn-' + f);
+      const cardEl   = document.getElementById('fase-card-' + f);
+      if (!estadoEl) return;
+      if (pagos[f]) {
+        const fecha = pagos[f].fecha ? new Date(pagos[f].fecha).toLocaleDateString('es-CO') : '';
+        const estado = pagos[f].estado;
+        if (estado === 'pendiente') {
+          estadoEl.innerHTML = '<span class="badge-pend">⏳ Pendiente verificación · ' + fecha + '</span>';
+        } else {
+          estadoEl.innerHTML = '<span class="badge-pagado">✅ Verificado · ' + fecha + '</span>';
+        }
+        if (btnEl) btnEl.outerHTML = `<div class="fase-btn-pagada"><span class="material-symbols-outlined">check_circle</span>Inscripción completada</div>`;
+        cardEl.classList.add('pagada');
+      } else {
+        estadoEl.innerHTML = '<span class="badge-pend">⏳ No inscrito</span>';
+      }
+    });
+  }).catch(() => {});
+}
+
+function seleccionarFase(num) {
+  if (_pollaData[num]) return;
+  document.getElementById('fases-grid').style.display = 'none';
+  document.getElementById('panel-pago-fase').style.display = '';
+  document.getElementById('input-fase-polla').value = num;
+  document.getElementById('pago-fase-titulo').innerHTML =
+    `${FASES_NOMBRE[num]} — <strong>$${FASES_PRECIO[num].toLocaleString()} COP</strong><br><small style="font-weight:400;color:var(--text2);">Adjunta tu comprobante de pago para completar la inscripción.</small>`;
+}
+
+function volverAFases() {
+  document.getElementById('fases-grid').style.display = '';
+  document.getElementById('panel-pago-fase').style.display = 'none';
+}
+
+/* ===================== UPLOAD PREVIEW ===================== */
+function previewFile(input, previewId, placeholderId) {
+  const file = input.files[0];
+  const ph = document.getElementById(placeholderId);
+  const pv = document.getElementById(previewId);
+  if (!file) return;
+  ph.style.display = 'none';
+  pv.style.display = 'flex';
+  pv.style.flexDirection = 'column';
+  pv.style.alignItems = 'center';
+  if (file.type.startsWith('image/')) {
+    const url = URL.createObjectURL(file);
+    pv.innerHTML = `<img src="${url}" style="max-height:80px;border-radius:8px;"><div class="rec-upload-filename"><span class="material-symbols-outlined" style="font-size:16px;color:#4caf50;">check_circle</span><span>${file.name}</span></div>`;
+  } else {
+    pv.innerHTML = `<span class="material-symbols-outlined" style="font-size:32px;color:#ff6b6b;">picture_as_pdf</span><div class="rec-upload-filename"><span class="material-symbols-outlined" style="font-size:16px;color:#4caf50;">check_circle</span><span>${file.name}</span></div>`;
+  }
+}
+
+/* ===================== VALIDACIONES ===================== */
+function validarEvento(form) {
+  const soporte = form.querySelector('input[name="soporte_evento"]');
+  if (!soporte.files.length) { alert('El soporte es obligatorio.'); return false; }
+  const monto = parseFloat(form.querySelector('input[name="monto_evento"]').value);
+  if (!monto || monto <= 0) { alert('El monto debe ser mayor a $0.'); return false; }
+  return true;
+}
+function validarPolla(form) {
+  const soporte = form.querySelector('input[name="soporte_polla"]');
+  if (!soporte.files.length) { alert('Debes adjuntar el comprobante de pago.'); return false; }
+  return true;
+}
+
+/* ===================== COMPROBANTE MODAL ===================== */
+function verComprobante(url) {
+  document.getElementById('modal-comp-img').src = url;
+  document.getElementById('modal-comp-link').href = url;
+  show('modal-comp');
+}
+function cerrarModalComp(e) {
+  if (!e || e.target === document.getElementById('modal-comp')) hide('modal-comp');
+}
+
+/* ===================== CONFIRMAR ELIMINAR ===================== */
+let _formEliminar = null;
+function confirmarEliminar(event, form) {
+  event.preventDefault();
+  _formEliminar = form;
+  show('modal-confirmar');
+  document.getElementById('btn-confirmar-eliminar').onclick = function() {
+    hide('modal-confirmar');
+    _formEliminar.submit();
+  };
+  return false;
+}
+function cancelarEliminar(e) {
+  if (!e || e.target === document.getElementById('modal-confirmar')) hide('modal-confirmar');
+}
+
+/* ===================== MODAL META (ADMIN) ===================== */
+function abrirModalMeta() {
+  show('modal-meta');
+}
+function cerrarModalMeta(e) {
+  if (!e || e.target === document.getElementById('modal-meta')) hide('modal-meta');
+}
+function setMeta(valor) {
+  document.getElementById('input-nueva-meta').value = valor;
+}
+function guardarMeta() {
+  const val = parseFloat(document.getElementById('input-nueva-meta').value);
+  if (!val || val <= 0) { alert('Ingresa una meta válida mayor a $0'); return; }
+  fetch('/api/admin/meta', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ meta: val })
+  }).then(r => r.json()).then(data => {
+    if (data.ok) {
+      hide('modal-meta');
+      // Actualizar visualmente sin recargar
+      const fmt = new Intl.NumberFormat('es-CO').format(Math.round(val));
+      document.querySelectorAll('.rec-stat-value').forEach(el => {
+        if (el.previousElementSibling && el.previousElementSibling.textContent === 'Meta') {
+          el.textContent = '$' + fmt;
+        }
+      });
+      document.getElementById('meta-actual-display').textContent = '$' + fmt;
+      // Recargar para reflejar nuevo pct y ranking
+      setTimeout(() => location.reload(), 800);
+    } else {
+      alert(data.error || 'Error al guardar');
+    }
+  }).catch(() => alert('Error de conexión'));
+}
+
+/* ===================== ESCAPE KEY ===================== */
+document.addEventListener('keydown', function(e) {
+  if (e.key !== 'Escape') return;
+  ['modal-aporte','modal-familia','modal-evento','modal-polla','modal-comp','modal-confirmar','modal-cajita-detalle','modal-meta'].forEach(hide);
+});
+
+/* ===================== HISTORIAL ===================== */
+let _historialData = [];
+const IS_ADMIN = {{ 'true' if usuario.rol == 'admin' else 'false' }};
+
+function cargarHistorial() {
+  fetch('/api/historial').then(r => r.json()).then(data => {
+    _historialData = data;
+    renderHistorial(data);
+    document.getElementById('hist-loading').style.display = 'none';
+    document.getElementById('hist-table-wrap').style.display = '';
+  }).catch(() => {
+    document.getElementById('hist-loading').innerHTML = '<span class="material-symbols-outlined" style="font-size:36px;display:block;margin-bottom:8px;">error</span><p>Error cargando historial.</p>';
+  });
+}
+
+function renderHistorial(rows) {
+  const tbody = document.getElementById('hist-tbody');
+  if (!rows.length) {
+    tbody.innerHTML = '<tr><td colspan="8" class="rec-empty"><span class="material-symbols-outlined">inbox</span><p>Sin registros aún</p></td></tr>';
+    return;
+  }
+  tbody.innerHTML = rows.map(r => {
+    const tipoBadge = r.tipo === 'evento'
+      ? '<span class="badge-tipo badge-tipo-evento">📅 Evento</span>'
+      : r.tipo === 'familia'
+      ? '<span class="badge-tipo badge-tipo-familia">🏠 Familia</span>'
+      : `<span class="badge-tipo badge-tipo-polla">⚽ Fase ${r.fase || ''}</span>`;
+
+    const desc = r.tipo === 'evento'
+      ? (r.nombre_evento || '—')
+      : r.tipo === 'familia'
+      ? (r.descripcion || r.cajita_nombre || '—')
+      : (r.tipo === 'polla' ? `Polla Fase ${r.fase}` : '—');
+
+    const monto = r.monto ? `<span class="rec-monto">$${Math.round(r.monto).toLocaleString()}</span>` : '—';
+    const fecha = (r.fecha || '').slice(0,10);
+    const soporte = r.soporte
+      ? (r.soporte.endsWith('.pdf')
+        ? `<a href="${r.soporte}" target="_blank" class="btn-comp"><span class="material-symbols-outlined" style="font-size:14px;">picture_as_pdf</span> PDF</a>`
+        : `<button class="rec-thumb-btn" onclick="verComprobante('${r.soporte}')"><img src="${r.soporte}" alt=""></button>`)
+      : '<span class="rec-sin-comp">—</span>';
+
+    // Determinar badge de estado
+    let estadoBadge;
+    if (r.estado === 'verificado') {
+      estadoBadge = '<span class="badge-ok">✓ Verificado</span>';
+    } else if (r.estado === 'pagado') {
+      estadoBadge = '<span class="badge-pagado">✅ Pagado</span>';
+    } else {
+      estadoBadge = '<span class="badge-pend">⏳ Pendiente</span>';
+    }
+
+    // Columna de acciones admin: aplica a eventos Y a polla
+    let adminCol = '';
+    if (IS_ADMIN) {
+      let acciones = '';
+      if (r.estado === 'pendiente' || r.estado === 'pagado') {
+        if (r.tipo === 'evento') {
+          acciones += `<form method="POST" action="/verificar_evento/${r.id}" style="display:inline;">
+            <button class="btn-accion btn-verificar" title="Verificar pago">
+              <span class="material-symbols-outlined">check_circle</span>
+            </button>
+          </form>`;
+        } else if (r.tipo === 'polla') {
+          acciones += `<form method="POST" action="/verificar_polla/${r.id}" style="display:inline;">
+            <button class="btn-accion btn-verificar" title="Verificar pago polla">
+              <span class="material-symbols-outlined">check_circle</span>
+            </button>
+          </form>`;
+        }
+      }
+      if (r.tipo === 'evento' || r.tipo === 'polla') {
+        acciones += `<form method="POST" action="/eliminar_pago/${r.tipo}/${r.id}" style="display:inline;" onsubmit="return confirmarEliminar(event, this)">
+          <button class="btn-accion btn-eliminar" title="Eliminar">
+            <span class="material-symbols-outlined">delete</span>
+          </button>
+        </form>`;
+      }
+      adminCol = `<td><div class="rec-acciones">${acciones || '—'}</div></td>`;
+    }
+
+    return `<tr class="fila-aporte" data-usuario="${(r.usuario||'').toLowerCase()}" data-fecha="${fecha}" data-tipo="${r.tipo}" data-estado="${r.estado||''}">
+      <td><div class="rec-user-cell"><div class="rec-avatar">${(r.usuario||'?')[0].toUpperCase()}</div><strong>${r.usuario||'—'}</strong></div></td>
+      <td>${tipoBadge}</td>
+      <td class="rec-desc-cell col-desc" title="${desc}">${desc}</td>
+      <td>${monto}</td>
+      <td class="rec-fecha col-fecha">${fecha}</td>
+      <td>${soporte}</td>
+      <td>${estadoBadge}</td>
+      ${adminCol}
+    </tr>`;
+  }).join('');
+}
+
+function filtrarHistorial() {
+  const usr   = document.getElementById('filtro-usuario').value.toLowerCase();
+  const tipo  = document.getElementById('filtro-tipo').value;
+  const estado= document.getElementById('filtro-estado').value;
+  const desde = document.getElementById('filtro-desde').value;
+  const hasta = document.getElementById('filtro-hasta').value;
+  let count = 0;
+  document.querySelectorAll('.fila-aporte').forEach(row => {
+    const ok = (!usr    || row.dataset.usuario.includes(usr))
+            && (!tipo   || row.dataset.tipo   === tipo)
+            && (!estado || row.dataset.estado === estado)
+            && (!desde  || row.dataset.fecha  >= desde)
+            && (!hasta  || row.dataset.fecha  <= hasta);
+    row.style.display = ok ? '' : 'none';
+    if (ok) count++;
+  });
+  const div = document.getElementById('rec-resultados');
+  const activo = usr || tipo || estado || desde || hasta;
+  div.style.display = activo ? 'flex' : 'none';
+  if (activo) document.getElementById('rec-count').textContent = count;
+}
+
+function limpiarFiltros() {
+  ['filtro-usuario','filtro-tipo','filtro-estado','filtro-desde','filtro-hasta'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  filtrarHistorial();
+}
+
+function exportarHistorial() {
+  const rows = _historialData;
+  if (!rows.length) return;
+  const headers = ['Usuario','Tipo','Descripción','Monto','Fecha','Estado'];
+  const lines = [headers.join(',')];
+  rows.forEach(r => {
+    const desc = r.tipo === 'evento' ? r.nombre_evento : r.tipo === 'familia' ? (r.descripcion || r.cajita_nombre) : `Polla Fase ${r.fase}`;
+    lines.push([r.usuario, r.tipo, desc, r.monto, (r.fecha||'').slice(0,10), r.estado].map(v => `"${(v||'').toString().replace(/"/g,'""')}"`).join(','));
+  });
+  const blob = new Blob([lines.join('\n')], {type:'text/csv'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'historial-aportes.csv';
+  a.click();
+}
+
+// Cargar historial al iniciar
+document.addEventListener('DOMContentLoaded', function() {
+  cargarHistorial();
+});
+if (document.getElementById('sec-recaudacion')) cargarHistorial();
+</script>
