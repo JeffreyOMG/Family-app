@@ -298,13 +298,14 @@
     <div class="mc-body">
       <div id="mc-av-slot"></div>
       <div class="mc-right">
-        <textarea
+        <div
           id="mc-texto"
           class="mc-textarea"
-          placeholder="¿Qué está pasando hoy en la familia?"
-          rows="4"
-          maxlength="500"
-          oninput="onComposerInput()"></textarea>
+          contenteditable="true"
+          data-placeholder="¿Qué está pasando hoy en la familia?"
+          oninput="onComposerInput()"
+          role="textbox"
+          aria-multiline="true"></div>
 
         <!-- Tags de menciones -->
         <div id="mc-tags" class="mc-tags-row"></div>
@@ -891,6 +892,19 @@ body.dark-mode {
   min-height: 90px;
 }
 .mc-textarea::placeholder { color: var(--text3); }
+/* placeholder para contenteditable */
+.mc-textarea:empty::before {
+  content: attr(data-placeholder);
+  color: var(--text3);
+  pointer-events: none;
+}
+.mc-textarea img {
+  max-width: 100%;
+  max-height: 200px;
+  border-radius: 10px;
+  display: block;
+  margin-top: 6px;
+}
 .mc-textarea--dragover {
   border: 2px dashed var(--ac, #7c3aed) !important;
   background: var(--ac-soft, rgba(124,58,237,.08)) !important;
@@ -1407,6 +1421,42 @@ try {
 
 let _menciones = []; // {nombre, usuario}
 let _gifFile = null;
+/* ── helpers contenteditable mc-texto ── */
+function mcGetText(){
+  const el = document.getElementById('mc-texto');
+  if(!el) return '';
+  // Extraer solo texto, ignorar imágenes pegadas desde teclado (las manejamos aparte)
+  return (el.innerText || el.textContent || '').replace(/\n{3,}/g,'\n\n').trimEnd();
+}
+function mcSetText(val){
+  const el = document.getElementById('mc-texto');
+  if(el){ el.innerText = val; }
+}
+function mcGetCaretPos(){
+  const sel = window.getSelection();
+  if(!sel || sel.rangeCount===0) return 0;
+  const range = sel.getRangeAt(0).cloneRange();
+  range.selectNodeContents(document.getElementById('mc-texto'));
+  range.setEnd(sel.getRangeAt(0).endContainer, sel.getRangeAt(0).endOffset);
+  return range.toString().length;
+}
+function mcInsertAtCaret(text){
+  const el = document.getElementById('mc-texto');
+  el.focus();
+  const sel = window.getSelection();
+  if(sel && sel.rangeCount){
+    const r = sel.getRangeAt(0);
+    r.deleteContents();
+    r.insertNode(document.createTextNode(text));
+    r.collapse(false);
+    sel.removeAllRanges();
+    sel.addRange(r);
+  } else {
+    el.innerText += text;
+  }
+  onComposerInput();
+}
+
 
 function abrirComposer(modo){
   const overlay = document.getElementById('modal-composer');
@@ -1418,7 +1468,7 @@ function abrirComposer(modo){
   if(slot && avOrig) slot.innerHTML = avOrig.outerHTML;
 
   // Reset
-  document.getElementById('mc-texto').value = '';
+  mcSetText('');
   document.getElementById('mc-chars').textContent = '0';
   document.getElementById('mc-char-fill').style.width = '0%';
   document.getElementById('mc-char-fill').style.background = 'var(--text)';
@@ -1461,7 +1511,25 @@ function abrirComposer(modo){
           return;
         }
       }
+      // Dejar pasar solo texto plano, quitar formato HTML
+      e.preventDefault();
+      const text = e.clipboardData.getData('text/plain');
+      if(text) mcInsertAtCaret(text);
     });
+    // Interceptar imágenes que Android inserta directamente en el contenteditable
+    const observer = new MutationObserver(()=>{
+      const img = ta.querySelector('img');
+      if(!img) return;
+      const src = img.src;
+      img.remove();
+      // Convertir src (blob o data) a File y mostrar en preview
+      fetch(src).then(r=>r.blob()).then(blob=>{
+        const f = new File([blob], 'imagen_pegada.'+blob.type.split('/')[1], {type:blob.type});
+        manejarArchivoMedia(f);
+        mostrarToast('Imagen pegada ✓');
+      }).catch(()=>{});
+    });
+    observer.observe(ta, {childList:true, subtree:true});
   }, 120);
   if(modo==='foto') setTimeout(()=>document.getElementById('mc-file-input')?.click(), 200);
   if(modo==='gif')  setTimeout(()=>document.getElementById('mc-gif-input')?.click(), 200);
@@ -1472,8 +1540,7 @@ function cerrarComposer(){
 }
 
 function onComposerInput(){
-  const ta  = document.getElementById('mc-texto');
-  const len = ta.value.length;
+  const len = mcGetText().length;
   document.getElementById('mc-chars').textContent = len;
   const pct = (len/500)*100;
   const fill = document.getElementById('mc-char-fill');
@@ -1484,11 +1551,12 @@ function onComposerInput(){
 }
 
 function actualizarPublicarBtn(){
-  const texto = document.getElementById('mc-texto')?.value.trim();
+  const texto = mcGetText().trim();
   const file  = document.getElementById('mc-file-input')?.files[0];
   const gif   = document.getElementById('mc-gif-input')?.files[0] || _gifFile;
+  const hasImg = document.getElementById('mc-texto')?.querySelector('img') !== null;
   const btn   = document.getElementById('btn-publicar-modal');
-  if(btn) btn.disabled = !(texto || file || gif);
+  if(btn) btn.disabled = !(texto || file || gif || hasImg);
 }
 
 /* ── Emojis ── */
@@ -1507,12 +1575,7 @@ function initEmojis(){
 }
 
 function insertEmoji(emoji){
-  const ta = document.getElementById('mc-texto');
-  const s  = ta.selectionStart, end = ta.selectionEnd;
-  ta.value = ta.value.slice(0,s)+emoji+ta.value.slice(end);
-  ta.selectionStart = ta.selectionEnd = s+emoji.length;
-  ta.focus();
-  onComposerInput();
+  mcInsertAtCaret(emoji);
 }
 
 function togglePanel(tipo){
@@ -1544,17 +1607,12 @@ function quitarUbicacion(){
 
 /* ── Menciones ── */
 function insertarArroba(){
-  const ta = document.getElementById('mc-texto');
-  const s  = ta.selectionStart;
-  ta.value = ta.value.slice(0,s)+'@'+ta.value.slice(s);
-  ta.selectionStart = ta.selectionEnd = s+1;
-  ta.focus();
-  onComposerInput();
+  mcInsertAtCaret('@');
 }
 
 function gestionarMenciones(ta){
-  const val = ta.value;
-  const pos = ta.selectionStart;
+  const val = mcGetText();
+  const pos = mcGetCaretPos();
   // Buscar @ antes del cursor
   const before = val.slice(0,pos);
   const match  = before.match(/@(\w*)$/);
@@ -1663,7 +1721,7 @@ function quitarMedia(){
 
 /* ── SUBMIT ── */
 async function submitComposer(){
-  const texto = document.getElementById('mc-texto')?.value.trim();
+  const texto = mcGetText().trim();
   const file  = document.getElementById('mc-file-input')?.files[0];
   const gif   = document.getElementById('mc-gif-input')?.files[0] || _gifFile;
   const loc   = document.getElementById('mc-location-input')?.value.trim();
