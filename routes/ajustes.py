@@ -15,8 +15,10 @@ def guardar_ajustes():
     gmail  = request.form.get("gmail", "").strip()
     if nombre:
         con = get_db()
-        con.execute("UPDATE usuarios SET nombre=?,gmail=? WHERE id=?",
-                    (nombre, gmail, session["uid"]))
+        con.execute(
+            "UPDATE usuarios SET nombre=%s, gmail=%s WHERE id=%s",
+            (nombre, gmail, session["uid"])
+        )
         con.commit()
         session["nombre"] = nombre
     if _is_ajax():
@@ -30,7 +32,7 @@ def eliminar_cuenta():
     uid = session["uid"]
     pwd = request.form.get("password_confirm", "")
     con = get_db()
-    user = con.execute("SELECT password,rol FROM usuarios WHERE id=?", (uid,)).fetchone()
+    user = con.execute("SELECT password, rol FROM usuarios WHERE id=%s", (uid,)).fetchone()
     if not user:
         return (jsonify({"ok": False}), 404) if _is_ajax() else redirect("/")
     if user["rol"] == "admin":
@@ -38,7 +40,7 @@ def eliminar_cuenta():
             return jsonify({"ok": False, "error": "admin_no_puede"})
         return redirect("/dashboard#ajustes")
     if check_password_hash(user["password"], pwd):
-        con.execute("DELETE FROM usuarios WHERE id=?", (uid,))
+        con.execute("DELETE FROM usuarios WHERE id=%s", (uid,))
         con.commit()
         session.clear()
         if _is_ajax():

@@ -1,7 +1,7 @@
-import os, uuid
-from flask import Blueprint, request, redirect, session, current_app, jsonify
+from flask import Blueprint, request, redirect, session, jsonify
 from database import get_db
 from werkzeug.security import generate_password_hash, check_password_hash
+from cloudinary_helper import subir_a_cloudinary
 
 perfil_bp = Blueprint("perfil", __name__)
 
@@ -18,24 +18,21 @@ def actualizar_perfil():
     bio    = request.form.get("bio", "").strip()
     con    = get_db()
 
+    foto_url = None
     foto_file = request.files.get("foto_perfil")
-    foto_url  = None
     if foto_file and foto_file.filename:
-        ext = foto_file.filename.rsplit(".", 1)[-1].lower()
-        if ext in {"png", "jpg", "jpeg", "gif", "webp"}:
-            nombre_foto = uuid.uuid4().hex + "." + ext
-            ruta = os.path.join(current_app.config["UPLOAD_FOLDER"], nombre_foto)
-            foto_file.save(ruta)
-            foto_url = f"/static/uploads/{nombre_foto}"
+        url, _ = subir_a_cloudinary(foto_file, folder="familia/perfiles")
+        if url:
+            foto_url = url
 
     if foto_url:
         con.execute(
-            "UPDATE usuarios SET nombre=?,gmail=?,bio=?,foto=? WHERE id=?",
+            "UPDATE usuarios SET nombre=%s, gmail=%s, bio=%s, foto=%s WHERE id=%s",
             (nombre, gmail, bio, foto_url, uid)
         )
     else:
         con.execute(
-            "UPDATE usuarios SET nombre=?,gmail=?,bio=? WHERE id=?",
+            "UPDATE usuarios SET nombre=%s, gmail=%s, bio=%s WHERE id=%s",
             (nombre, gmail, bio, uid)
         )
     con.commit()
@@ -52,10 +49,10 @@ def cambiar_password():
     actual  = request.form.get("actual", "")
     nueva   = request.form.get("nueva", "")
     confirm = request.form.get("confirmar", "")
-    con = get_db()
-    user = con.execute("SELECT password FROM usuarios WHERE id=?", (uid,)).fetchone()
+    con  = get_db()
+    user = con.execute("SELECT password FROM usuarios WHERE id=%s", (uid,)).fetchone()
     if user and check_password_hash(user["password"], actual) and nueva == confirm and len(nueva) >= 8:
-        con.execute("UPDATE usuarios SET password=? WHERE id=?", (generate_password_hash(nueva), uid))
+        con.execute("UPDATE usuarios SET password=%s WHERE id=%s", (generate_password_hash(nueva), uid))
         con.commit()
         if _is_ajax():
             return jsonify({"ok": True, "msg": "Contraseña actualizada"})
@@ -68,10 +65,10 @@ def cambiar_password():
 def eliminar_aporte(aporte_id):
     if "uid" not in session:
         return (jsonify({"ok": False}), 401) if _is_ajax() else redirect("/")
-    con = get_db()
-    aporte = con.execute("SELECT usuario_id FROM aportes WHERE id=?", (aporte_id,)).fetchone()
+    con    = get_db()
+    aporte = con.execute("SELECT usuario_id FROM aportes WHERE id=%s", (aporte_id,)).fetchone()
     if aporte and (aporte["usuario_id"] == session["uid"] or session.get("rol") == "admin"):
-        con.execute("DELETE FROM aportes WHERE id=?", (aporte_id,))
+        con.execute("DELETE FROM aportes WHERE id=%s", (aporte_id,))
         con.commit()
     if _is_ajax():
         return jsonify({"ok": True})

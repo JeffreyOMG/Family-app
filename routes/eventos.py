@@ -18,7 +18,7 @@ def crear_evento():
     if titulo and fecha_ev:
         con = get_db()
         cur = con.execute(
-            "INSERT INTO eventos(usuario_id,titulo,descripcion,fecha_evento,hora_evento,tipo) VALUES(%s,%s,%s,%s,%s,%s) RETURNING id",
+            "INSERT INTO eventos(usuario_id, titulo, descripcion, fecha_evento, hora_evento, tipo) VALUES(%s, %s, %s, %s, %s, %s) RETURNING id",
             (session["uid"], titulo, descripcion, fecha_ev, hora_ev, tipo)
         )
         con.commit()
@@ -34,9 +34,9 @@ def eliminar_evento(eid):
     if "uid" not in session:
         return (jsonify({"ok": False}), 401) if _is_ajax() else redirect("/")
     con = get_db()
-    ev = con.execute("SELECT usuario_id FROM eventos WHERE id=?", (eid,)).fetchone()
+    ev  = con.execute("SELECT usuario_id FROM eventos WHERE id=%s", (eid,)).fetchone()
     if ev and (ev["usuario_id"] == session["uid"] or session.get("rol") == "admin"):
-        con.execute("DELETE FROM eventos WHERE id=?", (eid,))
+        con.execute("DELETE FROM eventos WHERE id=%s", (eid,))
         con.commit()
     if _is_ajax():
         return jsonify({"ok": True})

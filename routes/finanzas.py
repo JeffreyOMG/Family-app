@@ -1,10 +1,9 @@
-import os, uuid, json
-from flask import Blueprint, request, redirect, session, current_app, jsonify
+import json
+from flask import Blueprint, request, redirect, session, jsonify
 from database import get_db
+from cloudinary_helper import subir_a_cloudinary
 
 fin_bp = Blueprint("finanzas", __name__)
-
-ALLOWED_COMP = {"png", "jpg", "jpeg", "gif", "webp", "pdf"}
 
 def _is_ajax():
     return request.headers.get("X-Requested-With") == "XMLHttpRequest"
@@ -15,15 +14,11 @@ def _err(msg, code=400):
     return redirect("/dashboard?s=recaudacion")
 
 def _save_file(file_obj):
+    """Sube comprobante/soporte a Cloudinary. Retorna URL o None."""
     if not file_obj or not file_obj.filename:
         return None
-    ext = file_obj.filename.rsplit(".", 1)[-1].lower()
-    if ext not in ALLOWED_COMP:
-        return None
-    nombre = uuid.uuid4().hex + "." + ext
-    ruta = os.path.join(current_app.config["UPLOAD_FOLDER"], nombre)
-    file_obj.save(ruta)
-    return f"/static/uploads/{nombre}"
+    url, _ = subir_a_cloudinary(file_obj, folder="familia/finanzas")
+    return url
 
 @fin_bp.route("/aporte", methods=["POST"])
 def aporte():
@@ -50,14 +45,20 @@ def _aporte_familia():
         if not nombre:
             return _err("Nombre requerido")
         cur = con.execute(
-            "INSERT INTO cajitas_ahorro(nombre,descripcion,creador_id) VALUES(%s,%s,%s) RETURNING id",
+            "INSERT INTO cajitas_ahorro(nombre, descripcion, creador_id) VALUES(%s, %s, %s) RETURNING id",
             (nombre, desc, uid)
         )
         cajita_id = cur.fetchone()[0]
-        con.execute("INSERT INTO cajita_miembros(cajita_id,usuario_id) VALUES(%s,%s) ON CONFLICT DO NOTHING", (cajita_id, uid))
+        con.execute(
+            "INSERT INTO cajita_miembros(cajita_id, usuario_id) VALUES(%s, %s) ON CONFLICT DO NOTHING",
+            (cajita_id, uid)
+        )
         for mid in miembros_ids:
             if mid.isdigit():
-                con.execute("INSERT INTO cajita_miembros(cajita_id,usuario_id) VALUES(%s,%s) ON CONFLICT DO NOTHING", (cajita_id, int(mid)))
+                con.execute(
+                    "INSERT INTO cajita_miembros(cajita_id, usuario_id) VALUES(%s, %s) ON CONFLICT DO NOTHING",
+                    (cajita_id, int(mid))
+                )
         con.commit()
         if _is_ajax():
             return jsonify({"ok": True, "cajita_id": cajita_id, "nombre": nombre})
@@ -71,7 +72,7 @@ def _aporte_familia():
             return _err("cajita_id inválido")
         cajita_id = int(cajita_id)
         miembro = con.execute(
-            "SELECT 1 FROM cajita_miembros WHERE cajita_id=? AND usuario_id=?", (cajita_id, uid)
+            "SELECT 1 FROM cajita_miembros WHERE cajita_id=%s AND usuario_id=%s", (cajita_id, uid)
         ).fetchone()
         if not miembro:
             return _err("No eres miembro", 403)
@@ -81,7 +82,7 @@ def _aporte_familia():
         except (ValueError, TypeError):
             return _err("Monto inválido")
         con.execute(
-            "INSERT INTO cajita_movimientos(cajita_id,usuario_id,monto,descripcion) VALUES(%s,%s,%s,%s) ON CONFLICT DO NOTHING",
+            "INSERT INTO cajita_movimientos(cajita_id, usuario_id, monto, descripcion) VALUES(%s, %s, %s, %s) ON CONFLICT DO NOTHING",
             (cajita_id, uid, monto, desc)
         )
         con.commit()
@@ -112,11 +113,12 @@ def _aporte_evento():
         return _err("Monto inválido")
 
     con.execute(
-        "INSERT INTO eventos_recaudacion(usuario_id,nombre_evento,descripcion,monto,responsables,soporte,estado) VALUES(?,%s,%s,%s,%s,%s,%s) ON CONFLICT DO NOTHING",
+        "INSERT INTO eventos_recaudacion(usuario_id, nombre_evento, descripcion, monto, responsables, soporte, estado) "
+        "VALUES(%s, %s, %s, %s, %s, %s, %s)",
         (uid, nombre_ev, desc, monto, responsables, soporte_url, "pendiente")
     )
     con.execute(
-        "INSERT INTO aportes(usuario_id,monto,descripcion,comprobante,verificado) VALUES(?,%s,%s,%s,0) ON CONFLICT DO NOTHING",
+        "INSERT INTO aportes(usuario_id, monto, descripcion, comprobante, verificado) VALUES(%s, %s, %s, %s, 0) ON CONFLICT DO NOTHING",
         (uid, monto, f"Evento: {nombre_ev}", soporte_url)
     )
     con.commit()
@@ -124,7 +126,7 @@ def _aporte_evento():
         return jsonify({"ok": True, "msg": "Aporte registrado"})
     return redirect("/dashboard?s=recaudacion")
 
-FASES_POLLA = {1: 20000, 2: 10000, 3: 10000}
+FASES_POLLA  = {1: 20000, 2: 10000, 3: 10000}
 FASES_NOMBRES = {1: "Fase 1 – Grupos", 2: "Fase 2 – Eliminatorias", 3: "Fase 3 – Semifinal y Final"}
 
 def _aporte_polla():
@@ -140,7 +142,7 @@ def _aporte_polla():
         return _err("fase desconocida")
 
     ya_pagado = con.execute(
-        "SELECT 1 FROM polla_pagos WHERE usuario_id=? AND fase=?", (uid, fase)
+        "SELECT 1 FROM polla_pagos WHERE usuario_id=%s AND fase=%s", (uid, fase)
     ).fetchone()
     if ya_pagado:
         return _err("Ya pagaste esta fase")
@@ -151,7 +153,7 @@ def _aporte_polla():
 
     monto = FASES_POLLA[fase]
     con.execute(
-        "INSERT INTO polla_pagos(usuario_id,fase,monto,soporte,estado) VALUES(%s,%s,%s,%s,%s) ON CONFLICT DO NOTHING",
+        "INSERT INTO polla_pagos(usuario_id, fase, monto, soporte, estado) VALUES(%s, %s, %s, %s, %s) ON CONFLICT DO NOTHING",
         (uid, fase, monto, soporte_url, "pagado")
     )
     con.commit()
@@ -170,14 +172,14 @@ def polla_pronostico():
         return _err("fase inválida")
     fase = int(fase_raw)
     pagado = con.execute(
-        "SELECT 1 FROM polla_pagos WHERE usuario_id=? AND fase=?", (uid, fase)
+        "SELECT 1 FROM polla_pagos WHERE usuario_id=%s AND fase=%s", (uid, fase)
     ).fetchone()
     if not pagado:
         return _err("No has pagado esta fase", 403)
     datos = {k: v for k, v in request.form.items() if k != "fase"}
     con.execute(
-        "INSERT INTO polla_pronosticos(usuario_id,fase,datos) VALUES(%s,%s,%s) ON CONFLICT DO NOTHING "
-        "ON CONFLICT(usuario_id,fase) DO UPDATE SET datos=excluded.datos",
+        "INSERT INTO polla_pronosticos(usuario_id, fase, datos) VALUES(%s, %s, %s) "
+        "ON CONFLICT(usuario_id, fase) DO UPDATE SET datos=excluded.datos",
         (uid, fase, json.dumps(datos))
     )
     con.commit()
@@ -195,7 +197,7 @@ def api_mis_cajitas():
         SELECT ca.id, ca.nombre, ca.descripcion, ca.creador_id,
                COALESCE(SUM(cm.monto),0) AS total
         FROM cajitas_ahorro ca
-        JOIN cajita_miembros m ON m.cajita_id=ca.id AND m.usuario_id=?
+        JOIN cajita_miembros m ON m.cajita_id=ca.id AND m.usuario_id=%s
         LEFT JOIN cajita_movimientos cm ON cm.cajita_id=ca.id
         GROUP BY ca.id ORDER BY ca.fecha DESC
     """, (uid,)).fetchall()]
@@ -208,14 +210,14 @@ def api_cajita_movimientos(cid):
     uid = session["uid"]
     con = get_db()
     miembro = con.execute(
-        "SELECT 1 FROM cajita_miembros WHERE cajita_id=? AND usuario_id=?", (cid, uid)
+        "SELECT 1 FROM cajita_miembros WHERE cajita_id=%s AND usuario_id=%s", (cid, uid)
     ).fetchone()
     if not miembro:
         return jsonify([])
     movs = [dict(m) for m in con.execute("""
         SELECT cm.id, cm.monto, cm.descripcion, cm.fecha, u.nombre
         FROM cajita_movimientos cm JOIN usuarios u ON u.id=cm.usuario_id
-        WHERE cm.cajita_id=? ORDER BY cm.fecha DESC
+        WHERE cm.cajita_id=%s ORDER BY cm.fecha DESC
     """, (cid,)).fetchall()]
     return jsonify(movs)
 
@@ -226,7 +228,7 @@ def api_mi_polla():
     uid = session["uid"]
     con = get_db()
     pagos = {p["fase"]: dict(p) for p in con.execute(
-        "SELECT fase,monto,estado,fecha FROM polla_pagos WHERE usuario_id=?", (uid,)
+        "SELECT fase, monto, estado, fecha FROM polla_pagos WHERE usuario_id=%s", (uid,)
     ).fetchall()}
     return jsonify(pagos)
 
@@ -256,7 +258,7 @@ def api_historial():
         FROM cajita_movimientos cm
         JOIN usuarios u ON u.id=cm.usuario_id
         JOIN cajitas_ahorro ca ON ca.id=cm.cajita_id
-        JOIN cajita_miembros mb ON mb.cajita_id=ca.id AND mb.usuario_id=?
+        JOIN cajita_miembros mb ON mb.cajita_id=ca.id AND mb.usuario_id=%s
         ORDER BY cm.fecha DESC
     """, (uid,)).fetchall():
         registros.append({**dict(m), "tipo": "familia"})
@@ -268,7 +270,7 @@ def verificar_evento(eid):
     if session.get("rol") != "admin":
         return (jsonify({"ok": False}), 403) if _is_ajax() else redirect("/dashboard")
     con = get_db()
-    con.execute("UPDATE eventos_recaudacion SET estado='verificado' WHERE id=?", (eid,))
+    con.execute("UPDATE eventos_recaudacion SET estado='verificado' WHERE id=%s", (eid,))
     con.commit()
     if _is_ajax():
         return jsonify({"ok": True})
@@ -279,7 +281,7 @@ def eliminar_aporte(aid):
     if session.get("rol") != "admin":
         return (jsonify({"ok": False}), 403) if _is_ajax() else redirect("/dashboard")
     con = get_db()
-    con.execute("DELETE FROM aportes WHERE id=?", (aid,))
+    con.execute("DELETE FROM aportes WHERE id=%s", (aid,))
     con.commit()
     if _is_ajax():
         return jsonify({"ok": True})
@@ -290,7 +292,7 @@ def verificar_aporte(aid):
     if session.get("rol") != "admin":
         return (jsonify({"ok": False}), 403) if _is_ajax() else redirect("/dashboard")
     con = get_db()
-    con.execute("UPDATE aportes SET verificado=1 WHERE id=?", (aid,))
+    con.execute("UPDATE aportes SET verificado=1 WHERE id=%s", (aid,))
     con.commit()
     if _is_ajax():
         return jsonify({"ok": True})
@@ -301,7 +303,7 @@ def verificar_polla(pid):
     if session.get("rol") != "admin":
         return (jsonify({"ok": False}), 403) if _is_ajax() else redirect("/dashboard")
     con = get_db()
-    con.execute("UPDATE polla_pagos SET estado='verificado' WHERE id=?", (pid,))
+    con.execute("UPDATE polla_pagos SET estado='verificado' WHERE id=%s", (pid,))
     con.commit()
     if _is_ajax():
         return jsonify({"ok": True})
@@ -313,17 +315,16 @@ def eliminar_pago(tipo, rid):
         return (jsonify({"ok": False}), 403) if _is_ajax() else redirect("/dashboard")
     con = get_db()
     if tipo == "evento":
-        ev = con.execute("SELECT nombre_evento FROM eventos_recaudacion WHERE id=?", (rid,)).fetchone()
-        con.execute("DELETE FROM eventos_recaudacion WHERE id=?", (rid,))
+        ev = con.execute("SELECT nombre_evento FROM eventos_recaudacion WHERE id=%s", (rid,)).fetchone()
+        con.execute("DELETE FROM eventos_recaudacion WHERE id=%s", (rid,))
         if ev:
-            con.execute("DELETE FROM aportes WHERE descripcion=?", (f"Evento: {ev['nombre_evento']}",))
+            con.execute("DELETE FROM aportes WHERE descripcion=%s", (f"Evento: {ev['nombre_evento']}",))
     elif tipo == "polla":
-        con.execute("DELETE FROM polla_pagos WHERE id=?", (rid,))
+        con.execute("DELETE FROM polla_pagos WHERE id=%s", (rid,))
     con.commit()
     if _is_ajax():
         return jsonify({"ok": True})
     return redirect("/dashboard?s=recaudacion")
-
 
 @fin_bp.route("/api/admin/meta", methods=["POST"])
 def api_admin_meta():
@@ -338,7 +339,7 @@ def api_admin_meta():
         return jsonify({"ok": False, "error": "Meta inválida"}), 400
     con = get_db()
     con.execute(
-        "INSERT INTO config(clave,valor) VALUES('meta_recaudacion',%s) ON CONFLICT DO NOTHING "
+        "INSERT INTO config(clave, valor) VALUES('meta_recaudacion', %s) "
         "ON CONFLICT(clave) DO UPDATE SET valor=excluded.valor",
         (str(nueva_meta),)
     )

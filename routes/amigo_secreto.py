@@ -1,10 +1,8 @@
 import random
-import string
 from flask import Blueprint, render_template, session, redirect, jsonify, request
 from database import get_db
 
 amigo_bp = Blueprint("amigo_secreto", __name__)
-
 
 def _uid():
     return session.get("uid")
@@ -20,26 +18,24 @@ def _get_evento_activo(con):
         "SELECT * FROM amigo_secreto_eventos WHERE activo=1 ORDER BY id DESC LIMIT 1"
     ).fetchone()
 
-
 @amigo_bp.route("/amigo-secreto")
 def pagina():
     if not _uid():
         return redirect("/")
     con = get_db()
     evento = _get_evento_activo(con)
-    participantes = []
-    ya_participo = False
-    mi_asignado = None
+    participantes    = []
+    ya_participo     = False
+    mi_asignado      = None
     cruces_generados = False
 
     if evento:
         cruces_generados = bool(evento["cruces_generados"])
         participantes = [dict(p) for p in con.execute("""
-            SELECT u.id, u.nombre, u.foto, u.usuario,
-                   asp.asignado_id
+            SELECT u.id, u.nombre, u.foto, u.usuario, asp.asignado_id
             FROM amigo_secreto_participantes asp
             JOIN usuarios u ON u.id = asp.usuario_id
-            WHERE asp.evento_id = ?
+            WHERE asp.evento_id = %s
             ORDER BY u.nombre ASC
         """, (evento["id"],)).fetchall()]
         ya_participo = any(p["id"] == _uid() for p in participantes)
@@ -47,7 +43,7 @@ def pagina():
             row = con.execute("""
                 SELECT u.nombre, u.foto FROM amigo_secreto_participantes asp
                 JOIN usuarios u ON u.id = asp.asignado_id
-                WHERE asp.evento_id = ? AND asp.usuario_id = ?
+                WHERE asp.evento_id = %s AND asp.usuario_id = %s
             """, (evento["id"], _uid())).fetchone()
             if row:
                 mi_asignado = dict(row)
@@ -55,7 +51,7 @@ def pagina():
     return render_template(
         "amigo_secreto.html",
         usuario=dict(con.execute(
-            "SELECT id,nombre,usuario,rol,foto FROM usuarios WHERE id=?", (_uid(),)
+            "SELECT id, nombre, usuario, rol, foto FROM usuarios WHERE id=%s", (_uid(),)
         ).fetchone()),
         evento=dict(evento) if evento else None,
         participantes=participantes,
@@ -64,15 +60,13 @@ def pagina():
         cruces_generados=cruces_generados,
     )
 
-
 @amigo_bp.route("/api/amigo/participar", methods=["POST"])
 def participar():
     if not _uid():
         return jsonify({"ok": False, "error": "No autenticado"}), 401
-    con = get_db()
+    con    = get_db()
     evento = _get_evento_activo(con)
     if not evento:
-        # Crear evento automáticamente si no existe
         cur = con.execute(
             "INSERT INTO amigo_secreto_eventos(nombre) VALUES(%s) RETURNING id",
             ("Amigo Secreto Familiar",)
@@ -86,7 +80,7 @@ def participar():
 
     try:
         con.execute(
-            "INSERT INTO amigo_secreto_participantes(evento_id, usuario_id) VALUES(%s,%s) ON CONFLICT DO NOTHING",
+            "INSERT INTO amigo_secreto_participantes(evento_id, usuario_id) VALUES(%s, %s) ON CONFLICT DO NOTHING",
             (evento_id, _uid())
         )
         con.commit()
@@ -94,28 +88,26 @@ def participar():
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
 
-
 @amigo_bp.route("/api/amigo/salir", methods=["POST"])
 def salir():
     if not _uid():
         return jsonify({"ok": False}), 401
-    con = get_db()
+    con    = get_db()
     evento = _get_evento_activo(con)
     if not evento or evento["cruces_generados"]:
         return jsonify({"ok": False, "error": "No se puede salir ahora"}), 400
     con.execute(
-        "DELETE FROM amigo_secreto_participantes WHERE evento_id=? AND usuario_id=?",
+        "DELETE FROM amigo_secreto_participantes WHERE evento_id=%s AND usuario_id=%s",
         (evento["id"], _uid())
     )
     con.commit()
     return jsonify({"ok": True})
 
-
 @amigo_bp.route("/api/amigo/generar_cruces", methods=["POST"])
 def generar_cruces():
     if _rol() != "admin":
         return jsonify({"ok": False, "error": "Solo el admin puede generar cruces"}), 403
-    con = get_db()
+    con    = get_db()
     evento = _get_evento_activo(con)
     if not evento:
         return jsonify({"ok": False, "error": "No hay evento activo"}), 400
@@ -123,40 +115,35 @@ def generar_cruces():
         return jsonify({"ok": False, "error": "Los cruces ya fueron generados"}), 400
 
     participantes = [row["usuario_id"] for row in con.execute(
-        "SELECT usuario_id FROM amigo_secreto_participantes WHERE evento_id=?",
-        (evento["id"],)
+        "SELECT usuario_id FROM amigo_secreto_participantes WHERE evento_id=%s", (evento["id"],)
     ).fetchall()]
 
-    n = len(participantes)
-    if n < 2:
+    if len(participantes) < 2:
         return jsonify({"ok": False, "error": "Se necesitan al menos 2 participantes"}), 400
 
-    # Generar derangement válido (nadie se regala a sí mismo)
     asignacion = _generar_derangement(participantes)
     if not asignacion:
         return jsonify({"ok": False, "error": "No se pudo generar asignación válida"}), 500
 
     for uid, asignado in asignacion.items():
         con.execute(
-            "UPDATE amigo_secreto_participantes SET asignado_id=? WHERE evento_id=? AND usuario_id=?",
+            "UPDATE amigo_secreto_participantes SET asignado_id=%s WHERE evento_id=%s AND usuario_id=%s",
             (asignado, evento["id"], uid)
         )
     con.execute(
-        "UPDATE amigo_secreto_eventos SET cruces_generados=1 WHERE id=?",
-        (evento["id"],)
+        "UPDATE amigo_secreto_eventos SET cruces_generados=1 WHERE id=%s", (evento["id"],)
     )
     con.commit()
-    return jsonify({"ok": True, "total": n})
-
+    return jsonify({"ok": True, "total": len(participantes)})
 
 @amigo_bp.route("/api/amigo/reiniciar", methods=["POST"])
 def reiniciar():
     if _rol() != "admin":
         return jsonify({"ok": False}), 403
-    con = get_db()
+    con    = get_db()
     evento = _get_evento_activo(con)
     if evento:
-        con.execute("UPDATE amigo_secreto_eventos SET activo=0 WHERE id=?", (evento["id"],))
+        con.execute("UPDATE amigo_secreto_eventos SET activo=0 WHERE id=%s", (evento["id"],))
     con.execute(
         "INSERT INTO amigo_secreto_eventos(nombre) VALUES(%s) RETURNING id",
         ("Amigo Secreto Familiar",)
@@ -164,12 +151,11 @@ def reiniciar():
     con.commit()
     return jsonify({"ok": True})
 
-
 @amigo_bp.route("/api/amigo/estado")
 def estado():
     if not _uid():
         return jsonify({}), 401
-    con = get_db()
+    con    = get_db()
     evento = _get_evento_activo(con)
     if not evento:
         return jsonify({"evento": None, "participantes": [], "ya_participo": False})
@@ -178,17 +164,17 @@ def estado():
         SELECT u.id, u.nombre, u.foto
         FROM amigo_secreto_participantes asp
         JOIN usuarios u ON u.id = asp.usuario_id
-        WHERE asp.evento_id = ?
+        WHERE asp.evento_id = %s
         ORDER BY u.nombre ASC
     """, (evento["id"],)).fetchall()]
 
     ya_participo = any(p["id"] == _uid() for p in participantes)
-    mi_asignado = None
+    mi_asignado  = None
     if evento["cruces_generados"] and ya_participo:
         row = con.execute("""
             SELECT u.nombre, u.foto FROM amigo_secreto_participantes asp
             JOIN usuarios u ON u.id = asp.asignado_id
-            WHERE asp.evento_id = ? AND asp.usuario_id = ?
+            WHERE asp.evento_id = %s AND asp.usuario_id = %s
         """, (evento["id"], _uid())).fetchone()
         if row:
             mi_asignado = dict(row)
@@ -201,28 +187,19 @@ def estado():
         "mi_asignado": mi_asignado,
     })
 
-
-# ── UTILIDADES ─────────────────────────────────────────
+# ── UTILIDADES ──────────────────────────────────────────
 def _generar_derangement(lista):
-    """Genera un derangement válido (permutación sin puntos fijos).
-    Maneja listas impares y pares."""
     ids = list(lista)
-    max_intentos = 1000
-    for _ in range(max_intentos):
+    for _ in range(1000):
         shuffled = ids[:]
         random.shuffle(shuffled)
-        # Verificar que nadie se repita a sí mismo
-        valido = all(shuffled[i] != ids[i] for i in range(len(ids)))
-        if valido:
+        if all(shuffled[i] != ids[i] for i in range(len(ids))):
             return {ids[i]: shuffled[i] for i in range(len(ids))}
-    # Fallback: algoritmo determinista (Sattolo cycle)
     return _sattolo(ids)
 
-
 def _sattolo(lista):
-    """Algoritmo de Sattolo: genera permutación sin puntos fijos."""
     arr = list(lista)
-    i = len(arr)
+    i   = len(arr)
     while i > 1:
         i -= 1
         j = random.randint(0, i - 1)

@@ -1,7 +1,6 @@
-import os, uuid
-from flask import Blueprint, request, redirect, session, jsonify, current_app, render_template_string
+from flask import Blueprint, request, redirect, session, jsonify, render_template_string
 from database import get_db
-from werkzeug.utils import secure_filename
+from cloudinary_helper import subir_a_cloudinary
 
 posts_bp = Blueprint("posts", __name__)
 ALLOWED = {"png", "jpg", "jpeg", "gif", "webp", "mp4", "mov", "avi", "webm"}
@@ -13,12 +12,9 @@ def allowed(fn):
     return "." in fn and fn.rsplit(".", 1)[1].lower() in ALLOWED
 
 def save_file(f):
-    ext   = f.filename.rsplit(".", 1)[1].lower()
-    name  = uuid.uuid4().hex + "." + ext
-    path  = os.path.join(current_app.config["UPLOAD_FOLDER"], name)
-    f.save(path)
-    tipo  = "video" if ext in {"mp4", "mov", "avi", "webm"} else "imagen"
-    return f"/static/uploads/{name}", tipo
+    """Sube archivo a Cloudinary, retorna (url, tipo)."""
+    url, tipo = subir_a_cloudinary(f, folder="familia/posts")
+    return url, tipo
 
 POST_TMPL = """
 <article class="post-card" id="post-{{ p.id }}">
@@ -53,7 +49,7 @@ POST_TMPL = """
       <span class="material-symbols-outlined">repeat</span>
       <span class="repost-count">0</span>
     </button>
-    <button type="button" class="post-action-btn share-btn" onclick="compartirPost({{ p.id }}, `{{ p.texto[:80]|replace('\`','') if p.texto else '' }}`)">
+    <button type="button" class="post-action-btn share-btn" onclick="compartirPost({{ p.id }}, `{{ p.texto[:80]|replace('`','') if p.texto else '' }}`)">
       <span class="material-symbols-outlined">share</span>
     </button>
     <button type="button" class="post-action-btn bookmark-btn" style="margin-left:auto;" onclick="this.classList.toggle('saved')">
@@ -92,7 +88,7 @@ def publicar_ajax():
     p = con.execute("""
         SELECT p.id,p.texto,p.media,p.media_tipo,u.nombre,u.usuario,u.foto
         FROM publicaciones p JOIN usuarios u ON u.id=p.usuario_id
-        WHERE p.id=?
+        WHERE p.id=%s
     """, (post_id,)).fetchone()
     if not p:
         return jsonify({"ok": False}), 400
@@ -100,21 +96,24 @@ def publicar_ajax():
     return jsonify({"ok": True, "html": html})
 
 def _guardar_post():
-    uid    = session["uid"]
-    texto  = request.form.get("texto", "").strip()
+    uid     = session["uid"]
+    texto   = request.form.get("texto", "").strip()
     archivo = request.files.get("media")
     media, media_tipo = "", ""
     if archivo and archivo.filename and allowed(archivo.filename):
         media, media_tipo = save_file(archivo)
-        con = get_db()
-        con.execute("INSERT INTO galeria(usuario_id,ruta,tipo) VALUES(%s,%s,%s) ON CONFLICT DO NOTHING",
-                    (uid, media, media_tipo))
-        con.commit()
+        if media:
+            con = get_db()
+            con.execute(
+                "INSERT INTO galeria(usuario_id, ruta, tipo) VALUES(%s, %s, %s) ON CONFLICT DO NOTHING",
+                (uid, media, media_tipo)
+            )
+            con.commit()
     if not texto and not media:
         return None
     con = get_db()
     cur = con.execute(
-        "INSERT INTO publicaciones(usuario_id,texto,media,media_tipo) VALUES(%s,%s,%s,%s) RETURNING id",
+        "INSERT INTO publicaciones(usuario_id, texto, media, media_tipo) VALUES(%s, %s, %s, %s) RETURNING id",
         (uid, texto, media, media_tipo)
     )
     con.commit()
@@ -126,15 +125,15 @@ def like(post_id):
         return jsonify({"ok": False}), 401
     uid = session["uid"]
     con = get_db()
-    exist = con.execute("SELECT 1 FROM likes WHERE usuario_id=? AND post_id=?", (uid, post_id)).fetchone()
+    exist = con.execute("SELECT 1 FROM likes WHERE usuario_id=%s AND post_id=%s", (uid, post_id)).fetchone()
     if exist:
-        con.execute("DELETE FROM likes WHERE usuario_id=? AND post_id=?", (uid, post_id))
+        con.execute("DELETE FROM likes WHERE usuario_id=%s AND post_id=%s", (uid, post_id))
         liked = False
     else:
-        con.execute("INSERT INTO likes(usuario_id,post_id) VALUES(%s,%s) ON CONFLICT DO NOTHING", (uid, post_id))
+        con.execute("INSERT INTO likes(usuario_id, post_id) VALUES(%s, %s) ON CONFLICT DO NOTHING", (uid, post_id))
         liked = True
     con.commit()
-    total = con.execute("SELECT COUNT(*) FROM likes WHERE post_id=?", (post_id,)).fetchone()[0]
+    total = con.execute("SELECT COUNT(*) FROM likes WHERE post_id=%s", (post_id,)).fetchone()[0]
     return jsonify({"ok": True, "likes": total, "liked": liked})
 
 @posts_bp.route("/comentar", methods=["POST"])
@@ -147,8 +146,10 @@ def comentar():
     parent_id = request.form.get("parent_id") or None
     if texto and post_id:
         con = get_db()
-        con.execute("INSERT INTO comentarios(post_id,usuario_id,texto,parent_id) VALUES(%s,%s,%s,%s) ON CONFLICT DO NOTHING",
-                    (post_id, uid, texto, parent_id))
+        con.execute(
+            "INSERT INTO comentarios(post_id, usuario_id, texto, parent_id) VALUES(%s, %s, %s, %s) ON CONFLICT DO NOTHING",
+            (post_id, uid, texto, parent_id)
+        )
         con.commit()
     return redirect("/dashboard#inicio")
 
@@ -163,11 +164,13 @@ def comentar_ajax():
     if not texto or not post_id:
         return jsonify({"ok": False}), 400
     con = get_db()
-    con.execute("INSERT INTO comentarios(post_id,usuario_id,texto,parent_id) VALUES(%s,%s,%s,%s) ON CONFLICT DO NOTHING",
-                (post_id, uid, texto, parent_id))
+    con.execute(
+        "INSERT INTO comentarios(post_id, usuario_id, texto, parent_id) VALUES(%s, %s, %s, %s) ON CONFLICT DO NOTHING",
+        (post_id, uid, texto, parent_id)
+    )
     con.commit()
-    usuario = con.execute("SELECT nombre, foto FROM usuarios WHERE id=?", (uid,)).fetchone()
-    nombre = usuario["nombre"] if usuario else "?"
+    usuario = con.execute("SELECT nombre, foto FROM usuarios WHERE id=%s", (uid,)).fetchone()
+    nombre  = usuario["nombre"] if usuario else "?"
     inicial = nombre[0].upper() if nombre else "?"
     return jsonify({"ok": True, "nombre": nombre, "texto": texto, "inicial": inicial})
 
@@ -176,9 +179,9 @@ def eliminar_post(post_id):
     if "uid" not in session:
         return (jsonify({"ok": False}), 401) if _is_ajax() else redirect("/")
     con  = get_db()
-    post = con.execute("SELECT usuario_id FROM publicaciones WHERE id=?", (post_id,)).fetchone()
+    post = con.execute("SELECT usuario_id FROM publicaciones WHERE id=%s", (post_id,)).fetchone()
     if post and (post["usuario_id"] == session["uid"] or session.get("rol") == "admin"):
-        con.execute("DELETE FROM publicaciones WHERE id=?", (post_id,))
+        con.execute("DELETE FROM publicaciones WHERE id=%s", (post_id,))
         con.commit()
     if _is_ajax():
         return jsonify({"ok": True})
@@ -192,7 +195,10 @@ def crear_noticia():
     contenido = request.form.get("contenido", "").strip()
     if titulo and contenido:
         con = get_db()
-        cur = con.execute("INSERT INTO noticias(titulo,contenido) VALUES(%s,%s) RETURNING id", (titulo, contenido))
+        cur = con.execute(
+            "INSERT INTO noticias(titulo, contenido) VALUES(%s, %s) RETURNING id",
+            (titulo, contenido)
+        )
         con.commit()
         if _is_ajax():
             return jsonify({"ok": True, "id": cur.fetchone()[0], "titulo": titulo})
@@ -200,37 +206,35 @@ def crear_noticia():
         return jsonify({"ok": False, "error": "Datos requeridos"}), 400
     return redirect("/dashboard#noticias")
 
-# ── BOOKMARK (guardar/desguardar) ──
 @posts_bp.route("/bookmark/<int:post_id>", methods=["POST"])
 def bookmark(post_id):
     if "uid" not in session:
         return jsonify({"ok": False}), 401
     uid = session["uid"]
     con = get_db()
-    exist = con.execute("SELECT 1 FROM bookmarks WHERE usuario_id=? AND post_id=?", (uid, post_id)).fetchone()
+    exist = con.execute("SELECT 1 FROM bookmarks WHERE usuario_id=%s AND post_id=%s", (uid, post_id)).fetchone()
     if exist:
-        con.execute("DELETE FROM bookmarks WHERE usuario_id=? AND post_id=?", (uid, post_id))
+        con.execute("DELETE FROM bookmarks WHERE usuario_id=%s AND post_id=%s", (uid, post_id))
         saved = False
     else:
-        con.execute("INSERT INTO bookmarks(usuario_id,post_id) VALUES(%s,%s) ON CONFLICT DO NOTHING", (uid, post_id))
+        con.execute("INSERT INTO bookmarks(usuario_id, post_id) VALUES(%s, %s) ON CONFLICT DO NOTHING", (uid, post_id))
         saved = True
     con.commit()
     return jsonify({"ok": True, "saved": saved})
 
-# ── REPOST ──
 @posts_bp.route("/repost/<int:post_id>", methods=["POST"])
 def repost(post_id):
     if "uid" not in session:
         return jsonify({"ok": False}), 401
     uid = session["uid"]
     con = get_db()
-    exist = con.execute("SELECT 1 FROM reposts WHERE usuario_id=? AND post_id=?", (uid, post_id)).fetchone()
+    exist = con.execute("SELECT 1 FROM reposts WHERE usuario_id=%s AND post_id=%s", (uid, post_id)).fetchone()
     if exist:
-        con.execute("DELETE FROM reposts WHERE usuario_id=? AND post_id=?", (uid, post_id))
+        con.execute("DELETE FROM reposts WHERE usuario_id=%s AND post_id=%s", (uid, post_id))
         reposted = False
     else:
-        con.execute("INSERT INTO reposts(usuario_id,post_id) VALUES(%s,%s) ON CONFLICT DO NOTHING", (uid, post_id))
+        con.execute("INSERT INTO reposts(usuario_id, post_id) VALUES(%s, %s) ON CONFLICT DO NOTHING", (uid, post_id))
         reposted = True
     con.commit()
-    total = con.execute("SELECT COUNT(*) FROM reposts WHERE post_id=?", (post_id,)).fetchone()[0]
+    total = con.execute("SELECT COUNT(*) FROM reposts WHERE post_id=%s", (post_id,)).fetchone()[0]
     return jsonify({"ok": True, "reposted": reposted, "reposts": total})

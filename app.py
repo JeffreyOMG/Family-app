@@ -4,10 +4,9 @@ import os
 
 app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY", "familia-secret-2026")
-app.config["UPLOAD_FOLDER"] = os.path.join(os.path.dirname(__file__), "static", "uploads")
-app.config["MAX_CONTENT_LENGTH"] = 50 * 1024 * 1024
+# MAX_CONTENT_LENGTH: Cloudinary acepta hasta 100MB en plan gratuito
+app.config["MAX_CONTENT_LENGTH"] = 100 * 1024 * 1024
 
-os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
 app.teardown_appcontext(close_db)
 
 from routes.auth           import auth_bp
@@ -28,7 +27,6 @@ for bp in [auth_bp, dash_bp, posts_bp, fin_bp, perfil_bp,
            amigo_bp, cajitas_bp]:
     app.register_blueprint(bp)
 
-# Inicializar DB al arrancar
 with app.app_context():
     try:
         init_db()

@@ -1,6 +1,3 @@
-# cloudinary_helper.py
-# Coloca este archivo en la raíz del proyecto (junto a app.py)
-
 import os
 import cloudinary
 import cloudinary.uploader
@@ -20,9 +17,8 @@ ALLOWED_ALL    = ALLOWED_IMAGES | ALLOWED_VIDEOS | ALLOWED_DOCS
 
 def subir_a_cloudinary(file_obj, folder="familia"):
     """
-    Sube un archivo a Cloudinary y retorna (url, tipo).
-    tipo puede ser: 'imagen', 'video', 'pdf'
-    Retorna (None, None) si falla o el tipo no está permitido.
+    Sube un archivo a Cloudinary. Retorna (url, tipo) o (None, None) si falla.
+    tipo: 'imagen' | 'video' | 'pdf'
     """
     if not file_obj or not file_obj.filename:
         return None, None
@@ -31,7 +27,6 @@ def subir_a_cloudinary(file_obj, folder="familia"):
     if ext not in ALLOWED_ALL:
         return None, None
 
-    # Determinar tipo de recurso para Cloudinary
     if ext in ALLOWED_VIDEOS:
         resource_type = "video"
         tipo = "video"
@@ -55,24 +50,18 @@ def subir_a_cloudinary(file_obj, folder="familia"):
 
 
 def eliminar_de_cloudinary(url):
-    """
-    Elimina un archivo de Cloudinary dado su URL.
-    Solo actúa si la URL es de Cloudinary.
-    """
+    """Elimina un archivo de Cloudinary dado su URL segura."""
     if not url or "cloudinary.com" not in url:
         return
     try:
-        # Extrae el public_id del URL
-        # URL formato: https://res.cloudinary.com/cloud/image/upload/v123/folder/nombre.ext
         partes = url.split("/upload/")
         if len(partes) < 2:
             return
-        public_id_con_version = partes[1]
-        # Quita la versión si existe (v1234567890/)
-        if public_id_con_version.startswith("v") and "/" in public_id_con_version:
-            public_id_con_version = public_id_con_version.split("/", 1)[1]
-        # Quita la extensión
-        public_id = public_id_con_version.rsplit(".", 1)[0]
+        resto = partes[1]
+        # Quitar versión (v1234567890/)
+        if resto.startswith("v") and "/" in resto:
+            resto = resto.split("/", 1)[1]
+        public_id = resto.rsplit(".", 1)[0]
         cloudinary.uploader.destroy(public_id)
     except Exception as e:
         print(f"Cloudinary delete error: {e}")
