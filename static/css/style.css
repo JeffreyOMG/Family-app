@@ -4035,9 +4035,10 @@ body.dark-mode .admin-btn-edit {
   justify-content: center;
   flex-shrink: 0;
 }
-.dark .cruce-num {
-  color: #000;
+body.dark-mode .cruce-num {
+  color: var(--text);
 }
+
 .cruce-pend .cruce-num { background: var(--border); color: var(--text2); }
 
 .cruce-equipos {
