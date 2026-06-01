@@ -622,8 +622,10 @@ function _eliPartidoCardHTML(p) {
 }
 
 function _checkEliEmpate(pid, localNombre, visitNombre) {
-  const gl = parseInt(document.querySelector(`[name="local_${pid}"]`)?.value);
-  const gv = parseInt(document.querySelector(`[name="vis_${pid}"]`)?.value);
+  // Use the container div to scope selectors, avoiding conflicts with other partidos
+  const container = document.getElementById(`pron-inputs-${pid}`);
+  const gl = parseInt(container?.querySelector(`[name="local_${pid}"]`)?.value);
+  const gv = parseInt(container?.querySelector(`[name="vis_${pid}"]`)?.value);
   const penDiv = document.getElementById(`pron-pen-${pid}`);
   if (!penDiv) return;
   penDiv.style.display = (!isNaN(gl) && !isNaN(gv) && gl === gv) ? 'block' : 'none';
@@ -910,12 +912,30 @@ function _renderBracket(bracket, eliPartidos) {
             }
           } else if (p.bloqueado && p.p_local != null) {
             const gl = p.goles_local, gv2 = p.goles_visit;
+            const esEmpateReal = (gl === gv2);
+            const esEmpateP = (+p.p_local === +p.p_vis);
             let badge = '';
-            if (p.p_local == gl && p.p_vis == gv2) badge = '<div class="pron-badge pron-exacto" style="font-size:.65rem;">⚽ +3pts</div>';
-            else if ((+p.p_local > +p.p_vis && gl > gv2)||(+p.p_local < +p.p_vis && gl < gv2)||(+p.p_local==+p.p_vis && gl==gv2))
-              badge = '<div class="pron-badge pron-ganador" style="font-size:.65rem;">✓ +1pt</div>';
-            else badge = '<div class="pron-badge pron-fallo" style="font-size:.65rem;">✗ 0pts</div>';
-            pronSection = `<div class="bk-pron-guardado"><span class="bk-pron-score">${p.p_local}–${p.p_vis}</span>${badge}</div>`;
+            if (p.p_local == gl && p.p_vis == gv2) {
+              if (esEmpateReal && p.penales_ganador && p.p_penales) {
+                badge = p.p_penales === p.penales_ganador
+                  ? '<div class="pron-badge pron-exacto" style="font-size:.65rem;">⚽ +3pts</div>'
+                  : '<div class="pron-badge pron-exacto" style="font-size:.65rem;">⚽ +2pts</div>';
+              } else {
+                badge = '<div class="pron-badge pron-exacto" style="font-size:.65rem;">⚽ +3pts</div>';
+              }
+            } else if ((+p.p_local > +p.p_vis && gl > gv2)||(+p.p_local < +p.p_vis && gl < gv2)||(esEmpateP && esEmpateReal)) {
+              if (esEmpateReal && p.penales_ganador && p.p_penales) {
+                badge = p.p_penales === p.penales_ganador
+                  ? '<div class="pron-badge pron-ganador" style="font-size:.65rem;">✓ +2pts</div>'
+                  : '<div class="pron-badge pron-ganador" style="font-size:.65rem;">✓ +1pt</div>';
+              } else {
+                badge = '<div class="pron-badge pron-ganador" style="font-size:.65rem;">✓ +1pt</div>';
+              }
+            } else {
+              badge = '<div class="pron-badge pron-fallo" style="font-size:.65rem;">✗ 0pts</div>';
+            }
+            let penBk = (esEmpateReal && p.p_penales) ? `<span style="font-size:.65rem;opacity:.7"> Pen:${_esc(p.p_penales)}</span>` : '';
+            pronSection = `<div class="bk-pron-guardado"><span class="bk-pron-score">${p.p_local}–${p.p_vis}${penBk}</span>${badge}</div>`;
           }
 
           return `
@@ -1170,6 +1190,8 @@ document.addEventListener('DOMContentLoaded', function() {
           _loadBracket();
         } else if (action === '/pronostico_eli') {
           _loadEliminacion(_rondaActivaPron);
+          // Si el pronóstico vino del bracket, también recargar bracket
+          if (_tabActivo === 'bracket') _loadBracket();
         }
         if (btn) { btn.disabled = false; btn.innerHTML = btnHTML; }
       } else {

@@ -884,47 +884,47 @@ def admin_resultado_eli():
     if not gl.isdigit() or not gv.isdigit():
         return _back()
     gl, gv = int(gl), int(gv)
-    # Solo guardar penales si hay empate
-    if gl != gv:
+    es_empate_real = (gl == gv)
+    # Penales solo aplican en empate de eliminatorias
+    if not es_empate_real:
         pen = None
+
     con = get_db()
     _ensure_eliminacion_table(con)
+
+    # Obtener info del partido ANTES de actualizar
+    partido_info = con.execute(
+        "SELECT eq_local, eq_visit, cod_local, cod_visit FROM partidos_eliminacion WHERE id=%s", (pid,)
+    ).fetchone()
 
     con.execute("""
         UPDATE partidos_eliminacion SET goles_local=%s, goles_visit=%s, penales_ganador=%s, bloqueado=1 WHERE id=%s
     """, (gl, gv, pen, pid))
 
-    # Obtener info del partido para saber nombres de equipos (para penales)
-    partido_info = con.execute(
-        "SELECT eq_local, eq_visit FROM partidos_eliminacion WHERE id=%s", (pid,)
-    ).fetchone()
-    eq_local = partido_info["eq_local"] if partido_info else None
-    eq_visit = partido_info["eq_visit"] if partido_info else None
-
+    # Calcular puntos para cada pronóstico
     pronos = con.execute("""
         SELECT id, goles_local, goles_visit, penales_ganador FROM pronosticos_eli WHERE partido_id=%s
     """, (pid,)).fetchall()
 
     for p in pronos:
-        es_empate_real = (gl == gv)
         es_empate_pred = (p["goles_local"] == p["goles_visit"])
-
-        if p["goles_local"] == gl and p["goles_visit"] == gv:
-            # Marcador exacto en tiempo reglamentario
-            if es_empate_real and pen and p["penales_ganador"]:
-                # Exacto en TR + acertó penales
-                pts = 3 if p["penales_ganador"] == pen else 2
-            else:
-                pts = 3
-        elif (
+        marcador_exacto = (p["goles_local"] == gl and p["goles_visit"] == gv)
+        acerto_resultado = (
             (p["goles_local"] > p["goles_visit"] and gl > gv) or
             (p["goles_local"] < p["goles_visit"] and gl < gv) or
             (es_empate_pred and es_empate_real)
-        ):
-            # Acertó resultado (ganador/empate) pero no marcador exacto
-            if es_empate_real and pen and p["penales_ganador"]:
-                # Acertó empate TR + acertó ganador en penales
-                pts = 2 if p["penales_ganador"] == pen else 1
+        )
+
+        if marcador_exacto:
+            if es_empate_real and pen:
+                # Marcador exacto en TR + penales
+                pts = 3 if (p["penales_ganador"] and p["penales_ganador"] == pen) else 2
+            else:
+                pts = 3
+        elif acerto_resultado:
+            if es_empate_real and pen:
+                # Acertó empate TR + penales
+                pts = 2 if (p["penales_ganador"] and p["penales_ganador"] == pen) else 1
             else:
                 pts = 1
         else:
@@ -933,17 +933,8 @@ def admin_resultado_eli():
 
     con.commit()
 
-    # Si hay empate, propagar el ganador por penales en el bracket
-    if es_empate_real and pen and partido_info:
-        # Determinar quién avanzó
-        if pen == eq_local:
-            ganador = (eq_local, partido_info["cod_local"] if partido_info else "xx")
-        elif pen == eq_visit:
-            ganador = (eq_visit, partido_info["cod_visit"] if partido_info else "xx")
-        else:
-            ganador = None
-        if ganador:
-            _auto_propagar_ganadores(con)
+    # Siempre propagar ganadores/perdedores al bracket después de guardar resultado
+    _auto_propagar_ganadores(con)
 
     if _is_ajax():
         return jsonify({"ok": True, "msg": "Resultado guardado"})
