@@ -185,6 +185,38 @@ def get_ctx(uid, con, extra=None):
     partidos_clean = [_enrich(p) for p in partidos_raw]
 
     try:
+        # Crear tablas de eliminación si no existen (deploy nuevo / BD limpia)
+        con.execute("""
+            CREATE TABLE IF NOT EXISTS partidos_eliminacion (
+                id          INTEGER PRIMARY KEY,
+                fase        TEXT NOT NULL,
+                slot_local  TEXT NOT NULL,
+                slot_visit  TEXT NOT NULL,
+                fecha       TEXT DEFAULT '',
+                sede        TEXT DEFAULT '',
+                eq_local    TEXT DEFAULT NULL,
+                cod_local   TEXT DEFAULT NULL,
+                eq_visit    TEXT DEFAULT NULL,
+                cod_visit   TEXT DEFAULT NULL,
+                goles_local INTEGER DEFAULT NULL,
+                goles_visit INTEGER DEFAULT NULL,
+                bloqueado   INTEGER DEFAULT 0
+            )
+        """)
+        con.execute("""
+            CREATE TABLE IF NOT EXISTS pronosticos_eli (
+                id          SERIAL PRIMARY KEY,
+                usuario_id  INTEGER NOT NULL,
+                partido_id  INTEGER NOT NULL,
+                goles_local INTEGER NOT NULL,
+                goles_visit INTEGER NOT NULL,
+                puntos      INTEGER DEFAULT 0,
+                UNIQUE(usuario_id, partido_id),
+                FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE,
+                FOREIGN KEY (partido_id) REFERENCES partidos_eliminacion(id) ON DELETE CASCADE
+            )
+        """)
+        con.commit()
         ranking_mundial = [dict(r) for r in con.execute("""
             SELECT u.nombre,
                    COALESCE(g.puntos,0)+COALESCE(e.puntos,0) AS puntos,
@@ -209,7 +241,11 @@ def get_ctx(uid, con, extra=None):
             ORDER BY puntos DESC, exactos DESC
         """).fetchall()]
     except Exception:
-        # Fallback: solo grupos si pronosticos_eli no existe aún
+        # Fallback: rollback de la transacción abortada y solo consultar grupos
+        try:
+            con.execute("ROLLBACK")
+        except Exception:
+            pass
         ranking_mundial = [dict(r) for r in con.execute("""
             SELECT u.nombre, COALESCE(SUM(pr.puntos),0) AS puntos,
                    COUNT(CASE WHEN pr.puntos=3 THEN 1 END) AS exactos,

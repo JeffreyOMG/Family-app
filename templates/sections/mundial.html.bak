@@ -723,8 +723,6 @@ async function asignarTercero(pid) {
   if (res.ok && data.ok) {
     mostrarToast('✅ Tercero asignado');
     _loadAdminEli();
-    _loadBracket();
-    _loadEliminacion(null);  // recargar pronósticos para mostrar el equipo asignado
   }
 }
 
@@ -939,7 +937,6 @@ async function _guardarTerceroUnico(pid) {
     _loadAdminTerceros();
     _loadBracket();
     _loadAdminEli();
-    _loadEliminacion(null);  // recargar todos los pronósticos para mostrar equipos nuevos
   } else {
     mostrarToast('❌ Error al guardar');
   }
@@ -976,7 +973,6 @@ async function guardarTerceros() {
     _loadAdminTerceros();
     _loadBracket();
     _loadAdminEli();
-    _loadEliminacion(null);  // recargar todos los pronósticos para mostrar equipos nuevos
   } else {
     mostrarToast('❌ Error al guardar');
   }
@@ -996,7 +992,6 @@ async function recalcularTerceros() {
     _loadAdminTerceros();
     _loadBracket();
     _loadAdminEli();
-    _loadEliminacion(null);  // recargar todos los pronósticos para mostrar equipos nuevos
   } else {
     mostrarToast('❌ ' + (data.msg || 'Error'));
   }
@@ -1017,7 +1012,6 @@ async function restablecerTerceros() {
     _loadAdminTerceros();
     _loadBracket();
     _loadAdminEli();
-    _loadEliminacion(null);  // recargar todos los pronósticos para mostrar equipos nuevos
   } else {
     mostrarToast('❌ ' + (data.msg || 'Error'));
   }
@@ -1102,12 +1096,6 @@ async function _refreshTodo(silencioso = true) {
     _hashGrupos = nuevoHashGrupos;
     _hashEli    = nuevoHashEli;
 
-    // Siempre actualizar cache de datos eli para que estén frescos al cambiar de tab
-    if (cambioEli) {
-      _eliData = eliData.partidos;
-      _tercerosPorGrupo = eliData.terceros_por_grupo || {};
-    }
-
     // Actualizar según el tab activo
     if (_tabActivo === 'grupos') {
       _renderGrupos(mundialData.partidos, mundialData.tabla);
@@ -1122,17 +1110,14 @@ async function _refreshTodo(silencioso = true) {
     if (_tabActivo === 'partidos') {
       if (_rondaActivaPron === 'grupos-pron') {
         _renderGrupos(mundialData.partidos, mundialData.tabla);
-      } else if (cambioEli) {
+      } else {
+        _eliData = eliData.partidos;
         _renderEliRonda(_rondaActivaPron);
       }
     }
-    // Si cambian datos eli pero el usuario está en otro tab, re-renderizar
-    // la ronda activa de pronósticos en background (actualiza el DOM oculto)
-    // para que al volver al tab ya esté listo con los equipos nuevos
-    if (cambioEli && _tabActivo !== 'partidos' && _rondaActivaPron !== 'grupos-pron') {
-      _renderEliRonda(_rondaActivaPron);
-    }
     if (_tabActivo === 'admin') {
+      _eliData = eliData.partidos;
+      _tercerosPorGrupo = eliData.terceros_por_grupo || {};
       // Solo re-renderizar admin eli si está activo para no interrumpir edición
       const eliActivo = document.getElementById('admin-ronda-eli-adm')?.style.display !== 'none';
       if (eliActivo) {
