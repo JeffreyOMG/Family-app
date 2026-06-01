@@ -51,17 +51,16 @@ def _parse_url(url):
 
 def _to_pg(sql, params):
     """
-    Convierte SQL con %s y una tupla de params
-    en SQL con :1,:2,... y un dict {1:v, 2:v, ...}
-    que es lo que acepta pg8000.native.
+    Convierte SQL con %s o ? en :p1,:p2,...
+    y retorna un dict {"p1":v, "p2":v, ...} para pg8000.native.
     """
     import re
     idx = [0]
     def repl(_):
         idx[0] += 1
-        return f":{idx[0]}"
-    pg_sql = re.sub(r'%s', repl, sql)
-    pg_params = {i+1: v for i, v in enumerate(params)}
+        return f":p{idx[0]}"
+    pg_sql = re.sub(r'%s|\?', repl, sql)
+    pg_params = {f"p{i+1}": v for i, v in enumerate(params)}
     return pg_sql, pg_params
 
 # ─────────────────────────────────────────────
@@ -266,23 +265,18 @@ def init_db():
 
     admin_hash = generate_password_hash("admin1234")
     try:
-        pg.run(
-            "INSERT INTO usuarios(nombre,usuario,password,rol,gmail) VALUES(:1,:2,:3,:4,:5) ON CONFLICT(usuario) DO NOTHING",
-            "Administrador", "admin", admin_hash, "admin", "admin@familia.com"
-        )
+        pg.run("INSERT INTO usuarios(nombre,usuario,password,rol,gmail) VALUES(:p1,:p2,:p3,:p4,:p5) ON CONFLICT(usuario) DO NOTHING", p1="Administrador", p2="admin", p3=admin_hash, p4="admin", p5="admin@familia.com")
     except Exception as e:
         print(f"Admin warning: {e}")
 
     try:
-        pg.run("INSERT INTO config(clave,valor) VALUES(:1,:2) ON CONFLICT(clave) DO NOTHING",
-               "meta_recaudacion", "500000")
+        pg.run("INSERT INTO config(clave,valor) VALUES(:p1,:p2) ON CONFLICT(clave) DO NOTHING", p1="meta_recaudacion", p2="500000")
     except Exception as e:
         print(f"Config warning: {e}")
 
     for pid, grupo, local, visitante in PARTIDOS_MUNDIAL:
         try:
-            pg.run("INSERT INTO partidos_mundial(id,grupo,local,visitante) VALUES(:1,:2,:3,:4) ON CONFLICT(id) DO NOTHING",
-                   pid, grupo, local, visitante)
+            pg.run("INSERT INTO partidos_mundial(id,grupo,local,visitante) VALUES(:p1,:p2,:p3,:p4) ON CONFLICT(id) DO NOTHING", p1=pid, p2=grupo, p3=local, p4=visitante)
         except Exception as e:
             print(f"Partido warning: {e}")
 
