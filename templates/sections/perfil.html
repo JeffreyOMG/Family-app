@@ -142,6 +142,34 @@
     {% endif %}
   </div>
 
+   <!-- APARIENCIA -->
+  <div class="content-card">
+    <h3><span class="material-symbols-outlined">palette</span> Apariencia</h3>
+    <div class="ajuste-row">
+      <div>
+        <div class="ajuste-label">Tema oscuro</div>
+        <div class="ajuste-desc">Cambia el fondo de la aplicación</div>
+      </div>
+      <label class="toggle-switch">
+        <input type="checkbox" id="toggle-dark" onchange="toggleTheme(this.checked)">
+        <span class="toggle-track"><span class="toggle-thumb"></span></span>
+      </label>
+    </div>
+    <div class="ajuste-row" style="margin-top:14px;">
+      <div>
+        <div class="ajuste-label">Color de acento</div>
+        <div class="ajuste-desc">Color principal de botones y elementos</div>
+      </div>
+      <div style="display:flex;gap:8px;">
+        {% for color in ['#ffd700','#4fc3f7','#a78bfa','#4ade80','#f87171','#fb923c'] %}
+        <button onclick="setAccent('{{ color }}')"
+          style="width:26px;height:26px;border-radius:50%;background:{{ color }};border:2px solid transparent;cursor:pointer;transition:border .2s;"
+          class="accent-btn" data-color="{{ color }}"></button>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
 </section>
 
 <style>
@@ -258,6 +286,10 @@ body.dark-mode .pf-input { background: var(--bg2); border-color: var(--border); 
 body.dark-mode .pf-stat { background: var(--card); border-color: var(--border); }
 body.dark-mode .pf-hero { background: var(--card); }
 
+
+.ajuste-row{
+  display: none;
+}
 @media (max-width: 600px) {
   .pf-hero { flex-direction: column; align-items: center; text-align: center; }
   .pf-usuario { justify-content: center; }
@@ -269,6 +301,9 @@ body.dark-mode .pf-hero { background: var(--card); }
 @media (max-width: 380px) {
   .pf-stats-grid { grid-template-columns: repeat(2, 1fr); }
   .pf-avatar-img, .pf-avatar-letter { width: 76px; height: 76px; }
+  .ajuste-row{
+    display: flex;
+  }
 }
 </style>
 
