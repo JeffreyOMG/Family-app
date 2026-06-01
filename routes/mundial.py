@@ -456,6 +456,7 @@ def _seed_eliminacion(con):
             INSERT INTO partidos_eliminacion
                 (id, fase, slot_local, slot_visit, fecha, sede)
             VALUES (%s,%s,%s,%s,%s,%s)
+            ON CONFLICT (id) DO NOTHING
         """, fila)
     con.commit()
 
