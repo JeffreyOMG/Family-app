@@ -75,6 +75,7 @@ def api_mundial_datos():
         rows.sort(key=lambda x: (-x["pts"], -x["dg"], -x["gf"]))
         tabla_ordenada[letra] = rows
 
+    # ── RANKING: grupos + eliminación directa ────────────────────────────────
     ranking = [dict(r) for r in con.execute("""
         SELECT u.nombre,
                COALESCE(g.puntos,0)+COALESCE(e.puntos,0) AS puntos,
@@ -84,13 +85,13 @@ def api_mundial_datos():
         LEFT JOIN (
             SELECT usuario_id,SUM(puntos) puntos,
                    COUNT(CASE WHEN puntos=3 THEN 1 END) exactos,
-                   COUNT(CASE WHEN puntos=1 THEN 1 END) ganadores
+                   COUNT(CASE WHEN puntos>=1 AND puntos<3 THEN 1 END) ganadores
             FROM pronosticos GROUP BY usuario_id
         ) g ON g.usuario_id=u.id
         LEFT JOIN (
             SELECT usuario_id,SUM(puntos) puntos,
                    COUNT(CASE WHEN puntos=3 THEN 1 END) exactos,
-                   COUNT(CASE WHEN puntos=1 THEN 1 END) ganadores
+                   COUNT(CASE WHEN puntos>=1 AND puntos<3 THEN 1 END) ganadores
             FROM pronosticos_eli GROUP BY usuario_id
         ) e ON e.usuario_id=u.id
         ORDER BY puntos DESC, exactos DESC
@@ -221,13 +222,34 @@ def admin_reset_mundial():
 
 @mundial_bp.route("/api/ranking_mundial")
 def ranking_mundial():
+    """Ranking visible en frontend: suma grupos + eliminación directa."""
+    if "uid" not in session:
+        return jsonify([]), 401
     con = get_db()
+    try:
+        _ensure_eliminacion_table(con)
+    except Exception:
+        pass
     ranking = [dict(r) for r in con.execute("""
-        SELECT u.id, u.nombre, u.usuario, u.foto, COALESCE(SUM(p.puntos),0) puntos
+        SELECT u.id, u.nombre, u.usuario, u.foto,
+               COALESCE(g.puntos,0)+COALESCE(e.puntos,0) AS puntos,
+               COALESCE(g.exactos,0)+COALESCE(e.exactos,0) AS exactos,
+               COALESCE(g.ganadores,0)+COALESCE(e.ganadores,0) AS ganadores
         FROM usuarios u
-        LEFT JOIN pronosticos p ON p.usuario_id=u.id
-        GROUP BY u.id, u.nombre
-        ORDER BY puntos DESC
+        LEFT JOIN (
+            SELECT usuario_id, SUM(puntos) puntos,
+                   COUNT(CASE WHEN puntos=3 THEN 1 END) exactos,
+                   COUNT(CASE WHEN puntos>=1 AND puntos<3 THEN 1 END) ganadores
+            FROM pronosticos GROUP BY usuario_id
+        ) g ON g.usuario_id=u.id
+        LEFT JOIN (
+            SELECT usuario_id, SUM(puntos) puntos,
+                   COUNT(CASE WHEN puntos=3 THEN 1 END) exactos,
+                   COUNT(CASE WHEN puntos>=1 AND puntos<3 THEN 1 END) ganadores
+            FROM pronosticos_eli GROUP BY usuario_id
+        ) e ON e.usuario_id=u.id
+        GROUP BY u.id, u.nombre, u.usuario, u.foto, g.puntos, g.exactos, g.ganadores, e.puntos, e.exactos, e.ganadores
+        ORDER BY puntos DESC, exactos DESC
     """).fetchall()]
     return jsonify(ranking)
 
@@ -275,6 +297,20 @@ def _ensure_eliminacion_table(con):
             FOREIGN KEY (partido_id) REFERENCES partidos_eliminacion(id) ON DELETE CASCADE
         )
     """)
+    # ── TABLA: mejores_terceros ─────────────────────────────────────────────
+    # Guarda los 8 terceros asignados a los cruces de dieciseisavos
+    # manual_override = TRUE significa que el admin lo editó manualmente
+    # y el sistema automático NO debe sobreescribirlo
+    con.execute("""
+        CREATE TABLE IF NOT EXISTS mejores_terceros (
+            partido_id      INTEGER PRIMARY KEY,
+            nombre          TEXT NOT NULL,
+            codigo          TEXT NOT NULL DEFAULT 'xx',
+            grupo_origen    TEXT NOT NULL DEFAULT '',
+            manual_override BOOLEAN DEFAULT FALSE,
+            FOREIGN KEY (partido_id) REFERENCES partidos_eliminacion(id) ON DELETE CASCADE
+        )
+    """)
     con.commit()
     _seed_eliminacion(con)
 
@@ -309,6 +345,8 @@ def api_eliminacion_datos():
     _ensure_eliminacion_table(con)
     _auto_asignar_fijos(con)
     _auto_propagar_ganadores(con)
+    # Aplicar terceros guardados en mejores_terceros (solo si no manual_override ya aplicado)
+    _aplicar_mejores_terceros(con)
 
     partidos = [dict(p) for p in con.execute("""
         SELECT pe.*,
@@ -319,7 +357,15 @@ def api_eliminacion_datos():
     """, (uid,)).fetchall()]
 
     terceros_por_grupo = _get_terceros_por_grupo(con)
-    return jsonify({"partidos": partidos, "terceros_por_grupo": terceros_por_grupo})
+    mejores_terceros   = _get_mejores_terceros_guardados(con)
+    terceros_auto      = _calcular_mejores_terceros_auto(con)
+
+    return jsonify({
+        "partidos": partidos,
+        "terceros_por_grupo": terceros_por_grupo,
+        "mejores_terceros": mejores_terceros,
+        "terceros_auto": terceros_auto,
+    })
 
 
 def _calcular_tabla_grupos(con):
@@ -388,8 +434,13 @@ def _auto_asignar_fijos(con):
     con.commit()
 
 
-
 def _auto_propagar_ganadores(con):
+    """
+    Propaga ganadores (y perdedores para tercer puesto) a lo largo del bracket.
+    En eliminatorias, si hay empate en tiempo reglamentario el admin debería
+    registrar el resultado final (incluyendo penales). Por eso si goles_local==goles_visit
+    NO propagamos — el admin debe editar para reflejar el resultado real (penales).
+    """
     partidos = [dict(p) for p in con.execute("""
         SELECT * FROM partidos_eliminacion ORDER BY id
     """).fetchall()]
@@ -401,12 +452,23 @@ def _auto_propagar_ganadores(con):
         if not p.get("eq_local") or not p.get("eq_visit"):
             continue
 
-        if p["goles_local"] >= p["goles_visit"]:
-            ganador = (p["eq_local"], p["cod_local"])
-            perdedor = (p["eq_visit"], p["cod_visit"])
+        gl = p["goles_local"]
+        gv = p["goles_visit"]
+
+        # En grupos puede haber empate. En eliminatorias el admin registra
+        # el resultado final. Si gl == gv, no podemos saber quién avanza
+        # sin info extra → no propagar (el admin debe corregir con penales).
+        if gl > gv:
+            ganador  = (p["eq_local"],  p["cod_local"])
+            perdedor = (p["eq_visit"],  p["cod_visit"])
+        elif gv > gl:
+            ganador  = (p["eq_visit"],  p["cod_visit"])
+            perdedor = (p["eq_local"],  p["cod_local"])
         else:
-            ganador = (p["eq_visit"], p["cod_visit"])
-            perdedor = (p["eq_local"], p["cod_local"])
+            # Empate — no podemos determinar ganador sin info de penales.
+            # Guardamos None para que el campo destino quede vacío/pendiente.
+            ganador  = None
+            perdedor = None
 
         resultados[p["id"]] = {"ganador": ganador, "perdedor": perdedor}
 
@@ -430,9 +492,16 @@ def _auto_propagar_ganadores(con):
             if origen not in resultados:
                 continue
 
-            dato = resultados[origen]["ganador" if slot.startswith("G") else "perdedor"]
-            updates[campo_eq] = dato[0]
-            updates[campo_cod] = dato[1]
+            tipo = "ganador" if slot.startswith("G") else "perdedor"
+            dato = resultados[origen][tipo]
+
+            if dato is None:
+                # Empate sin desempate — limpiar para que no quede dato incorrecto
+                updates[campo_eq]  = None
+                updates[campo_cod] = None
+            else:
+                updates[campo_eq]  = dato[0]
+                updates[campo_cod] = dato[1]
 
         if updates:
             sets = ", ".join(f"{k}=%s" for k in updates)
@@ -441,7 +510,9 @@ def _auto_propagar_ganadores(con):
 
     con.commit()
 
+
 def _get_terceros_por_grupo(con):
+    """Retorna el mejor 3ro de cada grupo (posición 3 en la tabla)."""
     tabla = _calcular_tabla_grupos(con)
     resultado = {}
     for letra, rows in tabla.items():
@@ -449,8 +520,248 @@ def _get_terceros_por_grupo(con):
             nombre = rows[2][0]
             codigo = rows[2][1]["codigo"]
             pts    = rows[2][1]["pts"]
-            resultado[letra] = {"nombre": nombre, "codigo": codigo, "pts": pts}
+            dg     = rows[2][1]["dg"]
+            gf     = rows[2][1]["gf"]
+            resultado[letra] = {"nombre": nombre, "codigo": codigo, "pts": pts, "dg": dg, "gf": gf}
     return resultado
+
+
+def _calcular_mejores_terceros_auto(con):
+    """
+    Calcula automáticamente los 8 mejores terceros usando criterios oficiales FIFA:
+    1. Puntos  2. Diferencia de gol  3. Goles a favor
+    Retorna lista ordenada de hasta 12 candidatos (todos los terceros disponibles).
+    """
+    por_grupo = _get_terceros_por_grupo(con)
+    candidatos = []
+    for letra, datos in por_grupo.items():
+        candidatos.append({
+            "grupo": letra,
+            "nombre": datos["nombre"],
+            "codigo": datos["codigo"],
+            "pts": datos["pts"],
+            "dg": datos["dg"],
+            "gf": datos["gf"],
+        })
+    candidatos.sort(key=lambda x: (-x["pts"], -x["dg"], -x["gf"]))
+    return candidatos  # Primeros 8 son los mejores
+
+
+def _get_mejores_terceros_guardados(con):
+    """Retorna los terceros guardados en la tabla mejores_terceros."""
+    try:
+        rows = con.execute("""
+            SELECT partido_id, nombre, codigo, grupo_origen, manual_override
+            FROM mejores_terceros
+        """).fetchall()
+        return {r["partido_id"]: dict(r) for r in rows}
+    except Exception:
+        return {}
+
+
+def _aplicar_mejores_terceros(con):
+    """
+    Aplica los terceros guardados en mejores_terceros a partidos_eliminacion.
+    Solo actualiza partidos que NO están bloqueados.
+    """
+    from mundial_bracket import CRUCES_CON_TERCERO
+    try:
+        rows = con.execute("""
+            SELECT partido_id, nombre, codigo FROM mejores_terceros
+        """).fetchall()
+        for r in rows:
+            pid = r["partido_id"]
+            partido = con.execute(
+                "SELECT bloqueado FROM partidos_eliminacion WHERE id=%s", (pid,)
+            ).fetchone()
+            if partido and not partido["bloqueado"]:
+                con.execute("""
+                    UPDATE partidos_eliminacion
+                    SET eq_visit=%s, cod_visit=%s
+                    WHERE id=%s
+                """, (r["nombre"], r["codigo"], pid))
+        con.commit()
+    except Exception:
+        pass
+
+
+# ── API: obtener y guardar mejores terceros ───────────────────────────────────
+
+@mundial_bp.route("/api/mejores_terceros")
+def api_mejores_terceros():
+    if "uid" not in session:
+        return jsonify({}), 401
+    con = get_db()
+    _ensure_eliminacion_table(con)
+    guardados = _get_mejores_terceros_guardados(con)
+    auto      = _calcular_mejores_terceros_auto(con)
+    return jsonify({"guardados": guardados, "auto": auto})
+
+
+@mundial_bp.route("/admin_guardar_terceros", methods=["POST"])
+def admin_guardar_terceros():
+    """
+    Guarda la asignación manual de terceros.
+    Body JSON o form: lista de {partido_id, nombre, codigo, grupo_origen}
+    Marca manual_override=True para los partidos modificados.
+    """
+    if session.get("rol") != "admin":
+        return jsonify({"ok": False}), 403
+    con = get_db()
+    _ensure_eliminacion_table(con)
+
+    import json
+    try:
+        data = request.get_json(silent=True) or {}
+        terceros = data.get("terceros", [])
+    except Exception:
+        terceros = []
+
+    if not terceros:
+        # Fallback: form data (lista de campos)
+        for pid in request.form.getlist("partido_id"):
+            nombre  = request.form.get(f"nombre_{pid}", "").strip()
+            codigo  = request.form.get(f"codigo_{pid}", "xx").strip()
+            grupo   = request.form.get(f"grupo_{pid}", "").strip()
+            if nombre:
+                terceros.append({"partido_id": int(pid), "nombre": nombre, "codigo": codigo, "grupo_origen": grupo})
+
+    for t in terceros:
+        pid    = int(t.get("partido_id", 0))
+        nombre = t.get("nombre", "").strip()
+        codigo = t.get("codigo", "xx").strip()
+        grupo  = t.get("grupo_origen", "").strip()
+        if not pid or not nombre:
+            continue
+        # Buscar código si no viene
+        if not codigo or codigo == "xx":
+            for equipos in GRUPOS_MUNDIAL.values():
+                for n, c in equipos:
+                    if n == nombre:
+                        codigo = c
+                        break
+        con.execute("""
+            INSERT INTO mejores_terceros(partido_id, nombre, codigo, grupo_origen, manual_override)
+            VALUES(%s, %s, %s, %s, TRUE)
+            ON CONFLICT(partido_id) DO UPDATE SET
+                nombre=excluded.nombre,
+                codigo=excluded.codigo,
+                grupo_origen=excluded.grupo_origen,
+                manual_override=TRUE
+        """, (pid, nombre, codigo, grupo))
+        # Actualizar partido_eliminacion también
+        partido = con.execute("SELECT bloqueado FROM partidos_eliminacion WHERE id=%s", (pid,)).fetchone()
+        if partido and not partido["bloqueado"]:
+            con.execute("""
+                UPDATE partidos_eliminacion SET eq_visit=%s, cod_visit=%s WHERE id=%s
+            """, (nombre, codigo, pid))
+
+    con.commit()
+    return jsonify({"ok": True, "msg": f"{len(terceros)} terceros guardados"})
+
+
+@mundial_bp.route("/admin_recalcular_terceros", methods=["POST"])
+def admin_recalcular_terceros():
+    """
+    Recalcula automáticamente los 8 mejores terceros y los asigna a los
+    8 cruces con tercero, RESPETANDO los manual_override ya existentes.
+    """
+    if session.get("rol") != "admin":
+        return jsonify({"ok": False}), 403
+    con = get_db()
+    _ensure_eliminacion_table(con)
+
+    from mundial_bracket import CRUCES_CON_TERCERO, DIECISEISAVOS
+
+    auto = _calcular_mejores_terceros_auto(con)
+    top8 = auto[:8]
+
+    if len(top8) < 8:
+        return jsonify({"ok": False, "msg": f"Solo hay {len(top8)} terceros calculables. Necesitas más partidos de grupos jugados."})
+
+    # Obtener los cruces con tercero en orden (IDs de DIECISEISAVOS fijo=False)
+    cruces_tercero = [p["id"] for p in DIECISEISAVOS if not p["fijo"]]  # 8 cruces
+
+    # Obtener overrides existentes
+    overrides = set()
+    try:
+        rows = con.execute("SELECT partido_id FROM mejores_terceros WHERE manual_override=TRUE").fetchall()
+        overrides = {r["partido_id"] for r in rows}
+    except Exception:
+        pass
+
+    asignados = 0
+    for i, pid in enumerate(cruces_tercero):
+        if pid in overrides:
+            continue  # Respetar manual_override
+        if i >= len(top8):
+            break
+        t = top8[i]
+        con.execute("""
+            INSERT INTO mejores_terceros(partido_id, nombre, codigo, grupo_origen, manual_override)
+            VALUES(%s, %s, %s, %s, FALSE)
+            ON CONFLICT(partido_id) DO UPDATE SET
+                nombre=excluded.nombre,
+                codigo=excluded.codigo,
+                grupo_origen=excluded.grupo_origen,
+                manual_override=FALSE
+        """, (pid, t["nombre"], t["codigo"], t["grupo"]))
+        partido = con.execute("SELECT bloqueado FROM partidos_eliminacion WHERE id=%s", (pid,)).fetchone()
+        if partido and not partido["bloqueado"]:
+            con.execute("""
+                UPDATE partidos_eliminacion SET eq_visit=%s, cod_visit=%s WHERE id=%s
+            """, (t["nombre"], t["codigo"], pid))
+        asignados += 1
+
+    con.commit()
+    return jsonify({"ok": True, "msg": f"Recalculado: {asignados} terceros asignados automáticamente (overrides respetados: {len(overrides)})", "auto": top8})
+
+
+@mundial_bp.route("/admin_restablecer_terceros", methods=["POST"])
+def admin_restablecer_terceros():
+    """
+    Elimina TODOS los manual_override y recalcula desde cero.
+    """
+    if session.get("rol") != "admin":
+        return jsonify({"ok": False}), 403
+    con = get_db()
+    _ensure_eliminacion_table(con)
+
+    # Limpiar todos los terceros guardados
+    try:
+        con.execute("DELETE FROM mejores_terceros")
+        con.commit()
+    except Exception:
+        pass
+
+    from mundial_bracket import DIECISEISAVOS
+    auto  = _calcular_mejores_terceros_auto(con)
+    top8  = auto[:8]
+    cruces_tercero = [p["id"] for p in DIECISEISAVOS if not p["fijo"]]
+
+    asignados = 0
+    for i, pid in enumerate(cruces_tercero):
+        if i >= len(top8):
+            break
+        t = top8[i]
+        con.execute("""
+            INSERT INTO mejores_terceros(partido_id, nombre, codigo, grupo_origen, manual_override)
+            VALUES(%s, %s, %s, %s, FALSE)
+            ON CONFLICT(partido_id) DO UPDATE SET
+                nombre=excluded.nombre,
+                codigo=excluded.codigo,
+                grupo_origen=excluded.grupo_origen,
+                manual_override=FALSE
+        """, (pid, t["nombre"], t["codigo"], t["grupo"]))
+        partido = con.execute("SELECT bloqueado FROM partidos_eliminacion WHERE id=%s", (pid,)).fetchone()
+        if partido and not partido["bloqueado"]:
+            con.execute("""
+                UPDATE partidos_eliminacion SET eq_visit=%s, cod_visit=%s WHERE id=%s
+            """, (t["nombre"], t["codigo"], pid))
+        asignados += 1
+
+    con.commit()
+    return jsonify({"ok": True, "msg": f"Restablecido automáticamente: {asignados} terceros asignados", "auto": top8})
 
 
 @mundial_bp.route("/pronostico_eli", methods=["POST"])
@@ -505,6 +816,24 @@ def admin_eli_equipo():
         con.execute("UPDATE partidos_eliminacion SET eq_local=%s, cod_local=%s WHERE id=%s", (nombre, codigo, pid))
     elif lado == "visit":
         con.execute("UPDATE partidos_eliminacion SET eq_visit=%s, cod_visit=%s WHERE id=%s", (nombre, codigo, pid))
+        # Si este partido es un cruce con tercero, guardar como manual_override
+        from mundial_bracket import CRUCES_CON_TERCERO
+        if pid in CRUCES_CON_TERCERO:
+            grupo_origen = ""
+            for letra, equipos in GRUPOS_MUNDIAL.items():
+                for n, c in equipos:
+                    if n == nombre:
+                        grupo_origen = letra
+                        break
+            con.execute("""
+                INSERT INTO mejores_terceros(partido_id, nombre, codigo, grupo_origen, manual_override)
+                VALUES(%s, %s, %s, %s, TRUE)
+                ON CONFLICT(partido_id) DO UPDATE SET
+                    nombre=excluded.nombre,
+                    codigo=excluded.codigo,
+                    grupo_origen=excluded.grupo_origen,
+                    manual_override=TRUE
+            """, (pid, nombre, codigo, grupo_origen))
     con.commit()
     if _is_ajax():
         return jsonify({"ok": True, "codigo": codigo})
@@ -560,16 +889,19 @@ def ranking_global():
     ranking = [dict(r) for r in con.execute("""
         SELECT u.nombre,
                COALESCE(g.puntos,0)+COALESCE(e.puntos,0) AS puntos,
-               COALESCE(g.exactos,0)+COALESCE(e.exactos,0) AS exactos
+               COALESCE(g.exactos,0)+COALESCE(e.exactos,0) AS exactos,
+               COALESCE(g.ganadores,0)+COALESCE(e.ganadores,0) AS ganadores
         FROM usuarios u
         LEFT JOIN (
             SELECT usuario_id, SUM(puntos) puntos,
-                   COUNT(CASE WHEN puntos=3 THEN 1 END) exactos
+                   COUNT(CASE WHEN puntos=3 THEN 1 END) exactos,
+                   COUNT(CASE WHEN puntos>=1 AND puntos<3 THEN 1 END) ganadores
             FROM pronosticos GROUP BY usuario_id
         ) g ON g.usuario_id=u.id
         LEFT JOIN (
             SELECT usuario_id, SUM(puntos) puntos,
-                   COUNT(CASE WHEN puntos=3 THEN 1 END) exactos
+                   COUNT(CASE WHEN puntos=3 THEN 1 END) exactos,
+                   COUNT(CASE WHEN puntos>=1 AND puntos<3 THEN 1 END) ganadores
             FROM pronosticos_eli GROUP BY usuario_id
         ) e ON e.usuario_id=u.id
         ORDER BY puntos DESC, exactos DESC

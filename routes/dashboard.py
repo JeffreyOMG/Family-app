@@ -184,15 +184,41 @@ def get_ctx(uid, con, extra=None):
         }
     partidos_clean = [_enrich(p) for p in partidos_raw]
 
-    ranking_mundial = [dict(r) for r in con.execute("""
-        SELECT u.nombre, COALESCE(SUM(pr.puntos),0) AS puntos,
-               COUNT(CASE WHEN pr.puntos=3 THEN 1 END) AS exactos,
-               COUNT(CASE WHEN pr.puntos=1 THEN 1 END) AS ganadores
-        FROM usuarios u LEFT JOIN pronosticos pr ON pr.usuario_id=u.id
-        GROUP BY u.id, u.nombre
-        HAVING COALESCE(SUM(pr.puntos),0)>0 OR (SELECT COUNT(*) FROM pronosticos WHERE usuario_id=u.id)>0
-        ORDER BY puntos DESC, exactos DESC
-    """).fetchall()]
+    try:
+        ranking_mundial = [dict(r) for r in con.execute("""
+            SELECT u.nombre,
+                   COALESCE(g.puntos,0)+COALESCE(e.puntos,0) AS puntos,
+                   COALESCE(g.exactos,0)+COALESCE(e.exactos,0) AS exactos,
+                   COALESCE(g.ganadores,0)+COALESCE(e.ganadores,0) AS ganadores
+            FROM usuarios u
+            LEFT JOIN (
+                SELECT usuario_id, SUM(puntos) puntos,
+                       COUNT(CASE WHEN puntos=3 THEN 1 END) exactos,
+                       COUNT(CASE WHEN puntos>=1 AND puntos<3 THEN 1 END) ganadores
+                FROM pronosticos GROUP BY usuario_id
+            ) g ON g.usuario_id=u.id
+            LEFT JOIN (
+                SELECT usuario_id, SUM(puntos) puntos,
+                       COUNT(CASE WHEN puntos=3 THEN 1 END) exactos,
+                       COUNT(CASE WHEN puntos>=1 AND puntos<3 THEN 1 END) ganadores
+                FROM pronosticos_eli GROUP BY usuario_id
+            ) e ON e.usuario_id=u.id
+            WHERE COALESCE(g.puntos,0)+COALESCE(e.puntos,0) > 0
+               OR (SELECT COUNT(*) FROM pronosticos WHERE usuario_id=u.id) > 0
+               OR (SELECT COUNT(*) FROM pronosticos_eli WHERE usuario_id=u.id) > 0
+            ORDER BY puntos DESC, exactos DESC
+        """).fetchall()]
+    except Exception:
+        # Fallback: solo grupos si pronosticos_eli no existe aún
+        ranking_mundial = [dict(r) for r in con.execute("""
+            SELECT u.nombre, COALESCE(SUM(pr.puntos),0) AS puntos,
+                   COUNT(CASE WHEN pr.puntos=3 THEN 1 END) AS exactos,
+                   COUNT(CASE WHEN pr.puntos>=1 AND pr.puntos<3 THEN 1 END) AS ganadores
+            FROM usuarios u LEFT JOIN pronosticos pr ON pr.usuario_id=u.id
+            GROUP BY u.id, u.nombre
+            HAVING COALESCE(SUM(pr.puntos),0)>0 OR (SELECT COUNT(*) FROM pronosticos WHERE usuario_id=u.id)>0
+            ORDER BY puntos DESC, exactos DESC
+        """).fetchall()]
 
     usuario_posts  = con.execute("SELECT COUNT(*) FROM publicaciones WHERE usuario_id=%s", (uid,)).fetchone()[0]
     usuario_likes  = con.execute("SELECT COUNT(*) FROM likes l JOIN publicaciones p ON p.id=l.post_id WHERE p.usuario_id=%s", (uid,)).fetchone()[0]

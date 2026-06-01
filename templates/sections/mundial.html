@@ -213,6 +213,18 @@
           <span class="material-symbols-outlined">tune</span>
           Asignar mejores terceros a cruces
         </div>
+        <div class="bap-acciones" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
+          <button class="admin-btn-save" onclick="recalcularTerceros()" id="btn-recalcular-terceros">
+            <span class="material-symbols-outlined">autorenew</span> Recalcular automático
+          </button>
+          <button class="admin-btn-save" style="background:var(--c-warn,#e65100);" onclick="restablecerTerceros()" id="btn-restablecer-terceros">
+            <span class="material-symbols-outlined">restart_alt</span> Restablecer automático
+          </button>
+          <button class="admin-btn-save" style="background:var(--c-success,#2e7d32);" onclick="guardarTerceros()" id="btn-guardar-terceros">
+            <span class="material-symbols-outlined">save</span> Guardar cambios
+          </button>
+        </div>
+        <div id="bap-auto-info" style="font-size:.8rem;opacity:.6;margin-bottom:8px;"></div>
         <div id="bap-cruces-lista"></div>
       </div>
       {% endif %}
@@ -362,7 +374,7 @@ function mundialTab(tab, btn) {
 function _cargarTab(tab) {
   if (tab === 'grupos')   _refreshMundialDatos('grupos');
   if (tab === 'ranking')  _refreshMundialDatos('ranking');
-  if (tab === 'bracket')  _loadBracket();
+  if (tab === 'bracket')  { _loadBracket(); _loadAdminTerceros(); }
   if (tab === 'partidos') _loadEliminacion(_rondaActivaPron !== 'grupos-pron' ? _rondaActivaPron : null);
   if (tab === 'admin')    _loadAdminEli();
 }
@@ -807,6 +819,205 @@ function _renderBracket(bracket, eliPartidos) {
 }
 
 // ══════════════════════════════════════════
+// PANEL ADMIN: 8 MEJORES TERCEROS
+// ══════════════════════════════════════════
+
+// Mapa de cruce_id → slot_visitante (grupos posibles) — igual que _GRUPOS_TERCERO
+// Este panel aparece en la vista BRACKET cuando el admin está logueado
+const _CRUCES_TERCERO_IDS = [74, 77, 79, 80, 81, 82, 85, 87];
+const _CRUCES_TERCERO_INFO = {
+  74: { slot: '3-ABCDF', label: 'P74 vs 1E' },
+  77: { slot: '3-CDFGH', label: 'P77 vs 1I' },
+  79: { slot: '3-CEFHI', label: 'P79 vs 1A' },
+  80: { slot: '3-EHIJK', label: 'P80 vs 1L' },
+  81: { slot: '3-BEFIJ', label: 'P81 vs 1D' },
+  82: { slot: '3-AEHIJ', label: 'P82 vs 1G' },
+  85: { slot: '3-EFGIJ', label: 'P85 vs 1B' },
+  87: { slot: '3-DEIJL', label: 'P87 vs 1K' },
+};
+
+// Estado local del panel de terceros (pid → {nombre, codigo, grupo_origen})
+let _tercerosPendientes = {};  // cambios no guardados
+
+async function _loadAdminTerceros() {
+  const panel = document.getElementById('bracket-admin-terceros');
+  const lista = document.getElementById('bap-cruces-lista');
+  const info  = document.getElementById('bap-auto-info');
+  if (!panel || !lista) return;
+
+  try {
+    const res  = await fetch('/api/mejores_terceros');
+    if (!res.ok) return;
+    const data = await res.json();
+    const guardados = data.guardados || {};  // {pid: {nombre, codigo, grupo_origen, manual_override}}
+    const auto      = data.auto      || [];  // lista ordenada de candidatos
+
+    // Info de cuántos candidatos calculados
+    if (info) {
+      info.textContent = auto.length > 0
+        ? `${auto.length} terceros calculables. Top 8 auto: ${auto.slice(0,8).map(t=>t.nombre).join(', ')}`
+        : 'Sin datos aún (necesita partidos de grupos jugados).';
+    }
+
+    lista.innerHTML = _CRUCES_TERCERO_IDS.map((pid, idx) => {
+      const info_cruce = _CRUCES_TERCERO_INFO[pid] || {};
+      const guardado   = guardados[pid] || null;
+      const autoSug    = auto[idx]      || null;
+      const override   = guardado?.manual_override || false;
+
+      // Nombre actual: primero manual, luego auto
+      const nombreActual = guardado ? guardado.nombre : (autoSug ? autoSug.nombre : '');
+      const grupoActual  = guardado ? guardado.grupo_origen : (autoSug ? autoSug.grupo : '');
+
+      // Build options de todos los candidatos (terceros disponibles por grupo)
+      const opciones = Object.entries(_tercerosPorGrupo).map(([g, t]) => {
+        const sel = (nombreActual === t.nombre) ? 'selected' : '';
+        return `<option value="${_esc(t.nombre)}" data-codigo="${_esc(t.codigo)}" data-grupo="${_esc(g)}" ${sel}>
+          3° Grupo ${g}: ${_esc(t.nombre)} (${t.pts} pts)
+        </option>`;
+      }).join('');
+
+      const overrideBadge = override
+        ? `<span style="font-size:.7rem;background:#e65100;color:#fff;padding:2px 6px;border-radius:4px;">Manual</span>`
+        : `<span style="font-size:.7rem;background:#1b5e20;color:#fff;padding:2px 6px;border-radius:4px;">Auto</span>`;
+
+      return `
+        <div class="eli-card" style="margin-bottom:8px;padding:12px;">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+            <span style="font-weight:600;font-size:.85rem;">Cruce ${pid}</span>
+            <span style="opacity:.6;font-size:.75rem;">${_esc(info_cruce.label||'')}</span>
+            ${overrideBadge}
+          </div>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+            <select class="eli-select" id="bap-sel-${pid}" onchange="_onTerceroChange(${pid}, this)"
+                    style="flex:1;min-width:200px;">
+              <option value="">-- Elige el 3er puesto --</option>
+              ${opciones}
+            </select>
+            <button class="admin-btn-save" style="padding:6px 10px;" onclick="_guardarTerceroUnico(${pid})">
+              <span class="material-symbols-outlined" style="font-size:16px;">save</span>
+            </button>
+          </div>
+        </div>`;
+    }).join('');
+
+    panel.style.display = 'block';
+  } catch(e) {
+    console.warn('Error cargando terceros admin:', e);
+  }
+}
+
+function _onTerceroChange(pid, sel) {
+  const opt = sel.options[sel.selectedIndex];
+  _tercerosPendientes[pid] = {
+    nombre: opt.value,
+    codigo: opt.dataset.codigo || 'xx',
+    grupo_origen: opt.dataset.grupo || '',
+  };
+}
+
+async function _guardarTerceroUnico(pid) {
+  const sel = document.getElementById(`bap-sel-${pid}`);
+  if (!sel || !sel.value) { mostrarToast('❌ Elige un equipo'); return; }
+  const opt = sel.options[sel.selectedIndex];
+  const payload = [{
+    partido_id:   pid,
+    nombre:       opt.value,
+    codigo:       opt.dataset.codigo || 'xx',
+    grupo_origen: opt.dataset.grupo || '',
+  }];
+  const res = await fetch('/admin_guardar_terceros', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest'},
+    body: JSON.stringify({terceros: payload}),
+  });
+  const data = await res.json();
+  if (data.ok) {
+    mostrarToast('✅ Tercero guardado');
+    _loadAdminTerceros();
+    _loadBracket();
+    _loadAdminEli();
+  } else {
+    mostrarToast('❌ Error al guardar');
+  }
+}
+
+async function guardarTerceros() {
+  const btn = document.getElementById('btn-guardar-terceros');
+  if (btn) { btn.disabled = true; }
+
+  const terceros = _CRUCES_TERCERO_IDS.map(pid => {
+    const sel = document.getElementById(`bap-sel-${pid}`);
+    if (!sel || !sel.value) return null;
+    const opt = sel.options[sel.selectedIndex];
+    return {
+      partido_id:   pid,
+      nombre:       opt.value,
+      codigo:       opt.dataset.codigo || 'xx',
+      grupo_origen: opt.dataset.grupo || '',
+    };
+  }).filter(Boolean);
+
+  if (!terceros.length) { mostrarToast('❌ No hay cambios para guardar'); if (btn) btn.disabled = false; return; }
+
+  const res = await fetch('/admin_guardar_terceros', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest'},
+    body: JSON.stringify({terceros}),
+  });
+  const data = await res.json();
+  if (btn) btn.disabled = false;
+  if (data.ok) {
+    mostrarToast(`✅ ${data.msg}`);
+    _tercerosPendientes = {};
+    _loadAdminTerceros();
+    _loadBracket();
+    _loadAdminEli();
+  } else {
+    mostrarToast('❌ Error al guardar');
+  }
+}
+
+async function recalcularTerceros() {
+  const btn = document.getElementById('btn-recalcular-terceros');
+  if (btn) { btn.disabled = true; }
+  const res = await fetch('/admin_recalcular_terceros', {
+    method: 'POST',
+    headers: {'X-Requested-With': 'XMLHttpRequest'},
+  });
+  const data = await res.json();
+  if (btn) btn.disabled = false;
+  if (data.ok) {
+    mostrarToast('✅ ' + data.msg);
+    _loadAdminTerceros();
+    _loadBracket();
+    _loadAdminEli();
+  } else {
+    mostrarToast('❌ ' + (data.msg || 'Error'));
+  }
+}
+
+async function restablecerTerceros() {
+  if (!confirm('¿Eliminar todos los overrides manuales y recalcular desde cero?')) return;
+  const btn = document.getElementById('btn-restablecer-terceros');
+  if (btn) { btn.disabled = true; }
+  const res = await fetch('/admin_restablecer_terceros', {
+    method: 'POST',
+    headers: {'X-Requested-With': 'XMLHttpRequest'},
+  });
+  const data = await res.json();
+  if (btn) btn.disabled = false;
+  if (data.ok) {
+    mostrarToast('✅ ' + data.msg);
+    _loadAdminTerceros();
+    _loadBracket();
+    _loadAdminEli();
+  } else {
+    mostrarToast('❌ ' + (data.msg || 'Error'));
+  }
+}
+
+// ══════════════════════════════════════════
 // AJAX FORMS
 // ══════════════════════════════════════════
 document.addEventListener('DOMContentLoaded', function() {
@@ -894,6 +1105,7 @@ async function _refreshTodo(silencioso = true) {
     }
     if (_tabActivo === 'bracket') {
       _renderBracket(mundialData.bracket, eliData.partidos);
+      if (cambioEli) _loadAdminTerceros();
     }
     if (_tabActivo === 'partidos') {
       if (_rondaActivaPron === 'grupos-pron') {
