@@ -45,7 +45,7 @@ def registro():
             try:
                 con = get_db()
                 con.execute(
-                    "INSERT INTO usuarios(nombre,usuario,password,gmail) VALUES(%s,%s,%s,%s) ON CONFLICT DO NOTHING",
+                    "INSERT INTO usuarios(nombre,usuario,password,gmail) VALUES(%s,%s,%s,%s) ON CONFLICT(usuario) DO NOTHING",
                     (nombre, usu, generate_password_hash(pwd), gmail)
                 )
                 con.commit()
