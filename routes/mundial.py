@@ -285,12 +285,19 @@ def _ensure_eliminacion_table(con):
             bloqueado        INTEGER DEFAULT 0
         )
     """)
-    # Agregar columna penales_ganador si no existe (migración segura)
-    try:
-        con.execute("ALTER TABLE partidos_eliminacion ADD COLUMN penales_ganador TEXT DEFAULT NULL")
-        con.commit()
-    except Exception:
-        pass
+    con.commit()
+
+    # Migración segura: usar SAVEPOINT para que un fallo no aborte la transacción
+    def _add_column_safe(table, column, definition):
+        try:
+            con.execute(f"SAVEPOINT add_col_{column}")
+            con.execute(f"ALTER TABLE {table} ADD COLUMN {column} {definition}")
+            con.execute(f"RELEASE SAVEPOINT add_col_{column}")
+            con.commit()
+        except Exception:
+            con.execute(f"ROLLBACK TO SAVEPOINT add_col_{column}")
+
+    _add_column_safe("partidos_eliminacion", "penales_ganador", "TEXT DEFAULT NULL")
 
     con.execute("""
         CREATE TABLE IF NOT EXISTS pronosticos_eli (
@@ -306,12 +313,9 @@ def _ensure_eliminacion_table(con):
             FOREIGN KEY (partido_id) REFERENCES partidos_eliminacion(id) ON DELETE CASCADE
         )
     """)
-    # Agregar columna penales_ganador si no existe (migración segura)
-    try:
-        con.execute("ALTER TABLE pronosticos_eli ADD COLUMN penales_ganador TEXT DEFAULT NULL")
-        con.commit()
-    except Exception:
-        pass
+    con.commit()
+
+    _add_column_safe("pronosticos_eli", "penales_ganador", "TEXT DEFAULT NULL")
     # ── TABLA: mejores_terceros ─────────────────────────────────────────────
     # Guarda los 8 terceros asignados a los cruces de dieciseisavos
     # manual_override = TRUE significa que el admin lo editó manualmente
