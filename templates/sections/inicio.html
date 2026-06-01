@@ -1436,7 +1436,33 @@ function abrirComposer(modo){
   _gifFile = null;
   actualizarPublicarBtn();
 
-  setTimeout(()=>{ document.getElementById('mc-texto')?.focus(); }, 120);
+  setTimeout(()=>{
+    const ta = document.getElementById('mc-texto');
+    if(!ta) return;
+    ta.focus();
+    if(ta._dropReady) return;
+    ta._dropReady = true;
+    ta.addEventListener('dragover', (e)=>{ e.preventDefault(); ta.classList.add('mc-textarea--dragover'); });
+    ta.addEventListener('dragleave', ()=> ta.classList.remove('mc-textarea--dragover'));
+    ta.addEventListener('drop', (e)=>{
+      e.preventDefault();
+      ta.classList.remove('mc-textarea--dragover');
+      const file = e.dataTransfer?.files?.[0];
+      if(file){ manejarArchivoMedia(file); mostrarToast('Imagen adjuntada ✓'); }
+    });
+    ta.addEventListener('paste', (e)=>{
+      const items = e.clipboardData?.items;
+      if(!items) return;
+      for(const item of items){
+        if(item.kind === 'file' && item.type.startsWith('image/')){
+          e.preventDefault();
+          manejarArchivoMedia(item.getAsFile());
+          mostrarToast('Imagen pegada ✓');
+          return;
+        }
+      }
+    });
+  }, 120);
   if(modo==='foto') setTimeout(()=>document.getElementById('mc-file-input')?.click(), 200);
   if(modo==='gif')  setTimeout(()=>document.getElementById('mc-gif-input')?.click(), 200);
 }
@@ -1690,11 +1716,9 @@ function manejarArchivoMedia(file){
     mostrarToast('Solo se admiten imágenes, GIFs o videos','err');
     return;
   }
-  // Si es GIF lo tratamos como _gifFile, si no como foto normal
   if(file.type === 'image/gif'){
     _gifFile = file;
   } else {
-    // Inyectar en el input de foto para que submitComposer lo recoja
     const dt = new DataTransfer();
     dt.items.add(file);
     document.getElementById('mc-file-input').files = dt.files;
@@ -1702,79 +1726,8 @@ function manejarArchivoMedia(file){
   mostrarPreviewMedia(file);
 }
 
-// Paste: Ctrl+V con imagen en el portapapeles
-document.addEventListener('paste', function(e){
-  // Solo actuar si el composer está abierto
-  const overlay = document.getElementById('modal-composer');
-  if(!overlay || overlay.style.display === 'none') return;
-
-  const items = e.clipboardData?.items;
-  if(!items) return;
-  for(const item of items){
-    if(item.kind === 'file' && item.type.startsWith('image/')){
-      e.preventDefault();
-      const file = item.getAsFile();
-      manejarArchivoMedia(file);
-      mostrarToast('Imagen pegada ✓');
-      return;
-    }
-  }
-});
-
-// Drag & Drop: arrastrar imagen/gif sobre el textarea
-document.addEventListener('DOMContentLoaded', function(){
-  const textarea = document.getElementById('mc-texto');
-  if(!textarea) return;
-
-  textarea.addEventListener('dragover', function(e){
-    e.preventDefault();
-    textarea.classList.add('mc-textarea--dragover');
-  });
-  textarea.addEventListener('dragleave', function(){
-    textarea.classList.remove('mc-textarea--dragover');
-  });
-  textarea.addEventListener('drop', function(e){
-    e.preventDefault();
-    textarea.classList.remove('mc-textarea--dragover');
-    const file = e.dataTransfer?.files?.[0];
-    if(file){
-      manejarArchivoMedia(file);
-      mostrarToast('Imagen adjuntada ✓');
-    }
-  });
-});
-
 // También hookear cuando se abre el composer (por si el DOM ya existía)
-const _origAbrirComposer = abrirComposer;
-function abrirComposer(modo){
-  _origAbrirComposer(modo);
-  // Re-attach drag handlers por si el modal se reconstruyó
-  setTimeout(()=>{
-    const ta = document.getElementById('mc-texto');
-    if(!ta || ta._dropReady) return;
-    ta._dropReady = true;
-    ta.addEventListener('dragover', (e)=>{ e.preventDefault(); ta.classList.add('mc-textarea--dragover'); });
-    ta.addEventListener('dragleave', ()=> ta.classList.remove('mc-textarea--dragover'));
-    ta.addEventListener('drop', (e)=>{
-      e.preventDefault();
-      ta.classList.remove('mc-textarea--dragover');
-      const file = e.dataTransfer?.files?.[0];
-      if(file){ manejarArchivoMedia(file); mostrarToast('Imagen adjuntada ✓'); }
-    });
-    ta.addEventListener('paste', (e)=>{
-      const items = e.clipboardData?.items;
-      if(!items) return;
-      for(const item of items){
-        if(item.kind === 'file' && item.type.startsWith('image/')){
-          e.preventDefault();
-          manejarArchivoMedia(item.getAsFile());
-          mostrarToast('Imagen pegada ✓');
-          return;
-        }
-      }
-    });
-  }, 150);
-}
+
 
 /* ── TOAST ── */
 function mostrarToast(msg, tipo='ok'){
