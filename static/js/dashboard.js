@@ -86,7 +86,7 @@ function toggleSidebar() {
 // COUNTDOWN
 // ─────────────────────────────
 function iniciarCountdown() {
-  const meta = new Date('2025-12-18T00:00:00').getTime();
+  const meta = new Date('2026-12-24T00:00:00').getTime();
   function tick() {
     const diff = meta - Date.now();
     if (diff <= 0) {
