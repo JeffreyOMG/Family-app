@@ -77,12 +77,22 @@ def api_mundial_datos():
 
     ranking = [dict(r) for r in con.execute("""
         SELECT u.nombre,
-               COALESCE(SUM(pr.puntos),0) AS puntos,
-               COUNT(CASE WHEN pr.puntos=3 THEN 1 END) AS exactos,
-               COUNT(CASE WHEN pr.puntos=1 THEN 1 END) AS ganadores
+               COALESCE(g.puntos,0)+COALESCE(e.puntos,0) AS puntos,
+               COALESCE(g.exactos,0)+COALESCE(e.exactos,0) AS exactos,
+               COALESCE(g.ganadores,0)+COALESCE(e.ganadores,0) AS ganadores
         FROM usuarios u
-        LEFT JOIN pronosticos pr ON pr.usuario_id=u.id
-        GROUP BY u.id, u.nombre
+        LEFT JOIN (
+            SELECT usuario_id,SUM(puntos) puntos,
+                   COUNT(CASE WHEN puntos=3 THEN 1 END) exactos,
+                   COUNT(CASE WHEN puntos=1 THEN 1 END) ganadores
+            FROM pronosticos GROUP BY usuario_id
+        ) g ON g.usuario_id=u.id
+        LEFT JOIN (
+            SELECT usuario_id,SUM(puntos) puntos,
+                   COUNT(CASE WHEN puntos=3 THEN 1 END) exactos,
+                   COUNT(CASE WHEN puntos=1 THEN 1 END) ganadores
+            FROM pronosticos_eli GROUP BY usuario_id
+        ) e ON e.usuario_id=u.id
         ORDER BY puntos DESC, exactos DESC
     """).fetchall()]
 
@@ -378,52 +388,58 @@ def _auto_asignar_fijos(con):
     con.commit()
 
 
+
 def _auto_propagar_ganadores(con):
-    jugados = [dict(p) for p in con.execute("""
-        SELECT id, goles_local, goles_visit, eq_local, cod_local, eq_visit, cod_visit
-        FROM partidos_eliminacion
-        WHERE bloqueado=1 AND goles_local IS NOT NULL AND eq_local IS NOT NULL AND eq_visit IS NOT NULL
+    partidos = [dict(p) for p in con.execute("""
+        SELECT * FROM partidos_eliminacion ORDER BY id
     """).fetchall()]
 
     resultados = {}
-    for p in jugados:
-        gl, gv = p["goles_local"], p["goles_visit"]
-        if gl > gv:
-            gan = (p["eq_local"], p["cod_local"]); per = (p["eq_visit"], p["cod_visit"])
-        elif gv > gl:
-            gan = (p["eq_visit"], p["cod_visit"]); per = (p["eq_local"], p["cod_local"])
+    for p in partidos:
+        if not p.get("bloqueado") or p.get("goles_local") is None or p.get("goles_visit") is None:
+            continue
+        if not p.get("eq_local") or not p.get("eq_visit"):
+            continue
+
+        if p["goles_local"] >= p["goles_visit"]:
+            ganador = (p["eq_local"], p["cod_local"])
+            perdedor = (p["eq_visit"], p["cod_visit"])
         else:
-            gan = (p["eq_local"], p["cod_local"]); per = (p["eq_visit"], p["cod_visit"])
-        resultados[p["id"]] = {"ganador": gan, "perdedor": per}
+            ganador = (p["eq_visit"], p["cod_visit"])
+            perdedor = (p["eq_local"], p["cod_local"])
 
-    pendientes = [dict(p) for p in con.execute("""
-        SELECT id, slot_local, slot_visit, eq_local, eq_visit
-        FROM partidos_eliminacion WHERE bloqueado=0
-    """).fetchall()]
+        resultados[p["id"]] = {"ganador": ganador, "perdedor": perdedor}
 
-    def _resolver_gp(slot):
-        if not slot or len(slot) < 2:
-            return None, None
-        tipo = slot[0]
-        try:
-            pid = int(slot[1:])
-        except ValueError:
-            return None, None
-        if pid not in resultados:
-            return None, None
-        if tipo == "G":   return resultados[pid]["ganador"]
-        elif tipo == "P": return resultados[pid]["perdedor"]
-        return None, None
+    for p in partidos:
+        updates = {}
 
-    for p in pendientes:
-        if p["slot_local"] and p["slot_local"][0] in ("G", "P"):
-            nombre, codigo = _resolver_gp(p["slot_local"])
-            con.execute("UPDATE partidos_eliminacion SET eq_local=%s, cod_local=%s WHERE id=%s", (nombre, codigo, p["id"]))
-        if p["slot_visit"] and p["slot_visit"][0] in ("G", "P"):
-            nombre, codigo = _resolver_gp(p["slot_visit"])
-            con.execute("UPDATE partidos_eliminacion SET eq_visit=%s, cod_visit=%s WHERE id=%s", (nombre, codigo, p["id"]))
+        for campo_slot, campo_eq, campo_cod in [
+            ("slot_local", "eq_local", "cod_local"),
+            ("slot_visit", "eq_visit", "cod_visit")
+        ]:
+            slot = p.get(campo_slot) or ""
+
+            if slot[:1] not in ("G", "P"):
+                continue
+
+            try:
+                origen = int(slot[1:])
+            except Exception:
+                continue
+
+            if origen not in resultados:
+                continue
+
+            dato = resultados[origen]["ganador" if slot.startswith("G") else "perdedor"]
+            updates[campo_eq] = dato[0]
+            updates[campo_cod] = dato[1]
+
+        if updates:
+            sets = ", ".join(f"{k}=%s" for k in updates)
+            vals = list(updates.values()) + [p["id"]]
+            con.execute(f"UPDATE partidos_eliminacion SET {sets} WHERE id=%s", vals)
+
     con.commit()
-
 
 def _get_terceros_por_grupo(con):
     tabla = _calcular_tabla_grupos(con)
@@ -543,12 +559,19 @@ def ranking_global():
     _ensure_eliminacion_table(con)
     ranking = [dict(r) for r in con.execute("""
         SELECT u.nombre,
-               COALESCE(SUM(pr.puntos),0) + COALESCE(SUM(pe.puntos),0) AS puntos,
-               COUNT(CASE WHEN pr.puntos=3 THEN 1 END) +
-               COUNT(CASE WHEN pe.puntos=3 THEN 1 END) AS exactos
+               COALESCE(g.puntos,0)+COALESCE(e.puntos,0) AS puntos,
+               COALESCE(g.exactos,0)+COALESCE(e.exactos,0) AS exactos
         FROM usuarios u
-        LEFT JOIN pronosticos     pr ON pr.usuario_id=u.id
-        LEFT JOIN pronosticos_eli pe ON pe.usuario_id=u.id
-        GROUP BY u.id, u.nombre ORDER BY puntos DESC, exactos DESC
+        LEFT JOIN (
+            SELECT usuario_id, SUM(puntos) puntos,
+                   COUNT(CASE WHEN puntos=3 THEN 1 END) exactos
+            FROM pronosticos GROUP BY usuario_id
+        ) g ON g.usuario_id=u.id
+        LEFT JOIN (
+            SELECT usuario_id, SUM(puntos) puntos,
+                   COUNT(CASE WHEN puntos=3 THEN 1 END) exactos
+            FROM pronosticos_eli GROUP BY usuario_id
+        ) e ON e.usuario_id=u.id
+        ORDER BY puntos DESC, exactos DESC
     """).fetchall()]
     return jsonify(ranking)
