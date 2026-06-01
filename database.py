@@ -1,13 +1,13 @@
 import os
-import psycopg2
-import psycopg2.extras
+import pg8000.native
 from flask import g
 from werkzeug.security import generate_password_hash, check_password_hash
+from urllib.parse import urlparse
 
 DATABASE_URL = os.getenv("DATABASE_URL", "")
 
 # ─────────────────────────────────────────────
-# MUNDIAL 2026 — 12 grupos × 4 equipos = 48 selecciones
+# MUNDIAL 2026
 # ─────────────────────────────────────────────
 
 GRUPOS_MUNDIAL = {
@@ -40,275 +40,323 @@ def _build_partidos():
 PARTIDOS_MUNDIAL = _build_partidos()
 
 # ─────────────────────────────────────────────
-# CONEXIÓN — psycopg2 con RealDictCursor
-# (se comporta igual que sqlite3.Row: acceso por nombre de columna)
+# CONEXIÓN — pg8000 (pure Python, funciona con Python 3.14)
+# Wrapper que imita la API de sqlite3 (execute, fetchone, fetchall, commit)
 # ─────────────────────────────────────────────
+
+def _parse_url(url):
+    r = urlparse(url)
+    return {
+        "host": r.hostname,
+        "port": r.port or 5432,
+        "database": r.path.lstrip("/"),
+        "user": r.username,
+        "password": r.password,
+        "ssl_context": True,
+    }
+
+class _Row(dict):
+    """Dict que permite acceso por índice numérico además de por clave."""
+    def __init__(self, keys, values):
+        super().__init__(zip(keys, values))
+        self._list = list(values)
+    def __getitem__(self, key):
+        if isinstance(key, int):
+            return self._list[key]
+        return super().__getitem__(key)
+
+class _Cursor:
+    def __init__(self, conn):
+        self._conn = conn
+        self._rows = []
+        self._cols = []
+        self.lastrowid = None
+
+    def execute(self, sql, params=()):
+        # Convertir %s → :1, :2, ... para pg8000.native
+        import re
+        idx = [0]
+        def repl(m):
+            idx[0] += 1
+            return f":{idx[0]}"
+        pg_sql = re.sub(r'%s', repl, sql)
+        result = self._conn.run(pg_sql, *params)
+        cols = [c["name"] for c in self._conn.columns] if self._conn.columns else []
+        self._cols = cols
+        self._rows = [_Row(cols, r) for r in (result or [])]
+        if self._rows and cols and cols[0] == "id":
+            self.lastrowid = self._rows[0]["id"]
+        return self
+
+    def fetchone(self):
+        return self._rows[0] if self._rows else None
+
+    def fetchall(self):
+        return self._rows
+
+    def __iter__(self):
+        return iter(self._rows)
+
+class _Conn:
+    def __init__(self):
+        params = _parse_url(DATABASE_URL)
+        self._pg = pg8000.native.Connection(**params)
+
+    def execute(self, sql, params=()):
+        cur = _Cursor(self._pg)
+        cur.execute(sql, params)
+        return cur
+
+    def executemany(self, sql, seq):
+        for params in seq:
+            self.execute(sql, params)
+
+    def commit(self):
+        self._pg.run("COMMIT")
+
+    def close(self):
+        self._pg.close()
+
+    def cursor(self):
+        return _Cursor(self._pg)
+
+    # Para que dict(row) funcione igual que con sqlite3.Row
+    def row_factory(self, row):
+        return row
+
 
 def get_db():
     if "db" not in g:
-        g.db = psycopg2.connect(DATABASE_URL, cursor_factory=psycopg2.extras.RealDictCursor)
-        g.db.autocommit = False
+        g.db = _Conn()
+        g.db.execute("BEGIN")
     return g.db
 
 def close_db(e=None):
     db = g.pop("db", None)
     if db:
+        try:
+            db.commit()
+        except Exception:
+            pass
         db.close()
 
 # ─────────────────────────────────────────────
 # INICIALIZAR BASE DE DATOS
 # ─────────────────────────────────────────────
 
+_TABLES = """
+CREATE TABLE IF NOT EXISTS usuarios (
+    id SERIAL PRIMARY KEY,
+    nombre TEXT NOT NULL,
+    usuario TEXT UNIQUE NOT NULL,
+    password TEXT NOT NULL,
+    rol TEXT DEFAULT 'miembro',
+    gmail TEXT DEFAULT '',
+    bio TEXT DEFAULT '',
+    foto TEXT DEFAULT '',
+    fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE IF NOT EXISTS publicaciones (
+    id SERIAL PRIMARY KEY,
+    usuario_id INTEGER NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+    texto TEXT DEFAULT '',
+    media TEXT DEFAULT '',
+    media_tipo TEXT DEFAULT '',
+    fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE IF NOT EXISTS likes (
+    usuario_id INTEGER NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+    post_id INTEGER NOT NULL REFERENCES publicaciones(id) ON DELETE CASCADE,
+    PRIMARY KEY (usuario_id, post_id)
+);
+CREATE TABLE IF NOT EXISTS comentarios (
+    id SERIAL PRIMARY KEY,
+    post_id INTEGER NOT NULL REFERENCES publicaciones(id) ON DELETE CASCADE,
+    usuario_id INTEGER NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+    texto TEXT NOT NULL,
+    parent_id INTEGER DEFAULT NULL,
+    fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE IF NOT EXISTS noticias (
+    id SERIAL PRIMARY KEY,
+    titulo TEXT NOT NULL,
+    contenido TEXT NOT NULL,
+    categoria TEXT DEFAULT 'general',
+    fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE IF NOT EXISTS eventos (
+    id SERIAL PRIMARY KEY,
+    usuario_id INTEGER NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+    titulo TEXT NOT NULL,
+    descripcion TEXT DEFAULT '',
+    fecha_evento TEXT NOT NULL,
+    hora_evento TEXT DEFAULT '',
+    tipo TEXT DEFAULT 'evento',
+    fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE IF NOT EXISTS aportes (
+    id SERIAL PRIMARY KEY,
+    usuario_id INTEGER NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+    monto REAL DEFAULT 0,
+    descripcion TEXT DEFAULT '',
+    comprobante TEXT DEFAULT '',
+    verificado INTEGER DEFAULT 0,
+    fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE IF NOT EXISTS galeria (
+    id SERIAL PRIMARY KEY,
+    usuario_id INTEGER NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+    ruta TEXT NOT NULL,
+    tipo TEXT NOT NULL,
+    descripcion TEXT DEFAULT '',
+    fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE IF NOT EXISTS partidos_mundial (
+    id INTEGER PRIMARY KEY,
+    grupo TEXT NOT NULL,
+    local TEXT NOT NULL,
+    visitante TEXT NOT NULL,
+    goles_local INTEGER DEFAULT NULL,
+    goles_visitante INTEGER DEFAULT NULL,
+    bloqueado INTEGER DEFAULT 0
+);
+CREATE TABLE IF NOT EXISTS pronosticos (
+    id SERIAL PRIMARY KEY,
+    usuario_id INTEGER NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+    partido_id INTEGER NOT NULL REFERENCES partidos_mundial(id) ON DELETE CASCADE,
+    goles_local INTEGER NOT NULL,
+    goles_visitante INTEGER NOT NULL,
+    puntos INTEGER DEFAULT 0,
+    UNIQUE(usuario_id, partido_id)
+);
+CREATE TABLE IF NOT EXISTS cajitas_ahorro (
+    id SERIAL PRIMARY KEY,
+    nombre TEXT NOT NULL,
+    descripcion TEXT DEFAULT '',
+    creador_id INTEGER NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+    fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE IF NOT EXISTS cajita_miembros (
+    cajita_id INTEGER NOT NULL REFERENCES cajitas_ahorro(id) ON DELETE CASCADE,
+    usuario_id INTEGER NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+    PRIMARY KEY (cajita_id, usuario_id)
+);
+CREATE TABLE IF NOT EXISTS cajita_movimientos (
+    id SERIAL PRIMARY KEY,
+    cajita_id INTEGER NOT NULL REFERENCES cajitas_ahorro(id) ON DELETE CASCADE,
+    usuario_id INTEGER NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+    monto REAL NOT NULL,
+    descripcion TEXT DEFAULT '',
+    fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE IF NOT EXISTS eventos_recaudacion (
+    id SERIAL PRIMARY KEY,
+    usuario_id INTEGER NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+    nombre_evento TEXT NOT NULL,
+    descripcion TEXT DEFAULT '',
+    monto REAL NOT NULL,
+    responsables TEXT DEFAULT '',
+    soporte TEXT NOT NULL,
+    estado TEXT DEFAULT 'pendiente',
+    fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE IF NOT EXISTS polla_pagos (
+    id SERIAL PRIMARY KEY,
+    usuario_id INTEGER NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+    fase INTEGER NOT NULL,
+    monto REAL NOT NULL,
+    soporte TEXT NOT NULL,
+    estado TEXT DEFAULT 'pagado',
+    fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(usuario_id, fase)
+);
+CREATE TABLE IF NOT EXISTS polla_pronosticos (
+    id SERIAL PRIMARY KEY,
+    usuario_id INTEGER NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+    fase INTEGER NOT NULL,
+    datos TEXT NOT NULL,
+    fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(usuario_id, fase)
+);
+CREATE TABLE IF NOT EXISTS config (
+    clave TEXT PRIMARY KEY,
+    valor TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS bookmarks (
+    usuario_id INTEGER NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+    post_id INTEGER NOT NULL REFERENCES publicaciones(id) ON DELETE CASCADE,
+    fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (usuario_id, post_id)
+);
+CREATE TABLE IF NOT EXISTS reposts (
+    usuario_id INTEGER NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+    post_id INTEGER NOT NULL REFERENCES publicaciones(id) ON DELETE CASCADE,
+    fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (usuario_id, post_id)
+);
+CREATE TABLE IF NOT EXISTS amigo_secreto_eventos (
+    id SERIAL PRIMARY KEY,
+    nombre TEXT NOT NULL,
+    activo INTEGER DEFAULT 1,
+    cruces_generados INTEGER DEFAULT 0,
+    fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE IF NOT EXISTS amigo_secreto_participantes (
+    evento_id INTEGER NOT NULL REFERENCES amigo_secreto_eventos(id) ON DELETE CASCADE,
+    usuario_id INTEGER NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+    asignado_id INTEGER DEFAULT NULL,
+    PRIMARY KEY (evento_id, usuario_id)
+);
+CREATE TABLE IF NOT EXISTS cajitas_ahorro_codigos (
+    cajita_id INTEGER PRIMARY KEY REFERENCES cajitas_ahorro(id) ON DELETE CASCADE,
+    codigo TEXT UNIQUE NOT NULL
+);
+"""
+
 def init_db():
-    con = psycopg2.connect(DATABASE_URL, cursor_factory=psycopg2.extras.RealDictCursor)
-    cur = con.cursor()
+    import pg8000.native
+    params = _parse_url(DATABASE_URL)
+    con = pg8000.native.Connection(**params)
+    # Ejecutar cada tabla por separado
+    for stmt in _TABLES.split(";"):
+        stmt = stmt.strip()
+        if stmt:
+            try:
+                con.run(stmt)
+            except Exception as e:
+                print(f"Table warning: {e}")
 
-    cur.execute("""
-    CREATE TABLE IF NOT EXISTS usuarios (
-        id SERIAL PRIMARY KEY,
-        nombre TEXT NOT NULL,
-        usuario TEXT UNIQUE NOT NULL,
-        password TEXT NOT NULL,
-        rol TEXT DEFAULT 'miembro',
-        gmail TEXT DEFAULT '',
-        bio TEXT DEFAULT '',
-        foto TEXT DEFAULT '',
-        fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    );
-
-    CREATE TABLE IF NOT EXISTS publicaciones (
-        id SERIAL PRIMARY KEY,
-        usuario_id INTEGER NOT NULL,
-        texto TEXT DEFAULT '',
-        media TEXT DEFAULT '',
-        media_tipo TEXT DEFAULT '',
-        fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE
-    );
-
-    CREATE TABLE IF NOT EXISTS likes (
-        usuario_id INTEGER NOT NULL,
-        post_id INTEGER NOT NULL,
-        PRIMARY KEY (usuario_id, post_id),
-        FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE,
-        FOREIGN KEY (post_id) REFERENCES publicaciones(id) ON DELETE CASCADE
-    );
-
-    CREATE TABLE IF NOT EXISTS comentarios (
-        id SERIAL PRIMARY KEY,
-        post_id INTEGER NOT NULL,
-        usuario_id INTEGER NOT NULL,
-        texto TEXT NOT NULL,
-        parent_id INTEGER DEFAULT NULL,
-        fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (post_id) REFERENCES publicaciones(id) ON DELETE CASCADE,
-        FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE
-    );
-
-    CREATE TABLE IF NOT EXISTS noticias (
-        id SERIAL PRIMARY KEY,
-        titulo TEXT NOT NULL,
-        contenido TEXT NOT NULL,
-        categoria TEXT DEFAULT 'general',
-        fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    );
-
-    CREATE TABLE IF NOT EXISTS eventos (
-        id SERIAL PRIMARY KEY,
-        usuario_id INTEGER NOT NULL,
-        titulo TEXT NOT NULL,
-        descripcion TEXT DEFAULT '',
-        fecha_evento TEXT NOT NULL,
-        hora_evento TEXT DEFAULT '',
-        tipo TEXT DEFAULT 'evento',
-        fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE
-    );
-
-    CREATE TABLE IF NOT EXISTS aportes (
-        id SERIAL PRIMARY KEY,
-        usuario_id INTEGER NOT NULL,
-        monto REAL DEFAULT 0,
-        descripcion TEXT DEFAULT '',
-        comprobante TEXT DEFAULT '',
-        verificado INTEGER DEFAULT 0,
-        fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE
-    );
-
-    CREATE TABLE IF NOT EXISTS galeria (
-        id SERIAL PRIMARY KEY,
-        usuario_id INTEGER NOT NULL,
-        ruta TEXT NOT NULL,
-        tipo TEXT NOT NULL,
-        descripcion TEXT DEFAULT '',
-        fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE
-    );
-
-    CREATE TABLE IF NOT EXISTS partidos_mundial (
-        id INTEGER PRIMARY KEY,
-        grupo TEXT NOT NULL,
-        local TEXT NOT NULL,
-        visitante TEXT NOT NULL,
-        goles_local INTEGER DEFAULT NULL,
-        goles_visitante INTEGER DEFAULT NULL,
-        bloqueado INTEGER DEFAULT 0
-    );
-
-    CREATE TABLE IF NOT EXISTS pronosticos (
-        id SERIAL PRIMARY KEY,
-        usuario_id INTEGER NOT NULL,
-        partido_id INTEGER NOT NULL,
-        goles_local INTEGER NOT NULL,
-        goles_visitante INTEGER NOT NULL,
-        puntos INTEGER DEFAULT 0,
-        UNIQUE(usuario_id, partido_id),
-        FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE,
-        FOREIGN KEY (partido_id) REFERENCES partidos_mundial(id) ON DELETE CASCADE
-    );
-
-    CREATE TABLE IF NOT EXISTS cajitas_ahorro (
-        id SERIAL PRIMARY KEY,
-        nombre TEXT NOT NULL,
-        descripcion TEXT DEFAULT '',
-        creador_id INTEGER NOT NULL,
-        fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (creador_id) REFERENCES usuarios(id) ON DELETE CASCADE
-    );
-
-    CREATE TABLE IF NOT EXISTS cajita_miembros (
-        cajita_id INTEGER NOT NULL,
-        usuario_id INTEGER NOT NULL,
-        PRIMARY KEY (cajita_id, usuario_id),
-        FOREIGN KEY (cajita_id) REFERENCES cajitas_ahorro(id) ON DELETE CASCADE,
-        FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE
-    );
-
-    CREATE TABLE IF NOT EXISTS cajita_movimientos (
-        id SERIAL PRIMARY KEY,
-        cajita_id INTEGER NOT NULL,
-        usuario_id INTEGER NOT NULL,
-        monto REAL NOT NULL,
-        descripcion TEXT DEFAULT '',
-        fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (cajita_id) REFERENCES cajitas_ahorro(id) ON DELETE CASCADE,
-        FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE
-    );
-
-    CREATE TABLE IF NOT EXISTS eventos_recaudacion (
-        id SERIAL PRIMARY KEY,
-        usuario_id INTEGER NOT NULL,
-        nombre_evento TEXT NOT NULL,
-        descripcion TEXT DEFAULT '',
-        monto REAL NOT NULL,
-        responsables TEXT DEFAULT '',
-        soporte TEXT NOT NULL,
-        estado TEXT DEFAULT 'pendiente',
-        fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE
-    );
-
-    CREATE TABLE IF NOT EXISTS polla_pagos (
-        id SERIAL PRIMARY KEY,
-        usuario_id INTEGER NOT NULL,
-        fase INTEGER NOT NULL,
-        monto REAL NOT NULL,
-        soporte TEXT NOT NULL,
-        estado TEXT DEFAULT 'pagado',
-        fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        UNIQUE(usuario_id, fase),
-        FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE
-    );
-
-    CREATE TABLE IF NOT EXISTS polla_pronosticos (
-        id SERIAL PRIMARY KEY,
-        usuario_id INTEGER NOT NULL,
-        fase INTEGER NOT NULL,
-        datos TEXT NOT NULL,
-        fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        UNIQUE(usuario_id, fase),
-        FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE
-    );
-
-    CREATE TABLE IF NOT EXISTS config (
-        clave TEXT PRIMARY KEY,
-        valor TEXT NOT NULL
-    );
-
-    CREATE TABLE IF NOT EXISTS bookmarks (
-        usuario_id INTEGER NOT NULL,
-        post_id    INTEGER NOT NULL,
-        fecha      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        PRIMARY KEY (usuario_id, post_id),
-        FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE,
-        FOREIGN KEY (post_id)    REFERENCES publicaciones(id) ON DELETE CASCADE
-    );
-
-    CREATE TABLE IF NOT EXISTS reposts (
-        usuario_id INTEGER NOT NULL,
-        post_id    INTEGER NOT NULL,
-        fecha      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        PRIMARY KEY (usuario_id, post_id),
-        FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE,
-        FOREIGN KEY (post_id)    REFERENCES publicaciones(id) ON DELETE CASCADE
-    );
-
-    CREATE TABLE IF NOT EXISTS amigo_secreto_eventos (
-        id SERIAL PRIMARY KEY,
-        nombre TEXT NOT NULL,
-        activo INTEGER DEFAULT 1,
-        cruces_generados INTEGER DEFAULT 0,
-        fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    );
-
-    CREATE TABLE IF NOT EXISTS amigo_secreto_participantes (
-        evento_id INTEGER NOT NULL,
-        usuario_id INTEGER NOT NULL,
-        asignado_id INTEGER DEFAULT NULL,
-        PRIMARY KEY (evento_id, usuario_id),
-        FOREIGN KEY (evento_id) REFERENCES amigo_secreto_eventos(id) ON DELETE CASCADE,
-        FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE
-    );
-
-    CREATE TABLE IF NOT EXISTS cajitas_ahorro_codigos (
-        cajita_id INTEGER PRIMARY KEY,
-        codigo TEXT UNIQUE NOT NULL,
-        FOREIGN KEY (cajita_id) REFERENCES cajitas_ahorro(id) ON DELETE CASCADE
-    );
-    """)
-
-    # ─── ADMIN ───
+    # Admin por defecto
     admin_hash = generate_password_hash("admin1234")
-    cur.execute("""
-        INSERT INTO usuarios (nombre, usuario, password, rol, gmail)
-        VALUES ('Administrador','admin',%s,'admin','admin@familia.com')
-        ON CONFLICT (usuario) DO NOTHING
-    """, (admin_hash,))
+    try:
+        con.run(
+            "INSERT INTO usuarios (nombre,usuario,password,rol,gmail) VALUES (:1,:2,:3,:4,:5) ON CONFLICT (usuario) DO NOTHING",
+            "Administrador", "admin", admin_hash, "admin", "admin@familia.com"
+        )
+    except Exception as e:
+        print(f"Admin warning: {e}")
 
-    # ─── CONFIG POR DEFECTO ───
-    cur.execute("INSERT INTO config(clave,valor) VALUES('meta_recaudacion','500000') ON CONFLICT (clave) DO NOTHING")
+    try:
+        con.run("INSERT INTO config(clave,valor) VALUES (:1,:2) ON CONFLICT (clave) DO NOTHING", "meta_recaudacion", "500000")
+    except Exception as e:
+        print(f"Config warning: {e}")
 
-    # ─── INSERTAR PARTIDOS ───
     for pid, grupo, local, visitante in PARTIDOS_MUNDIAL:
-        cur.execute("""
-            INSERT INTO partidos_mundial (id, grupo, local, visitante)
-            VALUES (%s, %s, %s, %s)
-            ON CONFLICT (id) DO NOTHING
-        """, (pid, grupo, local, visitante))
+        try:
+            con.run(
+                "INSERT INTO partidos_mundial(id,grupo,local,visitante) VALUES(:1,:2,:3,:4) ON CONFLICT (id) DO NOTHING",
+                pid, grupo, local, visitante
+            )
+        except Exception as e:
+            print(f"Partido warning: {e}")
 
-    con.commit()
+    con.run("COMMIT")
     con.close()
 
 
 def init_amigo_secreto():
-    """Las tablas ya se crean en init_db(). Esta función queda por compatibilidad."""
-    pass
+    pass  # Ya creado en init_db
 
-
-# ─────────────────────────────────────────────
-# SEGURIDAD
-# ─────────────────────────────────────────────
 
 def hash_password(p):
     return generate_password_hash(p)

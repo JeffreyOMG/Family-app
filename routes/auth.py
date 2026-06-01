@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, request, redirect, session
 from werkzeug.security import generate_password_hash, check_password_hash
-from psycopg2 import IntegrityError
+from pg8000.exceptions import DatabaseError as IntegrityError
 from database import get_db
 
 auth_bp = Blueprint("auth", __name__)
