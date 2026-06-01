@@ -33,8 +33,25 @@ POST_TMPL = """
   </div>
   {% if p.texto %}<p class="post-text">{{ p.texto }}</p>{% endif %}
   {% if p.media %}
-    {% if p.media_tipo=='imagen' %}<img src="{{ p.media }}" class="post-media" onclick="abrirMediaModal('{{ p.media }}','imagen')">
-    {% else %}<video controls class="post-media"><source src="{{ p.media }}"></video>{% endif %}
+    {% if p.media_tipo=='multi' %}
+      {% set imgs = p.media|fromjson %}
+      <div class="post-carousel" data-imgs='{{ p.media }}'>
+        <div class="pc-track">
+          {% for img in imgs %}
+          <div class="pc-slide"><img src="{{ img }}" class="pc-img" onclick="abrirMediaModal('{{ img }}','imagen')"></div>
+          {% endfor %}
+        </div>
+        {% if imgs|length > 1 %}
+        <button class="pc-btn pc-prev" onclick="pcMove(this,-1)">&#8249;</button>
+        <button class="pc-btn pc-next" onclick="pcMove(this,1)">&#8250;</button>
+        <div class="pc-dots">{% for img in imgs %}<span class="pc-dot{% if loop.first %} active{% endif %}"></span>{% endfor %}</div>
+        {% endif %}
+      </div>
+    {% elif p.media_tipo=='imagen' %}
+      <img src="{{ p.media }}" class="post-media" onclick="abrirMediaModal('{{ p.media }}','imagen')">
+    {% else %}
+      <video controls class="post-media"><source src="{{ p.media }}"></video>
+    {% endif %}
   {% endif %}
   <div class="post-actions">
     <button type="button" class="post-action-btn like-btn" onclick="darLike({{ p.id }},this)">
@@ -96,22 +113,34 @@ def publicar_ajax():
     return jsonify({"ok": True, "html": html})
 
 def _guardar_post():
+    import json as _json
     uid     = session["uid"]
     texto   = request.form.get("texto", "").strip()
-    archivo = request.files.get("media")
-    media, media_tipo = "", ""
-    if archivo and archivo.filename and allowed(archivo.filename):
-        media, media_tipo = save_file(archivo)
-        if media:
-            con = get_db()
-            con.execute(
-                "INSERT INTO galeria(usuario_id, ruta, tipo) VALUES(%s, %s, %s) ON CONFLICT DO NOTHING",
-                (uid, media, media_tipo)
-            )
-            con.commit()
+    archivos = request.files.getlist("media")[:5]  # max 5
+    urls, tipos = [], []
+    con = get_db()
+    for archivo in archivos:
+        if archivo and archivo.filename and allowed(archivo.filename):
+            url, tipo = save_file(archivo)
+            if url:
+                urls.append(url)
+                tipos.append(tipo)
+                con.execute(
+                    "INSERT INTO galeria(usuario_id, ruta, tipo) VALUES(%s, %s, %s) ON CONFLICT DO NOTHING",
+                    (uid, url, tipo)
+                )
+    if urls:
+        con.commit()
+    # Serializar: si es 1 queda compatible con columnas existentes; si son varios va como JSON
+    if len(urls) == 0:
+        media, media_tipo = "", ""
+    elif len(urls) == 1:
+        media, media_tipo = urls[0], tipos[0]
+    else:
+        media      = _json.dumps(urls)
+        media_tipo = "multi"
     if not texto and not media:
         return None
-    con = get_db()
     cur = con.execute(
         "INSERT INTO publicaciones(usuario_id, texto, media, media_tipo) VALUES(%s, %s, %s, %s) RETURNING id",
         (uid, texto, media, media_tipo)

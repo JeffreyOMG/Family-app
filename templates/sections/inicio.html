@@ -22,7 +22,19 @@
   {% if p.texto %}<p class="post-text">{{ p.texto }}</p>{% endif %}
 
   {% if p.media %}
-    {% if p.media_tipo == 'imagen' %}
+    {% if p.media_tipo == 'multi' %}
+      {% set imgs = p.media|fromjson %}
+      <div class="post-carousel">
+        <div class="pc-track">
+          {% for img in imgs %}<div class="pc-slide"><img src="{{ img }}" class="pc-img" onclick="abrirMediaModal('{{ img }}','imagen')"></div>{% endfor %}
+        </div>
+        {% if imgs|length > 1 %}
+        <button class="pc-btn pc-prev" onclick="pcMove(this,-1)">&#8249;</button>
+        <button class="pc-btn pc-next" onclick="pcMove(this,1)">&#8250;</button>
+        <div class="pc-dots">{% for img in imgs %}<span class="pc-dot{% if loop.first %} active{% endif %}"></span>{% endfor %}</div>
+        {% endif %}
+      </div>
+    {% elif p.media_tipo == 'imagen' %}
       <img src="{{ p.media }}" class="post-media" onclick="abrirMediaModal('{{ p.media }}','imagen')">
     {% elif p.media_tipo == 'video' %}
       <video controls class="post-media"><source src="{{ p.media }}"></video>
@@ -355,7 +367,7 @@
       <div class="mc-footer-actions">
         <label class="mc-act-btn" title="Foto o video">
           <span class="material-symbols-outlined">photo_camera</span>
-          <input type="file" id="mc-file-input" accept="image/*,video/*" style="display:none" onchange="previewMedia(this)">
+          <input type="file" id="mc-file-input" accept="image/*,video/*" multiple style="display:none" onchange="previewMedia(this)">
         </label>
         <button class="mc-act-btn" title="GIF" id="btn-gif-toggle" onclick="togglePanel('gif')">
           <span class="mc-gif-label-txt">GIF</span>
@@ -602,6 +614,133 @@ body.dark-mode {
 
 .post-text { font-size: 14.5px; line-height: 1.65; color: var(--text); margin-bottom: 10px; white-space: pre-wrap; word-break: break-word; }
 .post-media { width: 100%; border-radius: 12px; margin-bottom: 10px; max-height: 480px; object-fit: cover; cursor: pointer; }
+/* ── POST CAROUSEL ── */
+.post-carousel {
+  position: relative;
+  width: 100%;
+  border-radius: 14px;
+  overflow: hidden;
+  margin-bottom: 10px;
+  background: var(--bg2, #111);
+  touch-action: pan-y;
+  user-select: none;
+}
+.pc-track {
+  display: flex;
+  transition: transform .32s cubic-bezier(.4,0,.2,1);
+  will-change: transform;
+  cursor: grab;
+}
+.pc-track:active { cursor: grabbing; }
+.pc-slide {
+  min-width: 100%;
+  max-height: 420px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #000;
+}
+.pc-img {
+  width: 100%;
+  max-height: 420px;
+  object-fit: contain;
+  display: block;
+  border-radius: 0;
+  cursor: pointer;
+}
+.pc-btn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(0,0,0,.52);
+  color: #fff;
+  border: none;
+  border-radius: 50%;
+  width: 34px;
+  height: 34px;
+  font-size: 22px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 2;
+  transition: background .15s;
+  backdrop-filter: blur(4px);
+}
+.pc-btn:hover { background: rgba(0,0,0,.78); }
+.pc-prev { left: 8px; }
+.pc-next { right: 8px; }
+.pc-dots {
+  position: absolute;
+  bottom: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 5px;
+  z-index: 2;
+}
+.pc-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(255,255,255,.45);
+  transition: background .2s, transform .2s;
+}
+.pc-dot.active {
+  background: #fff;
+  transform: scale(1.3);
+}
+/* Preview multi en el composer */
+.mc-media-grid {
+  display: flex;
+  gap: 6px;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding-bottom: 4px;
+  margin-bottom: 4px;
+}
+.mc-media-grid::-webkit-scrollbar { display: none; }
+.mc-media-thumb {
+  position: relative;
+  flex-shrink: 0;
+  width: 90px;
+  height: 90px;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #111;
+}
+.mc-media-thumb img, .mc-media-thumb video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.mc-media-thumb .mc-thumb-rm {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  background: rgba(0,0,0,.65);
+  color: #fff;
+  border: none;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 2;
+  padding: 0;
+}
+.mc-media-count {
+  font-size: 11px;
+  color: var(--text3);
+  margin-left: 2px;
+}
+
 
 /* ── POST ACTIONS ── */
 .post-actions {
@@ -1484,6 +1623,7 @@ function abrirComposer(modo){
   if(document.getElementById('mc-gif-input'))  document.getElementById('mc-gif-input').value  = '';
   _menciones = [];
   _gifFile = null;
+  _mediaFiles = [];
   actualizarPublicarBtn();
 
   setTimeout(()=>{
@@ -1552,11 +1692,10 @@ function onComposerInput(){
 
 function actualizarPublicarBtn(){
   const texto = mcGetText().trim();
-  const file  = document.getElementById('mc-file-input')?.files[0];
-  const gif   = document.getElementById('mc-gif-input')?.files[0] || _gifFile;
+  const hasMedia = _mediaFiles.length > 0 || !!_gifFile;
   const hasImg = document.getElementById('mc-texto')?.querySelector('img') !== null;
   const btn   = document.getElementById('btn-publicar-modal');
-  if(btn) btn.disabled = !(texto || file || gif || hasImg);
+  if(btn) btn.disabled = !(texto || hasMedia || hasImg);
 }
 
 /* ── Emojis ── */
@@ -1679,41 +1818,73 @@ function quitarTag(i){
 }
 
 /* ── Media preview ── */
+/* ── Lista interna de archivos seleccionados (max 5) ── */
+let _mediaFiles = []; // [{file, url}]
+
+function _renderMediaGrid(){
+  const prev = document.getElementById('mc-media-preview');
+  if(!_mediaFiles.length && !_gifFile){
+    prev.innerHTML=''; prev.style.display='none';
+    actualizarPublicarBtn(); return;
+  }
+  prev.style.display='block';
+  const files = _gifFile ? [{file:_gifFile, url:URL.createObjectURL(_gifFile), gif:true}] : _mediaFiles;
+  prev.innerHTML = `<div class="mc-media-grid">${files.map((f,i)=>`
+    <div class="mc-media-thumb">
+      ${f.file.type.startsWith('video')
+        ? `<video src="${f.url}" muted playsinline></video>`
+        : `<img src="${f.url}">`}
+      <button class="mc-thumb-rm" onclick="quitarMediaAt(${i})" title="Quitar">
+        <span class="material-symbols-outlined" style="font-size:14px">close</span>
+      </button>
+    </div>`).join('')}
+  </div>
+  ${files.length < 5 && !_gifFile ? `<span class="mc-media-count">${files.length}/5 fotos</span>` : ''}`;
+  document.getElementById('mc-gif-panel').style.display='none';
+  actualizarPublicarBtn();
+}
+
 function previewMedia(input){
-  const file = input.files[0];
-  mostrarPreviewMedia(file);
+  const newFiles = Array.from(input.files);
+  const remaining = 5 - _mediaFiles.length;
+  if(remaining <= 0){ mostrarToast('Máximo 5 imágenes','err'); return; }
+  const toAdd = newFiles.slice(0, remaining);
+  toAdd.forEach(f => _mediaFiles.push({file:f, url:URL.createObjectURL(f)}));
+  if(newFiles.length > remaining) mostrarToast(`Solo se añadieron ${remaining} (máx 5)`);
+  input.value='';
+  _renderMediaGrid();
 }
 
 function previewGif(input){
   const file = input.files[0];
   if(!file) return;
   _gifFile = file;
-  mostrarPreviewMedia(file);
-  actualizarPublicarBtn();
+  _mediaFiles = [];
+  _renderMediaGrid();
 }
 
 function mostrarPreviewMedia(file){
   if(!file) return;
-  const prev = document.getElementById('mc-media-preview');
-  prev.innerHTML = '';
-  prev.style.display = 'block';
-  const url = URL.createObjectURL(file);
-  if(file.type.startsWith('video')){
-    prev.innerHTML = `<video src="${url}" controls style="max-width:100%;max-height:200px;border-radius:12px;"></video>
-      <button class="mc-media-rm" onclick="quitarMedia()"><span class="material-symbols-outlined">close</span></button>`;
+  if(_gifFile || file.type==='image/gif'){
+    _gifFile = file; _mediaFiles = [];
   } else {
-    prev.innerHTML = `<img src="${url}" style="max-width:100%;max-height:200px;border-radius:12px;object-fit:cover;">
-      <button class="mc-media-rm" onclick="quitarMedia()"><span class="material-symbols-outlined">close</span></button>`;
+    if(_mediaFiles.length >= 5){ mostrarToast('Máximo 5 imágenes','err'); return; }
+    _mediaFiles.push({file, url:URL.createObjectURL(file)});
   }
-  // Cerrar panels
-  document.getElementById('mc-gif-panel').style.display='none';
-  actualizarPublicarBtn();
+  _renderMediaGrid();
+}
+
+function quitarMediaAt(idx){
+  if(_gifFile){ _gifFile=null; }
+  else { _mediaFiles.splice(idx,1); }
+  _renderMediaGrid();
 }
 
 function quitarMedia(){
+  _mediaFiles=[];
+  _gifFile=null;
   document.getElementById('mc-file-input').value='';
   if(document.getElementById('mc-gif-input')) document.getElementById('mc-gif-input').value='';
-  _gifFile = null;
   const p=document.getElementById('mc-media-preview');
   p.innerHTML=''; p.style.display='none';
   actualizarPublicarBtn();
@@ -1722,11 +1893,9 @@ function quitarMedia(){
 /* ── SUBMIT ── */
 async function submitComposer(){
   const texto = mcGetText().trim();
-  const file  = document.getElementById('mc-file-input')?.files[0];
-  const gif   = document.getElementById('mc-gif-input')?.files[0] || _gifFile;
   const loc   = document.getElementById('mc-location-input')?.value.trim();
-
-  if(!texto && !file && !gif){ mostrarToast('Escribe algo o adjunta media','err'); return; }
+  const hasMedia = _mediaFiles.length > 0 || !!_gifFile;
+  if(!texto && !hasMedia){ mostrarToast('Escribe algo o adjunta media','err'); return; }
 
   const btn = document.getElementById('btn-publicar-modal');
   if(btn){ btn.disabled=true; btn.textContent='Publicando...'; }
@@ -1738,13 +1907,17 @@ async function submitComposer(){
 
   const fd = new FormData();
   if(textoFinal) fd.append('texto', textoFinal);
-  if(file) fd.append('media', file);
-  else if(gif) fd.append('media', gif);
+  if(_gifFile){
+    fd.append('media', _gifFile);
+  } else if(_mediaFiles.length){
+    _mediaFiles.forEach(f => fd.append('media', f.file));
+  }
 
   try {
     const res  = await fetch('/publicar_ajax',{method:'POST',body:fd});
     const data = await res.json();
     if(data.ok){
+      _mediaFiles = []; _gifFile = null;
       cerrarComposer();
       const feed = document.getElementById('feed-posts');
       if(feed && data.html){
@@ -1759,6 +1932,8 @@ async function submitComposer(){
           el.style.opacity='1';
           el.style.transform='translateY(0)';
         });
+        // Init carousel en el nuevo post
+        el.querySelectorAll('.post-carousel').forEach(attachCarousel);
       }
       mostrarToast('✅ ¡Publicado!');
     } else { mostrarToast('Error al publicar','err'); }
@@ -1774,19 +1949,72 @@ function manejarArchivoMedia(file){
     mostrarToast('Solo se admiten imágenes, GIFs o videos','err');
     return;
   }
-  if(file.type === 'image/gif'){
-    _gifFile = file;
-  } else {
-    const dt = new DataTransfer();
-    dt.items.add(file);
-    document.getElementById('mc-file-input').files = dt.files;
-  }
   mostrarPreviewMedia(file);
 }
 
 // También hookear cuando se abre el composer (por si el DOM ya existía)
 
 
+/* ── CAROUSEL ── */
+function pcMove(btn, dir){
+  const car  = btn.closest('.post-carousel');
+  const track = car.querySelector('.pc-track');
+  const slides = track.querySelectorAll('.pc-slide');
+  const dots   = car.querySelectorAll('.pc-dot');
+  const total  = slides.length;
+  let cur = parseInt(track.dataset.cur||'0');
+  cur = (cur + dir + total) % total;
+  track.dataset.cur = cur;
+  track.style.transform = `translateX(-${cur*100}%)`;
+  dots.forEach((d,i)=> d.classList.toggle('active', i===cur));
+}
+
+// Mouse drag + touch swipe para carouseles en el feed
+document.addEventListener('DOMContentLoaded', ()=> initCarousels());
+function initCarousels(){
+  document.querySelectorAll('.post-carousel').forEach(attachCarousel);
+}
+function attachCarousel(car){
+  if(car._carInit) return;
+  car._carInit = true;
+  const track = car.querySelector('.pc-track');
+  if(!track) return;
+  const slides = track.querySelectorAll('.pc-slide');
+  if(slides.length < 2) return;
+  let startX=0, dragging=false, startT=0;
+  function getX(e){ return e.touches ? e.touches[0].clientX : e.clientX; }
+  function onDown(e){
+    startX = getX(e); dragging=true; startT=Date.now();
+    track.style.transition='none';
+  }
+  function onMove(e){
+    if(!dragging) return;
+    const dx = getX(e)-startX;
+    const cur = parseInt(track.dataset.cur||'0');
+    track.style.transform=`translateX(calc(-${cur*100}% + ${dx}px))`;
+  }
+  function onUp(e){
+    if(!dragging) return; dragging=false;
+    track.style.transition='transform .32s cubic-bezier(.4,0,.2,1)';
+    const dx = (e.changedTouches ? e.changedTouches[0].clientX : e.clientX) - startX;
+    const dt = Date.now()-startT;
+    const isFlick = Math.abs(dx)>30 || (Math.abs(dx)>10 && dt<300);
+    if(isFlick) pcMove(car.querySelector(dx>0?'.pc-prev':'.pc-next'), dx>0?-1:1);
+    else{
+      const cur=parseInt(track.dataset.cur||'0');
+      track.style.transform=`translateX(-${cur*100}%)`;
+    }
+  }
+  track.addEventListener('mousedown',  onDown);
+  track.addEventListener('mousemove',  onMove);
+  track.addEventListener('mouseup',    onUp);
+  track.addEventListener('mouseleave', onUp);
+  track.addEventListener('touchstart', onDown, {passive:true});
+  track.addEventListener('touchmove',  onMove, {passive:true});
+  track.addEventListener('touchend',   onUp);
+}
+
+// También init cuando llegan posts nuevos del AJAX
 /* ── TOAST ── */
 function mostrarToast(msg, tipo='ok'){
   let c = document.getElementById('toast-container');

@@ -9,6 +9,12 @@ app.config["MAX_CONTENT_LENGTH"] = 100 * 1024 * 1024
 
 app.teardown_appcontext(close_db)
 
+import json as _json
+@app.template_filter('fromjson')
+def fromjson_filter(s):
+    try: return _json.loads(s)
+    except: return []
+
 from routes.auth           import auth_bp
 from routes.dashboard      import dash_bp
 from routes.posts          import posts_bp
