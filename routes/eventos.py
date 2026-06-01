@@ -18,12 +18,12 @@ def crear_evento():
     if titulo and fecha_ev:
         con = get_db()
         cur = con.execute(
-            "INSERT INTO eventos(usuario_id,titulo,descripcion,fecha_evento,hora_evento,tipo) VALUES(?,?,?,?,?,?)",
+            "INSERT INTO eventos(usuario_id,titulo,descripcion,fecha_evento,hora_evento,tipo) VALUES(%s,%s,%s,%s,%s,%s) ON CONFLICT DO NOTHING",
             (session["uid"], titulo, descripcion, fecha_ev, hora_ev, tipo)
         )
         con.commit()
         if _is_ajax():
-            return jsonify({"ok": True, "id": cur.lastrowid, "titulo": titulo, "fecha": fecha_ev, "hora": hora_ev, "tipo": tipo})
+            return jsonify({"ok": True, "id": cur.fetchone()[0], "titulo": titulo, "fecha": fecha_ev, "hora": hora_ev, "tipo": tipo})
     else:
         if _is_ajax():
             return jsonify({"ok": False, "error": "Faltan datos"}), 400

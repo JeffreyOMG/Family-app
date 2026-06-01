@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, request, redirect, session
 from werkzeug.security import generate_password_hash, check_password_hash
-from sqlite3 import IntegrityError
+from psycopg2 import IntegrityError
 from database import get_db
 
 auth_bp = Blueprint("auth", __name__)
@@ -45,7 +45,7 @@ def registro():
             try:
                 con = get_db()
                 con.execute(
-                    "INSERT INTO usuarios(nombre,usuario,password,gmail) VALUES(?,?,?,?)",
+                    "INSERT INTO usuarios(nombre,usuario,password,gmail) VALUES(%s,%s,%s,%s) ON CONFLICT DO NOTHING",
                     (nombre, usu, generate_password_hash(pwd), gmail)
                 )
                 con.commit()

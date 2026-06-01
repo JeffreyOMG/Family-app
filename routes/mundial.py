@@ -1,7 +1,6 @@
 from flask import Blueprint, request, redirect, session, jsonify
 from database import get_db, GRUPOS_MUNDIAL
 from mundial_bracket import generar_bracket
-import sqlite3
 
 
 mundial_bp = Blueprint("mundial", __name__)
@@ -186,7 +185,7 @@ def pronostico():
                 if partido and not partido["bloqueado"]:
                     con.execute("""
                         INSERT INTO pronosticos(usuario_id,partido_id,goles_local,goles_visitante)
-                        VALUES(?,?,?,?)
+                        VALUES(?,%s,%s,%s)
                         ON CONFLICT(usuario_id,partido_id) DO UPDATE SET
                             goles_local=excluded.goles_local,
                             goles_visitante=excluded.goles_visitante
@@ -402,7 +401,7 @@ def mundial_info():
 # MIGRACIÓN: tabla partidos_eliminacion
 # ─────────────────────────────────────────────
 def _ensure_eliminacion_table(con):
-    con.execute("""
+    con.cursor().execute("""
         CREATE TABLE IF NOT EXISTS partidos_eliminacion (
             id          INTEGER PRIMARY KEY,
             fase        TEXT NOT NULL,
@@ -421,7 +420,7 @@ def _ensure_eliminacion_table(con):
     """)
     con.execute("""
         CREATE TABLE IF NOT EXISTS pronosticos_eli (
-            id          INTEGER PRIMARY KEY AUTOINCREMENT,
+            id          SERIAL PRIMARY KEY,
             usuario_id  INTEGER NOT NULL,
             partido_id  INTEGER NOT NULL,
             goles_local INTEGER NOT NULL,
@@ -454,9 +453,9 @@ def _seed_eliminacion(con):
                   FINAL["fecha"], FINAL["sede"]))
     for fila in filas:
         con.execute("""
-            INSERT OR IGNORE INTO partidos_eliminacion
+            INSERT INTO partidos_eliminacion
                 (id, fase, slot_local, slot_visit, fecha, sede)
-            VALUES (?,?,?,?,?,?)
+            VALUES (?,%s,%s,%s,%s,%s)
         """, fila)
     con.commit()
 
@@ -687,7 +686,7 @@ def pronostico_eli():
                 if p and not p["bloqueado"] and p["eq_local"] and p["eq_visit"]:
                     con.execute("""
                         INSERT INTO pronosticos_eli(usuario_id,partido_id,goles_local,goles_visit)
-                        VALUES(?,?,?,?)
+                        VALUES(?,%s,%s,%s)
                         ON CONFLICT(usuario_id,partido_id) DO UPDATE SET
                             goles_local=excluded.goles_local,
                             goles_visit=excluded.goles_visit

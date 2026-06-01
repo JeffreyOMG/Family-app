@@ -50,14 +50,14 @@ def _aporte_familia():
         if not nombre:
             return _err("Nombre requerido")
         cur = con.execute(
-            "INSERT INTO cajitas_ahorro(nombre,descripcion,creador_id) VALUES(?,?,?)",
+            "INSERT INTO cajitas_ahorro(nombre,descripcion,creador_id) VALUES(%s,%s,%s) ON CONFLICT DO NOTHING",
             (nombre, desc, uid)
         )
-        cajita_id = cur.lastrowid
-        con.execute("INSERT OR IGNORE INTO cajita_miembros(cajita_id,usuario_id) VALUES(?,?)", (cajita_id, uid))
+        cajita_id = cur.fetchone()[0]
+        con.execute("INSERT INTO cajita_miembros(cajita_id,usuario_id) VALUES(%s,%s) ON CONFLICT DO NOTHING", (cajita_id, uid))
         for mid in miembros_ids:
             if mid.isdigit():
-                con.execute("INSERT OR IGNORE INTO cajita_miembros(cajita_id,usuario_id) VALUES(?,?)", (cajita_id, int(mid)))
+                con.execute("INSERT INTO cajita_miembros(cajita_id,usuario_id) VALUES(%s,%s) ON CONFLICT DO NOTHING", (cajita_id, int(mid)))
         con.commit()
         if _is_ajax():
             return jsonify({"ok": True, "cajita_id": cajita_id, "nombre": nombre})
@@ -81,7 +81,7 @@ def _aporte_familia():
         except (ValueError, TypeError):
             return _err("Monto inválido")
         con.execute(
-            "INSERT INTO cajita_movimientos(cajita_id,usuario_id,monto,descripcion) VALUES(?,?,?,?)",
+            "INSERT INTO cajita_movimientos(cajita_id,usuario_id,monto,descripcion) VALUES(%s,%s,%s,%s) ON CONFLICT DO NOTHING",
             (cajita_id, uid, monto, desc)
         )
         con.commit()
@@ -112,11 +112,11 @@ def _aporte_evento():
         return _err("Monto inválido")
 
     con.execute(
-        "INSERT INTO eventos_recaudacion(usuario_id,nombre_evento,descripcion,monto,responsables,soporte,estado) VALUES(?,?,?,?,?,?,?)",
+        "INSERT INTO eventos_recaudacion(usuario_id,nombre_evento,descripcion,monto,responsables,soporte,estado) VALUES(?,%s,%s,%s,%s,%s,%s) ON CONFLICT DO NOTHING",
         (uid, nombre_ev, desc, monto, responsables, soporte_url, "pendiente")
     )
     con.execute(
-        "INSERT INTO aportes(usuario_id,monto,descripcion,comprobante,verificado) VALUES(?,?,?,?,0)",
+        "INSERT INTO aportes(usuario_id,monto,descripcion,comprobante,verificado) VALUES(?,%s,%s,%s,0) ON CONFLICT DO NOTHING",
         (uid, monto, f"Evento: {nombre_ev}", soporte_url)
     )
     con.commit()
@@ -151,7 +151,7 @@ def _aporte_polla():
 
     monto = FASES_POLLA[fase]
     con.execute(
-        "INSERT OR IGNORE INTO polla_pagos(usuario_id,fase,monto,soporte,estado) VALUES(?,?,?,?,?)",
+        "INSERT INTO polla_pagos(usuario_id,fase,monto,soporte,estado) VALUES(%s,%s,%s,%s,%s) ON CONFLICT DO NOTHING",
         (uid, fase, monto, soporte_url, "pagado")
     )
     con.commit()
@@ -176,7 +176,7 @@ def polla_pronostico():
         return _err("No has pagado esta fase", 403)
     datos = {k: v for k, v in request.form.items() if k != "fase"}
     con.execute(
-        "INSERT INTO polla_pronosticos(usuario_id,fase,datos) VALUES(?,?,?) "
+        "INSERT INTO polla_pronosticos(usuario_id,fase,datos) VALUES(%s,%s,%s) ON CONFLICT DO NOTHING "
         "ON CONFLICT(usuario_id,fase) DO UPDATE SET datos=excluded.datos",
         (uid, fase, json.dumps(datos))
     )
@@ -338,7 +338,7 @@ def api_admin_meta():
         return jsonify({"ok": False, "error": "Meta inválida"}), 400
     con = get_db()
     con.execute(
-        "INSERT INTO config(clave,valor) VALUES('meta_recaudacion',?) "
+        "INSERT INTO config(clave,valor) VALUES('meta_recaudacion',%s) ON CONFLICT DO NOTHING "
         "ON CONFLICT(clave) DO UPDATE SET valor=excluded.valor",
         (str(nueva_meta),)
     )

@@ -1,13 +1,13 @@
-import sqlite3
+import os
+import psycopg2
+import psycopg2.extras
 from flask import g
 from werkzeug.security import generate_password_hash, check_password_hash
 
-DB = "familia.db"
+DATABASE_URL = os.getenv("DATABASE_URL", "")
 
 # ─────────────────────────────────────────────
 # MUNDIAL 2026 — 12 grupos × 4 equipos = 48 selecciones
-# Formato: (País, código bandera ISO)
-# Compatible con flag-icons (PC + móvil + web)
 # ─────────────────────────────────────────────
 
 GRUPOS_MUNDIAL = {
@@ -25,19 +25,12 @@ GRUPOS_MUNDIAL = {
     "L": [("Inglaterra","gb-eng"),("Croacia","hr"),("Ghana","gh"),("Panamá","pa")]
 }
 
-# ─────────────────────────────────────────────
-# GENERAR PARTIDOS (TODOS LOS ENFRENTAMIENTOS)
-# 6 partidos por grupo → 72 partidos total
-# Formato DB: local/visitante = "Nombre|codigo"
-# ─────────────────────────────────────────────
-
 def _build_partidos():
     ps = []
     pid = 1
     for grupo, equipos in GRUPOS_MUNDIAL.items():
         combos = [(0,1),(2,3),(0,2),(1,3),(0,3),(1,2)]
         for i, j in combos:
-            # Guardamos "Nombre|codigo" para poder separar limpiamente
             local     = f"{equipos[i][0]}|{equipos[i][1]}"
             visitante = f"{equipos[j][0]}|{equipos[j][1]}"
             ps.append((pid, grupo, local, visitante))
@@ -47,14 +40,14 @@ def _build_partidos():
 PARTIDOS_MUNDIAL = _build_partidos()
 
 # ─────────────────────────────────────────────
-# BASE DE DATOS FLASK
+# CONEXIÓN — psycopg2 con RealDictCursor
+# (se comporta igual que sqlite3.Row: acceso por nombre de columna)
 # ─────────────────────────────────────────────
 
 def get_db():
     if "db" not in g:
-        g.db = sqlite3.connect(DB)
-        g.db.row_factory = sqlite3.Row
-        g.db.execute("PRAGMA foreign_keys = ON")
+        g.db = psycopg2.connect(DATABASE_URL, cursor_factory=psycopg2.extras.RealDictCursor)
+        g.db.autocommit = False
     return g.db
 
 def close_db(e=None):
@@ -67,12 +60,12 @@ def close_db(e=None):
 # ─────────────────────────────────────────────
 
 def init_db():
-    db = sqlite3.connect(DB)
-    cur = db.cursor()
+    con = psycopg2.connect(DATABASE_URL, cursor_factory=psycopg2.extras.RealDictCursor)
+    cur = con.cursor()
 
-    cur.executescript("""
+    cur.execute("""
     CREATE TABLE IF NOT EXISTS usuarios (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        id SERIAL PRIMARY KEY,
         nombre TEXT NOT NULL,
         usuario TEXT UNIQUE NOT NULL,
         password TEXT NOT NULL,
@@ -84,7 +77,7 @@ def init_db():
     );
 
     CREATE TABLE IF NOT EXISTS publicaciones (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        id SERIAL PRIMARY KEY,
         usuario_id INTEGER NOT NULL,
         texto TEXT DEFAULT '',
         media TEXT DEFAULT '',
@@ -102,7 +95,7 @@ def init_db():
     );
 
     CREATE TABLE IF NOT EXISTS comentarios (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        id SERIAL PRIMARY KEY,
         post_id INTEGER NOT NULL,
         usuario_id INTEGER NOT NULL,
         texto TEXT NOT NULL,
@@ -113,7 +106,7 @@ def init_db():
     );
 
     CREATE TABLE IF NOT EXISTS noticias (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        id SERIAL PRIMARY KEY,
         titulo TEXT NOT NULL,
         contenido TEXT NOT NULL,
         categoria TEXT DEFAULT 'general',
@@ -121,7 +114,7 @@ def init_db():
     );
 
     CREATE TABLE IF NOT EXISTS eventos (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        id SERIAL PRIMARY KEY,
         usuario_id INTEGER NOT NULL,
         titulo TEXT NOT NULL,
         descripcion TEXT DEFAULT '',
@@ -133,7 +126,7 @@ def init_db():
     );
 
     CREATE TABLE IF NOT EXISTS aportes (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        id SERIAL PRIMARY KEY,
         usuario_id INTEGER NOT NULL,
         monto REAL DEFAULT 0,
         descripcion TEXT DEFAULT '',
@@ -144,7 +137,7 @@ def init_db():
     );
 
     CREATE TABLE IF NOT EXISTS galeria (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        id SERIAL PRIMARY KEY,
         usuario_id INTEGER NOT NULL,
         ruta TEXT NOT NULL,
         tipo TEXT NOT NULL,
@@ -164,7 +157,7 @@ def init_db():
     );
 
     CREATE TABLE IF NOT EXISTS pronosticos (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        id SERIAL PRIMARY KEY,
         usuario_id INTEGER NOT NULL,
         partido_id INTEGER NOT NULL,
         goles_local INTEGER NOT NULL,
@@ -176,7 +169,7 @@ def init_db():
     );
 
     CREATE TABLE IF NOT EXISTS cajitas_ahorro (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        id SERIAL PRIMARY KEY,
         nombre TEXT NOT NULL,
         descripcion TEXT DEFAULT '',
         creador_id INTEGER NOT NULL,
@@ -193,7 +186,7 @@ def init_db():
     );
 
     CREATE TABLE IF NOT EXISTS cajita_movimientos (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        id SERIAL PRIMARY KEY,
         cajita_id INTEGER NOT NULL,
         usuario_id INTEGER NOT NULL,
         monto REAL NOT NULL,
@@ -204,7 +197,7 @@ def init_db():
     );
 
     CREATE TABLE IF NOT EXISTS eventos_recaudacion (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        id SERIAL PRIMARY KEY,
         usuario_id INTEGER NOT NULL,
         nombre_evento TEXT NOT NULL,
         descripcion TEXT DEFAULT '',
@@ -217,7 +210,7 @@ def init_db():
     );
 
     CREATE TABLE IF NOT EXISTS polla_pagos (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        id SERIAL PRIMARY KEY,
         usuario_id INTEGER NOT NULL,
         fase INTEGER NOT NULL,
         monto REAL NOT NULL,
@@ -229,7 +222,7 @@ def init_db():
     );
 
     CREATE TABLE IF NOT EXISTS polla_pronosticos (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        id SERIAL PRIMARY KEY,
         usuario_id INTEGER NOT NULL,
         fase INTEGER NOT NULL,
         datos TEXT NOT NULL,
@@ -262,7 +255,7 @@ def init_db():
     );
 
     CREATE TABLE IF NOT EXISTS amigo_secreto_eventos (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        id SERIAL PRIMARY KEY,
         nombre TEXT NOT NULL,
         activo INTEGER DEFAULT 1,
         cruces_generados INTEGER DEFAULT 0,
@@ -288,22 +281,30 @@ def init_db():
     # ─── ADMIN ───
     admin_hash = generate_password_hash("admin1234")
     cur.execute("""
-        INSERT OR IGNORE INTO usuarios (nombre, usuario, password, rol, gmail)
-        VALUES ('Administrador','admin',?,'admin','admin@familia.com')
+        INSERT INTO usuarios (nombre, usuario, password, rol, gmail)
+        VALUES ('Administrador','admin',%s,'admin','admin@familia.com')
+        ON CONFLICT (usuario) DO NOTHING
     """, (admin_hash,))
 
     # ─── CONFIG POR DEFECTO ───
-    cur.execute("INSERT OR IGNORE INTO config(clave,valor) VALUES('meta_recaudacion','500000')")
+    cur.execute("INSERT INTO config(clave,valor) VALUES('meta_recaudacion','500000') ON CONFLICT (clave) DO NOTHING")
 
     # ─── INSERTAR PARTIDOS ───
     for pid, grupo, local, visitante in PARTIDOS_MUNDIAL:
         cur.execute("""
-            INSERT OR IGNORE INTO partidos_mundial (id, grupo, local, visitante)
-            VALUES (?, ?, ?, ?)
+            INSERT INTO partidos_mundial (id, grupo, local, visitante)
+            VALUES (%s, %s, %s, %s)
+            ON CONFLICT (id) DO NOTHING
         """, (pid, grupo, local, visitante))
 
-    db.commit()
-    db.close()
+    con.commit()
+    con.close()
+
+
+def init_amigo_secreto():
+    """Las tablas ya se crean en init_db(). Esta función queda por compatibilidad."""
+    pass
+
 
 # ─────────────────────────────────────────────
 # SEGURIDAD
@@ -314,38 +315,3 @@ def hash_password(p):
 
 def verify_password(h, p):
     return check_password_hash(h, p)
-
-# ─────────────────────────────────────────────
-# AMIGO SECRETO — tablas adicionales
-# ─────────────────────────────────────────────
-
-def init_amigo_secreto():
-    """Crear tablas para Amigo Secreto si no existen."""
-    db = sqlite3.connect(DB)
-    cur = db.cursor()
-    cur.executescript("""
-    CREATE TABLE IF NOT EXISTS amigo_secreto_eventos (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        nombre TEXT NOT NULL,
-        activo INTEGER DEFAULT 1,
-        cruces_generados INTEGER DEFAULT 0,
-        fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    );
-
-    CREATE TABLE IF NOT EXISTS amigo_secreto_participantes (
-        evento_id INTEGER NOT NULL,
-        usuario_id INTEGER NOT NULL,
-        asignado_id INTEGER DEFAULT NULL,
-        PRIMARY KEY (evento_id, usuario_id),
-        FOREIGN KEY (evento_id) REFERENCES amigo_secreto_eventos(id) ON DELETE CASCADE,
-        FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE
-    );
-
-    CREATE TABLE IF NOT EXISTS cajitas_ahorro_codigos (
-        cajita_id INTEGER PRIMARY KEY,
-        codigo TEXT UNIQUE NOT NULL,
-        FOREIGN KEY (cajita_id) REFERENCES cajitas_ahorro(id) ON DELETE CASCADE
-    );
-    """)
-    db.commit()
-    db.close()

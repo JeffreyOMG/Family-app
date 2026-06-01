@@ -107,18 +107,18 @@ def _guardar_post():
     if archivo and archivo.filename and allowed(archivo.filename):
         media, media_tipo = save_file(archivo)
         con = get_db()
-        con.execute("INSERT INTO galeria(usuario_id,ruta,tipo) VALUES(?,?,?)",
+        con.execute("INSERT INTO galeria(usuario_id,ruta,tipo) VALUES(%s,%s,%s) ON CONFLICT DO NOTHING",
                     (uid, media, media_tipo))
         con.commit()
     if not texto and not media:
         return None
     con = get_db()
     cur = con.execute(
-        "INSERT INTO publicaciones(usuario_id,texto,media,media_tipo) VALUES(?,?,?,?)",
+        "INSERT INTO publicaciones(usuario_id,texto,media,media_tipo) VALUES(%s,%s,%s,%s) ON CONFLICT DO NOTHING",
         (uid, texto, media, media_tipo)
     )
     con.commit()
-    return cur.lastrowid
+    return cur.fetchone()[0]
 
 @posts_bp.route("/like/<int:post_id>", methods=["POST"])
 def like(post_id):
@@ -131,7 +131,7 @@ def like(post_id):
         con.execute("DELETE FROM likes WHERE usuario_id=? AND post_id=?", (uid, post_id))
         liked = False
     else:
-        con.execute("INSERT INTO likes(usuario_id,post_id) VALUES(?,?)", (uid, post_id))
+        con.execute("INSERT INTO likes(usuario_id,post_id) VALUES(%s,%s) ON CONFLICT DO NOTHING", (uid, post_id))
         liked = True
     con.commit()
     total = con.execute("SELECT COUNT(*) FROM likes WHERE post_id=?", (post_id,)).fetchone()[0]
@@ -147,7 +147,7 @@ def comentar():
     parent_id = request.form.get("parent_id") or None
     if texto and post_id:
         con = get_db()
-        con.execute("INSERT INTO comentarios(post_id,usuario_id,texto,parent_id) VALUES(?,?,?,?)",
+        con.execute("INSERT INTO comentarios(post_id,usuario_id,texto,parent_id) VALUES(%s,%s,%s,%s) ON CONFLICT DO NOTHING",
                     (post_id, uid, texto, parent_id))
         con.commit()
     return redirect("/dashboard#inicio")
@@ -163,7 +163,7 @@ def comentar_ajax():
     if not texto or not post_id:
         return jsonify({"ok": False}), 400
     con = get_db()
-    con.execute("INSERT INTO comentarios(post_id,usuario_id,texto,parent_id) VALUES(?,?,?,?)",
+    con.execute("INSERT INTO comentarios(post_id,usuario_id,texto,parent_id) VALUES(%s,%s,%s,%s) ON CONFLICT DO NOTHING",
                 (post_id, uid, texto, parent_id))
     con.commit()
     usuario = con.execute("SELECT nombre, foto FROM usuarios WHERE id=?", (uid,)).fetchone()
@@ -192,10 +192,10 @@ def crear_noticia():
     contenido = request.form.get("contenido", "").strip()
     if titulo and contenido:
         con = get_db()
-        cur = con.execute("INSERT INTO noticias(titulo,contenido) VALUES(?,?)", (titulo, contenido))
+        cur = con.execute("INSERT INTO noticias(titulo,contenido) VALUES(%s,%s) ON CONFLICT DO NOTHING", (titulo, contenido))
         con.commit()
         if _is_ajax():
-            return jsonify({"ok": True, "id": cur.lastrowid, "titulo": titulo})
+            return jsonify({"ok": True, "id": cur.fetchone()[0], "titulo": titulo})
     elif _is_ajax():
         return jsonify({"ok": False, "error": "Datos requeridos"}), 400
     return redirect("/dashboard#noticias")
@@ -212,7 +212,7 @@ def bookmark(post_id):
         con.execute("DELETE FROM bookmarks WHERE usuario_id=? AND post_id=?", (uid, post_id))
         saved = False
     else:
-        con.execute("INSERT OR IGNORE INTO bookmarks(usuario_id,post_id) VALUES(?,?)", (uid, post_id))
+        con.execute("INSERT INTO bookmarks(usuario_id,post_id) VALUES(%s,%s) ON CONFLICT DO NOTHING", (uid, post_id))
         saved = True
     con.commit()
     return jsonify({"ok": True, "saved": saved})
@@ -229,7 +229,7 @@ def repost(post_id):
         con.execute("DELETE FROM reposts WHERE usuario_id=? AND post_id=?", (uid, post_id))
         reposted = False
     else:
-        con.execute("INSERT OR IGNORE INTO reposts(usuario_id,post_id) VALUES(?,?)", (uid, post_id))
+        con.execute("INSERT INTO reposts(usuario_id,post_id) VALUES(%s,%s) ON CONFLICT DO NOTHING", (uid, post_id))
         reposted = True
     con.commit()
     total = con.execute("SELECT COUNT(*) FROM reposts WHERE post_id=?", (post_id,)).fetchone()[0]

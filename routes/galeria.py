@@ -25,7 +25,7 @@ def subir_archivo():
     desc   = request.form.get("descripcion", "").strip()
     con    = get_db()
     con.execute(
-        "INSERT INTO galeria(usuario_id,ruta,tipo,descripcion) VALUES(?,?,?,?)",
+        "INSERT INTO galeria(usuario_id,ruta,tipo,descripcion) VALUES(%s,%s,%s,%s) ON CONFLICT DO NOTHING",
         (session["uid"], f"/static/uploads/{nombre}", tipo, desc)
     )
     con.commit()

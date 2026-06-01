@@ -31,7 +31,7 @@ def _asegurar_codigo(con, cajita_id):
         codigo = _gen_codigo()
         try:
             con.execute(
-                "INSERT INTO cajitas_ahorro_codigos(cajita_id,codigo) VALUES(?,?)",
+                "INSERT INTO cajitas_ahorro_codigos(cajita_id,codigo) VALUES(%s,%s) ON CONFLICT DO NOTHING",
                 (cajita_id, codigo)
             )
             con.commit()
@@ -72,7 +72,7 @@ def unirse():
         return jsonify({"ok": False, "error": "Código inválido"}), 404
     cajita_id = row["cajita_id"]
     con.execute(
-        "INSERT OR IGNORE INTO cajita_miembros(cajita_id,usuario_id) VALUES(?,?)",
+        "INSERT INTO cajita_miembros(cajita_id,usuario_id) VALUES(%s,%s) ON CONFLICT DO NOTHING",
         (cajita_id, _uid())
     )
     con.commit()

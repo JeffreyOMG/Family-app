@@ -28,7 +28,13 @@ for bp in [auth_bp, dash_bp, posts_bp, fin_bp, perfil_bp,
            amigo_bp, cajitas_bp]:
     app.register_blueprint(bp)
 
+# Inicializar DB al arrancar
+with app.app_context():
+    try:
+        init_db()
+        init_amigo_secreto()
+    except Exception as e:
+        print(f"DB init warning: {e}")
+
 if __name__ == "__main__":
-    init_db()
-    init_amigo_secreto()
-    app.run(port=5000)  # sin debug=True
+    app.run(port=5000)
