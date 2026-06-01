@@ -552,25 +552,65 @@ function _eliPartidoCardHTML(p) {
   let scoreArea = '';
   if (bloq) {
     const gl = p.goles_local ?? '?', gv = p.goles_visit ?? '?';
+    const esEmpate = (+gl === +gv);
     let badge = '';
     if (p.p_local != null) {
-      if (p.p_local == gl && p.p_vis == gv)
-        badge = '<div class="pron-badge pron-exacto">⚽ +3 pts</div>';
-      else if ((+p.p_local > +p.p_vis && +gl > +gv)||(+p.p_local < +p.p_vis && +gl < +gv)||(+p.p_local == +p.p_vis && +gl == +gv))
-        badge = '<div class="pron-badge pron-ganador">✓ +1 pt</div>';
-      else
+      const predEsEmpate = (+p.p_local === +p.p_vis);
+      if (p.p_local == gl && p.p_vis == gv) {
+        // Marcador exacto
+        if (esEmpate && p.penales_ganador != null && p.p_penales != null) {
+          badge = p.p_penales === p.penales_ganador
+            ? '<div class="pron-badge pron-exacto">⚽ +3 pts</div>'
+            : '<div class="pron-badge pron-exacto pron-exacto-sin-pen">⚽ +2 pts</div>';
+        } else {
+          badge = '<div class="pron-badge pron-exacto">⚽ +3 pts</div>';
+        }
+      } else if ((+p.p_local > +p.p_vis && +gl > +gv)||(+p.p_local < +p.p_vis && +gl < +gv)||(predEsEmpate && esEmpate)) {
+        if (esEmpate && p.penales_ganador != null && p.p_penales != null) {
+          badge = p.p_penales === p.penales_ganador
+            ? '<div class="pron-badge pron-ganador">✓ +2 pts</div>'
+            : '<div class="pron-badge pron-ganador">✓ +1 pt</div>';
+        } else {
+          badge = '<div class="pron-badge pron-ganador">✓ +1 pt</div>';
+        }
+      } else {
         badge = '<div class="pron-badge pron-fallo">✗ 0 pts</div>';
-      badge += `<div class="pron-mi-pred">Tu: ${p.p_local}–${p.p_vis}</div>`;
+      }
+      let penInfo = '';
+      if (esEmpate && p.p_penales) penInfo = ` (P: ${_esc(p.p_penales)})`;
+      badge += `<div class="pron-mi-pred">Tu: ${p.p_local}–${p.p_vis}${penInfo}</div>`;
     } else {
       badge = '<div class="pron-badge pron-sinpron">Sin pronóstico</div>';
     }
-    scoreArea = `<div class="pron-resultado-oficial"><span class="pron-gol-oficial">${gl}</span><span class="pron-sep">–</span><span class="pron-gol-oficial">${gv}</span></div>${badge}`;
+    let penResult = '';
+    if (esEmpate && p.penales_ganador) {
+      penResult = `<div class="pron-penales-info"><span class="material-symbols-outlined">sports_score</span> Penales: <strong>${_esc(p.penales_ganador)}</strong></div>`;
+    }
+    scoreArea = `<div class="pron-resultado-oficial"><span class="pron-gol-oficial">${gl}</span><span class="pron-sep">–</span><span class="pron-gol-oficial">${gv}</span></div>${penResult}${badge}`;
   } else if (!tieneEquipos) {
     scoreArea = '<div class="pron-badge pron-sinpron">Pendiente de definir</div>';
   } else if (p.p_local != null) {
-    scoreArea = `<div class="pron-ya-guardado"><span class="pron-gol-fijo">${p.p_local}</span><span class="pron-sep">–</span><span class="pron-gol-fijo">${p.p_vis}</span></div><div class="pron-badge pron-guardado">✓ Guardado</div>`;
+    let penGuardado = '';
+    if (+p.p_local === +p.p_vis && p.p_penales) {
+      penGuardado = `<div class="pron-penales-guardado"><span class="material-symbols-outlined">sports_score</span> Pen: ${_esc(p.p_penales)}</div>`;
+    }
+    scoreArea = `<div class="pron-ya-guardado"><span class="pron-gol-fijo">${p.p_local}</span><span class="pron-sep">–</span><span class="pron-gol-fijo">${p.p_vis}</span></div>${penGuardado}<div class="pron-badge pron-guardado">✓ Guardado</div>`;
   } else {
-    scoreArea = `<div class="pron-inputs"><input class="pron-input" type="number" name="local_${p.id}" min="0" max="20" placeholder="0"><span class="pron-sep">–</span><input class="pron-input" type="number" name="vis_${p.id}" min="0" max="20" placeholder="0"></div>`;
+    scoreArea = `
+      <div class="pron-inputs" id="pron-inputs-${p.id}">
+        <input class="pron-input" type="number" name="local_${p.id}" min="0" max="20" placeholder="0"
+          onchange="_checkEliEmpate(${p.id}, '${_esc(localNombre)}', '${_esc(visitNombre)}')">
+        <span class="pron-sep">–</span>
+        <input class="pron-input" type="number" name="vis_${p.id}" min="0" max="20" placeholder="0"
+          onchange="_checkEliEmpate(${p.id}, '${_esc(localNombre)}', '${_esc(visitNombre)}')">
+      </div>
+      <div class="pron-penales-sel" id="pron-pen-${p.id}" style="display:none;">
+        <div class="pron-pen-label"><span class="material-symbols-outlined">sports_score</span> ¿Quién gana en penales?</div>
+        <div class="pron-pen-opciones">
+          <label><input type="radio" name="pen_${p.id}" value="${_esc(localNombre)}"> ${_esc(localNombre)}</label>
+          <label><input type="radio" name="pen_${p.id}" value="${_esc(visitNombre)}"> ${_esc(visitNombre)}</label>
+        </div>
+      </div>`;
   }
   return `
     <div class="pron-partido-card ${bloq?'pron-bloqueado':''} ${!tieneEquipos?'pron-pendiente':''}">
@@ -579,6 +619,25 @@ function _eliPartidoCardHTML(p) {
       <div class="pron-equipo pron-visitante"><span class="pron-nombre">${_esc(visitNombre)}</span>${flagV}</div>
     </div>
     <div class="eli-meta">${_esc(p.fecha||'')} · ${_esc(p.sede||'')}</div>`;
+}
+
+function _checkEliEmpate(pid, localNombre, visitNombre) {
+  const gl = parseInt(document.querySelector(`[name="local_${pid}"]`)?.value);
+  const gv = parseInt(document.querySelector(`[name="vis_${pid}"]`)?.value);
+  const penDiv = document.getElementById(`pron-pen-${pid}`);
+  if (!penDiv) return;
+  penDiv.style.display = (!isNaN(gl) && !isNaN(gv) && gl === gv) ? 'block' : 'none';
+}
+
+function _checkAdminEmpate(pid, localNombre, visitNombre, inputEl) {
+  // Buscar los dos inputs del mismo form
+  const form = inputEl.closest('form');
+  if (!form) return;
+  const gl = parseInt(form.querySelector('[name="goles_local"]')?.value);
+  const gv = parseInt(form.querySelector('[name="goles_visitante"]')?.value);
+  const penDiv = document.getElementById(`admin-pen-${pid}`);
+  if (!penDiv) return;
+  penDiv.style.display = (!isNaN(gl) && !isNaN(gv) && gl === gv) ? 'block' : 'none';
 }
 
 // ══════════════════════════════════════════
@@ -678,15 +737,24 @@ function _adminEliCardHTML(p) {
     <form method="POST" action="/admin_resultado_eli?s=mundial" class="admin-form" style="margin-top:8px;">
       <input type="hidden" name="partido_id" value="${p.id}">
       <div class="admin-inputs-row">
-        <input class="admin-input" type="number" name="goles_local" min="0" max="30" placeholder="0" value="${p.goles_local??''}">
+        <input class="admin-input" type="number" name="goles_local" min="0" max="30" placeholder="0" value="${p.goles_local??''}"
+          onchange="_checkAdminEmpate(${p.id}, '${_esc(localNombre||'')}', '${_esc(visitNombre||'')}', this)">
         <span class="admin-dash">–</span>
-        <input class="admin-input" type="number" name="goles_visitante" min="0" max="30" placeholder="0" value="${p.goles_visit??''}">
+        <input class="admin-input" type="number" name="goles_visitante" min="0" max="30" placeholder="0" value="${p.goles_visit??''}"
+          onchange="_checkAdminEmpate(${p.id}, '${_esc(localNombre||'')}', '${_esc(visitNombre||'')}', this)">
         <button type="submit" class="admin-btn-save ${p.bloqueado?'admin-btn-edit':''}">
           <span class="material-symbols-outlined">${p.bloqueado?'edit':'check_circle'}</span>
           ${p.bloqueado?'Editar':'Guardar'}
         </button>
       </div>
-      ${p.bloqueado?`<div class="admin-status-jugado"><span class="material-symbols-outlined">check_circle</span> ${p.goles_local}–${p.goles_visit}</div>`:''}
+      <div class="admin-pen-sel" id="admin-pen-${p.id}" style="display:${(p.bloqueado && p.goles_local===p.goles_visit && p.goles_local!==null)?'block':'none'};">
+        <div class="admin-pen-label"><span class="material-symbols-outlined">sports_score</span> ¿Quién ganó en penales?</div>
+        <div class="admin-pen-opciones">
+          ${localNombre ? `<label><input type="radio" name="penales_ganador" value="${_esc(localNombre)}" ${p.penales_ganador===localNombre?'checked':''}> ${_esc(localNombre)}</label>` : ''}
+          ${visitNombre ? `<label><input type="radio" name="penales_ganador" value="${_esc(visitNombre)}" ${p.penales_ganador===visitNombre?'checked':''}> ${_esc(visitNombre)}</label>` : ''}
+        </div>
+      </div>
+      ${p.bloqueado?`<div class="admin-status-jugado"><span class="material-symbols-outlined">check_circle</span> ${p.goles_local}–${p.goles_visit}${p.penales_ganador?' (Pen: '+_esc(p.penales_ganador)+')':''}</div>`:''}
     </form>
   </div>`;
 }
@@ -728,6 +796,14 @@ async function asignarTercero(pid) {
   }
 }
 
+function _checkBkEmpate(pid, localNombre, visitNombre) {
+  const gl = parseInt(document.querySelector(`[name="local_${pid}"]`)?.value);
+  const gv = parseInt(document.querySelector(`[name="vis_${pid}"]`)?.value);
+  const penDiv = document.getElementById(`bk-pen-${pid}`);
+  if (!penDiv) return;
+  penDiv.style.display = (!isNaN(gl) && !isNaN(gv) && gl === gv) ? 'block' : 'none';
+}
+
 // ══════════════════════════════════════════
 // BRACKET VISUAL
 // ══════════════════════════════════════════
@@ -738,8 +814,10 @@ async function _loadBracket() {
       fetch('/api/eliminacion_datos'),
     ]);
     const {bracket} = await r1.json();
-    const {partidos} = await r2.json();
-    _renderBracket(bracket, partidos);
+    const eliJson = await r2.json();
+    _eliData = eliJson.partidos;  // cache para pronósticos del bracket
+    _tercerosPorGrupo = eliJson.terceros_por_grupo || {};
+    _renderBracket(bracket, eliJson.partidos);
   } catch(e) { console.warn('bracket error', e); }
 }
 
@@ -800,11 +878,46 @@ function _renderBracket(bracket, eliPartidos) {
           const lFlag = eqL.conocido ? `<span class="fi fi-${_esc(eqL.codigo)} fis bk-flag"></span>` : '';
           const vFlag = eqV.conocido ? `<span class="fi fi-${_esc(eqV.codigo)} fis bk-flag"></span>` : '';
           const result = p.bloqueado
-            ? `<span class="bk-result">${p.goles_local}–${p.goles_visit}</span>`
+            ? `<span class="bk-result">${p.goles_local}–${p.goles_visit}${p.penales_ganador?' (P: '+_esc(p.penales_ganador)+')':''}</span>`
             : '';
-          // Label descriptivo para slots de terceros pendientes
           const lLabel = eqL.conocido ? eqL.nombre : `<em>${_esc(eqL.nombre)}</em>`;
           const vLabel = eqV.conocido ? eqV.nombre : `<em>${_esc(eqV.nombre)}</em>`;
+
+          // Sección pronóstico
+          let pronSection = '';
+          if (!p.bloqueado && completado) {
+            if (p.p_local != null) {
+              let penInfo = (+p.p_local === +p.p_vis && p.p_penales) ? `<div class="bk-pen-guardado">Pen: ${_esc(p.p_penales)}</div>` : '';
+              pronSection = `<div class="bk-pron-guardado"><span class="bk-pron-score">${p.p_local}–${p.p_vis}</span>${penInfo}<div class="pron-badge pron-guardado" style="font-size:.65rem;">✓ Guardado</div></div>`;
+            } else {
+              pronSection = `<form method="POST" action="/pronostico_eli?s=mundial" class="eli-form bk-pron-form">
+                <div class="bk-pron-inputs">
+                  <input class="pron-input bk-input" type="number" name="local_${p.id}" min="0" max="20" placeholder="0"
+                    onchange="_checkBkEmpate(${p.id},'${_esc(eqL.nombre)}','${_esc(eqV.nombre)}')">
+                  <span class="pron-sep">–</span>
+                  <input class="pron-input bk-input" type="number" name="vis_${p.id}" min="0" max="20" placeholder="0"
+                    onchange="_checkBkEmpate(${p.id},'${_esc(eqL.nombre)}','${_esc(eqV.nombre)}')">
+                  <button type="submit" class="bk-pron-btn" title="Guardar"><span class="material-symbols-outlined">save</span></button>
+                </div>
+                <div class="pron-penales-sel" id="bk-pen-${p.id}" style="display:none;">
+                  <div class="pron-pen-label" style="font-size:.7rem;"><span class="material-symbols-outlined" style="font-size:14px;">sports_score</span> Penales:</div>
+                  <div class="pron-pen-opciones">
+                    <label><input type="radio" name="pen_${p.id}" value="${_esc(eqL.nombre)}"> ${_esc(eqL.nombre)}</label>
+                    <label><input type="radio" name="pen_${p.id}" value="${_esc(eqV.nombre)}"> ${_esc(eqV.nombre)}</label>
+                  </div>
+                </div>
+              </form>`;
+            }
+          } else if (p.bloqueado && p.p_local != null) {
+            const gl = p.goles_local, gv2 = p.goles_visit;
+            let badge = '';
+            if (p.p_local == gl && p.p_vis == gv2) badge = '<div class="pron-badge pron-exacto" style="font-size:.65rem;">⚽ +3pts</div>';
+            else if ((+p.p_local > +p.p_vis && gl > gv2)||(+p.p_local < +p.p_vis && gl < gv2)||(+p.p_local==+p.p_vis && gl==gv2))
+              badge = '<div class="pron-badge pron-ganador" style="font-size:.65rem;">✓ +1pt</div>';
+            else badge = '<div class="pron-badge pron-fallo" style="font-size:.65rem;">✗ 0pts</div>';
+            pronSection = `<div class="bk-pron-guardado"><span class="bk-pron-score">${p.p_local}–${p.p_vis}</span>${badge}</div>`;
+          }
+
           return `
             <div class="bracket-cruce ${completado?'cruce-ok':'cruce-pend'}">
               <div class="cruce-num">${p.id}</div>
@@ -813,6 +926,7 @@ function _renderBracket(bracket, eliPartidos) {
                 <div class="cruce-vs">${result || 'VS'}</div>
                 <div class="cruce-eq ${!eqV.conocido?'eq-pend':''}">${vFlag}<span class="cruce-nombre">${vLabel}</span></div>
               </div>
+              ${pronSection ? `<div class="bk-pron-area">${pronSection}</div>` : ''}
               <div class="cruce-meta">${_esc(p.fecha||'')} · ${_esc(p.sede||'')}</div>
             </div>`;
         }).join('')}

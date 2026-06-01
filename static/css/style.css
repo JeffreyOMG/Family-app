@@ -4513,3 +4513,90 @@ body.dark-mode .cruce-num {
     padding-bottom: calc(72px + env(safe-area-inset-bottom, 16px)) !important;
   }
 }
+
+/* ─── PENALES EN PRONÓSTICOS ELIMINACIÓN ──────── */
+.pron-penales-sel {
+  margin-top: 8px;
+  padding: 8px 12px;
+  background: var(--card2);
+  border: 1.5px dashed var(--accent);
+  border-radius: 8px;
+  text-align: center;
+}
+.pron-pen-label {
+  display: flex; align-items: center; justify-content: center; gap: 4px;
+  font-size: .72rem; font-weight: 700; color: var(--accent);
+  text-transform: uppercase; letter-spacing: .04em; margin-bottom: 6px;
+}
+.pron-pen-opciones {
+  display: flex; gap: 16px; justify-content: center; flex-wrap: wrap;
+}
+.pron-pen-opciones label {
+  display: flex; align-items: center; gap: 5px;
+  font-size: .78rem; cursor: pointer; color: var(--text);
+}
+.pron-penales-info {
+  display: flex; align-items: center; justify-content: center; gap: 4px;
+  font-size: .75rem; color: var(--text2); margin-top: 4px;
+}
+.pron-penales-info .material-symbols-outlined { font-size: .9rem; }
+.pron-penales-guardado {
+  display: flex; align-items: center; gap: 5px;
+  font-size: .75rem; color: var(--accent); margin-top: 2px;
+}
+.pron-penales-guardado .material-symbols-outlined { font-size: .85rem; }
+
+/* ─── PENALES EN ADMIN ELIMINACIÓN ──────── */
+.admin-pen-sel {
+  margin: 8px 0;
+  padding: 8px 12px;
+  background: var(--card2);
+  border: 1.5px dashed var(--c-warn, #e65100);
+  border-radius: 8px;
+}
+.admin-pen-label {
+  display: flex; align-items: center; gap: 5px;
+  font-size: .72rem; font-weight: 700; color: var(--c-warn, #e65100);
+  text-transform: uppercase; margin-bottom: 6px;
+}
+.admin-pen-opciones {
+  display: flex; gap: 16px; flex-wrap: wrap;
+}
+.admin-pen-opciones label {
+  display: flex; align-items: center; gap: 5px;
+  font-size: .82rem; cursor: pointer; color: var(--text);
+}
+
+/* ─── PRONÓSTICO EN BRACKET ──────── */
+.bk-pron-area {
+  padding: 8px 10px 0;
+  border-top: 1px solid var(--border);
+  margin-top: 6px;
+}
+.bk-pron-form {
+  display: flex; flex-direction: column; gap: 6px;
+}
+.bk-pron-inputs {
+  display: flex; align-items: center; gap: 5px; justify-content: center;
+}
+.bk-input {
+  width: 44px !important; text-align: center; font-size: .82rem;
+}
+.bk-pron-btn {
+  background: var(--accent); color: #fff;
+  border: none; border-radius: 6px; padding: 5px 7px; cursor: pointer;
+  display: flex; align-items: center;
+}
+.bk-pron-btn .material-symbols-outlined { font-size: 14px; }
+.bk-pron-btn:hover { opacity: .85; }
+.bk-pron-guardado {
+  display: flex; align-items: center; gap: 6px; justify-content: center;
+  flex-wrap: wrap;
+}
+.bk-pron-score {
+  font-weight: 700; font-size: .85rem; color: var(--accent);
+}
+.bk-pen-guardado {
+  font-size: .72rem; color: var(--text2);
+}
+.pron-badge.pron-exacto-sin-pen { background: #5d7c2a; }

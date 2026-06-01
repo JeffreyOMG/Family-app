@@ -269,34 +269,49 @@ def mundial_info():
 def _ensure_eliminacion_table(con):
     con.cursor().execute("""
         CREATE TABLE IF NOT EXISTS partidos_eliminacion (
-            id          INTEGER PRIMARY KEY,
-            fase        TEXT NOT NULL,
-            slot_local  TEXT NOT NULL,
-            slot_visit  TEXT NOT NULL,
-            fecha       TEXT DEFAULT '',
-            sede        TEXT DEFAULT '',
-            eq_local    TEXT DEFAULT NULL,
-            cod_local   TEXT DEFAULT NULL,
-            eq_visit    TEXT DEFAULT NULL,
-            cod_visit   TEXT DEFAULT NULL,
-            goles_local INTEGER DEFAULT NULL,
-            goles_visit INTEGER DEFAULT NULL,
-            bloqueado   INTEGER DEFAULT 0
+            id               INTEGER PRIMARY KEY,
+            fase             TEXT NOT NULL,
+            slot_local       TEXT NOT NULL,
+            slot_visit       TEXT NOT NULL,
+            fecha            TEXT DEFAULT '',
+            sede             TEXT DEFAULT '',
+            eq_local         TEXT DEFAULT NULL,
+            cod_local        TEXT DEFAULT NULL,
+            eq_visit         TEXT DEFAULT NULL,
+            cod_visit        TEXT DEFAULT NULL,
+            goles_local      INTEGER DEFAULT NULL,
+            goles_visit      INTEGER DEFAULT NULL,
+            penales_ganador  TEXT DEFAULT NULL,
+            bloqueado        INTEGER DEFAULT 0
         )
     """)
+    # Agregar columna penales_ganador si no existe (migración segura)
+    try:
+        con.execute("ALTER TABLE partidos_eliminacion ADD COLUMN penales_ganador TEXT DEFAULT NULL")
+        con.commit()
+    except Exception:
+        pass
+
     con.execute("""
         CREATE TABLE IF NOT EXISTS pronosticos_eli (
-            id          SERIAL PRIMARY KEY,
-            usuario_id  INTEGER NOT NULL,
-            partido_id  INTEGER NOT NULL,
-            goles_local INTEGER NOT NULL,
-            goles_visit INTEGER NOT NULL,
-            puntos      INTEGER DEFAULT 0,
+            id              SERIAL PRIMARY KEY,
+            usuario_id      INTEGER NOT NULL,
+            partido_id      INTEGER NOT NULL,
+            goles_local     INTEGER NOT NULL,
+            goles_visit     INTEGER NOT NULL,
+            penales_ganador TEXT DEFAULT NULL,
+            puntos          INTEGER DEFAULT 0,
             UNIQUE(usuario_id, partido_id),
             FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE,
             FOREIGN KEY (partido_id) REFERENCES partidos_eliminacion(id) ON DELETE CASCADE
         )
     """)
+    # Agregar columna penales_ganador si no existe (migración segura)
+    try:
+        con.execute("ALTER TABLE pronosticos_eli ADD COLUMN penales_ganador TEXT DEFAULT NULL")
+        con.commit()
+    except Exception:
+        pass
     # ── TABLA: mejores_terceros ─────────────────────────────────────────────
     # Guarda los 8 terceros asignados a los cruces de dieciseisavos
     # manual_override = TRUE significa que el admin lo editó manualmente
@@ -350,7 +365,8 @@ def api_eliminacion_datos():
 
     partidos = [dict(p) for p in con.execute("""
         SELECT pe.*,
-               pr.goles_local AS p_local, pr.goles_visit AS p_vis
+               pr.goles_local AS p_local, pr.goles_visit AS p_vis,
+               pr.penales_ganador AS p_penales
         FROM partidos_eliminacion pe
         LEFT JOIN pronosticos_eli pr ON pr.partido_id=pe.id AND pr.usuario_id=%s
         ORDER BY pe.id
@@ -455,18 +471,26 @@ def _auto_propagar_ganadores(con):
         gl = p["goles_local"]
         gv = p["goles_visit"]
 
-        # En grupos puede haber empate. En eliminatorias el admin registra
-        # el resultado final. Si gl == gv, no podemos saber quién avanza
-        # sin info extra → no propagar (el admin debe corregir con penales).
         if gl > gv:
             ganador  = (p["eq_local"],  p["cod_local"])
             perdedor = (p["eq_visit"],  p["cod_visit"])
         elif gv > gl:
             ganador  = (p["eq_visit"],  p["cod_visit"])
             perdedor = (p["eq_local"],  p["cod_local"])
+        elif p.get("penales_ganador"):
+            # Empate con penales definidos
+            pen_gan = p["penales_ganador"]
+            if pen_gan == p["eq_local"]:
+                ganador  = (p["eq_local"],  p["cod_local"])
+                perdedor = (p["eq_visit"],  p["cod_visit"])
+            elif pen_gan == p["eq_visit"]:
+                ganador  = (p["eq_visit"],  p["cod_visit"])
+                perdedor = (p["eq_local"],  p["cod_local"])
+            else:
+                ganador  = None
+                perdedor = None
         else:
-            # Empate — no podemos determinar ganador sin info de penales.
-            # Guardamos None para que el campo destino quede vacío/pendiente.
+            # Empate sin penales definidos — no podemos propagar
             ganador  = None
             perdedor = None
 
@@ -777,18 +801,23 @@ def pronostico_eli():
             pid = int(key.split("_")[1])
             gl  = request.form.get(f"local_{pid}", "")
             gv  = request.form.get(f"vis_{pid}", "")
+            pen = request.form.get(f"pen_{pid}", "").strip() or None
             if gl.isdigit() and gv.isdigit():
                 p = con.execute(
                     "SELECT bloqueado, eq_local, eq_visit FROM partidos_eliminacion WHERE id=%s", (pid,)
                 ).fetchone()
                 if p and not p["bloqueado"] and p["eq_local"] and p["eq_visit"]:
+                    # Solo guardar penales si hay empate
+                    if int(gl) != int(gv):
+                        pen = None
                     con.execute("""
-                        INSERT INTO pronosticos_eli(usuario_id, partido_id, goles_local, goles_visit)
-                        VALUES(%s, %s, %s, %s)
+                        INSERT INTO pronosticos_eli(usuario_id, partido_id, goles_local, goles_visit, penales_ganador)
+                        VALUES(%s, %s, %s, %s, %s)
                         ON CONFLICT(usuario_id, partido_id) DO UPDATE SET
                             goles_local=excluded.goles_local,
-                            goles_visit=excluded.goles_visit
-                    """, (uid, pid, int(gl), int(gv)))
+                            goles_visit=excluded.goles_visit,
+                            penales_ganador=excluded.penales_ganador
+                    """, (uid, pid, int(gl), int(gv), pen))
     con.commit()
     if _is_ajax():
         return jsonify({"ok": True, "msg": "Pronósticos guardados"})
@@ -847,34 +876,71 @@ def admin_resultado_eli():
     pid = int(request.form.get("partido_id", 0))
     gl  = request.form.get("goles_local", "")
     gv  = request.form.get("goles_visitante", "")
+    pen = request.form.get("penales_ganador", "").strip() or None
     if not gl.isdigit() or not gv.isdigit():
         return _back()
     gl, gv = int(gl), int(gv)
+    # Solo guardar penales si hay empate
+    if gl != gv:
+        pen = None
     con = get_db()
     _ensure_eliminacion_table(con)
 
     con.execute("""
-        UPDATE partidos_eliminacion SET goles_local=%s, goles_visit=%s, bloqueado=1 WHERE id=%s
-    """, (gl, gv, pid))
+        UPDATE partidos_eliminacion SET goles_local=%s, goles_visit=%s, penales_ganador=%s, bloqueado=1 WHERE id=%s
+    """, (gl, gv, pen, pid))
+
+    # Obtener info del partido para saber nombres de equipos (para penales)
+    partido_info = con.execute(
+        "SELECT eq_local, eq_visit FROM partidos_eliminacion WHERE id=%s", (pid,)
+    ).fetchone()
+    eq_local = partido_info["eq_local"] if partido_info else None
+    eq_visit = partido_info["eq_visit"] if partido_info else None
 
     pronos = con.execute("""
-        SELECT id, goles_local, goles_visit FROM pronosticos_eli WHERE partido_id=%s
+        SELECT id, goles_local, goles_visit, penales_ganador FROM pronosticos_eli WHERE partido_id=%s
     """, (pid,)).fetchall()
 
     for p in pronos:
+        es_empate_real = (gl == gv)
+        es_empate_pred = (p["goles_local"] == p["goles_visit"])
+
         if p["goles_local"] == gl and p["goles_visit"] == gv:
-            pts = 3
+            # Marcador exacto en tiempo reglamentario
+            if es_empate_real and pen and p["penales_ganador"]:
+                # Exacto en TR + acertó penales
+                pts = 3 if p["penales_ganador"] == pen else 2
+            else:
+                pts = 3
         elif (
             (p["goles_local"] > p["goles_visit"] and gl > gv) or
             (p["goles_local"] < p["goles_visit"] and gl < gv) or
-            (p["goles_local"] == p["goles_visit"] and gl == gv)
+            (es_empate_pred and es_empate_real)
         ):
-            pts = 1
+            # Acertó resultado (ganador/empate) pero no marcador exacto
+            if es_empate_real and pen and p["penales_ganador"]:
+                # Acertó empate TR + acertó ganador en penales
+                pts = 2 if p["penales_ganador"] == pen else 1
+            else:
+                pts = 1
         else:
             pts = 0
         con.execute("UPDATE pronosticos_eli SET puntos=%s WHERE id=%s", (pts, p["id"]))
 
     con.commit()
+
+    # Si hay empate, propagar el ganador por penales en el bracket
+    if es_empate_real and pen and partido_info:
+        # Determinar quién avanzó
+        if pen == eq_local:
+            ganador = (eq_local, partido_info["cod_local"] if partido_info else "xx")
+        elif pen == eq_visit:
+            ganador = (eq_visit, partido_info["cod_visit"] if partido_info else "xx")
+        else:
+            ganador = None
+        if ganador:
+            _auto_propagar_ganadores(con)
+
     if _is_ajax():
         return jsonify({"ok": True, "msg": "Resultado guardado"})
     return _back()
