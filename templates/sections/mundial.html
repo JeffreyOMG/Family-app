@@ -1036,6 +1036,7 @@ const _CRUCES_TERCERO = new Set([74, 77, 79, 80, 81, 82, 85, 87]);
 const _GRUPOS_TERCERO = {74:'ABCDF',77:'CDFGH',79:'CEFHI',80:'EHIJK',81:'BEFIJ',82:'AEHIJ',85:'EFGIJ',87:'DEIJL'};
 
 let _tercerosPorGrupo = {};  // {A: {nombre, codigo, pts}, B: {...}, ...}
+let _todosEquipos = [];      // lista plana [{nombre, codigo, grupo}] para override manual
 
 async function _loadAdminEli() {
   const wrap = document.getElementById('admin-eli-lista'); if (!wrap) return;
@@ -1045,6 +1046,7 @@ async function _loadAdminEli() {
     const data = await res.json();
     _eliData = data.partidos;
     _tercerosPorGrupo = data.terceros_por_grupo || {};
+    _todosEquipos = data.todos_equipos || [];
     const fases = ['Dieciseisavos','Octavos','Cuartos','Semifinales','Tercer puesto','Final'];
     wrap.innerHTML = fases.map(fase => {
       const ps = data.partidos.filter(p => p.fase === fase);
@@ -1108,6 +1110,45 @@ function _adminEliCardHTML(p) {
               ${_buildTerceroSelect(p.id, null, _terceroYaUsados)}
             </div>
           </div>`;
+      }
+    } else {
+      // Para partidos NON-tercero: mostrar override si algún slot está vacío
+      // (ocurre cuando la propagación automática falla, ej. partido 94 con 81/82 aún sin equipos)
+      const localFalta = !localNombre;
+      const visitFalta = !visitNombre;
+      if (localFalta || visitFalta) {
+        const opcionesEquipos = _todosEquipos.map(eq =>
+          `<option value="${_esc(eq.nombre)}">${_esc(eq.nombre)} (${eq.grupo})</option>`
+        ).join('');
+        asignarHTML += `<div class="eli-asignar-tercero" style="border-color:var(--c-warn,#e65100)">
+          <div class="eli-asignar-label" style="color:var(--c-warn,#e65100)">
+            <span class="material-symbols-outlined">warning</span> Override manual de equipos
+          </div>`;
+        if (localFalta) {
+          asignarHTML += `
+          <div class="eli-select-row" style="margin-bottom:6px">
+            <span style="font-size:11px;opacity:.7;white-space:nowrap">Local:</span>
+            <select class="eli-select" id="override-local-${p.id}">
+              <option value="">-- elige local --</option>${opcionesEquipos}
+            </select>
+            <button class="admin-btn-save" onclick="asignarSlot(${p.id},'local')">
+              <span class="material-symbols-outlined">check_circle</span>
+            </button>
+          </div>`;
+        }
+        if (visitFalta) {
+          asignarHTML += `
+          <div class="eli-select-row">
+            <span style="font-size:11px;opacity:.7;white-space:nowrap">Visit:</span>
+            <select class="eli-select" id="override-visit-${p.id}">
+              <option value="">-- elige visit --</option>${opcionesEquipos}
+            </select>
+            <button class="admin-btn-save" onclick="asignarSlot(${p.id},'visit')">
+              <span class="material-symbols-outlined">check_circle</span>
+            </button>
+          </div>`;
+        }
+        asignarHTML += `</div>`;
       }
     }
   }
@@ -1183,6 +1224,29 @@ async function asignarTercero(pid) {
   }
 }
 
+async function asignarSlot(pid, lado) {
+  // Override manual: admin asigna cualquier equipo a cualquier slot de cualquier partido
+  const sel = document.getElementById(`override-${lado}-${pid}`);
+  const nombre = sel?.value?.trim();
+  if (!nombre) { mostrarToast('❌ Elige un equipo'); return; }
+  const fd = new FormData();
+  fd.append('partido_id', pid);
+  fd.append('lado', lado);
+  fd.append('nombre', nombre);
+  const res = await fetch('/admin_asignar_slot', {method:'POST', headers:{'X-Requested-With':'XMLHttpRequest'}, body:fd});
+  const data = await res.json();
+  if (res.ok && data.ok) {
+    mostrarToast(`✅ ${lado === 'local' ? 'Local' : 'Visitante'}: ${data.nombre}`);
+    _loadAdminEli();
+    _loadBracket();
+    _loadEliminacion(null);  // actualizar pronósticos para que los usuarios puedan predecir
+  } else {
+    mostrarToast('❌ ' + (data.msg || 'Error'));
+  }
+}
+
+
+
 function _checkBkEmpate(pid, localNombre, visitNombre) {
   const gl = parseInt(document.querySelector(`[name="local_${pid}"]`)?.value);
   const gv = parseInt(document.querySelector(`[name="vis_${pid}"]`)?.value);
@@ -1204,6 +1268,7 @@ async function _loadBracket() {
     const eliJson = await r2.json();
     _eliData = eliJson.partidos;  // cache para pronósticos del bracket
     _tercerosPorGrupo = eliJson.terceros_por_grupo || {};
+    _todosEquipos = eliJson.todos_equipos || [];
     _renderBracket(bracket, eliJson.partidos);
   } catch(e) { console.warn('bracket error', e); }
 }
