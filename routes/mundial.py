@@ -981,3 +981,39 @@ def ranking_global():
         ORDER BY puntos DESC, penales DESC, exactos DESC, ganadores DESC
     """).fetchall()]
     return jsonify(ranking)
+
+
+# ══════════════════════════════════════════
+# GATE DEL MUNDIAL — validación server-side
+# ══════════════════════════════════════════
+import os as _os
+
+@mundial_bp.route("/api/mundial_gate", methods=["POST"])
+def mundial_gate():
+    """Valida el código de acceso al mundial.
+    El código correcto viene de la variable de entorno MUNDIAL_CODE.
+    Si es correcto, lo guarda en la sesión de Flask (server-side).
+    """
+    if "uid" not in session:
+        return jsonify({"ok": False, "error": "No autenticado"}), 401
+
+    codigo_correcto = _os.getenv("MUNDIAL_CODE", "")
+    if not codigo_correcto:
+        return jsonify({"ok": False, "error": "Código no configurado en el servidor"}), 500
+
+    data = request.get_json(silent=True) or {}
+    codigo_ingresado = str(data.get("code", "")).strip()
+
+    if codigo_ingresado == codigo_correcto:
+        session["mundial_gate_ok"] = True
+        return jsonify({"ok": True})
+    else:
+        return jsonify({"ok": False, "error": "Código incorrecto"})
+
+
+@mundial_bp.route("/api/mundial_gate_status")
+def mundial_gate_status():
+    """Devuelve si el usuario ya pasó el gate en esta sesión."""
+    if "uid" not in session:
+        return jsonify({"ok": False}), 401
+    return jsonify({"ok": bool(session.get("mundial_gate_ok", False))})

@@ -2,7 +2,7 @@
 
   {% if usuario.rol == 'invitado' %}
   <!-- ══════════════════════════════════════════
-       MODAL ACCESO MUNDIAL — solo invitados
+       MODAL ACCESO MUNDIAL — solo invitados (validación server-side)
   ══════════════════════════════════════════ -->
   <style>
     #mundial-gate {
@@ -13,10 +13,8 @@
       align-items: center;
       justify-content: center;
       padding: 20px;
-      /* permite tocar el menú/sidebar que está sobre z-index más alto */
       pointer-events: none;
     }
-
     #mundial-gate-box {
       pointer-events: all;
       background: linear-gradient(145deg, #0a1628 0%, #0f2044 60%, #091520 100%);
@@ -30,12 +28,10 @@
       position: relative;
       animation: gate-pop .35s cubic-bezier(.34,1.56,.64,1) both;
     }
-
     @keyframes gate-pop {
       from { opacity:0; transform:scale(.88) translateY(16px); }
       to   { opacity:1; transform:scale(1)  translateY(0); }
     }
-
     #mundial-gate-box::before {
       content: '';
       position: absolute;
@@ -44,254 +40,135 @@
       background: radial-gradient(ellipse at 50% 0%, rgba(245,197,24,.10) 0%, transparent 65%);
       pointer-events: none;
     }
-
-    .gate-icon {
-      font-size: 3rem;
-      margin-bottom: 6px;
-      display: block;
-      filter: drop-shadow(0 0 12px rgba(245,197,24,.5));
-    }
-
-    .gate-title {
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: 1.9rem;
-      color: #f5c518;
-      letter-spacing: .08em;
-      margin: 0 0 4px;
-      line-height: 1.1;
-    }
-
-    .gate-sub {
-      font-family: 'DM Sans', sans-serif;
-      font-size: .82rem;
-      color: rgba(255,255,255,.5);
-      margin-bottom: 22px;
-    }
-
-    .gate-info {
-      background: rgba(245,197,24,.07);
-      border: 1px solid rgba(245,197,24,.18);
-      border-radius: 10px;
-      padding: 12px 14px;
-      font-family: 'DM Sans', sans-serif;
-      font-size: .8rem;
-      color: rgba(255,255,255,.65);
-      margin-bottom: 22px;
-      text-align: left;
-      line-height: 1.6;
-    }
-
-    .gate-info strong { color: #f5c518; }
-
-    .gate-label {
-      font-family: 'DM Sans', sans-serif;
-      font-size: .78rem;
-      color: rgba(255,255,255,.45);
-      text-align: left;
-      margin-bottom: 6px;
-      letter-spacing: .03em;
-    }
-
-    .gate-input-row {
-      display: flex;
-      gap: 8px;
-      margin-bottom: 14px;
-    }
-
+    .gate-icon  { font-size:3rem; margin-bottom:6px; display:block; filter:drop-shadow(0 0 12px rgba(245,197,24,.5)); }
+    .gate-title { font-family:'Bebas Neue',sans-serif; font-size:1.9rem; color:#f5c518; letter-spacing:.08em; margin:0 0 4px; line-height:1.1; }
+    .gate-sub   { font-family:'DM Sans',sans-serif; font-size:.82rem; color:rgba(255,255,255,.5); margin-bottom:22px; }
+    .gate-info  { background:rgba(245,197,24,.07); border:1px solid rgba(245,197,24,.18); border-radius:10px; padding:12px 14px; font-family:'DM Sans',sans-serif; font-size:.8rem; color:rgba(255,255,255,.65); margin-bottom:22px; text-align:left; line-height:1.6; }
+    .gate-info strong { color:#f5c518; }
+    .gate-label { font-family:'DM Sans',sans-serif; font-size:.78rem; color:rgba(255,255,255,.45); text-align:left; margin-bottom:6px; letter-spacing:.03em; }
+    .gate-input-row { display:flex; gap:8px; margin-bottom:14px; }
     #gate-code-input {
-      flex: 1;
-      background: rgba(255,255,255,.06);
-      border: 1.5px solid rgba(255,255,255,.15);
-      border-radius: 10px;
-      color: #fff;
-      font-family: 'Bebas Neue', 'DM Sans', sans-serif;
-      font-size: 1.3rem;
-      letter-spacing: .12em;
-      padding: 10px 14px;
-      text-align: center;
-      outline: none;
-      transition: border-color .2s;
+      flex:1; background:rgba(255,255,255,.06); border:1.5px solid rgba(255,255,255,.15);
+      border-radius:10px; color:#fff; font-family:'Bebas Neue','DM Sans',sans-serif;
+      font-size:1.3rem; letter-spacing:.12em; padding:10px 14px; text-align:center;
+      outline:none; transition:border-color .2s;
     }
-
-    #gate-code-input:focus {
-      border-color: rgba(245,197,24,.6);
-    }
-
-    #gate-code-input.gate-error {
-      border-color: #e53935;
-      animation: gate-shake .35s ease;
-    }
-
+    #gate-code-input:focus { border-color:rgba(245,197,24,.6); }
+    #gate-code-input.gate-error { border-color:#e53935; animation:gate-shake .35s ease; }
     @keyframes gate-shake {
-      0%,100%{transform:translateX(0)}
-      20%{transform:translateX(-6px)}
-      40%{transform:translateX(6px)}
-      60%{transform:translateX(-4px)}
-      80%{transform:translateX(4px)}
+      0%,100%{transform:translateX(0)} 20%{transform:translateX(-6px)}
+      40%{transform:translateX(6px)}   60%{transform:translateX(-4px)} 80%{transform:translateX(4px)}
     }
-
     #gate-btn {
-      background: linear-gradient(135deg, #f5c518 0%, #e6a800 100%);
-      color: #0a1628;
-      border: none;
-      border-radius: 10px;
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: 1.1rem;
-      letter-spacing: .06em;
-      padding: 10px 18px;
-      cursor: pointer;
-      transition: opacity .15s, transform .15s;
-      white-space: nowrap;
+      background:linear-gradient(135deg,#f5c518 0%,#e6a800 100%);
+      color:#0a1628; border:none; border-radius:10px;
+      font-family:'Bebas Neue',sans-serif; font-size:1.1rem; letter-spacing:.06em;
+      padding:10px 18px; cursor:pointer; transition:opacity .15s,transform .15s; white-space:nowrap;
     }
+    #gate-btn:active { opacity:.85; transform:scale(.97); }
+    #gate-btn:disabled { opacity:.5; cursor:not-allowed; }
+    #gate-error-msg { color:#ef5350; font-family:'DM Sans',sans-serif; font-size:.78rem; margin-top:-8px; margin-bottom:10px; min-height:18px; text-align:left; }
+    #mundial-gate-backdrop { display:none; position:fixed; inset:0; z-index:8999; background:rgba(0,0,0,.72); backdrop-filter:blur(3px); }
 
-    #gate-btn:active { opacity:.85; transform: scale(.97); }
-
-    #gate-error-msg {
-      color: #ef5350;
-      font-family: 'DM Sans', sans-serif;
-      font-size: .78rem;
-      margin-top: -8px;
-      margin-bottom: 10px;
-      min-height: 18px;
-      text-align: left;
-    }
-
-    .gate-divider {
-      border: none;
-      border-top: 1px solid rgba(255,255,255,.08);
-      margin: 16px 0;
-    }
-
-    .gate-polla-label {
-      font-family: 'DM Sans', sans-serif;
-      font-size: .75rem;
-      color: rgba(255,255,255,.35);
-      text-align: left;
-      margin-bottom: 5px;
-    }
-
-    #gate-desc-input {
-      width: 100%;
-      background: rgba(255,255,255,.05);
-      border: 1.5px solid rgba(255,255,255,.1);
-      border-radius: 10px;
-      color: rgba(255,255,255,.7);
-      font-family: 'DM Sans', sans-serif;
-      font-size: .82rem;
-      padding: 9px 12px;
-      resize: none;
-      outline: none;
-      box-sizing: border-box;
-      transition: border-color .2s;
-    }
-
-    #gate-desc-input:focus { border-color: rgba(245,197,24,.4); }
-
-    /* ── MÓVIL ── */
     @media (max-width: 540px) {
-      #mundial-gate {
-        align-items: flex-end;
-        padding: 0;
-      }
-
+      #mundial-gate { align-items:flex-end; padding:0; }
       #mundial-gate-box {
-        border-radius: 22px 22px 0 0;
-        padding: 28px 20px 36px;
-        max-width: 100%;
-        animation: gate-slide-up .38s cubic-bezier(.34,1.3,.64,1) both;
+        border-radius:22px 22px 0 0; padding:28px 20px 36px;
+        max-width:100%; animation:gate-slide-up .38s cubic-bezier(.34,1.3,.64,1) both;
       }
-
       @keyframes gate-slide-up {
         from { opacity:0; transform:translateY(100%); }
         to   { opacity:1; transform:translateY(0); }
       }
-
-      .gate-title { font-size: 1.7rem; }
-      #gate-code-input { font-size: 1.5rem; }
+      .gate-title { font-size:1.7rem; }
+      #gate-code-input { font-size:1.5rem; }
     }
   </style>
 
-  <!-- Fondo semitransparente que NO bloquea el menú -->
-  <div id="mundial-gate-backdrop" style="
-    display:none; position:fixed; inset:0; z-index:8999;
-    background:rgba(0,0,0,.72); backdrop-filter:blur(3px);"></div>
-
+  <div id="mundial-gate-backdrop"></div>
   <div id="mundial-gate">
     <div id="mundial-gate-box">
       <span class="gate-icon">⚽</span>
       <div class="gate-title">Polla Mundialista 2026</div>
       <div class="gate-sub">Sección exclusiva para inscritos</div>
-
       <div class="gate-info">
         Esta sección está disponible <strong>únicamente para quienes pagaron la inscripción de $60.000</strong>.<br>
-        Ingresa el código que recibiste para acceder y predecir los partidos.
-        <br><br>
-        💳 <strong>Llave:</strong> <code style="background:rgba(255,255,255,.08);padding:1px 6px;border-radius:4px;">39662388</code>
+        Al hacer el pago a la llave <strong>39662388</strong>, escribe en la <strong>descripción del envío</strong> tu usuario y nombre.<br><br>
+        Luego ingresa el código que te enviamos para acceder.
       </div>
-
       <div class="gate-label">Código de acceso</div>
       <div class="gate-input-row">
         <input id="gate-code-input" type="text" inputmode="numeric"
-               maxlength="12" placeholder="· · · · · · · ·"
+               maxlength="20" placeholder="· · · · · · · ·"
                onkeydown="if(event.key==='Enter') gateVerify()">
         <button id="gate-btn" onclick="gateVerify()">Entrar</button>
       </div>
       <div id="gate-error-msg"></div>
-
-      <hr class="gate-divider">
-
-      <div class="gate-polla-label">
-        📝 Polla mundialista — tu usuario y nombre (opcional, para el ranking)
-      </div>
-      <textarea id="gate-desc-input" rows="2"
-        placeholder="Ej: @juanito · Juan Pérez"></textarea>
     </div>
   </div>
 
   <script>
   (function() {
-    const GATE_KEY  = 'mundial_gate_ok_v1';
-    const CODE_OK   = '39662388';
+    const backdrop = document.getElementById('mundial-gate-backdrop');
+    const gate     = document.getElementById('mundial-gate');
+    const input    = document.getElementById('gate-code-input');
+    const errEl    = document.getElementById('gate-error-msg');
+    const btn      = document.getElementById('gate-btn');
 
     function showGate() {
-      document.getElementById('mundial-gate-backdrop').style.display = 'block';
-      document.getElementById('mundial-gate').style.display          = 'flex';
-      setTimeout(function() {
-        document.getElementById('gate-code-input').focus();
-      }, 350);
+      backdrop.style.display = 'block';
+      gate.style.display     = 'flex';
+      setTimeout(function(){ input.focus(); }, 350);
     }
 
     function hideGate() {
-      document.getElementById('mundial-gate-backdrop').style.display = 'none';
-      document.getElementById('mundial-gate').style.display          = 'none';
+      const box = document.getElementById('mundial-gate-box');
+      box.style.transition = 'opacity .3s, transform .3s';
+      box.style.opacity    = '0';
+      box.style.transform  = 'scale(.95)';
+      setTimeout(function(){
+        gate.style.display     = 'none';
+        backdrop.style.display = 'none';
+      }, 320);
     }
 
-    window.gateVerify = function() {
-      const input = document.getElementById('gate-code-input');
-      const errEl = document.getElementById('gate-error-msg');
-      const val   = input.value.trim().replace(/\s/g, '');
+    // Verificar contra el servidor — el código NUNCA llega al navegador
+    window.gateVerify = async function() {
+      const code = input.value.trim();
+      if (!code) return;
+      btn.disabled   = true;
+      btn.textContent = '...';
+      errEl.textContent = '';
 
-      if (val === CODE_OK) {
-        sessionStorage.setItem(GATE_KEY, '1');
-        errEl.textContent = '';
-        input.classList.remove('gate-error');
-        // pequeño fade de salida
-        const box = document.getElementById('mundial-gate-box');
-        box.style.transition = 'opacity .3s, transform .3s';
-        box.style.opacity = '0';
-        box.style.transform = 'scale(.95)';
-        setTimeout(hideGate, 320);
-      } else {
-        input.classList.add('gate-error');
-        errEl.textContent = '❌ Código incorrecto. Verifica e intenta de nuevo.';
-        setTimeout(function() { input.classList.remove('gate-error'); }, 400);
+      try {
+        const res  = await fetch('/api/mundial_gate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code: code })
+        });
+        const data = await res.json();
+
+        if (data.ok) {
+          hideGate();
+        } else {
+          input.classList.add('gate-error');
+          errEl.textContent = '❌ ' + (data.error || 'Código incorrecto');
+          setTimeout(function(){ input.classList.remove('gate-error'); }, 400);
+          btn.disabled    = false;
+          btn.textContent = 'Entrar';
+        }
+      } catch(e) {
+        errEl.textContent = '❌ Error de conexión. Intenta de nuevo.';
+        btn.disabled    = false;
+        btn.textContent = 'Entrar';
       }
     };
 
-    // Mostrar si no ha pasado el gate esta sesión
-    if (!sessionStorage.getItem(GATE_KEY)) {
-      showGate();
-    }
+    // Consultar al servidor si ya pasó el gate en esta sesión Flask
+    fetch('/api/mundial_gate_status')
+      .then(function(r){ return r.json(); })
+      .then(function(d){ if (!d.ok) showGate(); })
+      .catch(function(){ showGate(); });
   })();
   </script>
   {% endif %}
@@ -300,6 +177,142 @@
     <span class="material-symbols-outlined">sports_soccer</span>
     Mundial 2026
   </h1>
+
+  <!-- ══════════════════════════════════════════
+       VIDEO INTRO MUNDIAL — inline, siempre visible
+  ══════════════════════════════════════════ -->
+  <style>
+    #mundial-video-wrap {
+      position: relative;
+      width: 100%;
+      max-width: 720px;
+      margin: 0 auto 24px;
+      border-radius: 16px;
+      overflow: hidden;
+      background: #000;
+      box-shadow: 0 8px 40px rgba(0,0,0,.45);
+      aspect-ratio: 16/9;
+    }
+
+    #mundial-intro-vid {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    /* Botón skip — aparece solo si ya vio la intro antes */
+    #mundial-skip-btn {
+      display: none;
+      position: absolute;
+      bottom: 14px;
+      right: 14px;
+      background: rgba(0,0,0,.62);
+      color: #fff;
+      border: 1.5px solid rgba(255,255,255,.35);
+      border-radius: 8px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: .78rem;
+      padding: 6px 14px;
+      cursor: pointer;
+      letter-spacing: .03em;
+      transition: background .18s;
+      z-index: 5;
+    }
+    #mundial-skip-btn:hover { background: rgba(0,0,0,.85); }
+
+    /* Barra de progreso del video inline */
+    #mundial-vid-bar {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 3px;
+      background: rgba(255,255,255,.15);
+      z-index: 4;
+    }
+    #mundial-vid-prog {
+      height: 100%;
+      width: 0%;
+      background: #f5c518;
+      transition: width .25s linear;
+    }
+
+    /* Móvil: portrait ratio tipo TikTok */
+    @media (max-width: 540px) {
+      #mundial-video-wrap {
+        border-radius: 12px;
+        aspect-ratio: 9/16;
+        max-width: 100%;
+      }
+    }
+  </style>
+
+  <div id="mundial-video-wrap">
+    <video id="mundial-intro-vid"
+           src="https://res.cloudinary.com/dspipt2n7/video/upload/v1780378304/intro_mundial_k3qdvn.mp4"
+           autoplay playsinline muted webkit-playsinline>
+    </video>
+    <button id="mundial-skip-btn" onclick="mundialSkipVideo()">Saltar ▶</button>
+    <div id="mundial-vid-bar"><div id="mundial-vid-prog"></div></div>
+  </div>
+
+  <script>
+  (function() {
+    const SEEN_KEY = 'mundial_intro_seen_v1';
+    const vid  = document.getElementById('mundial-intro-vid');
+    const prog = document.getElementById('mundial-vid-prog');
+    const skip = document.getElementById('mundial-skip-btn');
+    const wrap = document.getElementById('mundial-video-wrap');
+
+    // Si ya vio la intro antes → mostrar botón skip desde el principio
+    if (sessionStorage.getItem(SEEN_KEY)) {
+      skip.style.display = 'block';
+    }
+
+    // Intentar activar sonido al primer toque
+    function tryUnmute() { vid.muted = false; vid.volume = 0.85; }
+    wrap.addEventListener('click',      tryUnmute, {once: true});
+    wrap.addEventListener('touchstart', tryUnmute, {once: true, passive: true});
+
+    // Barra de progreso
+    vid.addEventListener('timeupdate', function() {
+      if (vid.duration) {
+        prog.style.width = (vid.currentTime / vid.duration * 100) + '%';
+      }
+    });
+
+    // Anti-skip solo en la PRIMERA vez
+    let lastTime = 0;
+    vid.addEventListener('timeupdate', function() {
+      if (!sessionStorage.getItem(SEEN_KEY)) {
+        if (vid.currentTime > lastTime + 1.5) vid.currentTime = lastTime;
+        else lastTime = vid.currentTime;
+      }
+    });
+
+    // Al terminar: marcar como visto y mostrar skip para la próxima
+    vid.addEventListener('ended', function() {
+      sessionStorage.setItem(SEEN_KEY, '1');
+      skip.style.display = 'block';
+      // Colapsar el wrap con animación
+      wrap.style.transition = 'max-height .5s ease, opacity .4s ease, margin .5s ease';
+      wrap.style.overflow = 'hidden';
+      wrap.style.opacity = '0';
+      wrap.style.maxHeight = '0px';
+      wrap.style.marginBottom = '0px';
+    });
+
+    // Función skip global
+    window.mundialSkipVideo = function() {
+      sessionStorage.setItem(SEEN_KEY, '1');
+      wrap.style.transition = 'max-height .4s ease, opacity .3s ease, margin .4s ease';
+      wrap.style.overflow = 'hidden';
+      wrap.style.opacity = '0';
+      wrap.style.maxHeight = '0px';
+      wrap.style.marginBottom = '0px';
+      vid.pause();
+    };
+  })();
+  </script>
 
   <!-- TABS -->
   <div class="tabs-bar">
