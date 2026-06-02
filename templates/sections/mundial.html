@@ -247,11 +247,11 @@
       <div id="ranking-body">
         {% if ranking_mundial %}
         <table>
-          <thead><tr><th>#</th><th>Jugador</th><th>Pts</th><th title="Penales acertados">⚽</th><th title="Marcador exacto">🎯</th><th title="Ganador acertado">✓</th></tr></thead>
+          <thead><tr><th>#</th><th>Jugador</th><th>Pts</th><th>Penales</th><th>Exactos</th><th>Ganadores</th></tr></thead>
           <tbody>
             {% for r in ranking_mundial %}
             <tr>
-              <td>{% if loop.index==1 %}🥇{% elif loop.index==2 %}🥈{% elif loop.index==3 %}🥉{% else %}{{ loop.index }}{% endif %}</td>
+              <td>{{ loop.index }}</td>
               <td>{{ r.nombre }}</td>
               <td class="highlight">{{ r.puntos }}</td>
               <td>{{ r.penales }}</td>
@@ -490,7 +490,7 @@ function _renderRanking(ranking) {
   if (!tbody) return;
   tbody.innerHTML = ranking.map((r, i) => `
     <tr>
-      <td>${i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1}</td>
+      <td>${i+1}</td>
       <td>${_esc(r.nombre)}</td>
       <td><strong>${r.puntos}</strong></td>
       <td>${r.penales||0}</td>
