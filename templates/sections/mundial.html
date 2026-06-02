@@ -250,7 +250,7 @@
           <thead><tr><th>#</th><th>Jugador</th><th>Pts</th><th>Penales</th><th>Exactos</th><th>Ganadores</th></tr></thead>
           <tbody>
             {% for r in ranking_mundial %}
-            <tr>
+            <tr{% if r.id == usuario.id %} class="ranking-yo"{% endif %}>
               <td>{% if loop.index==1 %}<i class="fa-solid fa-trophy" style="color:#f5c518;"></i>{% elif loop.index==2 %}<i class="fa-solid fa-medal" style="color:#b0b8c1;"></i>{% elif loop.index==3 %}<i class="fa-solid fa-medal" style="color:#cd7f32;"></i>{% else %}{{ loop.index }}{% endif %}</td>
               <td>{{ r.nombre }}</td>
               <td class="highlight">{{ r.puntos }}</td>
@@ -485,11 +485,13 @@ function _renderGrupos(partidos, tabla) {
   }
 }
 
+const _MI_ID = {{ usuario.id }};
+
 function _renderRanking(ranking) {
   const tbody = document.querySelector('#mtab-ranking table tbody');
   if (!tbody) return;
   tbody.innerHTML = ranking.map((r, i) => `
-    <tr>
+    <tr${r.id === _MI_ID ? ' class="ranking-yo"' : ''}>
       <td>${i===0?'<i class="fa-solid fa-trophy" style="color:#f5c518;"></i>':i===1?'<i class="fa-solid fa-medal" style="color:#b0b8c1;"></i>':i===2?'<i class="fa-solid fa-medal" style="color:#cd7f32;"></i>':i+1}</td>
       <td>${_esc(r.nombre)}</td>
       <td><strong>${r.puntos}</strong></td>
