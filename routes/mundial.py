@@ -530,9 +530,9 @@ def _auto_propagar_ganadores(con):
             dato = resultados[origen][tipo]
 
             if dato is None:
-                # Empate sin desempate — limpiar para que no quede dato incorrecto
-                updates[campo_eq]  = None
-                updates[campo_cod] = None
+                # Empate sin penales definidos — no propagar ni borrar,
+                # el admin aún debe ingresar quién ganó en penales
+                continue
             else:
                 updates[campo_eq]  = dato[0]
                 updates[campo_cod] = dato[1]

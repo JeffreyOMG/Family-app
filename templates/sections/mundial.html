@@ -1132,7 +1132,7 @@ function _adminEliCardHTML(p) {
           ${p.bloqueado?'Editar':'Guardar'}
         </button>
       </div>
-      <div class="admin-pen-sel" id="admin-pen-${p.id}" style="display:${(p.bloqueado && p.goles_local===p.goles_visit && p.goles_local!==null)?'block':'none'};">
+      <div class="admin-pen-sel" id="admin-pen-${p.id}" style="display:${(p.goles_local===p.goles_visit && p.goles_local!==null)?'block':'none'};">
         <div class="admin-pen-label"><span class="material-symbols-outlined">sports_score</span> ¿Quién ganó en penales?</div>
         <div class="admin-pen-opciones">
           ${localNombre ? `<label><input type="radio" name="penales_ganador" value="${_esc(localNombre)}" ${p.penales_ganador===localNombre?'checked':''}> ${_esc(localNombre)}</label>` : ''}
