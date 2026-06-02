@@ -132,14 +132,36 @@
       }, 320);
     }
 
-    // Verificar contra el servidor — el código NUNCA llega al navegador
+    // Doble verificación: localStorage (móvil) + sesión Flask (servidor)
+    const LS_KEY = 'mundial_gate_passed_v1';
+
+    // Si ya pasó guardado localmente → no mostrar, confirmar con servidor silenciosamente
+    if (localStorage.getItem(LS_KEY)) {
+      // Ya tiene acceso guardado, no mostrar modal
+      // Sincronizar con servidor en background por si la sesión Flask expiró
+      fetch('/api/mundial_gate_status').catch(function(){});
+    } else {
+      // Verificar con servidor
+      fetch('/api/mundial_gate_status')
+        .then(function(r){ return r.json(); })
+        .then(function(d){
+          if (d.ok) {
+            localStorage.setItem(LS_KEY, '1'); // guardar localmente también
+          } else {
+            showGate();
+          }
+        })
+        .catch(function(){ showGate(); });
+    }
+
+    // Al verificar código exitosamente → guardar en localStorage también
+    const _origGateVerify = window.gateVerify;
     window.gateVerify = async function() {
       const code = input.value.trim();
       if (!code) return;
-      btn.disabled   = true;
+      btn.disabled = true;
       btn.textContent = '...';
       errEl.textContent = '';
-
       try {
         const res  = await fetch('/api/mundial_gate', {
           method: 'POST',
@@ -147,8 +169,8 @@
           body: JSON.stringify({ code: code })
         });
         const data = await res.json();
-
         if (data.ok) {
+          localStorage.setItem(LS_KEY, '1'); // persistir en móvil
           hideGate();
         } else {
           input.classList.add('gate-error');
@@ -163,12 +185,6 @@
         btn.textContent = 'Entrar';
       }
     };
-
-    // Consultar al servidor si ya pasó el gate en esta sesión Flask
-    fetch('/api/mundial_gate_status')
-      .then(function(r){ return r.json(); })
-      .then(function(d){ if (!d.ok) showGate(); })
-      .catch(function(){ showGate(); });
   })();
   </script>
   {% endif %}
@@ -179,137 +195,154 @@
   </h1>
 
   <!-- ══════════════════════════════════════════
-       VIDEO INTRO MUNDIAL — inline, siempre visible
+       VIDEO INTRO MUNDIAL — bloquea sección hasta ver/skipear
   ══════════════════════════════════════════ -->
   <style>
-    #mundial-video-wrap {
+    /* Contenedor que ocupa toda la sección y bloquea el contenido debajo */
+    #mw-video-blocker {
       position: relative;
       width: 100%;
-      max-width: 720px;
-      margin: 0 auto 24px;
+      background: #000;
+      z-index: 10;
+      /* En PC: 16:9 centrado */
+      max-width: 800px;
+      margin: 0 auto 28px;
       border-radius: 16px;
       overflow: hidden;
-      background: #000;
-      box-shadow: 0 8px 40px rgba(0,0,0,.45);
+      box-shadow: 0 12px 48px rgba(0,0,0,.6);
       aspect-ratio: 16/9;
     }
-
-    #mundial-intro-vid {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      display: block;
+    #mw-vid {
+      width: 100%; height: 100%;
+      object-fit: cover; display: block;
     }
-
-    /* Botón skip — aparece solo si ya vio la intro antes */
-    #mundial-skip-btn {
-      display: none;
-      position: absolute;
-      bottom: 14px;
-      right: 14px;
-      background: rgba(0,0,0,.62);
-      color: #fff;
-      border: 1.5px solid rgba(255,255,255,.35);
-      border-radius: 8px;
-      font-family: 'DM Sans', sans-serif;
-      font-size: .78rem;
-      padding: 6px 14px;
-      cursor: pointer;
-      letter-spacing: .03em;
-      transition: background .18s;
-      z-index: 5;
+    #mw-skip-btn {
+      position: absolute; bottom: 16px; right: 16px;
+      background: rgba(0,0,0,.7); color: #fff;
+      border: 1.5px solid rgba(255,255,255,.45);
+      border-radius: 10px; font-family: 'DM Sans', sans-serif;
+      font-size: .85rem; padding: 8px 18px; cursor: pointer;
+      letter-spacing: .03em; z-index: 6;
+      transition: background .15s;
     }
-    #mundial-skip-btn:hover { background: rgba(0,0,0,.85); }
-
-    /* Barra de progreso del video inline */
-    #mundial-vid-bar {
-      position: absolute;
-      bottom: 0; left: 0; right: 0;
-      height: 3px;
-      background: rgba(255,255,255,.15);
-      z-index: 4;
+    #mw-skip-btn:hover { background: rgba(0,0,0,.92); }
+    #mw-vid-bar {
+      position: absolute; bottom: 0; left: 0; right: 0;
+      height: 4px; background: rgba(255,255,255,.15); z-index: 5;
     }
-    #mundial-vid-prog {
-      height: 100%;
-      width: 0%;
-      background: #f5c518;
+    #mw-vid-prog {
+      height: 100%; width: 0%; background: #f5c518;
       transition: width .25s linear;
     }
-
-    /* Móvil: portrait ratio tipo TikTok */
-    @media (max-width: 540px) {
-      #mundial-video-wrap {
-        border-radius: 12px;
-        aspect-ratio: 9/16;
+    /* Overlay que cubre TODO lo que hay debajo del video */
+    #mw-section-blocker {
+      display: none;
+      position: absolute;
+      left: 0; right: 0;
+      background: rgba(0,0,0,0); /* transparente — solo bloquea clicks/scroll */
+      z-index: 9;
+      pointer-events: all;
+    }
+    /* Móvil: full width, 9:16 tipo TikTok */
+    @media (max-width: 600px) {
+      #mw-video-blocker {
         max-width: 100%;
+        width: 100%;
+        border-radius: 0;
+        margin-left: 0; margin-right: 0;
+        aspect-ratio: 9/16;
+        max-height: 85vh;
       }
     }
   </style>
 
-  <div id="mundial-video-wrap">
-    <video id="mundial-intro-vid"
+  <!-- Video que bloquea la sección -->
+  <div id="mw-video-blocker">
+    <video id="mw-vid"
            src="https://res.cloudinary.com/dspipt2n7/video/upload/v1780378304/intro_mundial_k3qdvn.mp4"
-           autoplay playsinline muted webkit-playsinline>
+           autoplay playsinline muted webkit-playsinline preload="auto">
     </video>
-    <button id="mundial-skip-btn" onclick="mundialSkipVideo()">Saltar ▶</button>
-    <div id="mundial-vid-bar"><div id="mundial-vid-prog"></div></div>
+    <button id="mw-skip-btn" style="display:none" onclick="mwSkip()">Saltar ▶</button>
+    <div id="mw-vid-bar"><div id="mw-vid-prog"></div></div>
   </div>
+  <!-- Este div se posiciona justo debajo del video y bloquea el resto de la sección -->
+  <div id="mw-section-blocker"></div>
 
   <script>
   (function() {
-    const SEEN_KEY = 'mundial_intro_seen_v1';
-    const vid  = document.getElementById('mundial-intro-vid');
-    const prog = document.getElementById('mundial-vid-prog');
-    const skip = document.getElementById('mundial-skip-btn');
-    const wrap = document.getElementById('mundial-video-wrap');
+    const SEEN    = 'mw_intro_seen_v1';
+    const blocker = document.getElementById('mw-video-blocker');
+    const secBlk  = document.getElementById('mw-section-blocker');
+    const vid     = document.getElementById('mw-vid');
+    const prog    = document.getElementById('mw-vid-prog');
+    const skipBtn = document.getElementById('mw-skip-btn');
+    const visto   = !!localStorage.getItem(SEEN);
 
-    // Si ya vio la intro antes → mostrar botón skip desde el principio
-    if (sessionStorage.getItem(SEEN_KEY)) {
-      skip.style.display = 'block';
+    function posicionarBlocker() {
+      // Bloquea todo desde debajo del video hasta el final de la sección
+      const rect = blocker.getBoundingClientRect();
+      const secRect = document.getElementById('sec-mundial').getBoundingClientRect();
+      const top = blocker.offsetTop + blocker.offsetHeight;
+      secBlk.style.top    = top + 'px';
+      secBlk.style.height = Math.max(document.getElementById('sec-mundial').scrollHeight - top, 300) + 'px';
     }
 
-    // Intentar activar sonido al primer toque
-    function tryUnmute() { vid.muted = false; vid.volume = 0.85; }
-    wrap.addEventListener('click',      tryUnmute, {once: true});
-    wrap.addEventListener('touchstart', tryUnmute, {once: true, passive: true});
+    function activarBloqueo() {
+      secBlk.style.display = 'block';
+      posicionarBlocker();
+      // Scroll al inicio del mundial para que el video sea lo primero visible
+      blocker.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    function liberarBloqueo() {
+      secBlk.style.display = 'none';
+      // Colapsar el video suavemente
+      blocker.style.transition = 'max-height .5s ease, opacity .4s ease, margin .5s ease';
+      blocker.style.overflow = 'hidden';
+      const h = blocker.offsetHeight;
+      blocker.style.maxHeight = h + 'px';
+      requestAnimationFrame(function() {
+        blocker.style.maxHeight   = '0px';
+        blocker.style.opacity     = '0';
+        blocker.style.marginBottom = '0px';
+      });
+    }
+
+    // Activar bloqueo si no ha visto el video aún
+    if (!visto) {
+      activarBloqueo();
+      // Primera vez: sin skip, con anti-skip
+      let last = 0;
+      vid.addEventListener('timeupdate', function() {
+        if (vid.currentTime > last + 1.5) vid.currentTime = last;
+        else last = vid.currentTime;
+      });
+    } else {
+      // Ya vio antes: mostrar skip directo, sin bloquear
+      skipBtn.style.display = 'block';
+    }
 
     // Barra de progreso
     vid.addEventListener('timeupdate', function() {
-      if (vid.duration) {
-        prog.style.width = (vid.currentTime / vid.duration * 100) + '%';
-      }
+      if (vid.duration) prog.style.width = (vid.currentTime / vid.duration * 100) + '%';
     });
 
-    // Anti-skip solo en la PRIMERA vez
-    let lastTime = 0;
-    vid.addEventListener('timeupdate', function() {
-      if (!sessionStorage.getItem(SEEN_KEY)) {
-        if (vid.currentTime > lastTime + 1.5) vid.currentTime = lastTime;
-        else lastTime = vid.currentTime;
-      }
-    });
+    // Sonido al primer toque
+    function tryUnmute() { vid.muted = false; vid.volume = 0.85; }
+    blocker.addEventListener('click',      tryUnmute, {once:true});
+    blocker.addEventListener('touchstart', tryUnmute, {once:true, passive:true});
 
-    // Al terminar: marcar como visto y mostrar skip para la próxima
+    // Al terminar → liberar
     vid.addEventListener('ended', function() {
-      sessionStorage.setItem(SEEN_KEY, '1');
-      skip.style.display = 'block';
-      // Colapsar el wrap con animación
-      wrap.style.transition = 'max-height .5s ease, opacity .4s ease, margin .5s ease';
-      wrap.style.overflow = 'hidden';
-      wrap.style.opacity = '0';
-      wrap.style.maxHeight = '0px';
-      wrap.style.marginBottom = '0px';
+      localStorage.setItem(SEEN, '1');
+      liberarBloqueo();
     });
 
-    // Función skip global
-    window.mundialSkipVideo = function() {
-      sessionStorage.setItem(SEEN_KEY, '1');
-      wrap.style.transition = 'max-height .4s ease, opacity .3s ease, margin .4s ease';
-      wrap.style.overflow = 'hidden';
-      wrap.style.opacity = '0';
-      wrap.style.maxHeight = '0px';
-      wrap.style.marginBottom = '0px';
+    // Skip
+    window.mwSkip = function() {
+      localStorage.setItem(SEEN, '1');
       vid.pause();
+      liberarBloqueo();
     };
   })();
   </script>
