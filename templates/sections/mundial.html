@@ -266,20 +266,41 @@
   <div id="mw-intro-overlay">
     <video id="mw-vid"
            src="https://res.cloudinary.com/dspipt2n7/video/upload/v1780378304/intro_mundial_k3qdvn.mp4"
-           autoplay playsinline muted webkit-playsinline preload="auto">
+           autoplay playsinline muted webkit-playsinline preload="auto" x5-video-player-type="h5">
     </video>
     <button id="mw-skip-btn" style="display:none" onclick="mwSkip()">Saltar ▶</button>
+    <!-- Hint sonido — se oculta al primer toque -->
+    <div id="mw-sound-hint" style="
+      position:absolute; top:18px; left:50%; transform:translateX(-50%);
+      background:rgba(0,0,0,.65); color:rgba(255,255,255,.85);
+      font-family:'DM Sans',sans-serif; font-size:.78rem;
+      padding:6px 16px; border-radius:20px;
+      display:flex; align-items:center; gap:6px;
+      pointer-events:none; z-index:7; white-space:nowrap;">
+      <span style="font-size:1rem;">🔇</span> Toca para escuchar
+    </div>
     <div id="mw-vid-bar"><div id="mw-vid-prog"></div></div>
   </div>
 
   <script>
   (function() {
-    const SEEN    = 'mw_intro_seen_v1';
-    const overlay = document.getElementById('mw-intro-overlay');
-    const vid     = document.getElementById('mw-vid');
-    const prog    = document.getElementById('mw-vid-prog');
-    const skipBtn = document.getElementById('mw-skip-btn');
-    const visto   = !!localStorage.getItem(SEEN);
+    const SEEN      = 'mw_intro_seen_v1';
+    const NAV_KEY   = 'mw_nav_desde_menu';
+    const overlay   = document.getElementById('mw-intro-overlay');
+    const vid       = document.getElementById('mw-vid');
+    const prog      = document.getElementById('mw-vid-prog');
+    const skipBtn   = document.getElementById('mw-skip-btn');
+    const visto     = !!localStorage.getItem(SEEN);
+    const desdeMenu = !!sessionStorage.getItem(NAV_KEY);
+
+    // Consumir la flag — solo vale una vez por navegación
+    sessionStorage.removeItem(NAV_KEY);
+
+    // Si NO vino del menú (ej: refresh) → ocultar overlay y salir
+    if (!desdeMenu) {
+      overlay.remove();
+      return;
+    }
 
     // Bloquear scroll mientras el overlay esté activo
     document.body.style.overflow = 'hidden';
@@ -296,10 +317,25 @@
       });
     }
 
-    // Sonido al primer toque/clic
-    function tryUnmute() { vid.muted = false; vid.volume = 0.85; }
-    overlay.addEventListener('click',      tryUnmute, {once: true});
-    overlay.addEventListener('touchstart', tryUnmute, {once: true, passive: true});
+    // ── Sonido: activar en el primer gesto ──────────────────────────────
+    // Browsers móviles bloquean audio sin interacción previa.
+    // Arranca en mute y activa en cuanto el usuario toque/haga clic.
+    var audioOn = false;
+    function tryUnmute() {
+      if (audioOn) return;
+      audioOn = true;
+      vid.muted  = false;
+      vid.volume = 1.0;
+      var hint = document.getElementById('mw-sound-hint');
+      if (hint) { hint.style.transition='opacity .4s'; hint.style.opacity='0'; setTimeout(function(){ hint.remove(); },420); }
+    }
+    document.addEventListener('touchstart', tryUnmute, {once:true, passive:true, capture:true});
+    document.addEventListener('touchend',   tryUnmute, {once:true, passive:true, capture:true});
+    document.addEventListener('click',      tryUnmute, {once:true, capture:true});
+    // Intentar con audio directo en PC (funciona si ya hubo interacción en la sesión)
+    vid.muted = false; vid.volume = 1.0;
+    var _pp = vid.play();
+    if (_pp) _pp.catch(function(){ vid.muted = true; vid.play().catch(function(){}); });
 
     // Barra de progreso
     vid.addEventListener('timeupdate', function() {
