@@ -1344,18 +1344,16 @@ textarea.form-input{
   flex-shrink:0;
 }
 /* ─── RANKING: fila del usuario actual ─── */
-tr.ranking-yo td {
-  background: #1a3a5c;
-  color: #e8f4ff;
+#mtab-ranking tr.ranking-yo td {
+  background: #1a3a5c !important;
+  color: #e8f4ff !important;
+  border-bottom: 1px solid #2a5a8c;
 }
-tr.ranking-yo td strong {
-  color: #7dd3fc;
+#mtab-ranking tr.ranking-yo td strong {
+  color: #7dd3fc !important;
 }
-tr.ranking-yo td:first-child {
-  border-radius: 6px 0 0 6px;
-}
-tr.ranking-yo td:last-child {
-  border-radius: 0 6px 6px 0;
+#mtab-ranking tr.ranking-yo .highlight {
+  color: #7dd3fc !important;
 }
 
 /* FEED */
