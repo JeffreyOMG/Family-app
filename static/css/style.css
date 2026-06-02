@@ -1343,18 +1343,7 @@ textarea.form-input{
   font-weight:600;
   flex-shrink:0;
 }
-/* ─── RANKING: fila del usuario actual ─── */
-#mtab-ranking tr.ranking-yo td {
-  background: #2e6da4 !important;
-  color: #ffffff !important;
-  border-bottom: 1px solid #3a80be;
-}
-#mtab-ranking tr.ranking-yo td strong {
-  color: #ffffff !important;
-}
-#mtab-ranking tr.ranking-yo .highlight {
-  color: #ffffff !important;
-}
+/* ─── RANKING: fila del usuario actual (movido al final para ganar especificidad) ─── */
 
 /* FEED */
 .post-card{
@@ -4741,4 +4730,19 @@ body.dark-mode .cruce-num {
   background: rgba(234,179,8,.12);
   color: #ca8a04;
   border: 1px solid rgba(234,179,8,.3);
+}
+
+/* ══════════════════════════════════════════════════════════
+   RANKING — fila propia del usuario (debe ir al final)
+   ══════════════════════════════════════════════════════════ */
+#mtab-ranking tr.ranking-yo td {
+  background: #2e7dc4 !important;
+  color: #ffffff !important;
+  border-bottom: 2px solid #5b9fd4 !important;
+  font-weight: 600;
+}
+#mtab-ranking tr.ranking-yo td strong,
+#mtab-ranking tr.ranking-yo .highlight {
+  color: #ffffff !important;
+  font-weight: 800;
 }
