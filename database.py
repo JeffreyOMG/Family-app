@@ -160,7 +160,7 @@ _TABLES = [
     """CREATE TABLE IF NOT EXISTS usuarios (
         id SERIAL PRIMARY KEY, nombre TEXT NOT NULL,
         usuario TEXT UNIQUE NOT NULL, password TEXT NOT NULL,
-        rol TEXT DEFAULT 'miembro', gmail TEXT DEFAULT '',
+        rol TEXT DEFAULT 'invitado', gmail TEXT DEFAULT '',
         bio TEXT DEFAULT '', foto TEXT DEFAULT '',
         fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""",
     """CREATE TABLE IF NOT EXISTS publicaciones (

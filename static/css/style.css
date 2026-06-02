@@ -4600,3 +4600,51 @@ body.dark-mode .cruce-num {
   font-size: .72rem; color: var(--text2);
 }
 .pron-badge.pron-exacto-sin-pen { background: #5d7c2a; }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ROLE BADGES  –  sistema de roles (invitado / miembro / admin)
+   ═══════════════════════════════════════════════════════════════════════════ */
+.role-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 8px;
+  border-radius: 20px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .3px;
+  text-transform: uppercase;
+  margin-top: 2px;
+  line-height: 1.4;
+}
+
+.role-badge--admin {
+  background: rgba(239, 68, 68, .15);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, .3);
+}
+
+.role-badge--miembro {
+  background: rgba(34, 197, 94, .15);
+  color: #22c55e;
+  border: 1px solid rgba(34, 197, 94, .3);
+}
+
+.role-badge--invitado {
+  background: rgba(234, 179, 8, .15);
+  color: #ca8a04;
+  border: 1px solid rgba(234, 179, 8, .3);
+}
+
+/* Nav item admin – resaltado especial */
+.nav-item--admin {
+  margin-top: 8px;
+  border-top: 1px solid rgba(255,255,255,.07);
+  padding-top: 12px !important;
+  color: #ef4444 !important;
+}
+.nav-item--admin:hover,
+.nav-item--admin.active {
+  background: rgba(239, 68, 68, .12) !important;
+  color: #ef4444 !important;
+}

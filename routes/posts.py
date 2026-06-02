@@ -1,3 +1,4 @@
+from decorators import miembro_required
 from flask import Blueprint, request, redirect, session, jsonify, render_template_string
 from database import get_db
 from cloudinary_helper import subir_a_cloudinary
@@ -88,6 +89,7 @@ POST_TMPL = """
 """
 
 @posts_bp.route("/publicar", methods=["POST"])
+@miembro_required
 def publicar():
     if "uid" not in session:
         return redirect("/")
@@ -95,6 +97,7 @@ def publicar():
     return redirect("/dashboard")
 
 @posts_bp.route("/publicar_ajax", methods=["POST"])
+@miembro_required
 def publicar_ajax():
     if "uid" not in session:
         return jsonify({"ok": False}), 401

@@ -9,167 +9,91 @@
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
-      --bg: #fafafa;
-      --card: #ffffff;
-      --border: #dbdbdb;
-      --text: #262626;
-      --text2: #737373;
-      --text3: #c7c7c7;
-      --accent: #0095f6;
-      --btn-bg: #0095f6;
-      --font: 'DM Sans', sans-serif;
+      --bg: #fafafa; --card: #ffffff; --border: #dbdbdb;
+      --text: #262626; --text2: #737373; --text3: #c7c7c7;
+      --accent: #0095f6; --btn-bg: #0095f6; --font: 'DM Sans', sans-serif;
     }
-    body {
-      font-family: var(--font);
-      background: var(--bg);
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
-    }
+    body { font-family: var(--font); background: var(--bg); min-height: 100vh;
+           display: flex; align-items: center; justify-content: center; padding: 20px; }
 
-    .ig-wrapper {
-      width: 100%;
-      max-width: 350px;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
+    .ig-wrapper { width: 100%; max-width: 370px; display: flex; flex-direction: column; gap: 10px; }
+    .ig-card { background: var(--card); border: 1px solid var(--border);
+               border-radius: 1px; padding: 32px 40px 24px; }
 
-    .ig-card {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 1px;
-      padding: 32px 40px 24px;
-    }
+    .ig-brand { text-align: center; margin-bottom: 20px; }
+    .ig-logo { display: inline-flex; align-items: center; justify-content: center;
+               width: 56px; height: 56px; border-radius: 16px;
+               background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+               margin-bottom: 12px; }
+    .ig-logo .material-symbols-outlined { font-size: 28px; color: #fff; font-variation-settings: 'FILL' 1; }
+    .ig-brand-name { font-size: 24px; font-weight: 700; letter-spacing: -.5px; color: var(--text); }
+    .ig-brand-sub { font-size: 13px; color: var(--text2); margin-top: 6px; font-weight: 500;
+                    line-height: 1.4; padding: 0 10px; }
 
-    .ig-brand {
-      text-align: center;
-      margin-bottom: 20px;
-    }
-    .ig-logo {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 56px; height: 56px;
-      border-radius: 16px;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
-      margin-bottom: 12px;
-    }
-    .ig-logo .material-symbols-outlined {
-      font-size: 28px;
-      color: #fff;
-      font-variation-settings: 'FILL' 1;
-    }
-    .ig-brand-name {
-      font-size: 24px;
-      font-weight: 700;
-      letter-spacing: -.5px;
-      color: var(--text);
-      line-height: 1;
-    }
-    .ig-brand-sub {
-      font-size: 13px;
-      color: var(--text2);
-      margin-top: 6px;
-      font-weight: 500;
-      line-height: 1.4;
-      padding: 0 10px;
-    }
-
-    .ig-alert {
-      background: #fff3cd;
-      border: 1px solid #ffc107;
-      color: #856404;
-      border-radius: 6px;
-      padding: 10px 12px;
-      font-size: 13px;
-      margin-bottom: 12px;
-      display: flex;
-      align-items: center;
-      gap: 7px;
-    }
+    .ig-alert { background: #fff3cd; border: 1px solid #ffc107; color: #856404;
+                border-radius: 6px; padding: 10px 12px; font-size: 13px;
+                margin-bottom: 12px; display: flex; align-items: center; gap: 7px; }
     .ig-alert .material-symbols-outlined { font-size: 16px; flex-shrink: 0; }
+    .ig-alert--error { background: #ffe5e5; border-color: #ff4444; color: #c00; }
 
     .ig-form { display: flex; flex-direction: column; gap: 6px; }
 
-    .ig-input-wrap { position: relative; }
-    .ig-input-icon {
-      position: absolute;
-      left: 12px; top: 50%;
-      transform: translateY(-50%);
-      pointer-events: none;
-      color: var(--text3);
-      font-size: 18px;
+    /* ── Selector de tipo de cuenta ─────────────────────────────────────── */
+    .tipo-cuenta-label { font-size: 12px; font-weight: 600; color: var(--text2);
+                         text-transform: uppercase; letter-spacing: .5px; margin-top: 4px; }
+    .tipo-cuenta-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 4px; }
+    .tipo-option { position: relative; }
+    .tipo-option input[type="radio"] { position: absolute; opacity: 0; width: 0; height: 0; }
+    .tipo-option label {
+      display: flex; flex-direction: column; align-items: center; gap: 4px;
+      padding: 10px 8px; border: 2px solid var(--border); border-radius: 10px;
+      cursor: pointer; transition: all .15s; font-size: 13px; font-weight: 600;
+      color: var(--text2); background: #fafafa; user-select: none;
     }
+    .tipo-option label .tipo-icon { font-size: 22px; }
+    .tipo-option input:checked + label {
+      border-color: var(--accent); color: var(--accent); background: #e8f4fd;
+    }
+    .tipo-option label:hover { border-color: #a8a8a8; color: var(--text); }
+
+    /* ── Campo código ────────────────────────────────────────────────────── */
+    #bloque-codigo { display: none; animation: fadeIn .2s; }
+    #bloque-codigo.visible { display: block; }
+    @keyframes fadeIn { from { opacity:0; transform: translateY(-6px); } to { opacity:1; transform: none; } }
+
+    .codigo-hint { font-size: 11px; color: var(--text2); margin-top: 3px;
+                   display: flex; align-items: center; gap: 4px; }
+    .codigo-hint .material-symbols-outlined { font-size: 13px; }
+
+    .ig-input-wrap { position: relative; }
+    .ig-input-icon { position: absolute; left: 12px; top: 50%;
+                     transform: translateY(-50%); pointer-events: none;
+                     color: var(--text3); font-size: 18px; }
     .ig-input {
-      width: 100%;
-      background: #fafafa;
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      padding: 9px 12px 9px 40px;
-      font-size: 14px;
-      font-family: var(--font);
-      color: var(--text);
-      outline: none;
-      transition: border-color .15s;
+      width: 100%; background: #fafafa; border: 1px solid var(--border);
+      border-radius: 6px; padding: 9px 12px 9px 40px;
+      font-size: 14px; font-family: var(--font); color: var(--text);
+      outline: none; transition: border-color .15s;
     }
     .ig-input::placeholder { color: var(--text3); font-size: 12px; }
     .ig-input:focus { border-color: #a8a8a8; }
 
-    .ig-btn {
-      width: 100%;
-      background: var(--btn-bg);
-      color: #fff;
-      border: none;
-      border-radius: 8px;
-      padding: 10px;
-      font-size: 14px;
-      font-weight: 700;
-      font-family: var(--font);
-      cursor: pointer;
-      transition: opacity .15s;
-      margin-top: 8px;
-    }
+    .ig-btn { width: 100%; background: var(--btn-bg); color: #fff; border: none;
+              border-radius: 8px; padding: 10px; font-size: 14px; font-weight: 700;
+              font-family: var(--font); cursor: pointer; transition: opacity .15s; margin-top: 8px; }
     .ig-btn:hover { opacity: .88; }
 
-    .ig-terms {
-      font-size: 12px;
-      color: var(--text2);
-      text-align: center;
-      margin-top: 12px;
-      line-height: 1.5;
-    }
+    .ig-terms { font-size: 12px; color: var(--text2); text-align: center;
+                margin-top: 12px; line-height: 1.5; }
     .ig-terms a { color: var(--accent); text-decoration: none; font-weight: 600; }
 
-    .ig-divider {
-      display: flex; align-items: center; gap: 14px;
-      margin: 14px 0 10px;
-    }
-    .ig-divider::before, .ig-divider::after {
-      content: ''; flex: 1; height: 1px; background: var(--border);
-    }
-    .ig-divider span {
-      font-size: 13px; font-weight: 700; color: var(--text2); letter-spacing: .5px;
-    }
-
-    .ig-bottom {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 1px;
-      padding: 18px;
-      text-align: center;
-      font-size: 14px;
-      color: var(--text2);
-    }
-    .ig-bottom a {
-      color: var(--accent);
-      font-weight: 700;
-      text-decoration: none;
-      margin-left: 4px;
-    }
+    .ig-bottom { background: var(--card); border: 1px solid var(--border);
+                 border-radius: 1px; padding: 18px; text-align: center;
+                 font-size: 14px; color: var(--text2); }
+    .ig-bottom a { color: var(--accent); font-weight: 700; text-decoration: none; margin-left: 4px; }
     .ig-bottom a:hover { text-decoration: underline; }
+
+    .divider-line { height: 1px; background: var(--border); margin: 10px 0; }
   </style>
 </head>
 <body>
@@ -182,48 +106,86 @@
         <span class="material-symbols-outlined">home</span>
       </div>
       <div class="ig-brand-name">FAMILIA</div>
-      <div class="ig-brand-sub">Regístrate para ver fotos y momentos de la familia.</div>
+      <div class="ig-brand-sub">Crea tu cuenta para unirte a la familia.</div>
     </div>
 
     {% if error %}
-    <div class="ig-alert">
-      <span class="material-symbols-outlined">warning</span>
+    <div class="ig-alert ig-alert--error">
+      <span class="material-symbols-outlined">error</span>
       {{ error }}
     </div>
     {% endif %}
 
-    <form method="POST" class="ig-form">
+    <form method="POST" class="ig-form" id="regForm">
 
+      <!-- Nombre -->
       <div class="ig-input-wrap">
         <span class="material-symbols-outlined ig-input-icon">badge</span>
         <input name="nombre" type="text" class="ig-input" placeholder="Nombre completo" required autocomplete="name"/>
       </div>
 
+      <!-- Usuario -->
       <div class="ig-input-wrap">
         <span class="material-symbols-outlined ig-input-icon">alternate_email</span>
         <input name="usuario" type="text" class="ig-input" placeholder="Usuario" required autocomplete="username"/>
       </div>
 
+      <!-- Email -->
       <div class="ig-input-wrap">
         <span class="material-symbols-outlined ig-input-icon">mail</span>
         <input name="gmail" type="email" class="ig-input" placeholder="Correo electrónico" required autocomplete="email"/>
       </div>
 
+      <!-- Contraseñas -->
       <div class="ig-input-wrap">
         <span class="material-symbols-outlined ig-input-icon">lock</span>
         <input name="password" type="password" class="ig-input" placeholder="Contraseña" required autocomplete="new-password" minlength="8"/>
       </div>
-
       <div class="ig-input-wrap">
         <span class="material-symbols-outlined ig-input-icon">lock_reset</span>
         <input name="confirmar" type="password" class="ig-input" placeholder="Confirmar contraseña" required autocomplete="new-password"/>
       </div>
 
-      <button type="submit" class="ig-btn">Registrarse</button>
+      <div class="divider-line"></div>
+
+      <!-- Tipo de cuenta -->
+      <p class="tipo-cuenta-label">Tipo de cuenta</p>
+      <div class="tipo-cuenta-row">
+        <div class="tipo-option">
+          <input type="radio" name="tipo_cuenta" id="tipo_invitado" value="invitado" checked onchange="toggleCodigo(this)">
+          <label for="tipo_invitado">
+            <span class="tipo-icon">👤</span>
+            Invitado
+          </label>
+        </div>
+        <div class="tipo-option">
+          <input type="radio" name="tipo_cuenta" id="tipo_miembro" value="miembro" onchange="toggleCodigo(this)">
+          <label for="tipo_miembro">
+            <span class="tipo-icon">🏅</span>
+            Miembro
+          </label>
+        </div>
+      </div>
+
+      <!-- Bloque código (solo si Miembro) -->
+      <div id="bloque-codigo">
+        <div class="ig-input-wrap">
+          <span class="material-symbols-outlined ig-input-icon">key</span>
+          <input name="codigo_verificacion" id="input-codigo" type="text"
+                 class="ig-input" placeholder="Código de verificación"
+                 autocomplete="off" style="text-transform:uppercase; letter-spacing:2px;"/>
+        </div>
+        <p class="codigo-hint">
+          <span class="material-symbols-outlined">info</span>
+          Contacta al administrador para obtener el código.
+        </p>
+      </div>
+
+      <button type="submit" class="ig-btn" id="btn-registro">Registrarse</button>
     </form>
 
     <p class="ig-terms">
-      Al registrarte, aceptas nuestros <a href="#">Términos</a> y confirmas que has leído nuestra <a href="#">Política de privacidad</a>.
+      Al registrarte, aceptas nuestros <a href="#">Términos</a> y nuestra <a href="#">Política de privacidad</a>.
     </p>
 
   </div>
@@ -233,5 +195,23 @@
   </div>
 </div>
 
+<script>
+function toggleCodigo(radio) {
+  const bloque = document.getElementById('bloque-codigo');
+  const input  = document.getElementById('input-codigo');
+  if (radio.value === 'miembro') {
+    bloque.classList.add('visible');
+    input.required = true;
+  } else {
+    bloque.classList.remove('visible');
+    input.required = false;
+    input.value = '';
+  }
+}
+// Convertir código a mayúsculas automáticamente
+document.getElementById('input-codigo').addEventListener('input', function() {
+  this.value = this.value.toUpperCase();
+});
+</script>
 </body>
 </html>

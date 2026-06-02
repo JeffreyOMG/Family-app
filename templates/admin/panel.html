@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Panel Admin — Familia</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0f0f13; --surface: #1a1a22; --surface2: #22222e;
+      --border: #2e2e3e; --text: #f0f0f5; --text2: #9090aa; --text3: #505065;
+      --accent: #7c6af7; --accent2: #5a4ee0;
+      --green: #22c55e; --yellow: #eab308; --red: #ef4444;
+      --font: 'DM Sans', sans-serif;
+    }
+    body { font-family: var(--font); background: var(--bg); color: var(--text);
+           min-height: 100vh; padding: 0; }
+
+    /* ── Header ───────────────────────────────────────────────────── */
+    .admin-header {
+      background: var(--surface); border-bottom: 1px solid var(--border);
+      padding: 16px 24px; display: flex; align-items: center;
+      justify-content: space-between; position: sticky; top: 0; z-index: 10;
+    }
+    .admin-header-left { display: flex; align-items: center; gap: 12px; }
+    .admin-logo { width: 36px; height: 36px; border-radius: 10px;
+                  background: linear-gradient(135deg, var(--accent), #a855f7);
+                  display: flex; align-items: center; justify-content: center; }
+    .admin-logo .material-symbols-outlined { font-size: 20px; color: #fff;
+                                             font-variation-settings: 'FILL' 1; }
+    .admin-title { font-size: 18px; font-weight: 700; }
+    .admin-subtitle { font-size: 12px; color: var(--text2); }
+    .admin-back { display: flex; align-items: center; gap: 6px; padding: 8px 16px;
+                  background: var(--surface2); border: 1px solid var(--border);
+                  border-radius: 8px; color: var(--text2); text-decoration: none;
+                  font-size: 13px; font-weight: 600; transition: all .15s; }
+    .admin-back:hover { color: var(--text); border-color: var(--accent); }
+    .admin-back .material-symbols-outlined { font-size: 16px; }
+
+    /* ── Stats ──────────────────────────────────────────────────────── */
+    .stats-row { display: flex; gap: 12px; padding: 20px 24px; flex-wrap: wrap; }
+    .stat-card { flex: 1; min-width: 110px; background: var(--surface);
+                 border: 1px solid var(--border); border-radius: 12px; padding: 16px;
+                 display: flex; flex-direction: column; gap: 4px; }
+    .stat-label { font-size: 11px; font-weight: 600; color: var(--text2);
+                  text-transform: uppercase; letter-spacing: .5px; }
+    .stat-val { font-size: 28px; font-weight: 700; }
+    .stat-val--total  { color: var(--accent); }
+    .stat-val--admin  { color: var(--red); }
+    .stat-val--miembro{ color: var(--green); }
+    .stat-val--invitado{ color: var(--yellow); }
+
+    /* ── Tabla ──────────────────────────────────────────────────────── */
+    .table-wrap { padding: 0 24px 40px; }
+    .table-header { display: flex; align-items: center; justify-content: space-between;
+                    margin-bottom: 14px; }
+    .table-header h2 { font-size: 15px; font-weight: 700; }
+    .search-box { display: flex; align-items: center; gap: 8px;
+                  background: var(--surface); border: 1px solid var(--border);
+                  border-radius: 8px; padding: 7px 12px; }
+    .search-box .material-symbols-outlined { font-size: 16px; color: var(--text3); }
+    .search-box input { background: none; border: none; outline: none;
+                        color: var(--text); font-family: var(--font); font-size: 13px;
+                        width: 160px; }
+    .search-box input::placeholder { color: var(--text3); }
+
+    table { width: 100%; border-collapse: collapse; }
+    thead tr { border-bottom: 1px solid var(--border); }
+    th { text-align: left; padding: 10px 12px; font-size: 11px; font-weight: 700;
+         color: var(--text2); text-transform: uppercase; letter-spacing: .5px; }
+    tbody tr { border-bottom: 1px solid var(--border); transition: background .1s; }
+    tbody tr:hover { background: var(--surface); }
+    td { padding: 12px; font-size: 13px; vertical-align: middle; }
+
+    .user-cell { display: flex; align-items: center; gap: 10px; }
+    .u-avatar { width: 32px; height: 32px; border-radius: 50%;
+                background: linear-gradient(135deg, var(--accent), #a855f7);
+                display: flex; align-items: center; justify-content: center;
+                font-size: 13px; font-weight: 700; flex-shrink: 0; }
+    .u-name { font-weight: 600; }
+    .u-sub  { font-size: 11px; color: var(--text2); }
+
+    /* Role badges */
+    .badge { display: inline-flex; align-items: center; gap: 4px;
+             padding: 3px 8px; border-radius: 20px; font-size: 11px; font-weight: 700; }
+    .badge--admin   { background: rgba(239,68,68,.15); color: #ef4444; border: 1px solid rgba(239,68,68,.3); }
+    .badge--miembro { background: rgba(34,197,94,.15); color: #22c55e; border: 1px solid rgba(34,197,94,.3); }
+    .badge--invitado{ background: rgba(234,179,8,.15);  color: #eab308; border: 1px solid rgba(234,179,8,.3); }
+    .badge--baneado { background: rgba(100,100,100,.15); color: #888; border: 1px solid #444; }
+
+    /* Select de rol */
+    .rol-select { background: var(--surface2); border: 1px solid var(--border);
+                  color: var(--text); border-radius: 6px; padding: 5px 8px;
+                  font-family: var(--font); font-size: 12px; cursor: pointer; outline: none; }
+    .rol-select:focus { border-color: var(--accent); }
+
+    /* Action buttons */
+    .actions { display: flex; gap: 6px; flex-wrap: wrap; }
+    .act-btn { display: inline-flex; align-items: center; gap: 4px; padding: 5px 10px;
+               border-radius: 6px; font-size: 12px; font-weight: 600;
+               border: 1px solid; cursor: pointer; background: none; font-family: var(--font);
+               transition: all .15s; }
+    .act-btn .material-symbols-outlined { font-size: 14px; }
+    .act-btn--save { color: var(--green); border-color: rgba(34,197,94,.4); }
+    .act-btn--save:hover { background: rgba(34,197,94,.1); }
+    .act-btn--ban  { color: var(--yellow); border-color: rgba(234,179,8,.4); }
+    .act-btn--ban:hover { background: rgba(234,179,8,.1); }
+    .act-btn--unban{ color: var(--accent); border-color: rgba(124,106,247,.4); }
+    .act-btn--unban:hover { background: rgba(124,106,247,.1); }
+    .act-btn--del  { color: var(--red); border-color: rgba(239,68,68,.4); }
+    .act-btn--del:hover { background: rgba(239,68,68,.1); }
+
+    /* Toast */
+    .toast { position: fixed; bottom: 24px; right: 24px; background: var(--surface2);
+             border: 1px solid var(--border); border-radius: 10px; padding: 12px 18px;
+             font-size: 13px; font-weight: 600; z-index: 999; display: none;
+             align-items: center; gap: 8px; box-shadow: 0 8px 32px rgba(0,0,0,.4); }
+    .toast.show { display: flex; animation: slideUp .25s ease; }
+    .toast--ok  { border-color: rgba(34,197,94,.4); color: var(--green); }
+    .toast--err { border-color: rgba(239,68,68,.4); color: var(--red); }
+    @keyframes slideUp { from { opacity:0; transform: translateY(10px); } to { opacity:1; } }
+
+    @media(max-width: 700px) {
+      th.hide-mobile, td.hide-mobile { display: none; }
+      .stats-row { gap: 8px; }
+    }
+  </style>
+</head>
+<body>
+
+<header class="admin-header">
+  <div class="admin-header-left">
+    <div class="admin-logo">
+      <span class="material-symbols-outlined">admin_panel_settings</span>
+    </div>
+    <div>
+      <div class="admin-title">Panel de Administración</div>
+      <div class="admin-subtitle">Control total del sistema</div>
+    </div>
+  </div>
+  <a href="/dashboard" class="admin-back">
+    <span class="material-symbols-outlined">arrow_back</span>
+    Volver
+  </a>
+</header>
+
+<!-- Stats -->
+{% set total   = usuarios|length %}
+{% set n_admin   = usuarios|selectattr('rol','eq','admin')|list|length %}
+{% set n_miembro = usuarios|selectattr('rol','eq','miembro')|list|length %}
+{% set n_invitado= usuarios|selectattr('rol','eq','invitado')|list|length %}
+<div class="stats-row">
+  <div class="stat-card">
+    <div class="stat-label">Total usuarios</div>
+    <div class="stat-val stat-val--total">{{ total }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Admins</div>
+    <div class="stat-val stat-val--admin">{{ n_admin }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Miembros</div>
+    <div class="stat-val stat-val--miembro">{{ n_miembro }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Invitados</div>
+    <div class="stat-val stat-val--invitado">{{ n_invitado }}</div>
+  </div>
+</div>
+
+<!-- Table -->
+<div class="table-wrap">
+  <div class="table-header">
+    <h2>Usuarios registrados</h2>
+    <div class="search-box">
+      <span class="material-symbols-outlined">search</span>
+      <input type="text" id="searchInput" placeholder="Buscar usuario…" oninput="filtrar()">
+    </div>
+  </div>
+
+  <table id="userTable">
+    <thead>
+      <tr>
+        <th>Usuario</th>
+        <th class="hide-mobile">Gmail</th>
+        <th>Rol actual</th>
+        <th>Cambiar rol</th>
+        <th>Acciones</th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for u in usuarios %}
+    <tr data-name="{{ u.nombre|lower }} {{ u.usuario|lower }}">
+      <td>
+        <div class="user-cell">
+          <div class="u-avatar">{{ u.nombre[0]|upper }}</div>
+          <div>
+            <div class="u-name">{{ u.nombre }}</div>
+            <div class="u-sub">@{{ u.usuario }}</div>
+          </div>
+        </div>
+      </td>
+      <td class="hide-mobile" style="color:var(--text2);font-size:12px">{{ u.gmail }}</td>
+      <td>
+        {% if u.rol == 'admin' %}
+          <span class="badge badge--admin">🔴 Admin</span>
+        {% elif u.rol == 'miembro' %}
+          <span class="badge badge--miembro">🟢 Miembro</span>
+        {% elif u.rol == 'baneado' %}
+          <span class="badge badge--baneado">⛔ Baneado</span>
+        {% else %}
+          <span class="badge badge--invitado">🟡 Invitado</span>
+        {% endif %}
+      </td>
+      <td>
+        <select class="rol-select" id="sel-{{ u.id }}">
+          <option value="invitado" {% if u.rol=='invitado' %}selected{% endif %}>👤 Invitado</option>
+          <option value="miembro"  {% if u.rol=='miembro'  %}selected{% endif %}>🏅 Miembro</option>
+          <option value="admin"    {% if u.rol=='admin'    %}selected{% endif %}>👑 Admin</option>
+        </select>
+      </td>
+      <td>
+        <div class="actions">
+          <button class="act-btn act-btn--save" onclick="cambiarRol({{ u.id }})">
+            <span class="material-symbols-outlined">save</span> Guardar
+          </button>
+          {% if u.rol == 'baneado' %}
+          <button class="act-btn act-btn--unban" onclick="banear({{ u.id }}, 'unban')">
+            <span class="material-symbols-outlined">lock_open</span> Desbanear
+          </button>
+          {% else %}
+          <button class="act-btn act-btn--ban" onclick="banear({{ u.id }}, 'ban')">
+            <span class="material-symbols-outlined">block</span> Banear
+          </button>
+          {% endif %}
+          <button class="act-btn act-btn--del" onclick="eliminar({{ u.id }}, '{{ u.nombre }}')">
+            <span class="material-symbols-outlined">delete</span>
+          </button>
+        </div>
+      </td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+function showToast(msg, ok=true) {
+  const t = document.getElementById('toast');
+  t.textContent = (ok ? '✅ ' : '❌ ') + msg;
+  t.className = 'toast show ' + (ok ? 'toast--ok' : 'toast--err');
+  setTimeout(() => t.className = 'toast', 3000);
+}
+
+async function post(url, data) {
+  const fd = new FormData();
+  Object.entries(data).forEach(([k,v]) => fd.append(k, v));
+  const r = await fetch(url, { method: 'POST', body: fd });
+  return r.json();
+}
+
+async function cambiarRol(uid) {
+  const rol = document.getElementById('sel-' + uid).value;
+  const r = await post('/admin/cambiar_rol', { uid, rol });
+  showToast(r.msg, r.ok);
+  if (r.ok) setTimeout(() => location.reload(), 1200);
+}
+
+async function banear(uid, accion) {
+  const r = await post('/admin/banear', { uid, accion });
+  showToast(accion === 'ban' ? 'Usuario baneado' : 'Usuario desbaneado', r.ok);
+  if (r.ok) setTimeout(() => location.reload(), 1200);
+}
+
+async function eliminar(uid, nombre) {
+  if (!confirm(`¿Eliminar a ${nombre}? Esta acción no se puede deshacer.`)) return;
+  const r = await post('/admin/eliminar', { uid });
+  showToast('Usuario eliminado', r.ok);
+  if (r.ok) setTimeout(() => location.reload(), 1200);
+}
+
+function filtrar() {
+  const q = document.getElementById('searchInput').value.toLowerCase();
+  document.querySelectorAll('#userTable tbody tr').forEach(tr => {
+    tr.style.display = tr.dataset.name.includes(q) ? '' : 'none';
+  });
+}
+</script>
+</body>
+</html>

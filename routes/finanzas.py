@@ -1,3 +1,4 @@
+from decorators import miembro_required
 import json
 from flask import Blueprint, request, redirect, session, jsonify
 from database import get_db
@@ -21,6 +22,7 @@ def _save_file(file_obj):
     return url
 
 @fin_bp.route("/aporte", methods=["POST"])
+@miembro_required
 def aporte():
     if "uid" not in session:
         return (jsonify({"ok": False}), 401) if _is_ajax() else redirect("/")

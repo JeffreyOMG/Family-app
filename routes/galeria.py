@@ -1,4 +1,5 @@
 from flask import Blueprint, request, redirect, session, jsonify
+from decorators import miembro_required
 from database import get_db
 from cloudinary_helper import subir_a_cloudinary, eliminar_de_cloudinary
 
@@ -9,6 +10,7 @@ def _is_ajax():
 
 
 @galeria_bp.route("/subir_archivo", methods=["POST"])
+@miembro_required
 def subir_archivo():
     if "uid" not in session:
         return (jsonify({"ok": False}), 401) if _is_ajax() else redirect("/")
@@ -33,6 +35,7 @@ def subir_archivo():
 
 
 @galeria_bp.route("/eliminar_media/<int:mid>", methods=["POST"])
+@miembro_required
 def eliminar_media(mid):
     if "uid" not in session:
         return (jsonify({"ok": False}), 401) if _is_ajax() else redirect("/")

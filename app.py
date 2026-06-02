@@ -4,7 +4,6 @@ import os
 
 app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY", "familia-secret-2026")
-# MAX_CONTENT_LENGTH: Cloudinary acepta hasta 100MB en plan gratuito
 app.config["MAX_CONTENT_LENGTH"] = 100 * 1024 * 1024
 
 app.teardown_appcontext(close_db)
@@ -27,10 +26,11 @@ from routes.eventos        import eventos_bp
 from routes.ajustes        import ajustes_bp
 from routes.amigo_secreto  import amigo_bp
 from routes.cajitas        import cajitas_bp
+from routes.admin          import admin_bp          # ← NUEVO
 
 for bp in [auth_bp, dash_bp, posts_bp, fin_bp, perfil_bp,
            galeria_bp, mundial_bp, buscar_bp, eventos_bp, ajustes_bp,
-           amigo_bp, cajitas_bp]:
+           amigo_bp, cajitas_bp, admin_bp]:
     app.register_blueprint(bp)
 
 with app.app_context():
