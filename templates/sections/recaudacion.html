@@ -1,4 +1,5 @@
 <section class="section main-content-v2" id="sec-recaudacion">
+{% if usuario.rol in ("miembro", "admin") %}
 
   <!-- HEADER -->
   <div class="rec-header">
@@ -175,6 +176,15 @@
     </div>
   </div>
 
+{% else %}
+<div class="acceso-restringido">
+  <div class="acceso-icon">🔒</div>
+  <h2>Acceso Restringido</h2>
+  <p>Esta sección es exclusiva para <strong>Miembros</strong>.</p>
+  <p class="acceso-sub">¿Eres parte de la familia? Solicita tu código al administrador y regístrate como Miembro.</p>
+  <div class="acceso-badge">🟡 Tu cuenta: <strong>Invitado</strong></div>
+</div>
+{% endif %}
 </section>
 
 <!-- ===================================================================

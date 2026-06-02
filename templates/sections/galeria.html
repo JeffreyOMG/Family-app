@@ -1,4 +1,5 @@
 <section class="section active" id="sec-galeria">
+{% if usuario.rol in ("miembro", "admin") %}
   <h1><span class="material-symbols-outlined">photo_library</span> Galería Familiar</h1>
 
   <div class="stats-grid">
@@ -57,6 +58,15 @@
   body.dark-mode #sec-galeria label { background: rgba(255,255,255,.06) !important; color: var(--text); }
   body.dark-mode #sec-galeria label:hover { background: rgba(255,255,255,.1) !important; }
   </style>
+{% else %}
+<div class="acceso-restringido">
+  <div class="acceso-icon">🔒</div>
+  <h2>Acceso Restringido</h2>
+  <p>Esta sección es exclusiva para <strong>Miembros</strong>.</p>
+  <p class="acceso-sub">¿Eres parte de la familia? Solicita tu código al administrador y regístrate como Miembro.</p>
+  <div class="acceso-badge">🟡 Tu cuenta: <strong>Invitado</strong></div>
+</div>
+{% endif %}
 </section>
 
 <script>

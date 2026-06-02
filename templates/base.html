@@ -15,7 +15,8 @@
 </head>
 
 <body data-page="{% block page %}dashboard{% endblock %}"
-      data-seccion="{{ seccion_activa if seccion_activa is defined else 'inicio' }}">
+      data-seccion="{{ seccion_activa if seccion_activa is defined else 'inicio' }}"
+      data-rol="{{ usuario.rol if usuario is defined else 'invitado' }}">
 
   {% include 'partials/loader.html' %}
   {% include 'partials/sidebar.html' %}

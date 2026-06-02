@@ -4,7 +4,17 @@ const $$ = q => document.querySelectorAll(q);
 // ─────────────────────────────
 // SECCIÓN ACTIVA (persiste con hash)
 // ─────────────────────────────
+// Secciones que requieren rol miembro/admin
+const SECCIONES_MIEMBRO = ['galeria', 'recaudacion', 'noticias'];
+// Rol del usuario actual (inyectado desde Flask en base.html o dashboard)
+const ROL_USUARIO = document.body.dataset.rol || 'invitado';
+
 function irSeccion(sec) {
+  // Si es sección restringida y no tiene permiso → ir a inicio
+  if (SECCIONES_MIEMBRO.includes(sec) && ROL_USUARIO === 'invitado') {
+    sec = 'inicio';
+  }
+
   $$('.section').forEach(s => s.classList.remove('active'));
   $$('.nav-item').forEach(n => n.classList.remove('active'));
 

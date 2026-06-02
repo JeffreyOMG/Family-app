@@ -423,14 +423,13 @@
 
 <!-- BOTTOM NAV MÓVIL -->
 <nav class="bottom-nav" id="bottom-nav">
-  {% set nav_items = [
+  {# Secciones visibles para TODOS #}
+  {% set nav_publico = [
     ('inicio','home','Inicio'),
-    ('recaudacion','savings','Recaud.'),
-    ('noticias','calendar_month','Noticias'),
     ('mundial','sports_soccer','Mundial'),
     ('perfil','person','Perfil'),
   ] %}
-  {% for sec,icon,label in nav_items %}
+  {% for sec,icon,label in nav_publico %}
   <a class="bottom-nav-item {% if seccion_activa==sec %}active{% endif %}"
      data-sec="{{ sec }}" href="#{{ sec }}"
      onclick="irSeccion('{{ sec }}');updateBottomNav(this);return false;">
@@ -438,6 +437,22 @@
     <span class="bnav-label">{{ label }}</span>
   </a>
   {% endfor %}
+
+  {# Secciones SOLO para miembro / admin #}
+  {% if usuario.rol in ('miembro', 'admin') %}
+  {% set nav_miembro = [
+    ('recaudacion','savings','Recaud.'),
+    ('noticias','calendar_month','Noticias'),
+  ] %}
+  {% for sec,icon,label in nav_miembro %}
+  <a class="bottom-nav-item {% if seccion_activa==sec %}active{% endif %}"
+     data-sec="{{ sec }}" href="#{{ sec }}"
+     onclick="irSeccion('{{ sec }}');updateBottomNav(this);return false;">
+    <span class="material-symbols-outlined">{{ icon }}</span>
+    <span class="bnav-label">{{ label }}</span>
+  </a>
+  {% endfor %}
+  {% endif %}
 </nav>
 
 <!-- DATA MIEMBROS para JS -->

@@ -23,11 +23,13 @@
 
   <!-- ESTADÍSTICAS -->
   <div class="pf-stats-grid">
+    {% if usuario.rol in ("miembro", "admin") %}
     <div class="pf-stat">
       <span class="material-symbols-outlined">payments</span>
       <strong>${{ usuario_aportes|int }}</strong>
       <span>Mis Aportes</span>
     </div>
+    {% endif %}
     <div class="pf-stat">
       <span class="material-symbols-outlined">forum</span>
       <strong>{{ usuario_posts }}</strong>
@@ -116,7 +118,8 @@
     </a>
   </div>
 
-  <!-- MIS APORTES -->
+  <!-- MIS APORTES — solo miembro/admin -->
+  {% if usuario.rol in ("miembro", "admin") %}
   <div class="content-card">
     <div class="pf-section-head">
       <span class="material-symbols-outlined">savings</span>
@@ -141,6 +144,7 @@
       <p class="pf-empty">Aún no has registrado aportes.</p>
     {% endif %}
   </div>
+  {% endif %}
 
    <!-- APARIENCIA -->
   <div class="content-card">

@@ -4648,3 +4648,64 @@ body.dark-mode .cruce-num {
   background: rgba(239, 68, 68, .12) !important;
   color: #ef4444 !important;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ACCESO RESTRINGIDO — pantalla para invitados en secciones de miembro
+   ═══════════════════════════════════════════════════════════════════════════ */
+.acceso-restringido {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 60px 24px;
+  min-height: 320px;
+  gap: 12px;
+  animation: fadeInUp .3s ease;
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: none; }
+}
+
+.acceso-icon {
+  font-size: 56px;
+  line-height: 1;
+  margin-bottom: 4px;
+  filter: drop-shadow(0 4px 12px rgba(0,0,0,.25));
+}
+
+.acceso-restringido h2 {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0;
+}
+
+.acceso-restringido p {
+  font-size: .95rem;
+  color: var(--text2);
+  max-width: 320px;
+  line-height: 1.55;
+  margin: 0;
+}
+
+.acceso-sub {
+  font-size: .82rem !important;
+  color: var(--text3) !important;
+}
+
+.acceso-badge {
+  margin-top: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 16px;
+  border-radius: 20px;
+  font-size: .82rem;
+  font-weight: 600;
+  background: rgba(234,179,8,.12);
+  color: #ca8a04;
+  border: 1px solid rgba(234,179,8,.3);
+}
