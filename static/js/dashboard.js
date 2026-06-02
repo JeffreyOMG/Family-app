@@ -15,9 +15,9 @@ function irSeccion(sec) {
     sec = 'inicio';
   }
 
-  // Si navega a mundial desde el menú → marcar para mostrar la intro
+  // Si navega a mundial desde el menú → disparar evento para la intro
   if (sec === 'mundial') {
-    sessionStorage.setItem('mw_nav_desde_menu', '1');
+    document.dispatchEvent(new CustomEvent('mundial:entrar'));
   }
 
   $$('.section').forEach(s => s.classList.remove('active'));

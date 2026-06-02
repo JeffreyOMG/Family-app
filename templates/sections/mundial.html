@@ -284,42 +284,48 @@
 
   <script>
   (function() {
-    const SEEN      = 'mw_intro_seen_v1';
-    const NAV_KEY   = 'mw_nav_desde_menu';
-    const overlay   = document.getElementById('mw-intro-overlay');
-    const vid       = document.getElementById('mw-vid');
-    const prog      = document.getElementById('mw-vid-prog');
-    const skipBtn   = document.getElementById('mw-skip-btn');
-    const visto     = !!localStorage.getItem(SEEN);
-    const desdeMenu = !!sessionStorage.getItem(NAV_KEY);
+    const SEEN    = 'mw_intro_seen_v1';
+    const overlay = document.getElementById('mw-intro-overlay');
+    const vid     = document.getElementById('mw-vid');
+    const prog    = document.getElementById('mw-vid-prog');
+    const skipBtn = document.getElementById('mw-skip-btn');
+    const visto   = !!localStorage.getItem(SEEN);
 
-    // Consumir la flag — solo vale una vez por navegación
-    sessionStorage.removeItem(NAV_KEY);
+    // El overlay empieza oculto — solo se activa cuando el menú dispara el evento
+    overlay.style.display = 'none';
+    vid.pause();
 
-    // Si NO vino del menú (ej: refresh) → ocultar overlay y salir
-    if (!desdeMenu) {
-      overlay.remove();
-      return;
+    function activarIntro() {
+      overlay.style.display = 'flex';
+      document.body.style.overflow = 'hidden';
+      vid.currentTime = 0;
+      vid.muted = true;
+      vid.play().catch(function(){});
+
+      // Intentar con audio (PC); en móvil el primer toque lo activa
+      vid.muted = false; vid.volume = 1.0;
+      var _pp = vid.play();
+      if (_pp) _pp.catch(function(){ vid.muted = true; vid.play().catch(function(){}); });
+
+      if (visto) {
+        skipBtn.style.display = 'block';
+      } else {
+        skipBtn.style.display = 'none';
+        // Anti-skip primera vez
+        let last = 0;
+        vid.addEventListener('timeupdate', function antiSkip() {
+          if (vid.currentTime > last + 1.5) vid.currentTime = last;
+          else last = vid.currentTime;
+          // dejar de escuchar cuando ya vio
+          if (localStorage.getItem(SEEN)) vid.removeEventListener('timeupdate', antiSkip);
+        });
+      }
     }
 
-    // Bloquear scroll mientras el overlay esté activo
-    document.body.style.overflow = 'hidden';
+    // Escuchar el evento que dispara el menú
+    document.addEventListener('mundial:entrar', activarIntro);
 
-    // Si ya vio antes → mostrar skip inmediatamente
-    if (visto) {
-      skipBtn.style.display = 'block';
-    } else {
-      // Primera vez: anti-skip
-      let last = 0;
-      vid.addEventListener('timeupdate', function() {
-        if (vid.currentTime > last + 1.5) vid.currentTime = last;
-        else last = vid.currentTime;
-      });
-    }
-
-    // ── Sonido: activar en el primer gesto ──────────────────────────────
-    // Browsers móviles bloquean audio sin interacción previa.
-    // Arranca en mute y activa en cuanto el usuario toque/haga clic.
+    // ── Sonido: activar en el primer gesto sobre el overlay ─────────────
     var audioOn = false;
     function tryUnmute() {
       if (audioOn) return;
@@ -329,13 +335,8 @@
       var hint = document.getElementById('mw-sound-hint');
       if (hint) { hint.style.transition='opacity .4s'; hint.style.opacity='0'; setTimeout(function(){ hint.remove(); },420); }
     }
-    document.addEventListener('touchstart', tryUnmute, {once:true, passive:true, capture:true});
-    document.addEventListener('touchend',   tryUnmute, {once:true, passive:true, capture:true});
-    document.addEventListener('click',      tryUnmute, {once:true, capture:true});
-    // Intentar con audio directo en PC (funciona si ya hubo interacción en la sesión)
-    vid.muted = false; vid.volume = 1.0;
-    var _pp = vid.play();
-    if (_pp) _pp.catch(function(){ vid.muted = true; vid.play().catch(function(){}); });
+    overlay.addEventListener('touchstart', tryUnmute, {passive:true});
+    overlay.addEventListener('click',      tryUnmute);
 
     // Barra de progreso
     vid.addEventListener('timeupdate', function() {
