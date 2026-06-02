@@ -19,6 +19,170 @@
       data-rol="{{ usuario.rol if usuario is defined else 'invitado' }}">
 
   {% include 'partials/loader.html' %}
+
+  <!-- ══════════════════════════════════════════
+       INTRO VIDEO OVERLAY — responsivo PC + móvil
+  ══════════════════════════════════════════ -->
+  <style>
+    #intro-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 99999;
+      background: #000;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+    }
+
+    /* ── PC: video centrado tipo cine ── */
+    #intro-video {
+      width: 100%;
+      max-width: 960px;
+      max-height: 90vh;
+      object-fit: contain;
+      border-radius: 14px;
+      display: block;
+    }
+
+    #intro-bottom {
+      width: 100%;
+      max-width: 960px;
+      padding: 0 4px;
+    }
+
+    #intro-bar {
+      width: 100%;
+      height: 4px;
+      background: rgba(255,255,255,.18);
+      margin-top: 12px;
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    #intro-progress {
+      height: 100%;
+      width: 0%;
+      background: #f5c518;
+      border-radius: 2px;
+      transition: width .25s linear;
+    }
+
+    #intro-hint {
+      color: rgba(255,255,255,.4);
+      font-size: .75rem;
+      margin-top: 8px;
+      font-family: 'DM Sans', sans-serif;
+      letter-spacing: .04em;
+      text-align: center;
+    }
+
+    /* ── MÓVIL: pantalla completa tipo TikTok ── */
+    @media (max-width: 600px) {
+      #intro-overlay {
+        flex-direction: column;
+        justify-content: flex-end;
+        align-items: stretch;
+        background: #000;
+      }
+
+      #intro-video {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        max-width: none;
+        max-height: none;
+        object-fit: cover;
+        border-radius: 0;
+      }
+
+      #intro-bottom {
+        position: relative;
+        z-index: 2;
+        max-width: 100%;
+        padding: 0 16px 32px;
+        /* gradiente debajo para legibilidad */
+        background: linear-gradient(transparent, rgba(0,0,0,.75) 40%);
+        padding-top: 60px;
+      }
+
+      #intro-bar {
+        height: 3px;
+        margin-top: 0;
+        margin-bottom: 6px;
+      }
+
+      #intro-hint {
+        font-size: .72rem;
+        text-align: left;
+      }
+    }
+  </style>
+
+  <div id="intro-overlay">
+    <video id="intro-video"
+           src="https://res.cloudinary.com/dspipt2n7/video/upload/v1780378304/intro_mundial_k3qdvn.mp4"
+           autoplay playsinline muted
+           webkit-playsinline>
+    </video>
+    <div id="intro-bottom">
+      <div id="intro-bar">
+        <div id="intro-progress"></div>
+      </div>
+      <div id="intro-hint">Espera a que termine el video…</div>
+    </div>
+  </div>
+
+  <script>
+  (function() {
+    const SESSION_KEY = 'intro_shown_v1';
+    if (sessionStorage.getItem(SESSION_KEY)) return;
+
+    const overlay = document.getElementById('intro-overlay');
+    const video   = document.getElementById('intro-video');
+    const prog    = document.getElementById('intro-progress');
+
+    overlay.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+
+    // Intentar reproducir con sonido al primer toque/clic del usuario
+    function tryUnmute() {
+      video.muted = false;
+      video.volume = 0.9;
+    }
+    document.addEventListener('touchstart', tryUnmute, {once: true, passive: true});
+    document.addEventListener('click',      tryUnmute, {once: true});
+
+    // Barra de progreso
+    video.addEventListener('timeupdate', function() {
+      if (video.duration) {
+        prog.style.width = (video.currentTime / video.duration * 100) + '%';
+      }
+    });
+
+    // Anti-skip: si alguien adelanta más de 1.5 s, regresa
+    let lastTime = 0;
+    video.addEventListener('timeupdate', function() {
+      if (video.currentTime > lastTime + 1.5) {
+        video.currentTime = lastTime;
+      } else {
+        lastTime = video.currentTime;
+      }
+    });
+
+    // Al terminar → fade out y liberar scroll
+    video.addEventListener('ended', function() {
+      sessionStorage.setItem(SESSION_KEY, '1');
+      overlay.style.transition = 'opacity .55s ease';
+      overlay.style.opacity = '0';
+      setTimeout(function() {
+        overlay.style.display = 'none';
+        document.body.style.overflow = '';
+      }, 580);
+    });
+  })();
+  </script>
   {% include 'partials/sidebar.html' %}
 
   <div class="layout">
