@@ -3990,99 +3990,155 @@ body.dark-mode .admin-btn-edit {
 .rotating { animation: spin 1.2s linear infinite; display: inline-block; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-.bracket-seccion-label {
+/* ── BRACKET ÁRBOL VISUAL ── */
+.bracket-cruces {
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: visible;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 12px;
+}
+.bracket-tree {
   display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: .78rem;
+  flex-direction: row;
+  align-items: stretch;
+  gap: 0;
+  min-width: max-content;
+  padding: 8px 4px 4px;
+}
+.bk-col {
+  display: flex;
+  flex-direction: column;
+  min-width: 148px;
+  max-width: 148px;
+}
+.bk-col-center {
+  min-width: 164px;
+  max-width: 164px;
+}
+.bk-col-label {
+  font-size: .67rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: .06em;
   color: var(--text2);
-  margin-bottom: 10px;
+  text-align: center;
+  padding: 0 4px 10px;
+  white-space: nowrap;
 }
-.bracket-seccion-label .material-symbols-outlined { font-size: 1rem; color: var(--accent); }
-
-.bracket-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 10px;
-}
-
-.bracket-cruce {
-  background: var(--card2);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 12px 14px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  transition: transform .15s, box-shadow .15s;
-}
-.bracket-cruce:hover { transform: translateY(-2px); box-shadow: 0 4px 14px rgba(0,0,0,.1); }
-.cruce-ok  { border-color: var(--accent); }
-.cruce-pend { opacity: .75; }
-
-.cruce-num {
-  min-width: 26px;
-  height: 26px;
-  border-radius: 50%;
-  background: var(--accent);
-  color: #fff;
-  font-size: .72rem;
-  font-weight: 800;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-body.dark-mode .cruce-num {
-  color: #000;
-}
-
-.cruce-pend .cruce-num { background: var(--border); color: var(--text2); }
-
-.cruce-equipos {
-  flex: 1;
+.bk-matches {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  flex: 1;
+  justify-content: space-around;
+  padding: 0 4px;
+  gap: 8px;
+  position: relative;
 }
-.cruce-eq {
+/* conector horizontal derecho */
+.bk-match-wrap {
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+.bk-match-wrap::after {
+  content: '';
+  position: absolute;
+  right: -4px;
+  top: 50%;
+  width: 4px;
+  height: 1px;
+  background: var(--border);
+}
+.bk-match {
+  background: var(--card2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  transition: box-shadow .15s, transform .15s;
+  cursor: default;
+}
+.bk-match:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 3px 10px rgba(0,0,0,.08);
+}
+.bk-match.cruce-ok  { border-color: var(--accent); }
+.bk-match.cruce-pend { opacity: .8; }
+.bk-match-date {
+  font-size: .6rem;
+  color: var(--text3);
+  padding: 3px 6px 0;
+  text-align: right;
+}
+.bk-team {
   display: flex;
   align-items: center;
-  gap: 7px;
-}
-.eq-pend { opacity: .5; }
-.bk-flag { font-size: 1.1rem; flex-shrink: 0; }
-.cruce-nombre {
-  font-size: .84rem;
+  gap: 5px;
+  padding: 4px 6px;
+  font-size: .76rem;
   font-weight: 600;
   color: var(--text);
-  flex: 1;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  min-height: 26px;
 }
-.eq-pend .cruce-nombre {
+.bk-team + .bk-team {
+  border-top: 1px solid var(--border-soft);
+}
+.bk-team.eq-pend {
+  color: var(--text3);
   font-weight: 400;
-  color: var(--text2);
   font-style: italic;
 }
-.cruce-grupo {
-  font-size: .68rem;
-  color: var(--text2);
-  background: var(--card);
-  border-radius: 4px;
-  padding: 1px 5px;
-  flex-shrink: 0;
+.bk-team .bk-flag { font-size: 1rem; flex-shrink: 0; }
+.bk-team-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
-.cruce-vs {
-  font-size: .65rem;
+.bk-score {
+  font-size: .72rem;
   font-weight: 800;
   color: var(--accent);
+  min-width: 18px;
+  text-align: right;
+  flex-shrink: 0;
+}
+.bk-match-id {
+  font-size: .58rem;
+  color: var(--text3);
+  text-align: center;
+  padding: 2px 0 3px;
+  border-top: 1px solid var(--border-soft);
+}
+/* separator VS línea */
+.bk-vs-line {
+  font-size: .58rem;
+  font-weight: 800;
+  color: var(--accent);
+  text-align: center;
+  padding: 1px 0;
+  line-height: 1;
+  border-top: 1px solid var(--border-soft);
+}
+/* columna central: final + 3er puesto */
+.bk-center-box {
+  background: var(--card2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  margin: 4px;
+}
+.bk-center-box.cruce-ok { border-color: var(--accent); }
+.bk-center-title {
+  font-size: .65rem;
+  font-weight: 700;
+  text-transform: uppercase;
   letter-spacing: .05em;
-  padding: 2px 0;
+  color: var(--text2);
+  text-align: center;
+  padding: 5px 6px 3px;
+  background: var(--card);
+  border-bottom: 1px solid var(--border-soft);
 }
 
 /* Ranking mejores terceros */
@@ -4118,9 +4174,36 @@ body.dark-mode .cruce-num {
 .bk-tpts    { font-weight: 700; color: var(--accent); min-width: 36px; text-align: right; }
 .bk-tdg     { font-size: .78rem; min-width: 32px; text-align: right; }
 
+/* legacy cruce clases (usadas en pronósticos) */
+.bracket-seccion-label {
+  display: flex; align-items: center; gap: 6px;
+  font-size: .78rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .06em;
+  color: var(--text2); margin-bottom: 10px;
+}
+.bracket-seccion-label .material-symbols-outlined { font-size: 1rem; color: var(--accent); }
+.bracket-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 10px; }
+.bracket-cruce { background: var(--card2); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; display: flex; align-items: center; gap: 12px; transition: transform .15s, box-shadow .15s; }
+.bracket-cruce:hover { transform: translateY(-2px); box-shadow: 0 4px 14px rgba(0,0,0,.1); }
+.cruce-ok  { border-color: var(--accent); }
+.cruce-pend { opacity: .75; }
+.cruce-num { min-width: 26px; height: 26px; border-radius: 50%; background: var(--accent); color: #fff; font-size: .72rem; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+body.dark-mode .cruce-num { color: #000; }
+.cruce-pend .cruce-num { background: var(--border); color: var(--text2); }
+.cruce-equipos { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+.cruce-eq { display: flex; align-items: center; gap: 7px; }
+.eq-pend { opacity: .5; }
+.bk-flag { font-size: 1.1rem; flex-shrink: 0; }
+.cruce-nombre { font-size: .84rem; font-weight: 600; color: var(--text); flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.eq-pend .cruce-nombre { font-weight: 400; color: var(--text2); font-style: italic; }
+.cruce-grupo { font-size: .68rem; color: var(--text2); background: var(--card); border-radius: 4px; padding: 1px 5px; flex-shrink: 0; }
+.cruce-vs { font-size: .65rem; font-weight: 800; color: var(--accent); letter-spacing: .05em; padding: 2px 0; }
+.cruce-meta { font-size: .65rem; color: var(--text2); margin-top: 2px; text-align: right; }
 @media (max-width: 480px) {
   .bracket-grid { grid-template-columns: 1fr; }
   .cruce-nombre { font-size: .78rem; }
+  .bk-col { min-width: 128px; max-width: 128px; }
+  .bk-col-center { min-width: 144px; max-width: 144px; }
 }
 
 /* ─── RONDA TABS (pronósticos / admin) ─────────────── */

@@ -1282,71 +1282,102 @@ function _renderBracket(bracket, eliPartidos) {
   const tg = bracket.total_grupos || 12;
   if (sub) sub.textContent = `${gc}/${tg} grupos terminados`;
 
-  // clasificados = {1A:{nombre,codigo,...}, 2B:{...}, ...} — vienen del API
   const clas = bracket.clasificados || {};
 
-  // Resuelve un equipo para mostrar en el bracket:
-  // 1. eq guardado en BD (más prioridad — ya calculado por el servidor)
-  // 2. clasificados en tiempo real (solo si slot es simple como '1A','2B' y NO hay eq guardado)
-  // 3. fallback al texto del slot
   function _resolverEq(nombreGuardado, codGuardado, slot) {
-    // Prioridad absoluta: lo que ya está guardado en BD
     if (nombreGuardado) {
       return { nombre: nombreGuardado, codigo: codGuardado || 'xx', conocido: true };
     }
-    // Solo intentar resolver desde clasificados si slot es exactamente '1X' o '2X'
-    // NO resolver '3-ABCDF' ni 'G74' ni 'P101' desde clasificados
     if (slot && /^[12][A-L]$/.test(slot) && clas[slot]) {
       const c = clas[slot];
       return { nombre: c.nombre, codigo: c.codigo, conocido: true };
     }
-    // Pendiente — slot descriptivo en itálica
     return { nombre: slot || '?', codigo: 'xx', conocido: false };
   }
-
-  const fases = [
-    { label: 'Dieciseisavos',        ids: [73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88] },
-    { label: 'Octavos de Final',      ids: [89,90,91,92,93,94,95,96] },
-    { label: 'Cuartos de Final',      ids: [97,98,99,100] },
-    { label: 'Semifinales',           ids: [101,102] },
-    { label: 'Tercer Puesto / Final', ids: [103,104] },
-  ];
 
   const byId = {};
   (eliPartidos||[]).forEach(p => byId[p.id] = p);
 
-  wrap.innerHTML = fases.map(fase => {
-    const partidos = fase.ids.map(id => byId[id]).filter(Boolean);
-    if (!partidos.length) return '';
+  // Columnas del árbol: [label, [ids]]
+  const columnas = [
+    { label: 'Dieciseisavos', ids: [73,74,75,76,77,78,79,80] },
+    { label: 'Octavos',       ids: [89,90,91,92] },
+    { label: 'Cuartos',       ids: [97,98] },
+    { label: 'Semifinal',     ids: [101] },
+    { label: 'Final · 3er',   ids: [104,103], center: true },
+    { label: 'Semifinal',     ids: [102] },
+    { label: 'Cuartos',       ids: [99,100] },
+    { label: 'Octavos',       ids: [93,94,95,96] },
+    { label: 'Dieciseisavos', ids: [81,82,83,84,85,86,87,88] },
+  ];
+
+  function _matchCard(p) {
+    if (!p) return '<div class="bk-match cruce-pend"><div class="bk-team eq-pend"><span class="bk-team-name">—</span></div><div class="bk-team eq-pend"><span class="bk-team-name">—</span></div></div>';
+    const eqL = _resolverEq(p.eq_local,  p.cod_local,  p.slot_local);
+    const eqV = _resolverEq(p.eq_visit,  p.cod_visit,  p.slot_visit);
+    const ok  = eqL.conocido && eqV.conocido;
+    const lFlag = eqL.conocido ? `<span class="fi fi-${_esc(eqL.codigo)} fis bk-flag"></span>` : '';
+    const vFlag = eqV.conocido ? `<span class="fi fi-${_esc(eqV.codigo)} fis bk-flag"></span>` : '';
+    const lScore = (p.bloqueado && eqL.conocido) ? `<span class="bk-score">${p.goles_local}</span>` : '';
+    const vScore = (p.bloqueado && eqV.conocido) ? `<span class="bk-score">${p.goles_visit}</span>` : '';
+    const lClass = eqL.conocido ? '' : 'eq-pend';
+    const vClass = eqV.conocido ? '' : 'eq-pend';
+    const fecha = p.fecha ? `<div class="bk-match-date">${_esc(p.fecha)}</div>` : '';
+    const penales = p.bloqueado && p.penales_ganador ? `<div class="bk-match-id">P: ${_esc(p.penales_ganador)}</div>` : `<div class="bk-match-id">P${p.id}</div>`;
     return `
-      <div class="bracket-seccion-label">
-        <span class="material-symbols-outlined">emoji_events</span> ${fase.label}
-      </div>
-      <div class="bracket-grid">
-        ${partidos.map(p => {
-          const eqL = _resolverEq(p.eq_local, p.cod_local, p.slot_local);
-          const eqV = _resolverEq(p.eq_visit, p.cod_visit, p.slot_visit);
-          const completado = eqL.conocido && eqV.conocido;
-          const lFlag = eqL.conocido ? `<span class="fi fi-${_esc(eqL.codigo)} fis bk-flag"></span>` : '';
-          const vFlag = eqV.conocido ? `<span class="fi fi-${_esc(eqV.codigo)} fis bk-flag"></span>` : '';
-          const result = p.bloqueado
-            ? `<span class="bk-result">${p.goles_local}–${p.goles_visit}${p.penales_ganador?' (P: '+_esc(p.penales_ganador)+')':''}</span>`
-            : '';
-          const lLabel = eqL.conocido ? eqL.nombre : `<em>${_esc(eqL.nombre)}</em>`;
-          const vLabel = eqV.conocido ? eqV.nombre : `<em>${_esc(eqV.nombre)}</em>`;
-          return `
-            <div class="bracket-cruce ${completado?'cruce-ok':'cruce-pend'}">
-              <div class="cruce-num">${p.id}</div>
-              <div class="cruce-equipos">
-                <div class="cruce-eq ${!eqL.conocido?'eq-pend':''}">${lFlag}<span class="cruce-nombre">${lLabel}</span></div>
-                <div class="cruce-vs">${result || 'VS'}</div>
-                <div class="cruce-eq ${!eqV.conocido?'eq-pend':''}">${vFlag}<span class="cruce-nombre">${vLabel}</span></div>
-              </div>
-              <div class="cruce-meta">${_esc(p.fecha||'')} · ${_esc(p.sede||'')}</div>
-            </div>`;
-        }).join('')}
+      <div class="bk-match ${ok?'cruce-ok':'cruce-pend'}">
+        ${fecha}
+        <div class="bk-team ${lClass}">${lFlag}<span class="bk-team-name">${eqL.conocido?_esc(eqL.nombre):`<em>${_esc(eqL.nombre)}</em>`}</span>${lScore}</div>
+        <div class="bk-team ${vClass}">${vFlag}<span class="bk-team-name">${eqV.conocido?_esc(eqV.nombre):`<em>${_esc(eqV.nombre)}</em>`}</span>${vScore}</div>
+        ${penales}
+      </div>`;
+  }
+
+  function _centerCard(p, titulo) {
+    if (!p) return `<div class="bk-center-box"><div class="bk-center-title">${titulo}</div><div class="bk-team eq-pend"><span class="bk-team-name">—</span></div><div class="bk-team eq-pend"><span class="bk-team-name">—</span></div></div>`;
+    const eqL = _resolverEq(p.eq_local,  p.cod_local,  p.slot_local);
+    const eqV = _resolverEq(p.eq_visit,  p.cod_visit,  p.slot_visit);
+    const ok  = eqL.conocido && eqV.conocido;
+    const lFlag = eqL.conocido ? `<span class="fi fi-${_esc(eqL.codigo)} fis bk-flag"></span>` : '';
+    const vFlag = eqV.conocido ? `<span class="fi fi-${_esc(eqV.codigo)} fis bk-flag"></span>` : '';
+    const lScore = (p.bloqueado && eqL.conocido) ? `<span class="bk-score">${p.goles_local}</span>` : '';
+    const vScore = (p.bloqueado && eqV.conocido) ? `<span class="bk-score">${p.goles_visit}</span>` : '';
+    const lClass = eqL.conocido ? '' : 'eq-pend';
+    const vClass = eqV.conocido ? '' : 'eq-pend';
+    const fecha = p.fecha ? `<div class="bk-match-date">${_esc(p.fecha)}</div>` : '';
+    const penales = p.bloqueado && p.penales_ganador ? `<div class="bk-match-id">P: ${_esc(p.penales_ganador)}</div>` : '';
+    return `
+      <div class="bk-center-box ${ok?'cruce-ok':''}">
+        <div class="bk-center-title">${titulo}</div>
+        ${fecha}
+        <div class="bk-team ${lClass}">${lFlag}<span class="bk-team-name">${eqL.conocido?_esc(eqL.nombre):`<em>${_esc(eqL.nombre)}</em>`}</span>${lScore}</div>
+        <div class="bk-team ${vClass}">${vFlag}<span class="bk-team-name">${eqV.conocido?_esc(eqV.nombre):`<em>${_esc(eqV.nombre)}</em>`}</span>${vScore}</div>
+        ${penales}
+      </div>`;
+  }
+
+  const colsHTML = columnas.map(col => {
+    const isCenter = !!col.center;
+    const partidos = col.ids.map(id => byId[id] || null);
+    let matchesHTML;
+    if (isCenter) {
+      // Final (id 104) + 3er puesto (id 103)
+      matchesHTML = `
+        ${_centerCard(byId[104], '🏆 Final')}
+        ${_centerCard(byId[103], '3er Puesto')}`;
+    } else {
+      matchesHTML = partidos.map(p => `<div class="bk-match-wrap">${_matchCard(p)}</div>`).join('');
+    }
+    return `
+      <div class="bk-col ${isCenter?'bk-col-center':''}">
+        <div class="bk-col-label">${col.label}</div>
+        <div class="bk-matches ${isCenter?'':''}">
+          ${matchesHTML}
+        </div>
       </div>`;
   }).join('');
+
+  wrap.innerHTML = `<div class="bracket-tree">${colsHTML}</div>`;
 }
 
 // ══════════════════════════════════════════
