@@ -4535,6 +4535,27 @@ body.dark-mode .cruce-num {
   display: flex; align-items: center; gap: 5px;
   font-size: .78rem; cursor: pointer; color: var(--text);
 }
+/* Botones táctiles grandes para selección de penales (mobile-friendly) */
+.pron-pen-btns {
+  display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;
+  margin-top: 4px;
+}
+.pron-pen-btn {
+  flex: 1; min-width: 120px; max-width: 200px;
+  padding: 12px 10px;
+  background: var(--card); border: 2px solid var(--border);
+  border-radius: 10px; color: var(--text);
+  font-size: .82rem; font-weight: 600; cursor: pointer;
+  text-align: center; line-height: 1.2;
+  transition: background .15s, border-color .15s, color .15s, transform .1s;
+  -webkit-tap-highlight-color: transparent;
+}
+.pron-pen-btn:active { transform: scale(.96); }
+.pron-pen-btn--selected {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
 .pron-penales-info {
   display: flex; align-items: center; justify-content: center; gap: 4px;
   font-size: .75rem; color: var(--text2); margin-top: 4px;

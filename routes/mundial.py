@@ -915,16 +915,20 @@ def admin_resultado_eli():
             (es_empate_pred and es_empate_real)
         )
 
+        acerto_penales = (es_empate_real and pen and p["penales_ganador"] and p["penales_ganador"] == pen)
+
         if marcador_exacto:
             if es_empate_real and pen:
-                # Marcador exacto en TR + penales
-                pts = 3 if (p["penales_ganador"] and p["penales_ganador"] == pen) else 2
+                # Marcador exacto en empate con penales definidos
+                # +3 base por exacto, +1 extra si también acertó ganador de penales = 4
+                pts = 4 if acerto_penales else 3
             else:
                 pts = 3
         elif acerto_resultado:
             if es_empate_real and pen:
-                # Acertó empate TR + penales
-                pts = 2 if (p["penales_ganador"] and p["penales_ganador"] == pen) else 1
+                # Acertó empate (no exacto) con penales definidos = 1 base
+                # No hay bonus extra por penales si no acertó el marcador exacto
+                pts = 1
             else:
                 pts = 1
         else:

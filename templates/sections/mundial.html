@@ -560,19 +560,14 @@ function _eliPartidoCardHTML(p) {
         // Marcador exacto
         if (esEmpate && p.penales_ganador != null && p.p_penales != null) {
           badge = p.p_penales === p.penales_ganador
-            ? '<div class="pron-badge pron-exacto">⚽ +3 pts</div>'
-            : '<div class="pron-badge pron-exacto pron-exacto-sin-pen">⚽ +2 pts</div>';
+            ? '<div class="pron-badge pron-exacto">⚽ +4 pts</div>'
+            : '<div class="pron-badge pron-exacto">⚽ +3 pts</div>';
         } else {
           badge = '<div class="pron-badge pron-exacto">⚽ +3 pts</div>';
         }
       } else if ((+p.p_local > +p.p_vis && +gl > +gv)||(+p.p_local < +p.p_vis && +gl < +gv)||(predEsEmpate && esEmpate)) {
-        if (esEmpate && p.penales_ganador != null && p.p_penales != null) {
-          badge = p.p_penales === p.penales_ganador
-            ? '<div class="pron-badge pron-ganador">✓ +2 pts</div>'
-            : '<div class="pron-badge pron-ganador">✓ +1 pt</div>';
-        } else {
-          badge = '<div class="pron-badge pron-ganador">✓ +1 pt</div>';
-        }
+        // Acertó resultado (no exacto) — empate sin exacto siempre 1pt
+        badge = '<div class="pron-badge pron-ganador">✓ +1 pt</div>';
       } else {
         badge = '<div class="pron-badge pron-fallo">✗ 0 pts</div>';
       }
@@ -606,9 +601,16 @@ function _eliPartidoCardHTML(p) {
       </div>
       <div class="pron-penales-sel" id="pron-pen-${p.id}" style="display:none;">
         <div class="pron-pen-label"><span class="material-symbols-outlined">sports_score</span> ¿Quién gana en penales?</div>
-        <div class="pron-pen-opciones">
-          <label><input type="radio" name="pen_${p.id}" value="${_esc(localNombre)}"> ${_esc(localNombre)}</label>
-          <label><input type="radio" name="pen_${p.id}" value="${_esc(visitNombre)}"> ${_esc(visitNombre)}</label>
+        <input type="hidden" name="pen_${p.id}" id="pen-hidden-${p.id}" value="">
+        <div class="pron-pen-btns">
+          <button type="button" class="pron-pen-btn" id="pen-btn-local-${p.id}"
+            onclick="_selectPenBtn(${p.id}, '${_esc(localNombre)}')">
+            ${_esc(localNombre)}
+          </button>
+          <button type="button" class="pron-pen-btn" id="pen-btn-visit-${p.id}"
+            onclick="_selectPenBtn(${p.id}, '${_esc(visitNombre)}')">
+            ${_esc(visitNombre)}
+          </button>
         </div>
       </div>`;
   }
@@ -628,7 +630,26 @@ function _checkEliEmpate(pid, localNombre, visitNombre) {
   const gv = parseInt(container?.querySelector(`[name="vis_${pid}"]`)?.value);
   const penDiv = document.getElementById(`pron-pen-${pid}`);
   if (!penDiv) return;
-  penDiv.style.display = (!isNaN(gl) && !isNaN(gv) && gl === gv) ? 'block' : 'none';
+  const isEmpate = (!isNaN(gl) && !isNaN(gv) && gl === gv);
+  penDiv.style.display = isEmpate ? 'block' : 'none';
+  // Reset pen selection when scores change
+  if (!isEmpate) {
+    const hiddenInput = document.getElementById(`pen-hidden-${pid}`);
+    if (hiddenInput) hiddenInput.value = '';
+    document.getElementById(`pen-btn-local-${pid}`)?.classList.remove('pron-pen-btn--selected');
+    document.getElementById(`pen-btn-visit-${pid}`)?.classList.remove('pron-pen-btn--selected');
+  }
+}
+
+function _selectPenBtn(pid, team) {
+  const hidden = document.getElementById(`pen-hidden-${pid}`);
+  if (!hidden) return;
+  hidden.value = team;
+  // Update visual state of buttons
+  const container = document.getElementById(`pron-pen-${pid}`);
+  container?.querySelectorAll('.pron-pen-btn').forEach(btn => {
+    btn.classList.toggle('pron-pen-btn--selected', btn.textContent.trim() === team);
+  });
 }
 
 function _checkAdminEmpate(pid, localNombre, visitNombre, inputEl) {
