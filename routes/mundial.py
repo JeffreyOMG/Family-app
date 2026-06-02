@@ -77,7 +77,7 @@ def api_mundial_datos():
 
     # ── RANKING: grupos + eliminación directa ────────────────────────────────
     ranking = [dict(r) for r in con.execute("""
-        SELECT u.nombre,
+        SELECT u.id, u.nombre,
                COALESCE(g.puntos,0)+COALESCE(e.puntos,0) AS puntos,
                COALESCE(g.penales,0)+COALESCE(e.penales,0) AS penales,
                COALESCE(g.exactos,0)+COALESCE(e.exactos,0) AS exactos,
@@ -958,7 +958,7 @@ def ranking_global():
     con = get_db()
     _ensure_eliminacion_table(con)
     ranking = [dict(r) for r in con.execute("""
-        SELECT u.nombre,
+        SELECT u.id, u.nombre,
                COALESCE(g.puntos,0)+COALESCE(e.puntos,0) AS puntos,
                COALESCE(g.penales,0)+COALESCE(e.penales,0) AS penales,
                COALESCE(g.exactos,0)+COALESCE(e.exactos,0) AS exactos,

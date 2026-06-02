@@ -1345,15 +1345,15 @@ textarea.form-input{
 }
 /* ─── RANKING: fila del usuario actual ─── */
 #mtab-ranking tr.ranking-yo td {
-  background: #1a3a5c !important;
-  color: #e8f4ff !important;
-  border-bottom: 1px solid #2a5a8c;
+  background: #2e6da4 !important;
+  color: #ffffff !important;
+  border-bottom: 1px solid #3a80be;
 }
 #mtab-ranking tr.ranking-yo td strong {
-  color: #7dd3fc !important;
+  color: #ffffff !important;
 }
 #mtab-ranking tr.ranking-yo .highlight {
-  color: #7dd3fc !important;
+  color: #ffffff !important;
 }
 
 /* FEED */
