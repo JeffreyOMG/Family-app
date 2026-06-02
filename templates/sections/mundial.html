@@ -491,7 +491,7 @@ function _renderRanking(ranking) {
   const tbody = document.querySelector('#mtab-ranking table tbody');
   if (!tbody) return;
   tbody.innerHTML = ranking.map((r, i) => `
-    <tr${r.id === _MI_ID ? ' class="ranking-yo"' : ''}>
+    <tr${+r.id === +_MI_ID ? ' class="ranking-yo"' : ''}>
       <td>${i===0?'<i class="fa-solid fa-trophy" style="color:#f5c518;"></i>':i===1?'<i class="fa-solid fa-medal" style="color:#b0b8c1;"></i>':i===2?'<i class="fa-solid fa-medal" style="color:#cd7f32;"></i>':i+1}</td>
       <td>${_esc(r.nombre)}</td>
       <td><strong>${r.puntos}</strong></td>
