@@ -4557,6 +4557,25 @@ body.dark-mode .cruce-num {
   border-color: #4f6ef7;
   color: #ffffff;
 }
+/* Estado de error al intentar guardar empate sin ganador de penales */
+.pron-pen-error {
+  border-color: #f44336 !important;
+  background: rgba(244,67,54,.08) !important;
+  animation: pron-pen-shake .35s ease;
+}
+@keyframes pron-pen-shake {
+  0%,100% { transform: translateX(0); }
+  20%      { transform: translateX(-6px); }
+  40%      { transform: translateX(6px); }
+  60%      { transform: translateX(-4px); }
+  80%      { transform: translateX(4px); }
+}
+.pron-pen-error .pron-pen-label {
+  color: #f44336 !important;
+}
+.pron-pen-error .pron-pen-btn {
+  border-color: #f44336;
+}
 .pron-penales-info {
   display: flex; align-items: center; justify-content: center; gap: 4px;
   font-size: .75rem; color: var(--text2); margin-top: 4px;

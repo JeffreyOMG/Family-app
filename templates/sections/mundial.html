@@ -956,13 +956,15 @@ function _eliPartidoCardHTML(p) {
     scoreArea = `
       <div class="pron-inputs" id="pron-inputs-${p.id}">
         <input class="pron-input" type="number" name="local_${p.id}" min="0" max="20" placeholder="0"
-          onchange="_checkEliEmpate(${p.id}, '${_esc(localNombre)}', '${_esc(visitNombre)}')">
+          onchange="_checkEliEmpate(${p.id}, '${_esc(localNombre)}', '${_esc(visitNombre)}')"
+          oninput="_checkEliEmpate(${p.id}, '${_esc(localNombre)}', '${_esc(visitNombre)}')">
         <span class="pron-sep">–</span>
         <input class="pron-input" type="number" name="vis_${p.id}" min="0" max="20" placeholder="0"
-          onchange="_checkEliEmpate(${p.id}, '${_esc(localNombre)}', '${_esc(visitNombre)}')">
+          onchange="_checkEliEmpate(${p.id}, '${_esc(localNombre)}', '${_esc(visitNombre)}')"
+          oninput="_checkEliEmpate(${p.id}, '${_esc(localNombre)}', '${_esc(visitNombre)}')">
       </div>
       <div class="pron-penales-sel" id="pron-pen-${p.id}" style="display:none;">
-        <div class="pron-pen-label"><span class="material-symbols-outlined">sports_score</span> ¿Quién gana en penales?</div>
+        <div class="pron-pen-label"><span class="material-symbols-outlined">sports_score</span> ¿Quién gana en penales? <span style="color:#f44336;font-size:.7rem;font-weight:700;">(Obligatorio)</span></div>
         <input type="hidden" name="pen_${p.id}" id="pen-hidden-${p.id}" value="">
         <div class="pron-pen-btns">
           <button type="button" class="pron-pen-btn" id="pen-btn-local-${p.id}"
@@ -1496,6 +1498,39 @@ document.addEventListener('DOMContentLoaded', function() {
     const validActions = ['/pronostico', '/admin_resultado', '/pronostico_eli', '/admin_resultado_eli'];
     if (!validActions.includes(action)) return;
     e.preventDefault(); e.stopImmediatePropagation();
+
+    // ── Validación: en fase eliminatoria no se permite empate sin ganador de penales ──
+    if (action === '/pronostico_eli') {
+      const formData = new FormData(form);
+      // Buscar todos los pron-inputs dentro de este form
+      const inputs = form.querySelectorAll('.pron-inputs');
+      let hayErrorPenales = false;
+      inputs.forEach(container => {
+        const match = container.id.match(/^pron-inputs-(\d+)$/);
+        if (!match) return;
+        const pid = match[1];
+        const gl = parseInt(container.querySelector(`[name="local_${pid}"]`)?.value);
+        const gv = parseInt(container.querySelector(`[name="vis_${pid}"]`)?.value);
+        if (!isNaN(gl) && !isNaN(gv) && gl === gv) {
+          // Es empate: verificar que haya ganador de penales seleccionado
+          const penVal = (document.getElementById(`pen-hidden-${pid}`)?.value || '').trim();
+          if (!penVal) {
+            hayErrorPenales = true;
+            // Resaltar el selector de penales con animación de error
+            const penDiv = document.getElementById(`pron-pen-${pid}`);
+            if (penDiv) {
+              penDiv.classList.add('pron-pen-error');
+              setTimeout(() => penDiv.classList.remove('pron-pen-error'), 2500);
+            }
+          }
+        }
+      });
+      if (hayErrorPenales) {
+        mostrarToast('⚠️ Empate detectado: selecciona el ganador en penales antes de guardar', 'error');
+        return;
+      }
+    }
+    // ── Fin validación penales ──
     const btn = form.querySelector('button[type="submit"]');
     const btnHTML = btn ? btn.innerHTML : '';
     if (btn) { btn.disabled = true; btn.textContent = '...'; }
