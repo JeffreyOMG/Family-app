@@ -270,6 +270,13 @@ def init_db():
         except Exception as e:
             print(f"Table warning: {e}")
 
+    # Migración: agregar columna visibilidad si no existe
+    try:
+        pg.run("ALTER TABLE publicaciones ADD COLUMN visibilidad TEXT DEFAULT 'general'")
+        pg.run("COMMIT")
+    except Exception:
+        pass  # Ya existe
+
     admin_hash = generate_password_hash("admin1234")
     try:
         pg.run("INSERT INTO usuarios(nombre,usuario,password,rol,gmail) VALUES(:p1,:p2,:p3,:p4,:p5) ON CONFLICT(usuario) DO NOTHING", p1="Administrador", p2="admin", p3=admin_hash, p4="admin", p5="admin@familia.com")

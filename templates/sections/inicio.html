@@ -8,7 +8,7 @@
     {% endif %}
     <div class="post-meta-block">
       <span class="post-name">{{ p.nombre }}</span>
-      <span class="post-handle">@{{ p.usuario }} · {{ p.fecha[:10] }}</span>
+      <span class="post-handle">@{{ p.usuario }} · {{ p.fecha[:10] }}{% if p.get('visibilidad','general')=='privada' %} <span class="post-badge-privado">🔒 Solo miembros</span>{% endif %}</span>
     </div>
     {% if p.usuario_id == usuario.id or usuario.rol == 'admin' %}
     <form method="POST" action="/eliminar_post/{{ p.id }}" class="post-delete-form">
@@ -382,6 +382,18 @@
           <span class="material-symbols-outlined">location_on</span>
         </button>
       </div>
+      {% if usuario.rol in ('miembro', 'admin') %}
+      <div class="mc-visibilidad-row" id="mc-vis-row">
+        <button type="button" class="mc-vis-btn active" id="mc-vis-general" onclick="setVisibilidad('general')" title="Todos pueden ver">
+          <span class="material-symbols-outlined">public</span>
+          <span>General</span>
+        </button>
+        <button type="button" class="mc-vis-btn" id="mc-vis-privada" onclick="setVisibilidad('privada')" title="Solo miembros y admin">
+          <span class="material-symbols-outlined">lock</span>
+          <span>Solo miembros</span>
+        </button>
+      </div>
+      {% endif %}
     </div>
 
   </div>
@@ -1262,6 +1274,27 @@ body.dark-mode {
   flex-shrink: 0;
 }
 .mc-footer-actions { display: flex; gap: 2px; align-items: center; }
+/* ── Visibilidad ── */
+.mc-visibilidad-row {
+  display: flex; gap: 6px; margin-top: 10px; padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+.mc-vis-btn {
+  display: flex; align-items: center; gap: 4px;
+  padding: 5px 12px; border-radius: 20px; border: 1.5px solid var(--border);
+  background: transparent; color: var(--text-muted); font-size: 0.82rem;
+  cursor: pointer; transition: all .18s;
+}
+.mc-vis-btn .material-symbols-outlined { font-size: 16px; }
+.mc-vis-btn:hover { border-color: var(--accent); color: var(--accent); }
+.mc-vis-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+/* Badge privado en post */
+.post-badge-privado {
+  display: inline-flex; align-items: center; gap: 2px;
+  font-size: 0.72rem; background: var(--surface2, #2a2a3a);
+  color: var(--accent); padding: 1px 7px; border-radius: 10px;
+  margin-left: 4px; vertical-align: middle;
+}
 .mc-act-btn {
   display: flex;
   align-items: center;
@@ -1692,6 +1725,18 @@ function abrirComposer(modo){
 
 function cerrarComposer(){
   document.getElementById('modal-composer').style.display = 'none';
+  setVisibilidad('general'); // reset al cerrar
+}
+
+/* ── Visibilidad ── */
+let _visibilidad = 'general';
+function setVisibilidad(v){
+  _visibilidad = v;
+  const btnG = document.getElementById('mc-vis-general');
+  const btnP = document.getElementById('mc-vis-privada');
+  if(!btnG) return; // invitados no tienen el selector
+  btnG.classList.toggle('active', v==='general');
+  btnP.classList.toggle('active', v==='privada');
 }
 
 function onComposerInput(){
@@ -1922,6 +1967,7 @@ async function submitComposer(){
 
   const fd = new FormData();
   if(textoFinal) fd.append('texto', textoFinal);
+  fd.append('visibilidad', _visibilidad);
   if(_gifFile){
     fd.append('media', _gifFile);
   } else if(_mediaFiles.length){
