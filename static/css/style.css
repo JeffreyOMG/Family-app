@@ -4543,8 +4543,8 @@ body.dark-mode .cruce-num {
 .pron-pen-btn {
   flex: 1; min-width: 120px; max-width: 200px;
   padding: 12px 10px;
-  background: var(--card); border: 2px solid var(--border);
-  border-radius: 10px; color: var(--text);
+  background: #2c2f3a; border: 2px solid #3d4155;
+  border-radius: 10px; color: #e8eaf0;
   font-size: .82rem; font-weight: 600; cursor: pointer;
   text-align: center; line-height: 1.2;
   transition: background .15s, border-color .15s, color .15s, transform .1s;
@@ -4552,9 +4552,9 @@ body.dark-mode .cruce-num {
 }
 .pron-pen-btn:active { transform: scale(.96); }
 .pron-pen-btn--selected {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: #fff;
+  background: #4f6ef7;
+  border-color: #4f6ef7;
+  color: #ffffff;
 }
 .pron-penales-info {
   display: flex; align-items: center; justify-content: center; gap: 4px;

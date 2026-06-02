@@ -79,22 +79,25 @@ def api_mundial_datos():
     ranking = [dict(r) for r in con.execute("""
         SELECT u.nombre,
                COALESCE(g.puntos,0)+COALESCE(e.puntos,0) AS puntos,
+               COALESCE(g.penales,0)+COALESCE(e.penales,0) AS penales,
                COALESCE(g.exactos,0)+COALESCE(e.exactos,0) AS exactos,
                COALESCE(g.ganadores,0)+COALESCE(e.ganadores,0) AS ganadores
         FROM usuarios u
         LEFT JOIN (
-            SELECT usuario_id,SUM(puntos) puntos,
+            SELECT usuario_id, SUM(puntos) puntos,
                    COUNT(CASE WHEN puntos=3 THEN 1 END) exactos,
-                   COUNT(CASE WHEN puntos>=1 AND puntos<3 THEN 1 END) ganadores
+                   COUNT(CASE WHEN puntos=1 THEN 1 END) ganadores,
+                   0 penales
             FROM pronosticos GROUP BY usuario_id
         ) g ON g.usuario_id=u.id
         LEFT JOIN (
-            SELECT usuario_id,SUM(puntos) puntos,
-                   COUNT(CASE WHEN puntos=3 THEN 1 END) exactos,
-                   COUNT(CASE WHEN puntos>=1 AND puntos<3 THEN 1 END) ganadores
+            SELECT usuario_id, SUM(puntos) puntos,
+                   COUNT(CASE WHEN puntos IN (3,4) THEN 1 END) exactos,
+                   COUNT(CASE WHEN puntos=1 THEN 1 END) ganadores,
+                   COUNT(CASE WHEN puntos=4 THEN 1 END) penales
             FROM pronosticos_eli GROUP BY usuario_id
         ) e ON e.usuario_id=u.id
-        ORDER BY puntos DESC, exactos DESC
+        ORDER BY puntos DESC, penales DESC, exactos DESC, ganadores DESC
     """).fetchall()]
 
     try:
@@ -233,23 +236,26 @@ def ranking_mundial():
     ranking = [dict(r) for r in con.execute("""
         SELECT u.id, u.nombre, u.usuario, u.foto,
                COALESCE(g.puntos,0)+COALESCE(e.puntos,0) AS puntos,
+               COALESCE(g.penales,0)+COALESCE(e.penales,0) AS penales,
                COALESCE(g.exactos,0)+COALESCE(e.exactos,0) AS exactos,
                COALESCE(g.ganadores,0)+COALESCE(e.ganadores,0) AS ganadores
         FROM usuarios u
         LEFT JOIN (
             SELECT usuario_id, SUM(puntos) puntos,
                    COUNT(CASE WHEN puntos=3 THEN 1 END) exactos,
-                   COUNT(CASE WHEN puntos>=1 AND puntos<3 THEN 1 END) ganadores
+                   COUNT(CASE WHEN puntos=1 THEN 1 END) ganadores,
+                   0 penales
             FROM pronosticos GROUP BY usuario_id
         ) g ON g.usuario_id=u.id
         LEFT JOIN (
             SELECT usuario_id, SUM(puntos) puntos,
-                   COUNT(CASE WHEN puntos=3 THEN 1 END) exactos,
-                   COUNT(CASE WHEN puntos>=1 AND puntos<3 THEN 1 END) ganadores
+                   COUNT(CASE WHEN puntos IN (3,4) THEN 1 END) exactos,
+                   COUNT(CASE WHEN puntos=1 THEN 1 END) ganadores,
+                   COUNT(CASE WHEN puntos=4 THEN 1 END) penales
             FROM pronosticos_eli GROUP BY usuario_id
         ) e ON e.usuario_id=u.id
-        GROUP BY u.id, u.nombre, u.usuario, u.foto, g.puntos, g.exactos, g.ganadores, e.puntos, e.exactos, e.ganadores
-        ORDER BY puntos DESC, exactos DESC
+        GROUP BY u.id, u.nombre, u.usuario, u.foto, g.puntos, g.exactos, g.ganadores, g.penales, e.puntos, e.exactos, e.ganadores, e.penales
+        ORDER BY puntos DESC, penales DESC, exactos DESC, ganadores DESC
     """).fetchall()]
     return jsonify(ranking)
 
@@ -954,21 +960,24 @@ def ranking_global():
     ranking = [dict(r) for r in con.execute("""
         SELECT u.nombre,
                COALESCE(g.puntos,0)+COALESCE(e.puntos,0) AS puntos,
+               COALESCE(g.penales,0)+COALESCE(e.penales,0) AS penales,
                COALESCE(g.exactos,0)+COALESCE(e.exactos,0) AS exactos,
                COALESCE(g.ganadores,0)+COALESCE(e.ganadores,0) AS ganadores
         FROM usuarios u
         LEFT JOIN (
             SELECT usuario_id, SUM(puntos) puntos,
                    COUNT(CASE WHEN puntos=3 THEN 1 END) exactos,
-                   COUNT(CASE WHEN puntos>=1 AND puntos<3 THEN 1 END) ganadores
+                   COUNT(CASE WHEN puntos=1 THEN 1 END) ganadores,
+                   0 penales
             FROM pronosticos GROUP BY usuario_id
         ) g ON g.usuario_id=u.id
         LEFT JOIN (
             SELECT usuario_id, SUM(puntos) puntos,
-                   COUNT(CASE WHEN puntos=3 THEN 1 END) exactos,
-                   COUNT(CASE WHEN puntos>=1 AND puntos<3 THEN 1 END) ganadores
+                   COUNT(CASE WHEN puntos IN (3,4) THEN 1 END) exactos,
+                   COUNT(CASE WHEN puntos=1 THEN 1 END) ganadores,
+                   COUNT(CASE WHEN puntos=4 THEN 1 END) penales
             FROM pronosticos_eli GROUP BY usuario_id
         ) e ON e.usuario_id=u.id
-        ORDER BY puntos DESC, exactos DESC
+        ORDER BY puntos DESC, penales DESC, exactos DESC, ganadores DESC
     """).fetchall()]
     return jsonify(ranking)
