@@ -212,54 +212,131 @@
     <!-- ─── PANEL DERECHO ─── -->
     <aside class="right-panel">
 
-      <!-- MIEMBROS -->
+      <!-- USUARIOS -->
       <div class="panel-card">
         <div class="panel-header">
-          <h3>Miembros</h3>
-          {% if miembros|length > 5 %}
-          <button class="panel-ver-mas" id="btn-ver-mas" onclick="toggleMiembros()">Ver más</button>
+          <h3>Usuarios</h3>
+          {% if miembros|length > 4 %}
+          <button class="panel-ver-mas" onclick="abrirModalUsuarios()">Ver más</button>
           {% endif %}
         </div>
         {% if miembros %}
-          <div class="miembros-list" id="miembros-principales">
-            {% for m in miembros[:5] %}
-            <div class="miembro-item">
-              {% if m.foto %}
-                <img src="{{ m.foto }}" class="user-avatar-img miembro-av">
-              {% else %}
-                <div class="user-avatar miembro-av">{{ m.nombre[0]|upper }}</div>
-              {% endif %}
-              <div class="miembro-info">
-                <strong>{{ m.nombre }}</strong>
-                <span>@{{ m.usuario }}</span>
-              </div>
-              {% if m.rol == 'admin' %}<span class="badge-admin">Admin</span>{% endif %}
-            </div>
-            {% endfor %}
-          </div>
-          {% if miembros|length > 5 %}
-          <div class="miembros-list" id="miembros-extra" style="display:none;">
-            {% for m in miembros[5:] %}
-            <div class="miembro-item">
-              {% if m.foto %}
-                <img src="{{ m.foto }}" class="user-avatar-img miembro-av">
-              {% else %}
-                <div class="user-avatar miembro-av">{{ m.nombre[0]|upper }}</div>
-              {% endif %}
-              <div class="miembro-info">
-                <strong>{{ m.nombre }}</strong>
-                <span>@{{ m.usuario }}</span>
-              </div>
-            </div>
-            {% endfor %}
+          {# Separar por rol #}
+          {% set miembros_reales = miembros | selectattr('rol', 'in', ['miembro', 'admin']) | list %}
+          {% set invitados_lista = miembros | selectattr('rol', 'equalto', 'invitado') | list %}
+
+          {# Mostrar hasta 4 en total: primero miembros/admin, luego invitados #}
+          {% set preview = (miembros_reales + invitados_lista)[:4] %}
+
+          {% if miembros_reales %}
+          <div class="usuarios-grupo-label">
+            <span class="material-symbols-outlined" style="font-size:14px;">verified_user</span>
+            Miembros <span class="usuarios-count">{{ miembros_reales|length }}</span>
           </div>
           {% endif %}
+          <div class="miembros-list">
+            {% for m in preview %}
+              {% if loop.index0 == miembros_reales|length and invitados_lista %}
+              <div class="usuarios-grupo-label" style="margin-top:8px;">
+                <span class="material-symbols-outlined" style="font-size:14px;">person_outline</span>
+                Invitados <span class="usuarios-count">{{ invitados_lista|length }}</span>
+              </div>
+              {% endif %}
+              <div class="miembro-item">
+                {% if m.foto %}
+                  <img src="{{ m.foto }}" class="user-avatar-img miembro-av">
+                {% else %}
+                  <div class="user-avatar miembro-av">{{ m.nombre[0]|upper }}</div>
+                {% endif %}
+                <div class="miembro-info">
+                  <strong>{{ m.nombre }}</strong>
+                  <span>@{{ m.usuario }}</span>
+                </div>
+                {% if m.rol == 'admin' %}<span class="badge-admin">Admin</span>
+                {% elif m.rol == 'invitado' %}<span class="badge-invitado">Invitado</span>{% endif %}
+              </div>
+            {% endfor %}
+          </div>
         {% else %}
           <div class="panel-empty">
             <span class="material-symbols-outlined">group</span>
-            <p>Sin miembros registrados</p>
+            <p>Sin usuarios registrados</p>
           </div>
         {% endif %}
+      </div>
+
+      <!-- MODAL TODOS LOS USUARIOS (solo desktop) -->
+      <div id="modal-usuarios" class="modal-usuarios-overlay" onclick="cerrarModalUsuarios(event)" style="display:none;">
+        <div class="modal-usuarios-box">
+          <div class="modal-usuarios-header">
+            <h3>Todos los usuarios</h3>
+            <button class="modal-usuarios-close" onclick="cerrarModalUsuarios()">
+              <span class="material-symbols-outlined">close</span>
+            </button>
+          </div>
+          <div class="modal-usuarios-search">
+            <span class="material-symbols-outlined modal-search-icon">search</span>
+            <input type="text" id="input-buscar-usuario" class="modal-search-input" placeholder="Buscar por nombre o @usuario…" oninput="filtrarUsuariosModal(this.value)" autocomplete="off">
+            <button class="modal-search-clear" id="btn-clear-search" onclick="limpiarBusquedaModal()" style="display:none;">
+              <span class="material-symbols-outlined">close</span>
+            </button>
+          </div>
+          <div class="modal-usuarios-body" id="modal-usuarios-body">
+            {% set miembros_reales = miembros | selectattr('rol', 'in', ['miembro', 'admin']) | list %}
+            {% set invitados_lista = miembros | selectattr('rol', 'equalto', 'invitado') | list %}
+
+            {% if miembros_reales %}
+            <div class="modal-grupo-label" id="modal-grupo-miembros">
+              <span class="material-symbols-outlined">verified_user</span>
+              Miembros <span class="usuarios-count">{{ miembros_reales|length }}</span>
+            </div>
+            <div class="miembros-list modal-miembros-list">
+              {% for m in miembros_reales %}
+              <div class="miembro-item" data-nombre="{{ m.nombre|lower }}" data-usuario="{{ m.usuario|lower }}">
+                {% if m.foto %}
+                  <img src="{{ m.foto }}" class="user-avatar-img miembro-av">
+                {% else %}
+                  <div class="user-avatar miembro-av">{{ m.nombre[0]|upper }}</div>
+                {% endif %}
+                <div class="miembro-info">
+                  <strong>{{ m.nombre }}</strong>
+                  <span>@{{ m.usuario }}</span>
+                </div>
+                {% if m.rol == 'admin' %}<span class="badge-admin">Admin</span>{% endif %}
+              </div>
+              {% endfor %}
+            </div>
+            {% endif %}
+
+            {% if invitados_lista %}
+            <div class="modal-grupo-label" id="modal-grupo-invitados" style="margin-top:16px;">
+              <span class="material-symbols-outlined">person_outline</span>
+              Invitados <span class="usuarios-count">{{ invitados_lista|length }}</span>
+            </div>
+            <div class="miembros-list modal-miembros-list">
+              {% for m in invitados_lista %}
+              <div class="miembro-item" data-nombre="{{ m.nombre|lower }}" data-usuario="{{ m.usuario|lower }}">
+                {% if m.foto %}
+                  <img src="{{ m.foto }}" class="user-avatar-img miembro-av">
+                {% else %}
+                  <div class="user-avatar miembro-av">{{ m.nombre[0]|upper }}</div>
+                {% endif %}
+                <div class="miembro-info">
+                  <strong>{{ m.nombre }}</strong>
+                  <span>@{{ m.usuario }}</span>
+                </div>
+                <span class="badge-invitado">Invitado</span>
+              </div>
+              {% endfor %}
+            </div>
+            {% endif %}
+
+            <div id="modal-sin-resultados" style="display:none;" class="modal-no-results">
+              <span class="material-symbols-outlined">search_off</span>
+              <p>Sin resultados</p>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- NOTICIAS -->
@@ -1022,6 +1099,37 @@ body.dark-mode .post-badge-privado { background: rgba(139,92,246,.2); color: #a7
 .miembro-info strong { font-size: 13px; font-weight: 600; color: var(--text); display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .miembro-info span { font-size: 11px; color: var(--text3); }
 .badge-admin { font-size: 10px; font-weight: 700; color: var(--ac); background: var(--ac-soft); padding: 2px 8px; border-radius: 20px; white-space: nowrap; }
+.badge-invitado { font-size: 10px; font-weight: 600; color: var(--text3); background: var(--bg2); padding: 2px 8px; border-radius: 20px; white-space: nowrap; }
+.usuarios-grupo-label { display: flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 700; color: var(--text3); text-transform: uppercase; letter-spacing: .04em; padding: 6px 10px 2px; }
+.usuarios-grupo-label .material-symbols-outlined { font-size: 14px; }
+.usuarios-count { font-size: 11px; font-weight: 600; color: var(--ac); background: var(--ac-soft); padding: 1px 6px; border-radius: 10px; margin-left: 2px; }
+
+/* Modal usuarios – solo desktop */
+.modal-usuarios-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 9000; display: flex; align-items: center; justify-content: center; }
+.modal-usuarios-box { background: var(--bg1); border: 1px solid var(--border); border-radius: 18px; width: 380px; max-height: 70vh; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,.3); }
+.modal-usuarios-header { display: flex; align-items: center; justify-content: space-between; padding: 18px 20px 14px; border-bottom: 1px solid var(--border); }
+.modal-usuarios-header h3 { font-size: 16px; font-weight: 700; color: var(--text); margin: 0; }
+.modal-usuarios-close { background: var(--bg2); border: none; border-radius: 50%; width: 30px; height: 30px; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--text3); transition: background .15s; }
+.modal-usuarios-close:hover { background: var(--bg3, var(--bg2)); }
+.modal-usuarios-close .material-symbols-outlined { font-size: 18px; }
+.modal-usuarios-body { overflow-y: auto; padding: 10px 0 16px; }
+.modal-grupo-label { display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; color: var(--text3); text-transform: uppercase; letter-spacing: .04em; padding: 8px 20px 4px; }
+.modal-grupo-label .material-symbols-outlined { font-size: 15px; }
+.modal-miembros-list { padding: 4px 10px; }
+.modal-usuarios-search { display: flex; align-items: center; gap: 8px; padding: 10px 16px; border-bottom: 1px solid var(--border); }
+.modal-search-icon { font-size: 18px; color: var(--text3); flex-shrink: 0; }
+.modal-search-input { flex: 1; background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 7px 12px; font-size: 13px; color: var(--text); outline: none; transition: border-color .15s; }
+.modal-search-input:focus { border-color: var(--ac); }
+.modal-search-input::placeholder { color: var(--text3); }
+.modal-search-clear { background: none; border: none; cursor: pointer; color: var(--text3); display: flex; align-items: center; padding: 2px; border-radius: 50%; transition: color .15s; }
+.modal-search-clear:hover { color: var(--text); }
+.modal-search-clear .material-symbols-outlined { font-size: 16px; }
+.modal-no-results { text-align: center; padding: 32px 16px; color: var(--text3); }
+.modal-no-results .material-symbols-outlined { font-size: 32px; display: block; margin-bottom: 8px; opacity: .4; }
+.modal-no-results p { font-size: 13px; }
+@media (max-width: 768px) {
+  .modal-usuarios-overlay { display: none !important; }
+}
 
 .panel-empty { text-align: center; padding: 24px 16px; color: var(--text3); }
 .panel-empty .material-symbols-outlined { font-size: 28px; display: block; margin-bottom: 6px; opacity: .4; }
@@ -1524,13 +1632,56 @@ document.querySelectorAll('.feed-tab').forEach(tab => {
 
 /* ── TOGGLE MIEMBROS ── */
 function toggleMiembros(){
-  const extra = document.getElementById('miembros-extra');
-  const btn   = document.getElementById('btn-ver-mas');
-  if(!extra||!btn) return;
-  const vis = extra.style.display!=='none';
-  extra.style.display = vis?'none':'block';
-  btn.textContent = vis?'Ver más':'Ver menos';
+  /* legacy – no-op, reemplazado por modal */
 }
+function abrirModalUsuarios(){
+  const modal = document.getElementById('modal-usuarios');
+  if(!modal) return;
+  modal.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+  setTimeout(() => document.getElementById('input-buscar-usuario')?.focus(), 80);
+}
+function cerrarModalUsuarios(e){
+  if(e && e.target !== document.getElementById('modal-usuarios')) return;
+  const modal = document.getElementById('modal-usuarios');
+  if(!modal) return;
+  modal.style.display = 'none';
+  document.body.style.overflow = '';
+  limpiarBusquedaModal();
+}
+function filtrarUsuariosModal(q){
+  const termino = q.trim().toLowerCase();
+  const items = document.querySelectorAll('#modal-usuarios-body .miembro-item');
+  const clearBtn = document.getElementById('btn-clear-search');
+  if(clearBtn) clearBtn.style.display = termino ? 'flex' : 'none';
+
+  let visibles = 0;
+  items.forEach(item => {
+    const nombre = item.dataset.nombre || '';
+    const usuario = item.dataset.usuario || '';
+    const match = !termino || nombre.includes(termino) || usuario.includes(termino);
+    item.style.display = match ? '' : 'none';
+    if(match) visibles++;
+  });
+
+  // Ocultar cabeceras de grupo si no tienen items visibles
+  document.querySelectorAll('#modal-usuarios-body .modal-grupo-label').forEach(label => {
+    const lista = label.nextElementSibling;
+    if(!lista) return;
+    const tieneVisibles = [...lista.querySelectorAll('.miembro-item')].some(i => i.style.display !== 'none');
+    label.style.display = tieneVisibles ? '' : 'none';
+  });
+
+  const noRes = document.getElementById('modal-sin-resultados');
+  if(noRes) noRes.style.display = visibles === 0 ? 'block' : 'none';
+}
+function limpiarBusquedaModal(){
+  const input = document.getElementById('input-buscar-usuario');
+  if(input){ input.value = ''; filtrarUsuariosModal(''); }
+}
+document.addEventListener('keydown', e => {
+  if(e.key === 'Escape') cerrarModalUsuarios();
+});
 
 /* ── BOTTOM NAV ── */
 function updateBottomNav(el){
