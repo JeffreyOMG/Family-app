@@ -3027,7 +3027,7 @@ input[type="checkbox"]:checked::after {
 }
 
 .eq-flag {
-  font-size: 1.1rem;
+  font-size: 1.6rem;
 }
 
 .eq-nombre {
@@ -4079,7 +4079,7 @@ body.dark-mode .cruce-num {
   gap: 7px;
 }
 .eq-pend { opacity: .5; }
-.bk-flag { font-size: 1.4rem; flex-shrink: 0; }
+.bk-flag { font-size: 1.1rem; flex-shrink: 0; }
 .cruce-nombre {
   font-size: .84rem;
   font-weight: 600;
@@ -4252,7 +4252,7 @@ body.dark-mode .cruce-num {
 .cruce-equipos { flex: 1; display: flex; flex-direction: column; gap: 3px; }
 .cruce-eq { display: flex; align-items: center; gap: 6px; }
 .eq-pend { opacity: .5; }
-.bk-flag { font-size: 1.4rem; flex-shrink: 0; }
+.bk-flag { font-size: 1.1rem; flex-shrink: 0; }
 .cruce-nombre {
   font-size: .82rem; font-weight: 600; color: var(--text);
   flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
