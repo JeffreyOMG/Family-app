@@ -246,6 +246,97 @@
   </table>
 </div>
 
+
+<!-- ── Sección Mundial: solicitudes de pago ─────────────────────────── -->
+<style>
+  .mundial-section { padding: 0 24px 40px; }
+  .mundial-section h2 { font-size: 15px; font-weight: 700; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+  .mundial-badge { background: rgba(245,197,24,.12); border: 1px solid rgba(245,197,24,.3); color: #f5c518;
+                   border-radius: 20px; font-size: 11px; font-weight: 700; padding: 2px 8px; }
+  .mund-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+               padding: 14px 16px; display: flex; align-items: center; justify-content: space-between;
+               gap: 12px; margin-bottom: 10px; flex-wrap: wrap; }
+  .mund-info { display: flex; flex-direction: column; gap: 3px; }
+  .mund-name { font-weight: 700; font-size: 14px; }
+  .mund-user { font-size: 12px; color: var(--text2); }
+  .mund-code { font-size: 12px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.1);
+               border-radius: 6px; padding: 3px 8px; font-family: monospace; color: #f5c518; margin-top: 2px; }
+  .mund-actions { display: flex; gap: 8px; }
+  .mund-estado-rechazado { font-size: 11px; color: #ef4444; font-weight: 700; }
+  .mund-empty { color: var(--text3); font-size: 13px; padding: 20px 0; }
+</style>
+
+<div class="mundial-section">
+  <h2>
+    <span class="material-symbols-outlined" style="font-size:18px">sports_soccer</span>
+    Verificación de pagos — Mundial
+    <span class="mundial-badge" id="mund-count">Cargando…</span>
+  </h2>
+  <div id="mund-list"><div class="mund-empty">Cargando solicitudes…</div></div>
+</div>
+
+<script>
+(async function() {
+  const list = document.getElementById('mund-list');
+  const countEl = document.getElementById('mund-count');
+  
+  async function cargarSolicitudes() {
+    try {
+      const r = await fetch('/admin/mundial_solicitudes');
+      const solicitudes = await r.json();
+      countEl.textContent = solicitudes.length + ' pendiente' + (solicitudes.length !== 1 ? 's' : '');
+      
+      if (solicitudes.length === 0) {
+        list.innerHTML = '<div class="mund-empty">✅ No hay solicitudes pendientes.</div>';
+        return;
+      }
+      
+      list.innerHTML = solicitudes.map(s => {
+        const estado = s.mundial_pagado || '';
+        const esPendiente = estado.startsWith('pendiente');
+        const codigo = esPendiente ? estado.replace('pendiente:', '') : '—';
+        const esRechazado = estado === 'rechazado';
+        return `
+          <div class="mund-card" id="mund-row-${s.id}">
+            <div class="mund-info">
+              <span class="mund-name">${s.nombre}</span>
+              <span class="mund-user">@${s.usuario} · ${s.gmail || ''}</span>
+              ${esPendiente ? `<span class="mund-code">Código: ${codigo}</span>` : ''}
+              ${esRechazado ? `<span class="mund-estado-rechazado">⛔ Rechazado anteriormente</span>` : ''}
+            </div>
+            <div class="mund-actions">
+              <button class="act-btn act-btn--save" onclick="verificarMundial(${s.id}, 'aprobar')">
+                <span class="material-symbols-outlined">check_circle</span> Aprobar
+              </button>
+              <button class="act-btn act-btn--del" onclick="verificarMundial(${s.id}, 'rechazar')">
+                <span class="material-symbols-outlined">cancel</span> Rechazar
+              </button>
+            </div>
+          </div>`;
+      }).join('');
+    } catch(e) {
+      list.innerHTML = '<div class="mund-empty">Error al cargar solicitudes.</div>';
+    }
+  }
+  
+  window.verificarMundial = async function(uid, accion) {
+    const fd = new FormData();
+    fd.append('uid', uid);
+    fd.append('accion', accion);
+    const r = await fetch('/admin/mundial_verificar', { method: 'POST', body: fd });
+    const d = await r.json();
+    showToast(d.msg, d.ok);
+    if (d.ok) {
+      const row = document.getElementById('mund-row-' + uid);
+      if (row) { row.style.opacity = '0'; row.style.transition = 'opacity .3s'; setTimeout(() => row.remove(), 300); }
+      setTimeout(cargarSolicitudes, 400);
+    }
+  };
+  
+  cargarSolicitudes();
+})();
+</script>
+
 <div class="toast" id="toast"></div>
 
 <script>

@@ -90,7 +90,7 @@
     <div id="mundial-gate-box">
       <span class="gate-icon">⚽</span>
       <div class="gate-title">Polla Mundialista 2026</div>
-      <div class="gate-sub">Sección exclusiva para inscritos</div>
+      <div class="gate-sub">Sección exclusiva para inscritos · El admin verificará tu pago</div>
       <div class="gate-info">
         Esta sección está disponible <strong>únicamente para quienes pagaron la inscripción de $60.000</strong>.<br>
         Al hacer el pago a la llave <strong>39662388</strong>, escribe en la <strong>descripción del envío</strong> tu usuario y nombre.<br><br>
@@ -101,7 +101,7 @@
         <input id="gate-code-input" type="text" inputmode="numeric"
                maxlength="20" placeholder="· · · · · · · ·"
                onkeydown="if(event.key==='Enter') gateVerify()">
-        <button id="gate-btn" onclick="gateVerify()">Entrar</button>
+        <button id="gate-btn" onclick="gateVerify()">Enviar</button>
       </div>
       <div id="gate-error-msg"></div>
     </div>
@@ -115,47 +115,36 @@
     const errEl    = document.getElementById('gate-error-msg');
     const btn      = document.getElementById('gate-btn');
 
-    function showGate() {
+    function showGate(status) {
       backdrop.style.display = 'block';
       gate.style.display     = 'flex';
-      setTimeout(function(){ input.focus(); }, 350);
+      // Si ya envió solicitud, mostrar mensaje de espera
+      if (status === 'pendiente') {
+        input.disabled = true;
+        btn.disabled   = true;
+        btn.textContent = 'Enviado';
+        errEl.style.color = '#f5c518';
+        errEl.textContent = '⏳ Tu código ya fue enviado. Espera la aprobación del admin.';
+      } else if (status === 'rechazado') {
+        errEl.style.color = '#ef5350';
+        errEl.textContent = '❌ Tu solicitud fue rechazada. Envía el código correcto de pago.';
+        setTimeout(function(){ input.focus(); }, 350);
+      } else {
+        setTimeout(function(){ input.focus(); }, 350);
+      }
     }
 
-    function hideGate() {
-      const box = document.getElementById('mundial-gate-box');
-      box.style.transition = 'opacity .3s, transform .3s';
-      box.style.opacity    = '0';
-      box.style.transform  = 'scale(.95)';
-      setTimeout(function(){
-        gate.style.display     = 'none';
-        backdrop.style.display = 'none';
-      }, 320);
-    }
+    // Siempre verificar contra el servidor (NO usar localStorage)
+    fetch('/api/mundial_gate_status')
+      .then(function(r){ return r.json(); })
+      .then(function(d){
+        if (!d.ok) {
+          showGate(d.status || null);
+        }
+        // si d.ok === true: acceso aprobado, no mostrar modal
+      })
+      .catch(function(){ showGate(null); });
 
-    // Doble verificación: localStorage (móvil) + sesión Flask (servidor)
-    const LS_KEY = 'mundial_gate_passed_v1';
-
-    // Si ya pasó guardado localmente → no mostrar, confirmar con servidor silenciosamente
-    if (localStorage.getItem(LS_KEY)) {
-      // Ya tiene acceso guardado, no mostrar modal
-      // Sincronizar con servidor en background por si la sesión Flask expiró
-      fetch('/api/mundial_gate_status').catch(function(){});
-    } else {
-      // Verificar con servidor
-      fetch('/api/mundial_gate_status')
-        .then(function(r){ return r.json(); })
-        .then(function(d){
-          if (d.ok) {
-            localStorage.setItem(LS_KEY, '1'); // guardar localmente también
-          } else {
-            showGate();
-          }
-        })
-        .catch(function(){ showGate(); });
-    }
-
-    // Al verificar código exitosamente → guardar en localStorage también
-    const _origGateVerify = window.gateVerify;
     window.gateVerify = async function() {
       const code = input.value.trim();
       if (!code) return;
@@ -170,19 +159,28 @@
         });
         const data = await res.json();
         if (data.ok) {
-          localStorage.setItem(LS_KEY, '1'); // persistir en móvil
-          hideGate();
+          // Aprobado de inmediato (no debería pasar, pero por si acaso)
+          gate.style.display     = 'none';
+          backdrop.style.display = 'none';
+        } else if (data.pending) {
+          // Enviado para revisión — bloquear input
+          input.disabled  = true;
+          btn.disabled    = true;
+          btn.textContent = 'Enviado';
+          errEl.style.color   = '#f5c518';
+          errEl.textContent   = data.error || '✅ Código enviado. Espera la aprobación.';
         } else {
           input.classList.add('gate-error');
-          errEl.textContent = '❌ ' + (data.error || 'Código incorrecto');
+          errEl.style.color   = '#ef5350';
+          errEl.textContent   = data.error || '❌ Error al enviar';
           setTimeout(function(){ input.classList.remove('gate-error'); }, 400);
           btn.disabled    = false;
-          btn.textContent = 'Entrar';
+          btn.textContent = 'Enviar';
         }
       } catch(e) {
         errEl.textContent = '❌ Error de conexión. Intenta de nuevo.';
         btn.disabled    = false;
-        btn.textContent = 'Entrar';
+        btn.textContent = 'Enviar';
       }
     };
   })();

@@ -73,3 +73,33 @@ def eliminar():
     con.execute("DELETE FROM usuarios WHERE id=%s", (uid,))
     con.commit()
     return jsonify(ok=True)
+
+
+@admin_bp.route("/admin/mundial_solicitudes")
+@admin_required
+def mundial_solicitudes():
+    """Lista invitados con solicitud de pago pendiente o rechazada."""
+    con = get_db()
+    solicitudes = con.execute("""
+        SELECT id, nombre, usuario, gmail, mundial_pagado
+        FROM usuarios
+        WHERE mundial_pagado IS NOT NULL AND mundial_pagado != 'aprobado'
+        ORDER BY nombre
+    """).fetchall()
+    return jsonify([dict(s) for s in solicitudes])
+
+
+@admin_bp.route("/admin/mundial_verificar", methods=["POST"])
+@admin_required
+def mundial_verificar():
+    """Admin aprueba o rechaza el acceso al mundial de un invitado."""
+    uid    = request.form.get("uid", type=int)
+    accion = request.form.get("accion", "")  # 'aprobar' | 'rechazar'
+    if not uid or accion not in ("aprobar", "rechazar"):
+        return jsonify(ok=False, msg="Datos inválidos"), 400
+
+    con = get_db()
+    nuevo_estado = "aprobado" if accion == "aprobar" else "rechazado"
+    con.execute("UPDATE usuarios SET mundial_pagado=%s WHERE id=%s", (nuevo_estado, uid))
+    con.commit()
+    return jsonify(ok=True, msg=f"Usuario {'aprobado' if accion=='aprobar' else 'rechazado'} para el mundial")

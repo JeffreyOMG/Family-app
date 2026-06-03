@@ -984,36 +984,62 @@ def ranking_global():
 
 
 # ══════════════════════════════════════════
-# GATE DEL MUNDIAL — validación server-side
+# GATE DEL MUNDIAL — verificación por admin
 # ══════════════════════════════════════════
-import os as _os
 
 @mundial_bp.route("/api/mundial_gate", methods=["POST"])
 def mundial_gate():
-    """Valida el código de acceso al mundial.
-    El código correcto viene de la variable de entorno MUNDIAL_CODE.
-    Si es correcto, lo guarda en la sesión de Flask (server-side).
+    """El invitado envía su código de pago para que el admin lo revise.
+    Guarda la solicitud como pendiente en la BD.
     """
     if "uid" not in session:
         return jsonify({"ok": False, "error": "No autenticado"}), 401
 
-    codigo_correcto = _os.getenv("MUNDIAL_CODE", "")
-    if not codigo_correcto:
-        return jsonify({"ok": False, "error": "Código no configurado en el servidor"}), 500
+    uid = session["uid"]
+    con = get_db()
+    usuario = con.execute("SELECT mundial_pagado FROM usuarios WHERE id=%s", (uid,)).fetchone()
+    if usuario and usuario["mundial_pagado"] == "aprobado":
+        return jsonify({"ok": True})
 
     data = request.get_json(silent=True) or {}
     codigo_ingresado = str(data.get("code", "")).strip()
 
-    if codigo_ingresado == codigo_correcto:
-        session["mundial_gate_ok"] = True
-        return jsonify({"ok": True})
-    else:
-        return jsonify({"ok": False, "error": "Código incorrecto"})
+    if not codigo_ingresado:
+        return jsonify({"ok": False, "error": "Ingresa un código de pago"})
+
+    # Guardar código y marcar como pendiente para revisión del admin
+    con.execute(
+        "UPDATE usuarios SET mundial_pagado=%s WHERE id=%s",
+        (f"pendiente:{codigo_ingresado}", uid)
+    )
+    con.commit()
+
+    return jsonify({"ok": False, "pending": True,
+                    "error": "✅ Código enviado. El administrador verificará tu pago pronto."})
 
 
 @mundial_bp.route("/api/mundial_gate_status")
 def mundial_gate_status():
-    """Devuelve si el usuario ya pasó el gate en esta sesión."""
+    """Devuelve el estado real del acceso desde la BD (no sesión)."""
     if "uid" not in session:
         return jsonify({"ok": False}), 401
-    return jsonify({"ok": bool(session.get("mundial_gate_ok", False))})
+
+    # Admin y miembros siempre tienen acceso
+    if session.get("rol") in ("admin", "miembro"):
+        return jsonify({"ok": True})
+
+    uid = session["uid"]
+    con = get_db()
+    usuario = con.execute("SELECT mundial_pagado FROM usuarios WHERE id=%s", (uid,)).fetchone()
+    if not usuario:
+        return jsonify({"ok": False, "status": None})
+
+    estado = usuario["mundial_pagado"] or ""
+    if estado == "aprobado":
+        return jsonify({"ok": True, "status": "aprobado"})
+    elif estado.startswith("pendiente"):
+        return jsonify({"ok": False, "status": "pendiente"})
+    elif estado == "rechazado":
+        return jsonify({"ok": False, "status": "rechazado"})
+    else:
+        return jsonify({"ok": False, "status": None})
