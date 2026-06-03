@@ -782,6 +782,49 @@ async function _refreshMundialDatos(tab) {
   } catch(e) { console.warn('refresh error', e); }
 }
 
+async function _refreshAdminGruposCards() {
+  try {
+    const res = await fetch('/api/mundial_datos');
+    if (!res.ok) return;
+    const data = await res.json();
+    data.partidos.forEach(p => {
+      // Buscar la card del admin por partido_id
+      const form = document.querySelector(`#admin-ronda-grupos-adm form input[name="partido_id"][value="${p.id}"]`);
+      if (!form) return;
+      const card = form.closest('.admin-partido-card');
+      if (!card) return;
+      const jugado = p.bloqueado && p.goles_local !== null;
+      // Actualizar clases
+      card.classList.toggle('admin-card-jugado', jugado);
+      // Actualizar inputs
+      const inputLocal = form.querySelector('input[name="goles_local"]');
+      const inputVisit = form.querySelector('input[name="goles_visitante"]');
+      if (inputLocal) inputLocal.value = p.goles_local !== null ? p.goles_local : '';
+      if (inputVisit) inputVisit.value = p.goles_visitante !== null ? p.goles_visitante : '';
+      // Actualizar botón
+      const btn = form.querySelector('button[type="submit"]');
+      if (btn) {
+        btn.className = 'admin-btn-save' + (jugado ? ' admin-btn-edit' : '');
+        btn.innerHTML = jugado
+          ? '<span class="material-symbols-outlined">edit</span> Editar'
+          : '<span class="material-symbols-outlined">check_circle</span> Guardar';
+      }
+      // Actualizar badge de resultado
+      let badge = card.querySelector('.admin-status-jugado');
+      if (jugado) {
+        if (!badge) {
+          badge = document.createElement('div');
+          badge.className = 'admin-status-jugado';
+          form.querySelector('.admin-inputs-row').after(badge);
+        }
+        badge.innerHTML = `<span class="material-symbols-outlined">check_circle</span> Resultado: ${p.goles_local}–${p.goles_visitante}`;
+      } else if (badge) {
+        badge.remove();
+      }
+    });
+  } catch(e) { console.warn('refreshAdminGrupos error', e); }
+}
+
 function _renderGrupos(partidos, tabla) {
   for (const [letra, rows] of Object.entries(tabla)) {
     // Encontrar la card de este grupo
@@ -1035,6 +1078,22 @@ const _CRUCES_TERCERO = new Set([74, 77, 79, 80, 81, 82, 85, 87]);
 // Grupos posibles para cada cruce con tercero
 const _GRUPOS_TERCERO = {74:'ABCDF',77:'CDFGH',79:'CEFHI',80:'EHIJK',81:'BEFIJ',82:'AEHIJ',85:'EFGIJ',87:'DEIJL'};
 
+// Todos los equipos del mundial (para selector de países en eliminación)
+const _GRUPOS_MUNDIAL_JS = {
+  "A":[["México","mx"],["Sudáfrica","za"],["Corea del Sur","kr"],["República Checa","cz"]],
+  "B":[["Canadá","ca"],["Bosnia y Herz.","ba"],["Catar","qa"],["Suiza","ch"]],
+  "C":[["Brasil","br"],["Marruecos","ma"],["Haití","ht"],["Escocia","gb-sct"]],
+  "D":[["Estados Unidos","us"],["Paraguay","py"],["Australia","au"],["Turquía","tr"]],
+  "E":[["Alemania","de"],["Curazao","cw"],["Costa de Marfil","ci"],["Ecuador","ec"]],
+  "F":[["Países Bajos","nl"],["Japón","jp"],["Suecia","se"],["Túnez","tn"]],
+  "G":[["Bélgica","be"],["Egipto","eg"],["Irán","ir"],["Nueva Zelanda","nz"]],
+  "H":[["España","es"],["Cabo Verde","cv"],["Arabia Saudita","sa"],["Uruguay","uy"]],
+  "I":[["Francia","fr"],["Senegal","sn"],["Irak","iq"],["Noruega","no"]],
+  "J":[["Argentina","ar"],["Argelia","dz"],["Austria","at"],["Jordania","jo"]],
+  "K":[["Portugal","pt"],["Congo","cd"],["Uzbekistán","uz"],["Colombia","co"]],
+  "L":[["Inglaterra","gb-eng"],["Croacia","hr"],["Ghana","gh"],["Panamá","pa"]]
+};
+
 let _tercerosPorGrupo = {};  // {A: {nombre, codigo, pts}, B: {...}, ...}
 
 async function _loadAdminEli() {
@@ -1069,6 +1128,24 @@ function _adminEliCardHTML(p) {
   const flagV = visitNombre
     ? `<span class="fi fi-${_esc(visitCod)} fis admin-flag"></span>`
     : `<span class="eli-slot">${_esc(p.slot_visit)}</span>`;
+
+  // Construir lista de todos los equipos para el selector de países
+  const _todosEquipos = Object.entries(_GRUPOS_MUNDIAL_JS).flatMap(([g, eqs]) =>
+    eqs.map(([nombre, cod]) => ({nombre, cod, grupo: g}))
+  );
+
+  function _buildEquipoSelect(pid, lado, seleccionado) {
+    const opts = _todosEquipos.map(e => {
+      const sel = seleccionado === e.nombre ? 'selected' : '';
+      return `<option value="${_esc(e.nombre)}" data-cod="${_esc(e.cod)}" ${sel}>${_esc(e.nombre)} (${e.grupo})</option>`;
+    }).join('');
+    return `<select class="eli-select" id="sel-pais-${pid}-${lado}" style="flex:1">
+      <option value="">-- Elige equipo --</option>${opts}
+    </select>
+    <button class="admin-btn-save" onclick="asignarPaisEli(${pid},'${lado}')">
+      <span class="material-symbols-outlined">check_circle</span>
+    </button>`;
+  }
 
   // Sección asignación: solo se muestra si el partido no está bloqueado
   let asignarHTML = '';
@@ -1110,6 +1187,29 @@ function _adminEliCardHTML(p) {
           </div>`;
       }
     }
+
+    // Edición manual de países (todos los partidos de eliminación)
+    asignarHTML += `
+      <div class="eli-editar-paises" id="eli-paises-${p.id}" style="margin-top:8px;">
+        <button class="eli-btn-cambiar" style="font-size:12px;margin-bottom:6px;" onclick="
+          const d=document.getElementById('eli-paises-form-${p.id}');
+          d.style.display=d.style.display==='none'?'block':'none';
+        "><span class="material-symbols-outlined" style="font-size:15px;vertical-align:middle">edit</span> Editar equipos</button>
+        <div id="eli-paises-form-${p.id}" style="display:none">
+          <div style="margin-bottom:6px;">
+            <div style="font-size:11px;color:var(--text-muted);margin-bottom:3px;">Local</div>
+            <div style="display:flex;gap:6px;align-items:center;">
+              ${_buildEquipoSelect(p.id, 'local', localNombre)}
+            </div>
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--text-muted);margin-bottom:3px;">Visitante</div>
+            <div style="display:flex;gap:6px;align-items:center;">
+              ${_buildEquipoSelect(p.id, 'visit', visitNombre)}
+            </div>
+          </div>
+        </div>
+      </div>`;
   }
 
   return `
@@ -1182,6 +1282,27 @@ async function asignarTercero(pid) {
     _loadEliminacion(null);  // recargar pronósticos para mostrar el equipo asignado
   }
 }
+
+async function asignarPaisEli(pid, lado) {
+  const sel = document.getElementById(`sel-pais-${pid}-${lado}`);
+  const nombre = sel?.value?.trim();
+  if (!nombre) { mostrarToast('❌ Elige un equipo'); return; }
+  const fd = new FormData();
+  fd.append('partido_id', pid);
+  fd.append('lado', lado === 'visit' ? 'visit' : 'local');
+  fd.append('nombre', nombre);
+  const res = await fetch('/admin_eli_equipo', {method:'POST', headers:{'X-Requested-With':'XMLHttpRequest'}, body:fd});
+  const data = await res.json();
+  if (res.ok && data.ok) {
+    mostrarToast('✅ Equipo actualizado');
+    _loadAdminEli();
+    _loadBracket();
+    _loadEliminacion(null);
+  } else {
+    mostrarToast('❌ Error al guardar', 'error');
+  }
+}
+
 
 function _checkBkEmpate(pid, localNombre, visitNombre) {
   const gl = parseInt(document.querySelector(`[name="local_${pid}"]`)?.value);
@@ -1756,6 +1877,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Además refrescar específicamente el tab activo
         if (action === '/admin_resultado') {
           _refreshMundialDatos('grupos');
+          _refreshAdminGruposCards();
         } else if (action === '/admin_resultado_eli') {
           _loadAdminEli();
           _loadBracket();
