@@ -1454,8 +1454,10 @@ function _renderBracket(bracket, eliPartidos) {
       flex-direction: row;
       align-items: stretch;
       overflow-x: auto;
-      padding: 8px 0 16px;
-      min-width: 900px;
+      -webkit-overflow-scrolling: touch;
+      scroll-snap-type: none;
+      padding: 8px 4px 16px;
+      min-width: 820px;
       /* Each col is equal width; they share the available space */
     }
     .bk-col {
@@ -1564,7 +1566,7 @@ function _renderBracket(bracket, eliPartidos) {
       color: rgba(255,255,255,.96);
       font-weight: 600;
     }
-    .bk-flag { font-size: .82rem; flex-shrink: 0; line-height: 1; }
+    .bk-flag { font-size: 1.3rem; flex-shrink: 0; line-height: 1; }
     .bk-nombre {
       flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
       font-size: .66rem;
@@ -1589,10 +1591,11 @@ function _renderBracket(bracket, eliPartidos) {
     }
 
     @media (max-width: 720px) {
-      .bk-col { min-width: 88px; }
-      .bk-col--centro { min-width: 110px; }
+      .bk-col { min-width: 80px; }
+      .bk-col--centro { min-width: 100px; }
       .bk-eq { padding: 3px 3px; }
       .bk-nombre { font-size: .58rem; }
+      .bk-flag { font-size: 1.15rem; }
     }
   `;
 
