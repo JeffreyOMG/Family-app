@@ -49,6 +49,91 @@ def api_usuario(nombre_usuario):
 def _is_ajax():
     return request.headers.get("X-Requested-With") == "XMLHttpRequest"
 
+
+# ─── API: publicaciones del usuario ──────────────────────────────────────────
+@perfil_bp.route("/api/perfil/posts/<int:uid>")
+def api_perfil_posts(uid):
+    if "uid" not in session:
+        return jsonify({"ok": False, "error": "No autenticado"}), 401
+    con = get_db()
+    rows = con.execute(
+        """SELECT p.id, p.texto, p.media, p.media_tipo, p.fecha,
+                  u.nombre, u.usuario, u.foto,
+                  (SELECT COUNT(*) FROM likes l WHERE l.post_id=p.id) AS total_likes,
+                  (SELECT COUNT(*) FROM comentarios c WHERE c.post_id=p.id) AS total_comentarios
+           FROM publicaciones p JOIN usuarios u ON u.id=p.usuario_id
+           WHERE p.usuario_id=%s ORDER BY p.fecha DESC""",
+        (uid,)
+    ).fetchall()
+    posts = []
+    for r in rows:
+        posts.append({
+            "id": r["id"],
+            "texto": r["texto"] or "",
+            "media": r["media"] or "",
+            "media_tipo": r["media_tipo"] or "",
+            "fecha": str(r["fecha"])[:10] if r["fecha"] else "",
+            "nombre": r["nombre"],
+            "usuario": r["usuario"],
+            "foto": r["foto"] or "",
+            "total_likes": r["total_likes"],
+            "total_comentarios": r["total_comentarios"],
+        })
+    return jsonify({"ok": True, "posts": posts})
+
+
+# ─── API: pronósticos mundial del usuario ─────────────────────────────────────
+@perfil_bp.route("/api/perfil/mundial/<int:uid>")
+def api_perfil_mundial(uid):
+    if "uid" not in session:
+        return jsonify({"ok": False, "error": "No autenticado"}), 401
+    con = get_db()
+    rows = con.execute(
+        """SELECT pr.id, pr.goles_local, pr.goles_visitante, pr.puntos,
+                  pm.local, pm.visitante, pm.grupo,
+                  pm.goles_local AS res_local, pm.goles_visitante AS res_visitante
+           FROM pronosticos pr
+           JOIN partidos_mundial pm ON pm.id=pr.partido_id
+           WHERE pr.usuario_id=%s ORDER BY pr.id ASC""",
+        (uid,)
+    ).fetchall()
+    total_puntos = sum(r["puntos"] or 0 for r in rows)
+    pronosticos = []
+    for r in rows:
+        pronosticos.append({
+            "local": r["local"],
+            "visitante": r["visitante"],
+            "grupo": r["grupo"],
+            "pred_local": r["goles_local"],
+            "pred_visitante": r["goles_visitante"],
+            "res_local": r["res_local"],
+            "res_visitante": r["res_visitante"],
+            "puntos": r["puntos"] or 0,
+        })
+    return jsonify({"ok": True, "pronosticos": pronosticos, "total_puntos": total_puntos})
+
+
+# ─── API: galería del usuario ─────────────────────────────────────────────────
+@perfil_bp.route("/api/perfil/galeria/<int:uid>")
+def api_perfil_galeria(uid):
+    if "uid" not in session:
+        return jsonify({"ok": False, "error": "No autenticado"}), 401
+    con = get_db()
+    rows = con.execute(
+        "SELECT id, ruta, tipo, descripcion, fecha FROM galeria WHERE usuario_id=%s ORDER BY fecha DESC",
+        (uid,)
+    ).fetchall()
+    items = []
+    for r in rows:
+        items.append({
+            "id": r["id"],
+            "ruta": r["ruta"],
+            "tipo": r["tipo"],
+            "descripcion": r["descripcion"] or "",
+            "fecha": str(r["fecha"])[:10] if r["fecha"] else "",
+        })
+    return jsonify({"ok": True, "items": items})
+
 @perfil_bp.route("/actualizar_perfil", methods=["POST"])
 def actualizar_perfil():
     if "uid" not in session:

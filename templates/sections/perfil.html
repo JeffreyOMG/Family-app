@@ -15,32 +15,81 @@
       <p class="pf-usuario">@{{ usuario.usuario }} &nbsp;·&nbsp; <span class="pf-rol-badge">{{ usuario.rol }}</span></p>
       {% if usuario.bio %}<p class="pf-bio">{{ usuario.bio }}</p>{% endif %}
       {% if usuario.gmail %}<p class="pf-gmail"><span class="material-symbols-outlined">mail</span>{{ usuario.gmail }}</p>{% endif %}
+      {% if usuario.fecha %}
+      <p class="pf-miembro-desde"><span class="material-symbols-outlined">calendar_month</span>Miembro desde {{ usuario.fecha[:10] if usuario.fecha else '' }}</p>
+      {% endif %}
     </div>
   </div>
 
-  <!-- ESTADÍSTICAS -->
-  <div class="pf-stats-grid">
-    {% if usuario.rol in ("miembro", "admin") %}
-    <div class="pf-stat">
-      <span class="material-symbols-outlined">payments</span>
-      <strong>${{ usuario_aportes|int }}</strong>
-      <span>Mis Aportes</span>
-    </div>
-    {% endif %}
+  <!-- ESTADÍSTICAS (solo social, sin datos financieros) -->
+  <div class="pf-stats-grid" id="pf-stats-grid">
     <div class="pf-stat">
       <span class="material-symbols-outlined">forum</span>
-      <strong>{{ usuario_posts }}</strong>
+      <strong id="stat-posts">{{ usuario_posts }}</strong>
       <span>Posts</span>
     </div>
     <div class="pf-stat">
       <span class="material-symbols-outlined">favorite</span>
-      <strong>{{ usuario_likes }}</strong>
-      <span>Likes</span>
+      <strong id="stat-likes">{{ usuario_likes }}</strong>
+      <span>Likes recibidos</span>
     </div>
     <div class="pf-stat">
       <span class="material-symbols-outlined">emoji_events</span>
-      <strong>{{ usuario_puntos }}</strong>
+      <strong id="stat-puntos">{{ usuario_puntos }}</strong>
       <span>Pts Mundial</span>
+    </div>
+    <div class="pf-stat">
+      <span class="material-symbols-outlined">calendar_month</span>
+      <strong id="stat-fecha">{{ usuario.fecha[:7] if usuario.fecha else '—' }}</strong>
+      <span>Fecha registro</span>
+    </div>
+  </div>
+
+  <!-- PESTAÑAS DE CONTENIDO -->
+  <div class="pf-tabs-wrap">
+    <div class="pf-tabs-nav" role="tablist">
+      <button class="pf-tab-btn active" data-tab="publicaciones" onclick="pfCambiarTab(this,'publicaciones')">
+        <span class="material-symbols-outlined">grid_on</span>
+        <span class="pf-tab-label">Publicaciones</span>
+      </button>
+      <button class="pf-tab-btn" data-tab="mundial" onclick="pfCambiarTab(this,'mundial')">
+        <span class="material-symbols-outlined">sports_soccer</span>
+        <span class="pf-tab-label">Mundial</span>
+      </button>
+      <button class="pf-tab-btn" data-tab="galeria" onclick="pfCambiarTab(this,'galeria')">
+        <span class="material-symbols-outlined">photo_library</span>
+        <span class="pf-tab-label">Galería</span>
+      </button>
+    </div>
+
+    <!-- TAB: PUBLICACIONES -->
+    <div class="pf-tab-panel active" id="pf-tab-publicaciones">
+      <div id="pf-posts-lista" class="pf-posts-lista">
+        <div class="pf-tab-loading">
+          <span class="material-symbols-outlined pf-spin">progress_activity</span>
+          Cargando publicaciones…
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB: MUNDIAL -->
+    <div class="pf-tab-panel" id="pf-tab-mundial">
+      <div id="pf-mundial-contenido" class="pf-mundial-contenido">
+        <div class="pf-tab-loading">
+          <span class="material-symbols-outlined pf-spin">progress_activity</span>
+          Cargando pronósticos…
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB: GALERÍA -->
+    <div class="pf-tab-panel" id="pf-tab-galeria">
+      <div id="pf-galeria-grid" class="pf-galeria-grid">
+        <div class="pf-tab-loading">
+          <span class="material-symbols-outlined pf-spin">progress_activity</span>
+          Cargando galería…
+        </div>
+      </div>
     </div>
   </div>
 
@@ -114,35 +163,7 @@
     </a>
   </div>
 
-  <!-- MIS APORTES — solo miembro/admin -->
-  {% if usuario.rol in ("miembro", "admin") %}
-  <div class="content-card">
-    <div class="pf-section-head">
-      <span class="material-symbols-outlined">savings</span>
-      <h3>Mis Aportes</h3>
-    </div>
-    {% if mis_aportes %}
-      <div class="pf-aportes-lista">
-        {% for a in mis_aportes %}
-        <div class="pf-aporte-item">
-          <div class="pf-aporte-info">
-            <span class="pf-aporte-desc">{{ a.descripcion or '—' }}</span>
-            <span class="pf-aporte-fecha">{{ a.fecha[:10] }}</span>
-          </div>
-          <div class="pf-aporte-right">
-            <span class="pf-aporte-monto">${{ a.monto|int }}</span>
-            {% if a.verificado %}<span class="pf-badge-ok">✓</span>{% else %}<span class="pf-badge-pend">⏳</span>{% endif %}
-          </div>
-        </div>
-        {% endfor %}
-      </div>
-    {% else %}
-      <p class="pf-empty">Aún no has registrado aportes.</p>
-    {% endif %}
-  </div>
-  {% endif %}
-
-   <!-- APARIENCIA -->
+  <!-- APARIENCIA -->
   <div class="content-card">
     <h3><span class="material-symbols-outlined">palette</span> Apariencia</h3>
     <div class="ajuste-row">
@@ -193,20 +214,98 @@
 .pf-bio { font-size: .85rem; color: var(--text2); margin: 6px 0 0; line-height: 1.4; }
 .pf-gmail { font-size: .8rem; color: var(--text3); margin: 4px 0 0; display: flex; align-items: center; gap: 4px; }
 .pf-gmail .material-symbols-outlined { font-size: 14px; }
+.pf-miembro-desde { font-size: .78rem; color: var(--text3); margin: 4px 0 0; display: flex; align-items: center; gap: 4px; }
+.pf-miembro-desde .material-symbols-outlined { font-size: 14px; }
 
+/* ── ESTADÍSTICAS ── */
 .pf-stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 16px; }
 .pf-stat {
-  background: var(--card); border: 1px solid var(--border); border-radius: 12px;
-  padding: 14px 8px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 4px;
+  background: var(--card); border: 1px solid var(--border); border-radius: 14px;
+  padding: 16px 8px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 5px;
+  transition: transform .15s, box-shadow .15s;
 }
-.pf-stat .material-symbols-outlined { font-size: 22px; color: var(--accent); }
-.pf-stat strong { font-size: 1rem; font-weight: 700; color: var(--text); }
-.pf-stat span { font-size: .7rem; color: var(--text3); }
+.pf-stat:hover { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0,0,0,.08); }
+.pf-stat .material-symbols-outlined { font-size: 24px; color: var(--accent); }
+.pf-stat strong { font-size: 1.05rem; font-weight: 700; color: var(--text); }
+.pf-stat span:last-child { font-size: .68rem; color: var(--text3); line-height: 1.2; text-align: center; }
 
+/* ── PESTAÑAS ── */
+.pf-tabs-wrap { background: var(--card); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; margin-bottom: 16px; }
+.pf-tabs-nav { display: flex; border-bottom: 1px solid var(--border); background: var(--bg2); }
+.pf-tab-btn {
+  flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 13px 8px; border: none; background: transparent; cursor: pointer;
+  color: var(--text3); font-size: .82rem; font-family: inherit; font-weight: 500;
+  border-bottom: 2.5px solid transparent; transition: color .2s, border-color .2s, background .2s;
+}
+.pf-tab-btn .material-symbols-outlined { font-size: 18px; }
+.pf-tab-btn:hover { color: var(--text); background: rgba(0,0,0,.04); }
+.pf-tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); background: transparent; font-weight: 700; }
+.pf-tab-label { display: none; }
+@media (min-width: 420px) { .pf-tab-label { display: inline; } }
+.pf-tab-panel { display: none; padding: 16px; min-height: 120px; }
+.pf-tab-panel.active { display: block; }
+.pf-tab-loading { display: flex; align-items: center; justify-content: center; gap: 8px; color: var(--text3); font-size: .88rem; padding: 30px 0; }
+
+/* ── PUBLICACIONES EN PERFIL ── */
+.pf-posts-lista { display: flex; flex-direction: column; gap: 14px; }
+.pf-post-card {
+  background: var(--bg2); border: 1px solid var(--border); border-radius: 12px;
+  padding: 14px; transition: border-color .15s;
+}
+.pf-post-card:hover { border-color: var(--accent); }
+.pf-post-meta { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.pf-post-fecha { font-size: .75rem; color: var(--text3); }
+.pf-post-texto { font-size: .9rem; color: var(--text); line-height: 1.5; margin: 0 0 10px; }
+.pf-post-img { width: 100%; max-height: 300px; object-fit: cover; border-radius: 10px; margin-bottom: 10px; }
+.pf-post-acciones { display: flex; gap: 16px; }
+.pf-post-accion { display: flex; align-items: center; gap: 4px; font-size: .8rem; color: var(--text3); }
+.pf-post-accion .material-symbols-outlined { font-size: 16px; }
+.pf-empty-tab { text-align: center; padding: 40px 20px; color: var(--text3); }
+.pf-empty-tab .material-symbols-outlined { font-size: 40px; margin-bottom: 8px; display: block; opacity: .4; }
+.pf-empty-tab p { font-size: .88rem; margin: 0; }
+
+/* ── MUNDIAL EN PERFIL ── */
+.pf-mundial-resumen { display: flex; align-items: center; gap: 12px; background: var(--bg2); border-radius: 12px; padding: 14px 16px; margin-bottom: 14px; border: 1px solid var(--border); }
+.pf-mundial-resumen .material-symbols-outlined { font-size: 32px; color: var(--accent); }
+.pf-mundial-resumen-txt strong { font-size: 1.2rem; font-weight: 800; color: var(--text); }
+.pf-mundial-resumen-txt span { font-size: .8rem; color: var(--text3); }
+.pf-pronosticos-lista { display: flex; flex-direction: column; gap: 8px; }
+.pf-prono-item {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px;
+}
+.pf-prono-equip { font-size: .82rem; font-weight: 600; color: var(--text); flex: 1; }
+.pf-prono-equip.visitante { text-align: right; }
+.pf-prono-score { font-size: .95rem; font-weight: 700; color: var(--accent); min-width: 44px; text-align: center; }
+.pf-prono-puntos { font-size: .72rem; font-weight: 700; padding: 2px 8px; border-radius: 20px; min-width: 28px; text-align: center; }
+.pf-prono-puntos.p3 { background: rgba(76,175,80,.15); color: #4caf50; }
+.pf-prono-puntos.p1 { background: rgba(255,193,7,.15); color: #ffc107; }
+.pf-prono-puntos.p0 { background: rgba(239,68,68,.1); color: #ef4444; }
+.pf-prono-puntos.pnd { background: rgba(100,100,100,.1); color: var(--text3); }
+.pf-prono-grupo { font-size: .65rem; color: var(--text3); text-transform: uppercase; }
+
+/* ── GALERÍA EN PERFIL ── */
+.pf-galeria-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.pf-galeria-item { position: relative; aspect-ratio: 1; overflow: hidden; border-radius: 8px; background: var(--bg2); cursor: pointer; }
+.pf-galeria-item img, .pf-galeria-item video { width: 100%; height: 100%; object-fit: cover; transition: transform .2s; }
+.pf-galeria-item:hover img, .pf-galeria-item:hover video { transform: scale(1.05); }
+.pf-galeria-video-badge {
+  position: absolute; bottom: 4px; right: 4px;
+  background: rgba(0,0,0,.55); border-radius: 4px; padding: 2px 5px;
+}
+.pf-galeria-video-badge .material-symbols-outlined { font-size: 14px; color: #fff; }
+
+/* ── LOADING SPINNER ── */
+@keyframes pf-spin { to { transform: rotate(360deg); } }
+.pf-spin { display: inline-block; animation: pf-spin .8s linear infinite; }
+
+/* ── SECCIÓN HEAD ── */
 .pf-section-head { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
 .pf-section-head h3 { font-size: 1rem; font-weight: 700; margin: 0; }
 .pf-section-head .material-symbols-outlined { font-size: 20px; color: var(--accent); }
 
+/* ── FORM ── */
 .pf-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px; }
 .pf-form-col { display: flex; flex-direction: column; gap: 12px; margin-bottom: 14px; }
 .pf-form-group { display: flex; flex-direction: column; gap: 5px; }
@@ -224,50 +323,15 @@
 .pf-textarea { resize: vertical; min-height: 70px; }
 
 .pf-btn-primary {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-
-    padding: 11px 20px;
-    width: 100%;
-
-    border-radius: 10px;
-    border: none;
-
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+    padding: 11px 20px; width: 100%;
+    border-radius: 10px; border: none;
     background: var(--accent);
-
-
-    font-size: .9rem;
-    font-weight: 600;
-    font-family: inherit;
-
+    font-size: .9rem; font-weight: 600; font-family: inherit;
     cursor: pointer;
-
-    transition: 
-        opacity .15s ease,
-        transform .1s ease,
-        box-shadow .2s ease;
+    transition: opacity .15s ease, transform .1s ease, box-shadow .2s ease;
 }
-
-body.dark-mode .pf-btn-primary {
-    box-shadow: 0 6px 18px rgba(0, 0, 0, .35);
-}
-
-.pf-aportes-lista { display: flex; flex-direction: column; gap: 0; }
-.pf-aporte-item {
-  display: flex; align-items: center; justify-content: space-between; gap: 10px;
-  padding: 11px 0; border-bottom: 1px solid var(--border);
-}
-.pf-aporte-item:last-child { border-bottom: none; }
-.pf-aporte-info { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
-.pf-aporte-desc { font-size: .88rem; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.pf-aporte-fecha { font-size: .75rem; color: var(--text3); }
-.pf-aporte-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
-.pf-aporte-monto { font-size: .95rem; font-weight: 700; color: #4caf50; }
-.pf-badge-ok { padding: 2px 8px; border-radius: 12px; font-size: .72rem; font-weight: 700; background: rgba(76,175,80,.12); color: #4caf50; }
-.pf-badge-pend { padding: 2px 8px; border-radius: 12px; font-size: .72rem; font-weight: 700; background: rgba(255,152,0,.12); color: #ff9800; }
-.pf-empty { text-align: center; padding: 20px; color: var(--text3); font-size: .9rem; }
+body.dark-mode .pf-btn-primary { box-shadow: 0 6px 18px rgba(0,0,0,.35); }
 
 .pf-logout-card { border: 1px solid rgba(239,68,68,.2); }
 .pf-logout-desc { font-size: .85rem; color: var(--text3); margin: 0 0 14px; }
@@ -287,44 +351,188 @@ body.dark-mode .pf-input { background: var(--bg2); border-color: var(--border); 
 body.dark-mode .pf-stat { background: var(--card); border-color: var(--border); }
 body.dark-mode .pf-hero { background: var(--card); }
 
-
 @media (max-width: 600px) {
   .pf-hero { flex-direction: column; align-items: center; text-align: center; }
   .pf-usuario { justify-content: center; }
-  .pf-gmail { justify-content: center; }
+  .pf-gmail, .pf-miembro-desde { justify-content: center; }
   .pf-stats-grid { grid-template-columns: repeat(2, 1fr); }
   .pf-form-grid { grid-template-columns: 1fr; }
   .pf-full { grid-column: auto; }
+  .pf-galeria-grid { grid-template-columns: repeat(3, 1fr); }
 }
 @media (max-width: 380px) {
   .pf-stats-grid { grid-template-columns: repeat(2, 1fr); }
   .pf-avatar-img, .pf-avatar-letter { width: 76px; height: 76px; }
+  .pf-galeria-grid { grid-template-columns: repeat(2, 1fr); }
 }
 </style>
 
 <script>
-// ─── Actualiza TODOS los avatares de la página con una URL de foto ───────────
+// ═══════════════════════════════════════════════════════════════════════
+//  PERFIL – Sistema de pestañas + carga dinámica desde API
+// ═══════════════════════════════════════════════════════════════════════
+
+const _PF_UID = {{ usuario.id }};
+const _PF_LOADED = { publicaciones: false, mundial: false, galeria: false };
+
+// ─── Cambio de pestaña ─────────────────────────────────────────────────
+function pfCambiarTab(btn, tab) {
+  document.querySelectorAll('.pf-tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.pf-tab-panel').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('pf-tab-' + tab).classList.add('active');
+  if (!_PF_LOADED[tab]) {
+    _PF_LOADED[tab] = true;
+    if (tab === 'publicaciones') pfCargarPosts();
+    else if (tab === 'mundial')  pfCargarMundial();
+    else if (tab === 'galeria')  pfCargarGaleria();
+  }
+}
+
+// ─── Cargar al abrir el perfil ─────────────────────────────────────────
+(function pfInit() {
+  // Resetear cache al abrir (carga fresca cada vez)
+  _PF_LOADED.publicaciones = false;
+  _PF_LOADED.mundial = false;
+  _PF_LOADED.galeria = false;
+  pfCargarPosts();
+  _PF_LOADED.publicaciones = true;
+})();
+
+// ─── PUBLICACIONES ─────────────────────────────────────────────────────
+async function pfCargarPosts() {
+  const cont = document.getElementById('pf-posts-lista');
+  if (!cont) return;
+  cont.innerHTML = '<div class="pf-tab-loading"><span class="material-symbols-outlined pf-spin">progress_activity</span>Cargando…</div>';
+  try {
+    const r = await fetch('/api/perfil/posts/' + _PF_UID, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+    const d = await r.json();
+    if (!d.ok || !d.posts.length) {
+      cont.innerHTML = '<div class="pf-empty-tab"><span class="material-symbols-outlined">forum</span><p>Aún no hay publicaciones.</p></div>';
+      return;
+    }
+    cont.innerHTML = d.posts.map(p => {
+      let mediaHtml = '';
+      if (p.media) {
+        if (p.media_tipo === 'imagen') {
+          mediaHtml = `<img src="${p.media}" class="pf-post-img" loading="lazy" onclick="abrirMediaModal && abrirMediaModal('${p.media}','imagen')">`;
+        } else if (p.media_tipo === 'video') {
+          mediaHtml = `<video controls class="pf-post-img" preload="none"><source src="${p.media}"></video>`;
+        }
+      }
+      const texto = p.texto ? `<p class="pf-post-texto">${_pfEscape(p.texto)}</p>` : '';
+      return `<div class="pf-post-card">
+        <div class="pf-post-meta">
+          <span class="pf-post-fecha">${p.fecha}</span>
+        </div>
+        ${texto}${mediaHtml}
+        <div class="pf-post-acciones">
+          <span class="pf-post-accion"><span class="material-symbols-outlined">favorite</span>${p.total_likes}</span>
+          <span class="pf-post-accion"><span class="material-symbols-outlined">chat_bubble</span>${p.total_comentarios}</span>
+        </div>
+      </div>`;
+    }).join('');
+    // Actualizar stat
+    document.getElementById('stat-posts').textContent = d.posts.length;
+  } catch(e) {
+    cont.innerHTML = '<div class="pf-empty-tab"><p>Error al cargar publicaciones.</p></div>';
+  }
+}
+
+// ─── MUNDIAL ────────────────────────────────────────────────────────────
+async function pfCargarMundial() {
+  const cont = document.getElementById('pf-mundial-contenido');
+  if (!cont) return;
+  cont.innerHTML = '<div class="pf-tab-loading"><span class="material-symbols-outlined pf-spin">progress_activity</span>Cargando…</div>';
+  try {
+    const r = await fetch('/api/perfil/mundial/' + _PF_UID, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+    const d = await r.json();
+    if (!d.ok || !d.pronosticos.length) {
+      cont.innerHTML = '<div class="pf-empty-tab"><span class="material-symbols-outlined">sports_soccer</span><p>Aún no hay pronósticos registrados.</p></div>';
+      return;
+    }
+    // Resumen de puntos
+    const resumen = `<div class="pf-mundial-resumen">
+      <span class="material-symbols-outlined">emoji_events</span>
+      <div class="pf-mundial-resumen-txt">
+        <strong>${d.total_puntos}</strong><br>
+        <span>${d.pronosticos.length} pronósticos realizados</span>
+      </div>
+    </div>`;
+    // Lista de pronósticos
+    const lista = d.pronosticos.map(p => {
+      const tienePuntos = p.res_local !== null && p.res_visitante !== null;
+      let cls = 'pnd', badge = '—';
+      if (tienePuntos) {
+        cls = p.puntos >= 3 ? 'p3' : p.puntos >= 1 ? 'p1' : 'p0';
+        badge = p.puntos + ' pt' + (p.puntos !== 1 ? 's' : '');
+      }
+      const resSt = tienePuntos ? `<small style="color:var(--text3);font-size:.7rem">(${p.res_local}-${p.res_visitante})</small>` : '';
+      return `<div class="pf-prono-item">
+        <span class="pf-prono-equip">${_pfEscape(p.local)}</span>
+        <div style="text-align:center;min-width:70px">
+          <div class="pf-prono-score">${p.pred_local} - ${p.pred_visitante}</div>
+          ${resSt}
+          <div class="pf-prono-grupo">${p.grupo}</div>
+        </div>
+        <span class="pf-prono-equip visitante">${_pfEscape(p.visitante)}</span>
+        <span class="pf-prono-puntos ${cls}">${badge}</span>
+      </div>`;
+    }).join('');
+    cont.innerHTML = resumen + '<div class="pf-pronosticos-lista">' + lista + '</div>';
+    // Actualizar stat
+    document.getElementById('stat-puntos').textContent = d.total_puntos;
+  } catch(e) {
+    cont.innerHTML = '<div class="pf-empty-tab"><p>Error al cargar pronósticos.</p></div>';
+  }
+}
+
+// ─── GALERÍA ────────────────────────────────────────────────────────────
+async function pfCargarGaleria() {
+  const cont = document.getElementById('pf-galeria-grid');
+  if (!cont) return;
+  cont.innerHTML = '<div class="pf-tab-loading"><span class="material-symbols-outlined pf-spin">progress_activity</span>Cargando…</div>';
+  try {
+    const r = await fetch('/api/perfil/galeria/' + _PF_UID, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+    const d = await r.json();
+    if (!d.ok || !d.items.length) {
+      cont.innerHTML = '<div class="pf-empty-tab"><span class="material-symbols-outlined">photo_library</span><p>Aún no hay fotos en la galería.</p></div>';
+      return;
+    }
+    cont.innerHTML = d.items.map(item => {
+      if (item.tipo === 'video') {
+        return `<div class="pf-galeria-item" onclick="abrirMediaModal && abrirMediaModal('${item.ruta}','video')">
+          <video preload="none" muted><source src="${item.ruta}"></video>
+          <div class="pf-galeria-video-badge"><span class="material-symbols-outlined">play_arrow</span></div>
+        </div>`;
+      }
+      return `<div class="pf-galeria-item" onclick="abrirMediaModal && abrirMediaModal('${item.ruta}','imagen')">
+        <img src="${item.ruta}" alt="${_pfEscape(item.descripcion)}" loading="lazy">
+      </div>`;
+    }).join('');
+  } catch(e) {
+    cont.innerHTML = '<div class="pf-empty-tab"><p>Error al cargar galería.</p></div>';
+  }
+}
+
+// ─── Utilidad escape XSS ───────────────────────────────────────────────
+function _pfEscape(str) {
+  return (str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+//  FOTO DE PERFIL
+// ═══════════════════════════════════════════════════════════════════════
 function _aplicarFotoGlobal(fotoUrl) {
-  // 1. Imágenes que ya existen: actualizar src
   document.querySelectorAll('img.user-avatar-img').forEach(img => {
-    img.src = fotoUrl;
-    img.style.display = '';
+    img.src = fotoUrl; img.style.display = '';
   });
-  // 2. Letter-divs paralelos: ocultarlos (sidebar, navbar, perfil hero)
-  document.querySelectorAll(
-    '.sidebar-av-letter, .navbar-av-letter, #pf-avatar-letter'
-  ).forEach(el => el.style.display = 'none');
-  // 3. Asegurarse de que los img paralelos estén visibles
-  document.querySelectorAll(
-    '.sidebar-av-img, .navbar-av-img'
-  ).forEach(img => { img.src = fotoUrl; img.style.display = ''; });
-  // 4. Hero del perfil
+  document.querySelectorAll('.sidebar-av-letter, .navbar-av-letter, #pf-avatar-letter').forEach(el => el.style.display = 'none');
+  document.querySelectorAll('.sidebar-av-img, .navbar-av-img').forEach(img => { img.src = fotoUrl; img.style.display = ''; });
   const prev = document.getElementById('preview-foto-perfil');
   if (prev) { prev.src = fotoUrl; prev.style.display = ''; }
 }
 
-// ─── Auto-guarda la foto AL SELECCIONARLA ───────────────────────────────────
-// Comprime imagen a max 800px / JPEG 0.82 antes de subir
 function _comprimirImagen(file, maxPx = 800, quality = 0.82) {
   return new Promise((resolve) => {
     const img = new Image();
@@ -349,21 +557,13 @@ function _comprimirImagen(file, maxPx = 800, quality = 0.82) {
 async function autoGuardarFoto(input) {
   const file = input.files[0];
   if (!file) return;
-
-  // Preview local inmediato
   const blobUrl = URL.createObjectURL(file);
   _aplicarFotoGlobal(blobUrl);
-
-  // Spinner en botón cámara
   const icon  = document.getElementById('pf-camera-icon');
   const label = document.getElementById('pf-camera-label');
   if (icon)  { icon.textContent = 'hourglass_top'; icon.style.animation = 'spin 1s linear infinite'; }
   if (label) label.style.pointerEvents = 'none';
-
-  // Comprimir antes de subir (fotos de iPhone pueden pesar 15-20MB)
   const compressed = await _comprimirImagen(file);
-
-  // FormData: foto comprimida + campos actuales del form para no perder datos
   const formPerfil = document.getElementById('form-perfil');
   const fd = new FormData();
   fd.append('foto_perfil', compressed, 'perfil.jpg');
@@ -373,16 +573,10 @@ async function autoGuardarFoto(input) {
       if (el) fd.append(name, el.value);
     });
   }
-
   try {
-    const res  = await fetch('/actualizar_perfil', {
-      method: 'POST',
-      headers: { 'X-Requested-With': 'XMLHttpRequest' },
-      body: fd
-    });
+    const res  = await fetch('/actualizar_perfil', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: fd });
     const data = await res.json().catch(() => ({}));
     if (res.ok && data.ok !== false) {
-      // Reemplazar blob URL con la URL definitiva de Cloudinary
       if (data.foto) _aplicarFotoGlobal(data.foto);
       mostrarToast('📸 Foto actualizada');
     } else {
@@ -391,10 +585,8 @@ async function autoGuardarFoto(input) {
   } catch (err) {
     mostrarToast('❌ Error de conexión', 'error');
   }
-
-  // Restaurar icono cámara
   if (icon)  { icon.textContent = 'photo_camera'; icon.style.animation = ''; }
   if (label) label.style.pointerEvents = '';
-  input.value = ''; // permite volver a seleccionar la misma imagen
+  input.value = '';
 }
 </script>

@@ -1111,61 +1111,12 @@ body.dark-mode .post-badge-privado { background: rgba(139,92,246,.2); color: #a7
 .usuarios-count { font-size: 11px; font-weight: 600; color: var(--ac); background: var(--ac-soft); padding: 1px 6px; border-radius: 10px; margin-left: 2px; }
 
 /* ── MODAL USUARIOS (umu) ── */
-/* Variables modo claro */
-#umu-overlay {
-  --umu-bg:        #ffffff;
-  --umu-border:    #e5e7eb;
-  --umu-divider:   #f0f0f0;
-  --umu-title:     #111111;
-  --umu-close-bg:  #f3f4f6;
-  --umu-close-clr: #6b7280;
-  --umu-close-hbg: #e5e7eb;
-  --umu-close-hcl: #111111;
-  --umu-input-bg:  #f9fafb;
-  --umu-input-bd:  #d1d5db;
-  --umu-input-clr: #111111;
-  --umu-ph:        #9ca3af;
-  --umu-lupa:      #9ca3af;
-  --umu-label:     #6b7280;
-  --umu-row-hbg:   #f3f4f6;
-  --umu-name:      #111111;
-  --umu-user:      #6b7280;
-  --umu-empty:     #9ca3af;
-  --umu-shadow:    0 24px 80px rgba(0,0,0,.12);
-  --umu-inv-bg:    #f3f4f6;
-  --umu-inv-clr:   #6b7280;
-}
-/* Variables modo oscuro */
-body.dark-mode #umu-overlay {
-  --umu-bg:        #1a1a1a;
-  --umu-border:    #333333;
-  --umu-divider:   #2e2e2e;
-  --umu-title:     #f0f0f0;
-  --umu-close-bg:  #2a2a2a;
-  --umu-close-clr: #aaaaaa;
-  --umu-close-hbg: #3a3a3a;
-  --umu-close-hcl: #f0f0f0;
-  --umu-input-bg:  #242424;
-  --umu-input-bd:  #333333;
-  --umu-input-clr: #f0f0f0;
-  --umu-ph:        #666666;
-  --umu-lupa:      #888888;
-  --umu-label:     #888888;
-  --umu-row-hbg:   #242424;
-  --umu-name:      #f0f0f0;
-  --umu-user:      #888888;
-  --umu-empty:     #666666;
-  --umu-shadow:    0 24px 80px rgba(0,0,0,.7);
-  --umu-inv-bg:    #2a2a2a;
-  --umu-inv-clr:   #aaaaaa;
-}
-
 #umu-overlay {
   position: fixed;
   inset: 0;
   width: 100vw;
   height: 100vh;
-  background: rgba(0,0,0,.5);
+  background: rgba(0,0,0,.6);
   z-index: 99999;
   display: none;
   align-items: center;
@@ -1174,8 +1125,8 @@ body.dark-mode #umu-overlay {
   -webkit-backdrop-filter: blur(4px);
 }
 #umu-caja {
-  background: var(--umu-bg) !important;
-  border: 1px solid var(--umu-border) !important;
+  background: #1a1a1a !important;
+  border: 1px solid #333 !important;
   border-radius: 18px !important;
   width: 400px !important;
   max-width: 90vw !important;
@@ -1183,29 +1134,26 @@ body.dark-mode #umu-overlay {
   display: flex !important;
   flex-direction: column !important;
   overflow: hidden !important;
-  box-shadow: var(--umu-shadow) !important;
+  box-shadow: 0 24px 80px rgba(0,0,0,.7) !important;
   position: relative !important;
-  transition: background .2s, border-color .2s !important;
 }
 #umu-encabezado {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 18px 20px 16px;
-  border-bottom: 1px solid var(--umu-divider);
-  background: var(--umu-bg);
+  border-bottom: 1px solid #2e2e2e;
+  background: #1a1a1a;
   flex-shrink: 0;
-  transition: background .2s, border-color .2s;
 }
 #umu-titulo {
   font-size: 16px !important;
   font-weight: 700 !important;
-  color: var(--umu-title) !important;
+  color: #f0f0f0 !important;
   margin: 0 !important;
-  transition: color .2s !important;
 }
 #umu-cerrar {
-  background: var(--umu-close-bg) !important;
+  background: #2a2a2a !important;
   border: none !important;
   border-radius: 50% !important;
   width: 32px !important;
@@ -1214,55 +1162,52 @@ body.dark-mode #umu-overlay {
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
-  color: var(--umu-close-clr) !important;
+  color: #aaa !important;
   transition: background .15s, color .15s !important;
 }
-#umu-cerrar:hover { background: var(--umu-close-hbg) !important; color: var(--umu-close-hcl) !important; }
+#umu-cerrar:hover { background: #3a3a3a !important; color: #f0f0f0 !important; }
 #umu-cerrar .material-symbols-outlined { font-size: 18px; }
 #umu-buscador {
   display: flex;
   align-items: center;
   gap: 8px;
   padding: 12px 16px;
-  border-bottom: 1px solid var(--umu-divider);
-  background: var(--umu-bg);
+  border-bottom: 1px solid #2e2e2e;
+  background: #1a1a1a;
   flex-shrink: 0;
-  transition: background .2s, border-color .2s;
 }
-#umu-lupa { font-size: 18px; color: var(--umu-lupa); flex-shrink: 0; transition: color .2s; }
+#umu-lupa { font-size: 18px; color: #888; flex-shrink: 0; }
 #input-buscar-usuario {
   flex: 1 !important;
-  background: var(--umu-input-bg) !important;
-  border: 1px solid var(--umu-input-bd) !important;
+  background: #242424 !important;
+  border: 1px solid #333 !important;
   border-radius: 10px !important;
   padding: 8px 12px !important;
   font-size: 13px !important;
-  color: var(--umu-input-clr) !important;
+  color: #f0f0f0 !important;
   outline: none !important;
-  transition: border-color .15s, background .2s, color .2s !important;
+  transition: border-color .15s !important;
   font-family: inherit !important;
 }
 #input-buscar-usuario:focus { border-color: var(--ac, #e91e8c) !important; }
-#input-buscar-usuario::placeholder { color: var(--umu-ph) !important; }
+#input-buscar-usuario::placeholder { color: #666 !important; }
 #btn-clear-search {
   background: none !important;
   border: none !important;
   cursor: pointer !important;
-  color: var(--umu-lupa) !important;
+  color: #888 !important;
   display: flex !important;
   align-items: center !important;
   padding: 3px !important;
   border-radius: 50% !important;
   transition: color .15s !important;
 }
-#btn-clear-search:hover { color: var(--umu-title) !important; }
+#btn-clear-search:hover { color: #f0f0f0 !important; }
 #btn-clear-search .material-symbols-outlined { font-size: 16px; }
 #umu-cuerpo {
   overflow-y: auto;
   padding: 8px 0 16px;
   flex: 1;
-  background: var(--umu-bg);
-  transition: background .2s;
 }
 .umu-grupo-label {
   display: flex;
@@ -1270,11 +1215,10 @@ body.dark-mode #umu-overlay {
   gap: 6px;
   font-size: 11px;
   font-weight: 700;
-  color: var(--umu-label);
+  color: #888;
   text-transform: uppercase;
   letter-spacing: .05em;
   padding: 12px 20px 6px;
-  transition: color .2s;
 }
 .umu-grupo-label .material-symbols-outlined { font-size: 14px; }
 .umu-count {
@@ -1296,10 +1240,10 @@ body.dark-mode #umu-overlay {
   cursor: pointer;
   transition: background .15s;
 }
-.umu-fila:hover { background: var(--umu-row-hbg); }
+.umu-fila:hover { background: #242424; }
 .umu-info { flex: 1; min-width: 0; }
-.umu-info strong { font-size: 13px; font-weight: 600; color: var(--umu-name); display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: color .2s; }
-.umu-info span { font-size: 11px; color: var(--umu-user); transition: color .2s; }
+.umu-info strong { font-size: 13px; font-weight: 600; color: #f0f0f0; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.umu-info span { font-size: 11px; color: #888; }
 .umu-badge {
   font-size: 10px;
   font-weight: 700;
@@ -1308,15 +1252,13 @@ body.dark-mode #umu-overlay {
   white-space: nowrap;
   flex-shrink: 0;
 }
-/* Badges: colores fijos igual que antes en ambos modos */
-.umu-badge--admin   { color: var(--ac, #e91e8c); background: rgba(233,30,140,.18); }
-.umu-badge--miembro { color: #60c0ff;            background: rgba(96,192,255,.14); }
-.umu-badge--invitado{ color: var(--umu-inv-clr); background: var(--umu-inv-bg);  }
+.umu-badge--admin { color: var(--ac, #e91e8c); background: rgba(233,30,140,.18); }
+.umu-badge--miembro { color: #60c0ff; background: rgba(96,192,255,.14); }
+.umu-badge--invitado { color: #aaa; background: #2a2a2a; }
 #umu-sin-resultados {
   text-align: center;
   padding: 32px 16px;
-  color: var(--umu-empty);
-  transition: color .2s;
+  color: #666;
 }
 #umu-sin-resultados .material-symbols-outlined { font-size: 32px; display: block; margin-bottom: 8px; opacity: .4; }
 #umu-sin-resultados p { font-size: 13px; }
