@@ -172,6 +172,8 @@ _TABLES = [
         id SERIAL PRIMARY KEY, usuario_id INTEGER NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
         texto TEXT DEFAULT '', media TEXT DEFAULT '', media_tipo TEXT DEFAULT '',
         fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""",
+    # Migración: columna visibilidad ('general' = todos ven, 'privada' = solo miembros/admin)
+    """ALTER TABLE publicaciones ADD COLUMN IF NOT EXISTS visibilidad TEXT DEFAULT 'general'""",
     """CREATE TABLE IF NOT EXISTS likes (
         usuario_id INTEGER NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
         post_id INTEGER NOT NULL REFERENCES publicaciones(id) ON DELETE CASCADE,

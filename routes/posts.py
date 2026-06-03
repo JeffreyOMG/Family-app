@@ -144,9 +144,12 @@ def _guardar_post():
         media_tipo = "multi"
     if not texto and not media:
         return None
+    visibilidad = request.form.get('visibilidad', 'general')
+    if visibilidad not in ('general', 'privada'):
+        visibilidad = 'general'
     cur = con.execute(
-        "INSERT INTO publicaciones(usuario_id, texto, media, media_tipo) VALUES(%s, %s, %s, %s) RETURNING id",
-        (uid, texto, media, media_tipo)
+        "INSERT INTO publicaciones(usuario_id, texto, media, media_tipo, visibilidad) VALUES(%s, %s, %s, %s, %s) RETURNING id",
+        (uid, texto, media, media_tipo, visibilidad)
     )
     con.commit()
     return cur.fetchone()[0]
