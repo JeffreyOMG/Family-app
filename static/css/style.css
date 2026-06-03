@@ -3458,8 +3458,11 @@ input[type="checkbox"]:checked::after {
 }
 
 .pron-flag {
-  font-size: 1.5em !important;
+  font-size: 2em !important;
   flex-shrink: 0;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
 }
 
 .pron-nombre {
@@ -3811,8 +3814,11 @@ body.dark-mode .tab-btn-admin.active {
 }
 
 .admin-flag {
-  font-size: 1.3em !important;
+  font-size: 2em !important;
   flex-shrink: 0;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
 }
 
 .admin-eq-name {
@@ -4067,7 +4073,7 @@ body.dark-mode .cruce-num {
   gap: 7px;
 }
 .eq-pend { opacity: .5; }
-.bk-flag { font-size: 1.1rem; flex-shrink: 0; }
+.bk-flag { font-size: 1.4rem; flex-shrink: 0; line-height: 1; }
 .cruce-nombre {
   font-size: .84rem;
   font-weight: 600;
@@ -4230,7 +4236,7 @@ body.dark-mode .cruce-num {
 .cruce-equipos { flex: 1; display: flex; flex-direction: column; gap: 3px; }
 .cruce-eq { display: flex; align-items: center; gap: 6px; }
 .eq-pend { opacity: .5; }
-.bk-flag { font-size: 1.1rem; flex-shrink: 0; }
+.bk-flag { font-size: 1.4rem; flex-shrink: 0; line-height: 1; }
 .cruce-nombre {
   font-size: .82rem; font-weight: 600; color: var(--text);
   flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
