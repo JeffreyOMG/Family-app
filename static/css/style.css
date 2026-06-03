@@ -89,7 +89,7 @@ body{
 @media (max-width: 768px) {
   html, body {
     height: 100%;
-    overflow-x: clip;
+    overflow-x: hidden;
   }
   .layout {
     min-height: 100dvh;
@@ -2045,7 +2045,7 @@ html{
 
 @media (max-width:900px) {
   body {
-    overflow-x: clip;
+    overflow-x: hidden;
   }
 
   .main-content {
@@ -2200,7 +2200,7 @@ html{
   }
 
   body {
-    overflow-x: clip;
+    overflow-x: hidden;
   }
 
   .main-content {
@@ -3074,7 +3074,7 @@ input[type="checkbox"]:checked::after {
   #sec-mundial {
     width: 100% !important;
     max-width: 100% !important;
-    overflow-x: clip !important;
+    overflow-x: hidden !important;
     padding: 10px !important;
     box-sizing: border-box;
   }
@@ -3458,11 +3458,8 @@ input[type="checkbox"]:checked::after {
 }
 
 .pron-flag {
-  font-size: 2em !important;
+  font-size: 1.5em !important;
   flex-shrink: 0;
-  line-height: 1;
-  display: inline-flex;
-  align-items: center;
 }
 
 .pron-nombre {
@@ -3814,11 +3811,8 @@ body.dark-mode .tab-btn-admin.active {
 }
 
 .admin-flag {
-  font-size: 2em !important;
+  font-size: 1.3em !important;
   flex-shrink: 0;
-  line-height: 1;
-  display: inline-flex;
-  align-items: center;
 }
 
 .admin-eq-name {
@@ -4073,7 +4067,7 @@ body.dark-mode .cruce-num {
   gap: 7px;
 }
 .eq-pend { opacity: .5; }
-.bk-flag { font-size: 1.4rem; flex-shrink: 0; line-height: 1; }
+.bk-flag { font-size: 1.1rem; flex-shrink: 0; }
 .cruce-nombre {
   font-size: .84rem;
   font-weight: 600;
@@ -4236,7 +4230,7 @@ body.dark-mode .cruce-num {
 .cruce-equipos { flex: 1; display: flex; flex-direction: column; gap: 3px; }
 .cruce-eq { display: flex; align-items: center; gap: 6px; }
 .eq-pend { opacity: .5; }
-.bk-flag { font-size: 1.4rem; flex-shrink: 0; line-height: 1; }
+.bk-flag { font-size: 1.1rem; flex-shrink: 0; }
 .cruce-nombre {
   font-size: .82rem; font-weight: 600; color: var(--text);
   flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
@@ -4471,7 +4465,7 @@ body.dark-mode .cruce-num {
 
 /* ── SCROLL ── */
 @media (max-width: 768px) {
-  body { overflow-x: clip; -webkit-overflow-scrolling: touch; }
+  body { overflow-x: hidden; -webkit-overflow-scrolling: touch; }
   * { -webkit-tap-highlight-color: transparent; }
 }
 
