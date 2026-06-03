@@ -267,6 +267,14 @@ _TABLES = [
     """CREATE TABLE IF NOT EXISTS cajitas_ahorro_codigos (
         cajita_id INTEGER PRIMARY KEY REFERENCES cajitas_ahorro(id) ON DELETE CASCADE,
         codigo TEXT UNIQUE NOT NULL)""",
+    # ─── FASE 3.1: Sistema de Seguidores ───────────────────────────────────────
+    """CREATE TABLE IF NOT EXISTS followers (
+        id SERIAL PRIMARY KEY,
+        follower_id INTEGER NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+        following_id INTEGER NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT no_self_follow CHECK (follower_id <> following_id),
+        UNIQUE (follower_id, following_id))""",
 ]
 
 def init_db():

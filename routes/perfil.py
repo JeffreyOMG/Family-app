@@ -2,6 +2,7 @@ from flask import Blueprint, request, redirect, session, jsonify
 from database import get_db
 from werkzeug.security import generate_password_hash, check_password_hash
 from cloudinary_helper import subir_a_cloudinary
+from routes.seguidores import contar_seguidores, contar_siguiendo, esta_siguiendo
 
 perfil_bp = Blueprint("perfil", __name__)
 
@@ -12,6 +13,7 @@ def api_usuario(nombre_usuario):
     if "uid" not in session:
         return jsonify({"ok": False, "error": "No autenticado"}), 401
 
+    mi_uid = session["uid"]
     con = get_db()
     u = con.execute(
         "SELECT id, nombre, usuario, rol, bio, foto, fecha FROM usuarios WHERE usuario=%s",
@@ -33,16 +35,21 @@ def api_usuario(nombre_usuario):
     return jsonify({
         "ok": True,
         "usuario": {
-            "id":           uid,
-            "nombre":       u["nombre"],
-            "usuario":      u["usuario"],
-            "rol":          u["rol"],
-            "bio":          u["bio"] or "",
-            "foto":         u["foto"] or "",
-            "fecha":        str(u["fecha"]) if u["fecha"] else "",
-            "total_posts":  total_posts,
-            "total_likes":  total_likes,
-            "total_puntos": int(total_puntos),
+            "id":              uid,
+            "nombre":          u["nombre"],
+            "usuario":         u["usuario"],
+            "rol":             u["rol"],
+            "bio":             u["bio"] or "",
+            "foto":            u["foto"] or "",
+            "fecha":           str(u["fecha"]) if u["fecha"] else "",
+            "total_posts":     total_posts,
+            "total_likes":     total_likes,
+            "total_puntos":    int(total_puntos),
+            # ── FASE 3.2: datos de seguidores ──
+            "total_seguidores": contar_seguidores(uid),
+            "total_siguiendo":  contar_siguiendo(uid),
+            "yo_lo_sigo":       esta_siguiendo(mi_uid, uid),
+            "es_mi_perfil":     (mi_uid == uid),
         }
     })
 

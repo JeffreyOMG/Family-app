@@ -60,6 +60,14 @@
       <!-- ESTADÍSTICAS -->
       <div id="vp-stats" class="vp-stats-grid"></div>
 
+      <!-- FASE 3.2: Botón Seguir / Siguiendo (solo para perfiles ajenos) -->
+      <div id="vp-follow-wrap" style="display:none;" class="vp-follow-wrap">
+        <button id="vp-follow-btn" class="vp-follow-btn" onclick="vpToggleSeguir()">
+          <span class="material-symbols-outlined" id="vp-follow-icon">person_add</span>
+          <span id="vp-follow-label">Seguir</span>
+        </button>
+      </div>
+
       <!-- PESTAÑAS DE CONTENIDO -->
       <div class="vp-tabs-wrap">
         <div class="vp-tabs-nav" role="tablist">
@@ -74,6 +82,14 @@
           <button class="vp-tab-btn" data-tab="galeria" onclick="vpCambiarTab(this,'galeria')">
             <span class="material-symbols-outlined">photo_library</span>
             <span class="vp-tab-label">Galería</span>
+          </button>
+          <button class="vp-tab-btn" data-tab="seguidores" onclick="vpCambiarTab(this,'seguidores')">
+            <span class="material-symbols-outlined">group</span>
+            <span class="vp-tab-label">Seguidores</span>
+          </button>
+          <button class="vp-tab-btn" data-tab="siguiendo" onclick="vpCambiarTab(this,'siguiendo')">
+            <span class="material-symbols-outlined">person_check</span>
+            <span class="vp-tab-label">Siguiendo</span>
           </button>
         </div>
 
@@ -103,6 +119,54 @@
             <div class="vp-tab-loading">
               <span class="material-symbols-outlined vp-spin">progress_activity</span>
               Cargando galería…
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB: SEGUIDORES -->
+        <div class="vp-tab-panel" id="vp-tab-seguidores">
+          <div class="vp-social-panel">
+            <div class="vp-social-search-wrap">
+              <span class="material-symbols-outlined vp-social-search-icon">search</span>
+              <input type="text" id="vp-search-seguidores" class="vp-social-search"
+                     placeholder="Buscar seguidores…"
+                     oninput="vpFiltrarSocial('seguidores')">
+            </div>
+            <div id="vp-lista-seguidores" class="vp-social-lista">
+              <div class="vp-tab-loading">
+                <span class="material-symbols-outlined vp-spin">progress_activity</span>
+                Cargando seguidores…
+              </div>
+            </div>
+            <div id="vp-mas-seguidores" class="vp-load-more-wrap" style="display:none;">
+              <button class="vp-load-more-btn" onclick="vpMostrarMas('seguidores')">
+                <span class="material-symbols-outlined">expand_more</span>
+                Ver más
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB: SIGUIENDO -->
+        <div class="vp-tab-panel" id="vp-tab-siguiendo">
+          <div class="vp-social-panel">
+            <div class="vp-social-search-wrap">
+              <span class="material-symbols-outlined vp-social-search-icon">search</span>
+              <input type="text" id="vp-search-siguiendo" class="vp-social-search"
+                     placeholder="Buscar siguiendo…"
+                     oninput="vpFiltrarSocial('siguiendo')">
+            </div>
+            <div id="vp-lista-siguiendo" class="vp-social-lista">
+              <div class="vp-tab-loading">
+                <span class="material-symbols-outlined vp-spin">progress_activity</span>
+                Cargando siguiendo…
+              </div>
+            </div>
+            <div id="vp-mas-siguiendo" class="vp-load-more-wrap" style="display:none;">
+              <button class="vp-load-more-btn" onclick="vpMostrarMas('siguiendo')">
+                <span class="material-symbols-outlined">expand_more</span>
+                Ver más
+              </button>
             </div>
           </div>
         </div>
@@ -328,6 +392,233 @@
 .vp-stat span:last-child {
   font-size: .7rem;
   color: var(--text3);
+}
+
+/* ── FASE 3.2: Botón Seguir ───────────────────────────────── */
+.vp-follow-wrap {
+  display: flex;
+  justify-content: center;
+  margin: 4px 0 12px;
+}
+
+.vp-follow-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 28px;
+  border-radius: 40px;
+  border: 2px solid var(--accent);
+  background: var(--accent);
+  color: #fff;
+  font-family: inherit;
+  font-size: .9rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background .18s, color .18s, transform .1s, box-shadow .18s;
+  box-shadow: 0 2px 12px color-mix(in srgb, var(--accent) 30%, transparent);
+  letter-spacing: .01em;
+}
+
+.vp-follow-btn:hover {
+  background: color-mix(in srgb, var(--accent) 85%, #000);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 18px color-mix(in srgb, var(--accent) 40%, transparent);
+}
+
+.vp-follow-btn:active { transform: scale(.97); }
+
+.vp-follow-btn.siguiendo {
+  background: transparent;
+  color: var(--accent);
+}
+
+.vp-follow-btn.siguiendo:hover {
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.vp-follow-btn .material-symbols-outlined {
+  font-size: 18px;
+}
+
+.vp-follow-btn:disabled {
+  opacity: .6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* ── FASE 3.3: Listas de Seguidores / Siguiendo ──────── */
+.vp-social-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.vp-social-search-wrap {
+  position: relative;
+  margin-bottom: 14px;
+}
+
+.vp-social-search-icon {
+  position: absolute;
+  left: 11px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 18px;
+  color: var(--text3);
+  pointer-events: none;
+}
+
+.vp-social-search {
+  width: 100%;
+  padding: 9px 14px 9px 36px;
+  border: 1.5px solid var(--border);
+  border-radius: 40px;
+  background: var(--bg2);
+  color: var(--text);
+  font-family: inherit;
+  font-size: .88rem;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color .18s, box-shadow .18s;
+}
+
+.vp-social-search:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 15%, transparent);
+}
+
+.vp-social-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* Tarjeta de usuario en lista social */
+.vp-social-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 8px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background .15s;
+  text-decoration: none;
+  border: none;
+  background: transparent;
+  width: 100%;
+  text-align: left;
+  font-family: inherit;
+  color: inherit;
+}
+
+.vp-social-item:hover {
+  background: var(--bg2);
+}
+
+.vp-social-item:active {
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+}
+
+.vp-social-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  border: 2px solid var(--border);
+}
+
+.vp-social-letra {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.15rem;
+  font-weight: 700;
+  flex-shrink: 0;
+  border: 2px solid transparent;
+}
+
+.vp-social-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.vp-social-nombre {
+  font-weight: 600;
+  font-size: .9rem;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin: 0;
+}
+
+.vp-social-usuario {
+  font-size: .78rem;
+  color: var(--text3);
+  margin: 1px 0 0;
+}
+
+.vp-social-chevron {
+  font-size: 18px;
+  color: var(--text3);
+  flex-shrink: 0;
+}
+
+/* Estado vacío */
+.vp-social-empty {
+  text-align: center;
+  padding: 32px 20px;
+  color: var(--text3);
+  font-size: .88rem;
+}
+
+.vp-social-empty .material-symbols-outlined {
+  font-size: 40px;
+  display: block;
+  margin-bottom: 8px;
+  color: var(--border);
+}
+
+/* Botón "Ver más" */
+.vp-load-more-wrap {
+  display: flex;
+  justify-content: center;
+  padding-top: 14px;
+}
+
+.vp-load-more-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 22px;
+  border-radius: 40px;
+  border: 1.5px solid var(--border);
+  background: var(--card);
+  color: var(--text);
+  font-family: inherit;
+  font-size: .85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background .15s, border-color .15s;
+}
+
+.vp-load-more-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 6%, transparent);
+}
+
+/* Separador sutil entre items */
+.vp-social-item + .vp-social-item {
+  border-top: 1px solid var(--border-soft, var(--border));
 }
 
 /* Skeleton */
@@ -636,18 +927,33 @@ function _renderVerPerfil(u) {
   const statsEl = document.getElementById('vp-stats');
   if (statsEl) {
     const stats = [
-      { icon: 'forum',         val: u.total_posts  || 0, label: 'Posts'      },
-      { icon: 'favorite',      val: u.total_likes  || 0, label: 'Likes'      },
-      { icon: 'emoji_events',  val: u.total_puntos || 0, label: 'Pts Mundial' },
+      { icon: 'forum',         val: u.total_posts      || 0, label: 'Posts'      },
+      { icon: 'group',         val: u.total_seguidores  || 0, label: 'Seguidores', id: 'vp-stat-seguidores' },
+      { icon: 'person_check',  val: u.total_siguiendo   || 0, label: 'Siguiendo',  id: 'vp-stat-siguiendo'  },
     ];
     statsEl.innerHTML = stats.map(s => `
-      <div class="vp-stat">
+      <div class="vp-stat" ${s.id ? `id="${s.id}"` : ''}>
         <span class="material-symbols-outlined">${s.icon}</span>
         <strong>${s.val}</strong>
         <span>${s.label}</span>
       </div>
     `).join('');
   }
+
+  // ── FASE 3.2: Botón Seguir ──────────────────────────────────────────────
+  const followWrap = document.getElementById('vp-follow-wrap');
+  if (followWrap) {
+    if (u.es_mi_perfil) {
+      // No mostrar botón en el propio perfil
+      followWrap.style.display = 'none';
+    } else {
+      followWrap.style.display = '';
+      _vpActualizarBtnSeguir(u.yo_lo_sigo);
+    }
+  }
+  // Guardar estado actual en el botón para referencia
+  window._vpSiguiendo = u.yo_lo_sigo;
+  window._vpUidPerfil = u.id;
 
   // Mostrar perfil, ocultar skeleton
   if (skeleton) skeleton.style.display = 'none';
@@ -658,6 +964,8 @@ function _renderVerPerfil(u) {
   _vpLoaded.publicaciones = false;
   _vpLoaded.mundial = false;
   _vpLoaded.galeria = false;
+  _vpLoaded.seguidores = false;
+  _vpLoaded.siguiendo  = false;
 
   // Resetear a pestaña Publicaciones y cargar
   document.querySelectorAll('.vp-tab-btn').forEach((b,i) => b.classList.toggle('active', i===0));
@@ -677,10 +985,63 @@ function cerrarVerPerfil() {
   irSeccion(_vpOrigenSeccion || 'inicio');
 }
 
+// ── FASE 3.2: Lógica de seguir / dejar de seguir ──────────────────────────
+
+function _vpActualizarBtnSeguir(siguiendo) {
+  const btn   = document.getElementById('vp-follow-btn');
+  const icon  = document.getElementById('vp-follow-icon');
+  const label = document.getElementById('vp-follow-label');
+  if (!btn) return;
+  if (siguiendo) {
+    btn.classList.add('siguiendo');
+    icon.textContent  = 'how_to_reg';
+    label.textContent = 'Siguiendo';
+  } else {
+    btn.classList.remove('siguiendo');
+    icon.textContent  = 'person_add';
+    label.textContent = 'Seguir';
+  }
+}
+
+async function vpToggleSeguir() {
+  const btn = document.getElementById('vp-follow-btn');
+  if (!btn || btn.disabled) return;
+  btn.disabled = true;
+
+  const uid       = window._vpUidPerfil;
+  const activo    = window._vpSiguiendo;
+  const endpoint  = activo ? `/api/dejar_de_seguir/${uid}` : `/api/seguir/${uid}`;
+
+  try {
+    const res  = await fetch(endpoint, { method: 'POST' });
+    const data = await res.json();
+    if (!data.ok && data.accion !== 'ya_seguia') throw new Error(data.error);
+
+    // Nuevo estado
+    const nuevoEstado = !activo;
+    window._vpSiguiendo = nuevoEstado;
+    _vpActualizarBtnSeguir(nuevoEstado);
+
+    // Actualizar contadores sin recargar
+    const statEl = document.getElementById('vp-stat-seguidores');
+    if (statEl) {
+      const numEl = statEl.querySelector('strong');
+      if (numEl) {
+        const actual = parseInt(numEl.textContent) || 0;
+        numEl.textContent = Math.max(0, actual + (nuevoEstado ? 1 : -1));
+      }
+    }
+  } catch (err) {
+    console.error('Error al seguir/dejar de seguir:', err);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
 // ─── PESTAÑAS DEL PERFIL PÚBLICO ─────────────────────────────────────────────
 
 let _vpUidActual = null;
-const _vpLoaded = { publicaciones: false, mundial: false, galeria: false };
+const _vpLoaded = { publicaciones: false, mundial: false, galeria: false, seguidores: false, siguiendo: false };
 
 function vpCambiarTab(btn, tab) {
   document.querySelectorAll('.vp-tab-btn').forEach(b => b.classList.remove('active'));
@@ -692,6 +1053,8 @@ function vpCambiarTab(btn, tab) {
     if (tab === 'publicaciones') vpCargarPosts(_vpUidActual);
     else if (tab === 'mundial')  vpCargarMundial(_vpUidActual);
     else if (tab === 'galeria')  vpCargarGaleria(_vpUidActual);
+    else if (tab === 'seguidores') vpCargarSocial('seguidores', _vpUidActual);
+    else if (tab === 'siguiendo')  vpCargarSocial('siguiendo',  _vpUidActual);
   }
 }
 
@@ -820,4 +1183,115 @@ document.addEventListener('click', function(e) {
 
   verPerfil(nombreUsuario, seccionActual);
 });
+
+// ── FASE 3.3: Listas de Seguidores / Siguiendo ────────────────────────────────
+
+const _VP_PAGE_SIZE = 15;
+
+const _vpSocial = {
+  seguidores: { todos: [], visibles: 0, filtro: '' },
+  siguiendo:  { todos: [], visibles: 0, filtro: '' },
+};
+
+async function vpCargarSocial(tipo, uid) {
+  const listaEl = document.getElementById(`vp-lista-${tipo}`);
+  const masEl   = document.getElementById(`vp-mas-${tipo}`);
+  if (!listaEl) return;
+
+  listaEl.innerHTML = `
+    <div class="vp-tab-loading">
+      <span class="material-symbols-outlined vp-spin">progress_activity</span>
+      Cargando…
+    </div>`;
+  if (masEl) masEl.style.display = 'none';
+
+  try {
+    const endpoint = tipo === 'seguidores' ? `/api/seguidores/${uid}` : `/api/siguiendo/${uid}`;
+    const res  = await fetch(endpoint);
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error || 'Error');
+
+    const lista = tipo === 'seguidores' ? data.seguidores : data.siguiendo;
+    _vpSocial[tipo].todos    = lista || [];
+    _vpSocial[tipo].visibles = 0;
+    _vpSocial[tipo].filtro   = '';
+
+    const searchEl = document.getElementById(`vp-search-${tipo}`);
+    if (searchEl) searchEl.value = '';
+
+    _vpRenderSocial(tipo);
+
+  } catch (err) {
+    listaEl.innerHTML = `
+      <div class="vp-social-empty">
+        <span class="material-symbols-outlined">wifi_off</span>
+        No se pudo cargar la lista.
+      </div>`;
+  }
+}
+
+function _vpFiltrados(tipo) {
+  const q = (_vpSocial[tipo].filtro || '').toLowerCase().trim();
+  if (!q) return _vpSocial[tipo].todos;
+  return _vpSocial[tipo].todos.filter(u =>
+    (u.nombre  || '').toLowerCase().includes(q) ||
+    (u.usuario || '').toLowerCase().includes(q)
+  );
+}
+
+function _vpRenderSocial(tipo) {
+  const listaEl = document.getElementById(`vp-lista-${tipo}`);
+  const masEl   = document.getElementById(`vp-mas-${tipo}`);
+  if (!listaEl) return;
+
+  const filtrados = _vpFiltrados(tipo);
+
+  if (!filtrados.length) {
+    const esVacio  = !_vpSocial[tipo].todos.length;
+    const iconV    = tipo === 'seguidores' ? 'group_off' : 'person_off';
+    const msgV     = tipo === 'seguidores' ? 'Aún no tiene seguidores.' : 'No sigue a nadie todavía.';
+    listaEl.innerHTML = `
+      <div class="vp-social-empty">
+        <span class="material-symbols-outlined">${esVacio ? iconV : 'search_off'}</span>
+        ${esVacio ? msgV : 'No se encontraron usuarios.'}
+      </div>`;
+    if (masEl) masEl.style.display = 'none';
+    return;
+  }
+
+  const hasta = Math.min(_vpSocial[tipo].visibles + _VP_PAGE_SIZE, filtrados.length);
+  _vpSocial[tipo].visibles = hasta;
+
+  listaEl.innerHTML = filtrados.slice(0, hasta).map(u => _vpSocialItemHTML(u)).join('');
+
+  if (masEl) masEl.style.display = hasta < filtrados.length ? '' : 'none';
+}
+
+function _vpSocialItemHTML(u) {
+  const inicial = (u.nombre || 'U')[0].toUpperCase();
+  const avatar  = u.foto
+    ? `<img class="vp-social-avatar" src="${_vpEscape(u.foto)}" alt="" loading="lazy">`
+    : `<div class="vp-social-letra">${inicial}</div>`;
+  return `
+    <button class="vp-social-item" onclick="verPerfil('${_vpEscape(u.usuario)}','ver-perfil')">
+      ${avatar}
+      <div class="vp-social-info">
+        <p class="vp-social-nombre">${_vpEscape(u.nombre)}</p>
+        <p class="vp-social-usuario">@${_vpEscape(u.usuario)}</p>
+      </div>
+      <span class="material-symbols-outlined vp-social-chevron">chevron_right</span>
+    </button>`;
+}
+
+function vpFiltrarSocial(tipo) {
+  const searchEl = document.getElementById(`vp-search-${tipo}`);
+  if (!searchEl) return;
+  _vpSocial[tipo].filtro   = searchEl.value;
+  _vpSocial[tipo].visibles = 0;
+  _vpRenderSocial(tipo);
+}
+
+function vpMostrarMas(tipo) {
+  _vpRenderSocial(tipo);
+}
 </script>
