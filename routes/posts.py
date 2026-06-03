@@ -24,7 +24,7 @@ POST_TMPL = """
     {% else %}<div class="user-avatar post-av">{{ p.nombre[0]|upper }}</div>{% endif %}
     <div class="post-meta-block">
       <span class="post-name">{{ p.nombre }}</span>
-      <span class="post-handle">@{{ p.usuario }} · ahora</span>
+      <span class="post-handle">@{{ p.usuario }} · {% if p.fecha %}{{ p.fecha[:10] }}{% endif %}</span>
     </div>
     <form method="POST" action="/eliminar_post/{{ p.id }}" class="post-delete-form ajax-form" data-ajax="true">
       <button type="submit" class="post-delete-btn" title="Eliminar">
@@ -106,7 +106,7 @@ def publicar_ajax():
         return jsonify({"ok": False}), 400
     con = get_db()
     p = con.execute("""
-        SELECT p.id,p.texto,p.media,p.media_tipo,u.nombre,u.usuario,u.foto
+        SELECT p.id,p.texto,p.media,p.media_tipo,p.fecha,u.nombre,u.usuario,u.foto
         FROM publicaciones p JOIN usuarios u ON u.id=p.usuario_id
         WHERE p.id=%s
     """, (post_id,)).fetchone()

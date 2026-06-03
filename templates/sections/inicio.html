@@ -1570,7 +1570,7 @@ async function enviarComentario(postId, input){
           <div class="comment-bubble">
             <strong class="comment-author">${escHTML(data.nombre)}</strong>
             <span class="comment-text">${escHTML(data.texto)}</span>
-            <span class="comment-date">ahora</span>
+            <span class="comment-date">${new Date().toISOString().slice(0,10)}</span>
           </div>`;
         sec.insertBefore(row, form);
       }
