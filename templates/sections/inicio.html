@@ -8,7 +8,7 @@
     {% endif %}
     <div class="post-meta-block">
       <span class="post-name">{{ p.nombre }}</span>
-      <span class="post-handle">@{{ p.usuario }} · {{ p.fecha[:10] }}</span>
+      <span class="post-handle">@{{ p.usuario }} · {{ p.fecha[:10] }}{% if p.get('visibilidad','general')=='privada' %} <span class="post-badge-privado">🔒 Solo miembros</span>{% endif %}</span>
     </div>
     {% if p.usuario_id == usuario.id or usuario.rol == 'admin' %}
     <form method="POST" action="/eliminar_post/{{ p.id }}" class="post-delete-form">
@@ -125,11 +125,14 @@
         </button>
       </div>
 
-      <!-- COUNTDOWN -->
-      <div class="countdown-card">
-        <div class="cd-label-top">
-          <span class="material-symbols-outlined" style="font-size:14px;vertical-align:-2px;">timer</span>
-          Cuenta regresiva · 24 Dic 2026
+      <!-- COUNTDOWN FIFA -->
+      <div class="countdown-card cd-fifa">
+        <div class="cd-fifa-top">
+          <span class="cd-fifa-emoji">⚽</span>
+          <div class="cd-fifa-info">
+            <div class="cd-fifa-titulo">Mundial FIFA 2026</div>
+            <div class="cd-fifa-sub">14 de junio · México · USA · Canadá</div>
+          </div>
         </div>
         <div class="cd-nums">
           <div class="cd-unit"><span class="cd-num" id="cd-dias">--</span><span class="cd-lbl">Días</span></div>
@@ -382,6 +385,18 @@
           <span class="material-symbols-outlined">location_on</span>
         </button>
       </div>
+      {% if usuario.rol in ('miembro', 'admin') %}
+      <div class="mc-visibilidad-row" id="mc-vis-row">
+        <button type="button" class="mc-vis-btn active" id="mc-vis-general" onclick="setVisibilidad('general')" title="Todos pueden ver">
+          <span class="material-symbols-outlined">public</span>
+          <span>General</span>
+        </button>
+        <button type="button" class="mc-vis-btn" id="mc-vis-privada" onclick="setVisibilidad('privada')" title="Solo miembros y admin">
+          <span class="material-symbols-outlined">lock</span>
+          <span>Solo miembros</span>
+        </button>
+      </div>
+      {% endif %}
     </div>
 
   </div>
@@ -543,6 +558,129 @@ body.dark-mode {
   gap: 12px;
   flex-wrap: wrap;
 }
+/* ── FIFA COUNTDOWN ── */
+.cd-fifa {
+  background: linear-gradient(135deg, #0a2e1a 0%, #1a5c32 50%, #0d3d20 100%);
+  border: 1px solid rgba(255,255,255,.12) !important;
+  box-shadow: 0 4px 20px rgba(0,100,40,.25);
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+}
+.cd-fifa-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+}
+.cd-fifa-emoji {
+  font-size: 1.8rem;
+  line-height: 1;
+  flex-shrink: 0;
+  filter: drop-shadow(0 2px 6px rgba(0,0,0,.4));
+}
+.cd-fifa-info { flex: 1; min-width: 0; }
+.cd-fifa-titulo {
+  font-size: .85rem;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: .01em;
+  text-shadow: 0 1px 4px rgba(0,0,0,.3);
+}
+.cd-fifa-sub {
+  font-size: .68rem;
+  color: rgba(255,255,255,.65);
+  margin-top: 1px;
+}
+.cd-fifa .cd-nums { width: 100%; justify-content: space-between; gap: 2px; }
+.cd-fifa .cd-unit {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: rgba(255,255,255,.1);
+  border: 1px solid rgba(255,255,255,.15);
+  border-radius: 10px;
+  padding: 6px 4px;
+  backdrop-filter: blur(4px);
+}
+.cd-fifa .cd-num {
+  font-size: 1.3rem;
+  font-weight: 900;
+  color: #fff;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  text-shadow: 0 1px 4px rgba(0,0,0,.3);
+}
+.cd-fifa .cd-lbl {
+  font-size: .55rem;
+  color: rgba(255,255,255,.6);
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  margin-top: 2px;
+}
+.cd-fifa .cd-sep {
+  font-size: 1rem;
+  font-weight: 800;
+  color: rgba(255,255,255,.4);
+  padding-bottom: 6px;
+  flex-shrink: 0;
+}
+
+/* ── VISIBILIDAD en composer ── */
+.mc-visibilidad-row {
+  display: flex;
+  gap: 6px;
+  padding: 8px 12px 6px;
+  border-top: 1px solid var(--border);
+}
+.mc-vis-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 12px;
+  border-radius: 20px;
+  border: 1.5px solid var(--border);
+  background: transparent;
+  color: var(--text2);
+  font-size: .8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .18s;
+  font-family: var(--font);
+}
+.mc-vis-btn .material-symbols-outlined { font-size: 15px; }
+.mc-vis-btn:hover { border-color: var(--ac); color: var(--ac); }
+.mc-vis-btn#mc-vis-general.active {
+  background: rgba(0,149,246,.12);
+  border-color: #0095f6;
+  color: #0095f6;
+}
+.mc-vis-btn#mc-vis-privada.active {
+  background: rgba(139,92,246,.12);
+  border-color: #8b5cf6;
+  color: #8b5cf6;
+}
+body.dark-mode .mc-vis-btn { color: var(--text2); border-color: var(--border); }
+body.dark-mode .mc-vis-btn#mc-vis-general.active { background: rgba(0,149,246,.15); border-color: #0095f6; color: #4fc3f7; }
+body.dark-mode .mc-vis-btn#mc-vis-privada.active { background: rgba(139,92,246,.15); border-color: #8b5cf6; color: #a78bfa; }
+
+/* ── Badge privado en post ── */
+.post-badge-privado {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-size: .68rem;
+  background: rgba(139,92,246,.12);
+  color: #8b5cf6;
+  padding: 1px 7px;
+  border-radius: 10px;
+  margin-left: 5px;
+  vertical-align: middle;
+  font-weight: 600;
+}
+body.dark-mode .post-badge-privado { background: rgba(139,92,246,.2); color: #a78bfa; }
+
 .cd-label-top { font-size: 11.5px; font-weight: 600; color: var(--text2); letter-spacing: .2px; }
 .cd-nums { display: flex; align-items: center; gap: 4px; }
 .cd-unit { display: flex; flex-direction: column; align-items: center; min-width: 36px; }
@@ -1354,8 +1492,12 @@ body.dark-mode {
 @media (max-width: 480px) {
   .countdown-card { flex-direction: column; align-items: flex-start; gap: 8px; }
   .cd-num { font-size: 18px; }
+  .cd-fifa .cd-num { font-size: 1.15rem; }
+  .cd-fifa-titulo { font-size: .8rem; }
   .compose-av { width: 34px !important; height: 34px !important; }
   .mc-publish-btn { padding: 7px 16px; font-size: 13px; }
+  .mc-visibilidad-row { padding: 6px 10px 5px; }
+  .mc-vis-btn { font-size: .75rem; padding: 4px 10px; }
 }
 </style>
 
@@ -1692,6 +1834,7 @@ function abrirComposer(modo){
 
 function cerrarComposer(){
   document.getElementById('modal-composer').style.display = 'none';
+  setVisibilidad('general');
 }
 
 function onComposerInput(){
@@ -1835,6 +1978,15 @@ function quitarTag(i){
 /* ── Media preview ── */
 /* ── Lista interna de archivos seleccionados (max 5) ── */
 let _mediaFiles = []; // [{file, url}]
+let _visibilidad = 'general';
+function setVisibilidad(v){
+  _visibilidad = v;
+  const btnG = document.getElementById('mc-vis-general');
+  const btnP = document.getElementById('mc-vis-privada');
+  if(!btnG) return;
+  btnG.classList.toggle('active', v==='general');
+  btnP.classList.toggle('active', v==='privada');
+}
 
 function _renderMediaGrid(){
   const prev = document.getElementById('mc-media-preview');
@@ -1922,6 +2074,7 @@ async function submitComposer(){
 
   const fd = new FormData();
   if(textoFinal) fd.append('texto', textoFinal);
+  fd.append('visibilidad', _visibilidad);
   if(_gifFile){
     fd.append('media', _gifFile);
   } else if(_mediaFiles.length){
