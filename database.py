@@ -259,11 +259,20 @@ _TABLES = [
     """CREATE TABLE IF NOT EXISTS amigo_secreto_eventos (
         id SERIAL PRIMARY KEY, nombre TEXT NOT NULL,
         activo INTEGER DEFAULT 1, cruces_generados INTEGER DEFAULT 0,
+        tarifa_premio TEXT DEFAULT 'No definido',
         fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""",
     """CREATE TABLE IF NOT EXISTS amigo_secreto_participantes (
         evento_id INTEGER NOT NULL REFERENCES amigo_secreto_eventos(id) ON DELETE CASCADE,
         usuario_id INTEGER NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
         asignado_id INTEGER DEFAULT NULL, PRIMARY KEY (evento_id, usuario_id))""",
+    """CREATE TABLE IF NOT EXISTS lista_deseos (
+        id SERIAL PRIMARY KEY,
+        usuario_id INTEGER NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE UNIQUE,
+        descripcion TEXT NOT NULL,
+        imagen_referencia TEXT DEFAULT NULL,
+        link_referencia TEXT DEFAULT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""",
     """CREATE TABLE IF NOT EXISTS cajitas_ahorro_codigos (
         cajita_id INTEGER PRIMARY KEY REFERENCES cajitas_ahorro(id) ON DELETE CASCADE,
         codigo TEXT UNIQUE NOT NULL)""",
