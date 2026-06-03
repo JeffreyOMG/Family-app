@@ -89,7 +89,7 @@ body{
 @media (max-width: 768px) {
   html, body {
     height: 100%;
-    overflow-x: hidden;
+    overflow-x: clip;
   }
   .layout {
     min-height: 100dvh;
@@ -2045,7 +2045,7 @@ html{
 
 @media (max-width:900px) {
   body {
-    overflow-x: hidden;
+    overflow-x: clip;
   }
 
   .main-content {
@@ -2200,7 +2200,7 @@ html{
   }
 
   body {
-    overflow-x: hidden;
+    overflow-x: clip;
   }
 
   .main-content {
@@ -3074,7 +3074,7 @@ input[type="checkbox"]:checked::after {
   #sec-mundial {
     width: 100% !important;
     max-width: 100% !important;
-    overflow-x: hidden !important;
+    overflow-x: clip !important;
     padding: 10px !important;
     box-sizing: border-box;
   }
@@ -4471,7 +4471,7 @@ body.dark-mode .cruce-num {
 
 /* ── SCROLL ── */
 @media (max-width: 768px) {
-  body { overflow-x: hidden; -webkit-overflow-scrolling: touch; }
+  body { overflow-x: clip; -webkit-overflow-scrolling: touch; }
   * { -webkit-tap-highlight-color: transparent; }
 }
 
