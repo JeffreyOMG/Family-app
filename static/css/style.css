@@ -532,11 +532,18 @@ textarea.form-input{
 }
 
 .sidebar-brand{
-    padding:20px 18px;
+    padding:15px 10px;
     border-bottom:1px solid var(--border);
     display:flex;
-    flex-direction:column;
-    gap:4px;
+    justify-content:center;
+    align-items:center;
+}
+
+.menu-logo{
+    width:180px;
+    max-width:100%;
+    height:auto;
+    display:block;
 }
 
 .brand-name{
@@ -596,12 +603,6 @@ textarea.form-input{
 .nav-item .material-symbols-outlined{
     font-size:24px;
     min-width:24px;
-    flex-shrink:0;
-}
-.nav-item img{
-    width:28px;
-    height:28px;
-    object-fit:contain;
     flex-shrink:0;
 }
 
