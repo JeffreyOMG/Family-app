@@ -208,13 +208,13 @@
 
     <div class="rec-modal-body">
       <div class="tipo-aporte-grid">
-        <button class="tipo-aporte-card" onclick="abrirSubModal('familia')">
+        <button class="tipo-aporte-card" disabled style="opacity:0.55;cursor:not-allowed;pointer-events:none;position:relative;">
           <div class="tipo-icon" style="background:rgba(76,175,80,.15);color:#4caf50;">
             <span class="material-symbols-outlined">home</span>
           </div>
           <div class="tipo-info">
             <strong>Ahorro por Familia</strong>
-            <span>Cajitas privadas de ahorro familiar</span>
+            <span>🚧 Próximamente disponible</span>
           </div>
           <span class="material-symbols-outlined tipo-arrow">chevron_right</span>
         </button>
@@ -234,7 +234,7 @@
           </div>
           <div class="tipo-info">
             <strong>Polla Mundialista</strong>
-            <span>Inscripción por fases · pronósticos</span>
+            <span>Inscripción por fases · pronósticos · <strong style="color:#f9a825;">solo miembros</strong></span>
           </div>
           <span class="material-symbols-outlined tipo-arrow">chevron_right</span>
         </button>
@@ -469,7 +469,7 @@
         </div>
         <div>
           <h3>Polla Mundialista</h3>
-          <p>Selecciona la fase e inscríbete</p>
+          <p>Selecciona la fase e inscríbete · <span style="color:#f9a825;font-weight:600;">Tarifa solo para miembros</span></p>
         </div>
       </div>
       <button class="rec-modal-close" onclick="cerrarSubModal('polla')"><span class="material-symbols-outlined">close</span></button>
@@ -484,13 +484,13 @@
               <strong>Fase 1 — Grupos</strong>
               <span>Pronósticos de la fase de grupos</span>
             </div>
-            <div class="fase-precio">$20.000</div>
+            <div class="fase-precio">$30.000</div>
           </div>
           <div class="fase-estado" id="fase-estado-1">
             <span class="badge-pend">⏳ No inscrito</span>
           </div>
           <button class="fase-btn" id="fase-btn-1" onclick="seleccionarFase(1)">
-            Inscribirme — $20.000
+            Inscribirme — $30.000
           </button>
         </div>
         <!-- Fase 2 -->
@@ -501,13 +501,13 @@
               <strong>Fase 2 — Eliminatorias</strong>
               <span>Pronósticos de octavos, cuartos y cuartos</span>
             </div>
-            <div class="fase-precio">$10.000</div>
+            <div class="fase-precio">$20.000</div>
           </div>
           <div class="fase-estado" id="fase-estado-2">
             <span class="badge-pend">⏳ No inscrito</span>
           </div>
           <button class="fase-btn" id="fase-btn-2" onclick="seleccionarFase(2)">
-            Inscribirme — $10.000
+            Inscribirme — $20.000
           </button>
         </div>
         <!-- Fase 3 -->
