@@ -598,6 +598,12 @@ textarea.form-input{
     min-width:24px;
     flex-shrink:0;
 }
+.nav-item img{
+    width:28px;
+    height:28px;
+    object-fit:contain;
+    flex-shrink:0;
+}
 
 .nav-item span:not(.material-symbols-outlined){
     opacity:0;
@@ -609,6 +615,7 @@ textarea.form-input{
     opacity:1;
     visibility:visible;
 }
+
 
 .sidebar-footer{
     padding:12px;
