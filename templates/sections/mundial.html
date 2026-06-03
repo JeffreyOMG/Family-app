@@ -1231,248 +1231,264 @@ function _renderBracket(bracket, eliPartidos) {
   const byId = {};
   (eliPartidos||[]).forEach(p => byId[p.id] = p);
 
-  // ── Estructura del bracket ──────────────────────────────────────────────
-  // Lado izquierdo (R16 → 8vos → 4tos → Semi izq)
-  const ladoIzq = {
-    r16:    [73, 74, 75, 77, 83, 84, 81, 82],
-    oct:    [89, 90, 93, 94],
-    qtr:    [97, 98],
-    semi:   [101],
-  };
-  // Lado derecho (R16 → 8vos → 4tos → Semi der) — en orden invertido para espejado
-  const ladoDer = {
-    r16:    [76, 78, 79, 80, 86, 88, 85, 87],
-    oct:    [91, 92, 95, 96],
-    qtr:    [99, 100],
-    semi:   [102],
-  };
+  // ── Bracket structure — IDs taken directly from the FIFA image ──────────
+  //
+  //  LEFT SIDE                                     RIGHT SIDE
+  //  R16         OCT      QTR   SEMI               SEMI  QTR   OCT        R16
+  //  P74 ─┐                                                              P76 ─┐
+  //  P77 ─┴─ P89 ─┐                                          P91 ─┐  ┌─ P78
+  //  P73 ─┐        ├─ P97 ─┐                        ┌─ P99 ─┤     └─ P79 (note: right side mirror)
+  //  P75 ─┴─ P90 ─┘        ├─ P101 ─┐  ┌─ P102 ─┤  └─ P100 ─┤
+  //  P83 ─┐                         ├─P104─┤         └─ ...
+  //  P84 ─┴─ P93 ─┐        │  3er:P103  │
+  //  P81 ─┐        ├─ P98 ─┘                        └─ P102 ─┘
+  //  P82 ─┴─ P94 ─┘                                           etc.
+  //
+  // Exact pair groupings (which two R16 matches feed each Octavos match):
+  //   LEFT:  P74+P77→P89 | P73+P75→P90 | P83+P84→P93 | P81+P82→P94
+  //   RIGHT: P76+P78→P91 | P79+P80→P92 | P86+P88→P95 | P85+P87→P96
 
-  // Centro: tercer puesto (103) y final (104)
-  const centro = [103, 104];
+  // Each ronda is an array of "groups". A group is a pair of IDs that feed
+  // the SAME match in the next ronda. This drives the vertical spacing.
+  const r16Izq  = [[74,77], [73,75], [83,84], [81,82]];   // 4 pairs → 8 R16 matches
+  const octIzq  = [[89,90], [93,94]];                      // 2 pairs → 4 Octavos
+  const qtrIzq  = [[97,98]];                               // 1 pair  → 2 Cuartos
+  const semiIzq = [[101]];                                 // solo    → 1 Semi
 
-  // ── Función que genera una tarjeta de partido ────────────────────────────
+  const r16Der  = [[76,78], [79,80], [86,88], [85,87]];
+  const octDer  = [[91,92], [95,96]];
+  const qtrDer  = [[99,100]];
+  const semiDer = [[102]];
+
+  // ── Card HTML ────────────────────────────────────────────────────────────
   function _card(pid, opts = {}) {
     const p = byId[pid];
     if (!p) {
       return `<div class="bk-card bk-card--vacio">
-        <div class="bk-eq bk-eq--pend"><span class="bk-slot">P${pid}</span></div>
-        <div class="bk-eq bk-eq--pend"><span class="bk-slot">–</span></div>
+        <div class="bk-eq bk-eq--pend"><em class="bk-slot">P${pid}</em></div>
+        <div class="bk-eq bk-eq--pend"><em class="bk-slot">–</em></div>
       </div>`;
     }
     const eqL = _resolverEq(p.eq_local,  p.cod_local,  p.slot_local);
     const eqV = _resolverEq(p.eq_visit,  p.cod_visit,  p.slot_visit);
 
-    function _eqRow(eq, goles, esGanador) {
+    function _eqRow(eq, goles, winner) {
       const flag = eq.conocido ? `<span class="fi fi-${_esc(eq.codigo)} fis bk-flag"></span>` : '';
-      const nombreEl = eq.conocido ? _esc(eq.nombre) : `<em class="bk-slot">${_esc(eq.nombre)}</em>`;
-      const scoreEl  = (p.bloqueado && goles !== null && goles !== undefined)
-        ? `<span class="bk-score ${esGanador ? 'bk-score--win' : ''}">${goles}</span>` : '';
-      return `<div class="bk-eq ${!eq.conocido ? 'bk-eq--pend' : ''} ${esGanador ? 'bk-eq--winner' : ''}">
-        ${flag}<span class="bk-nombre">${nombreEl}</span>${scoreEl}
+      const nom  = eq.conocido ? _esc(eq.nombre) : `<em class="bk-slot">${_esc(eq.nombre)}</em>`;
+      const sc   = (p.bloqueado && goles !== null && goles !== undefined)
+        ? `<span class="bk-score ${winner ? 'bk-score--win' : ''}">${goles}</span>` : '';
+      return `<div class="bk-eq ${!eq.conocido ? 'bk-eq--pend' : ''} ${winner ? 'bk-eq--winner' : ''}">
+        ${flag}<span class="bk-nombre">${nom}</span>${sc}
       </div>`;
     }
 
-    let ganadorL = false, ganadorV = false;
+    let wL = false, wV = false;
     if (p.bloqueado && p.goles_local !== null && p.goles_visit !== null) {
-      if (p.penales_ganador) {
-        ganadorL = (p.penales_ganador === p.eq_local);
-        ganadorV = (p.penales_ganador === p.eq_visit);
-      } else {
-        ganadorL = p.goles_local > p.goles_visit;
-        ganadorV = p.goles_visit > p.goles_local;
-      }
+      if (p.penales_ganador) { wL = p.penales_ganador === p.eq_local; wV = p.penales_ganador === p.eq_visit; }
+      else { wL = p.goles_local > p.goles_visit; wV = p.goles_visit > p.goles_local; }
     }
 
-    const fechaStr = p.fecha ? `<div class="bk-meta">${_esc(p.fecha)}</div>` : '';
-    const idStr = opts.hideId ? '' : `<div class="bk-pid">P${p.id}</div>`;
+    const fecha  = p.fecha ? `<div class="bk-meta">${_esc(p.fecha)}</div>` : '';
+    const pid_el = opts.hideId ? '' : `<div class="bk-pid">P${p.id}</div>`;
 
     return `<div class="bk-card ${p.bloqueado ? 'bk-card--done' : ''}">
-      ${idStr}
-      ${_eqRow(eqL, p.goles_local,  ganadorL)}
-      ${_eqRow(eqV, p.goles_visit,  ganadorV)}
-      ${fechaStr}
+      ${pid_el}${_eqRow(eqL, p.goles_local, wL)}${_eqRow(eqV, p.goles_visit, wV)}${fecha}
     </div>`;
   }
 
-  // ── Función que genera una columna de ronda ────────────────────────────
-  function _col(ids, label, extraClass = '') {
+  // ── Column builder — groups array drives spacing ─────────────────────────
+  // Each "group" renders as a flex sub-container that distributes its cards
+  // with equal space-around. Between groups there is a larger separator gap.
+  // This ensures that pairs stay together and are vertically centred to align
+  // with their corresponding match in the next round.
+  function _col(groups, label, extraClass = '') {
+    const groupsHTML = groups.map(ids => {
+      const cards = ids.map(id => `<div class="bk-sw">${_card(id)}</div>`).join('');
+      return `<div class="bk-group">${cards}</div>`;
+    }).join('');
     return `<div class="bk-col ${extraClass}">
       <div class="bk-col-label">${label}</div>
-      <div class="bk-col-partidos">
-        ${ids.map(id => `<div class="bk-slot-wrap">${_card(id)}</div>`).join('')}
-      </div>
+      <div class="bk-col-body">${groupsHTML}</div>
     </div>`;
   }
 
-  // ── Columna central (tercer puesto + final) ────────────────────────────
+  // ── Centre column ────────────────────────────────────────────────────────
   function _colCentro() {
-    const p104 = byId[104];
-    const p103 = byId[103];
     return `<div class="bk-col bk-col--centro">
       <div class="bk-col-label">Final</div>
-      <div class="bk-col-partidos">
-        <div class="bk-slot-wrap bk-slot-wrap--final">${_card(104, {hideId:true})}</div>
+      <div class="bk-col-body bk-col-body--centro">
+        <div class="bk-group bk-group--final">
+          <div class="bk-sw bk-sw--final">${_card(104, {hideId:true})}</div>
+        </div>
         <div class="bk-col-label bk-col-label--3rd">3er Puesto</div>
-        <div class="bk-slot-wrap">${_card(103, {hideId:true})}</div>
+        <div class="bk-group bk-group--3rd">
+          <div class="bk-sw">${_card(103, {hideId:true})}</div>
+        </div>
       </div>
     </div>`;
   }
 
-  // ── Construir el bracket completo ───────────────────────────────────────
-  wrap.innerHTML = `
-    <style>
-      .bk-tree {
-        display: flex;
-        flex-direction: row;
-        align-items: stretch;
-        gap: 0;
-        overflow-x: auto;
-        padding: 8px 0 16px;
-        min-width: 800px;
-      }
-      .bk-col {
-        display: flex;
-        flex-direction: column;
-        flex: 1;
-        min-width: 130px;
-      }
-      .bk-col--centro {
-        flex: 1.2;
-        min-width: 150px;
-      }
-      .bk-col-label {
-        font-family: 'Bebas Neue', 'DM Sans', sans-serif;
-        font-size: .72rem;
-        letter-spacing: .08em;
-        color: rgba(255,255,255,.35);
-        text-align: center;
-        padding: 0 4px 8px;
-        text-transform: uppercase;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-      }
-      .bk-col-label--3rd {
-        font-size: .65rem;
-        padding: 12px 4px 6px;
-        color: rgba(255,255,255,.25);
-      }
-      .bk-col-partidos {
-        display: flex;
-        flex-direction: column;
-        flex: 1;
-        justify-content: space-around;
-        gap: 4px;
-        padding: 0 3px;
-      }
-      .bk-slot-wrap {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        position: relative;
-      }
-      .bk-slot-wrap--final .bk-card {
-        border-color: rgba(245,197,24,.5);
-        background: rgba(245,197,24,.07);
-        box-shadow: 0 0 12px rgba(245,197,24,.15);
-      }
-      .bk-card {
-        width: 100%;
-        background: rgba(255,255,255,.04);
-        border: 1px solid rgba(255,255,255,.1);
-        border-radius: 6px;
-        overflow: hidden;
-        transition: border-color .2s;
-      }
-      .bk-card:hover { border-color: rgba(255,255,255,.22); }
-      .bk-card--done { border-color: rgba(255,255,255,.15); }
-      .bk-card--vacio {
-        opacity: .35;
-        background: transparent;
-        border-color: rgba(255,255,255,.06);
-      }
-      .bk-pid {
-        font-family: 'Bebas Neue', monospace;
-        font-size: .6rem;
-        color: rgba(255,255,255,.2);
-        text-align: right;
-        padding: 2px 5px 0;
-        letter-spacing: .05em;
-      }
-      .bk-eq {
-        display: flex;
-        align-items: center;
-        gap: 4px;
-        padding: 4px 6px;
-        font-family: 'DM Sans', sans-serif;
-        font-size: .72rem;
-        color: rgba(255,255,255,.75);
-        border-top: 1px solid rgba(255,255,255,.06);
-      }
-      .bk-eq:first-of-type { border-top: none; }
-      .bk-eq--pend { color: rgba(255,255,255,.3); }
-      .bk-eq--winner {
-        background: rgba(245,197,24,.08);
-        color: rgba(255,255,255,.95);
-        font-weight: 600;
-      }
-      .bk-flag { font-size: .9rem; flex-shrink: 0; }
-      .bk-nombre {
-        flex: 1;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-        font-size: .7rem;
-      }
-      .bk-slot { font-style: italic; font-size: .65rem; color: rgba(255,255,255,.3); }
-      .bk-score {
-        flex-shrink: 0;
-        font-family: 'Bebas Neue', monospace;
-        font-size: .85rem;
-        min-width: 14px;
-        text-align: center;
-        color: rgba(255,255,255,.55);
-      }
-      .bk-score--win { color: #f5c518; }
-      .bk-meta {
-        font-size: .6rem;
-        color: rgba(255,255,255,.2);
-        text-align: center;
-        padding: 2px 4px 3px;
-        border-top: 1px solid rgba(255,255,255,.05);
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-      }
+  // ── CSS ──────────────────────────────────────────────────────────────────
+  const css = `
+    .bk-tree {
+      display: flex;
+      flex-direction: row;
+      align-items: stretch;
+      overflow-x: auto;
+      padding: 8px 0 16px;
+      min-width: 900px;
+      /* Each col is equal width; they share the available space */
+    }
+    .bk-col {
+      display: flex;
+      flex-direction: column;
+      flex: 1 1 0;
+      min-width: 118px;
+      max-width: 160px;
+    }
+    .bk-col--centro {
+      flex: 1.3 1 0;
+      min-width: 140px;
+      max-width: 180px;
+    }
+    .bk-col-label {
+      font-family: 'Bebas Neue','DM Sans',sans-serif;
+      font-size: .68rem;
+      letter-spacing: .07em;
+      color: rgba(255,255,255,.32);
+      text-align: center;
+      padding: 0 2px 6px;
+      text-transform: uppercase;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      flex-shrink: 0;
+    }
+    .bk-col-label--3rd {
+      font-size: .6rem;
+      padding: 10px 2px 4px;
+      color: rgba(255,255,255,.22);
+      text-align: center;
+    }
 
-      /* ── Conectores horizontales entre rondas ── */
-      .bk-col:not(.bk-col--centro) .bk-slot-wrap::after,
-      .bk-col:not(.bk-col--centro) .bk-slot-wrap::before {
-        content: '';
-        position: absolute;
-        top: 50%;
-        width: 3px;
-        height: 1px;
-        background: rgba(255,255,255,.1);
-      }
+    /* col-body fills remaining height and distributes groups evenly */
+    .bk-col-body {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      justify-content: space-around;
+      padding: 0 3px;
+    }
+    .bk-col-body--centro {
+      justify-content: center;
+      gap: 0;
+    }
 
-      @media (max-width: 700px) {
-        .bk-nombre { font-size: .62rem; }
-        .bk-col { min-width: 100px; }
-        .bk-col--centro { min-width: 120px; }
-        .bk-eq { padding: 3px 4px; gap: 3px; }
-      }
-    </style>
+    /* A group is a pair (or single) of cards that feed one next-round match.
+       Within the group cards are evenly spaced; the group itself has a flex
+       fraction matching its size relative to the whole column. */
+    .bk-group {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-around;
+      flex: 1;
+      gap: 2px;
+    }
+    .bk-group--final { flex: 0 0 auto; justify-content: center; }
+    .bk-group--3rd   { flex: 0 0 auto; justify-content: center; }
+
+    /* slot-wrap: centres the card inside the group slot */
+    .bk-sw {
+      display: flex;
+      align-items: center;
+    }
+    .bk-sw--final .bk-card {
+      border-color: rgba(245,197,24,.55);
+      background: rgba(245,197,24,.07);
+      box-shadow: 0 0 14px rgba(245,197,24,.18);
+    }
+
+    /* Card */
+    .bk-card {
+      width: 100%;
+      background: rgba(255,255,255,.04);
+      border: 1px solid rgba(255,255,255,.1);
+      border-radius: 6px;
+      overflow: hidden;
+      transition: border-color .18s;
+    }
+    .bk-card:hover { border-color: rgba(255,255,255,.24); }
+    .bk-card--done { border-color: rgba(255,255,255,.16); }
+    .bk-card--vacio { opacity:.28; background:transparent; border-style:dashed; }
+
+    .bk-pid {
+      font-size: .58rem;
+      color: rgba(255,255,255,.18);
+      text-align: right;
+      padding: 1px 4px 0;
+      letter-spacing: .04em;
+      font-family: monospace;
+    }
+    .bk-eq {
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      padding: 3px 5px;
+      font-size: .68rem;
+      color: rgba(255,255,255,.72);
+      border-top: 1px solid rgba(255,255,255,.06);
+    }
+    .bk-eq:first-of-type { border-top: none; }
+    .bk-eq--pend  { color: rgba(255,255,255,.28); }
+    .bk-eq--winner {
+      background: rgba(245,197,24,.09);
+      color: rgba(255,255,255,.96);
+      font-weight: 600;
+    }
+    .bk-flag { font-size: .82rem; flex-shrink: 0; line-height: 1; }
+    .bk-nombre {
+      flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+      font-size: .66rem;
+    }
+    .bk-slot { font-style: italic; font-size: .6rem; color: rgba(255,255,255,.28); }
+    .bk-score {
+      flex-shrink: 0;
+      font-size: .8rem;
+      min-width: 13px;
+      text-align: center;
+      color: rgba(255,255,255,.5);
+      font-family: monospace;
+    }
+    .bk-score--win { color: #f5c518; font-weight: 700; }
+    .bk-meta {
+      font-size: .56rem;
+      color: rgba(255,255,255,.18);
+      text-align: center;
+      padding: 1px 3px 2px;
+      border-top: 1px solid rgba(255,255,255,.04);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+
+    @media (max-width: 720px) {
+      .bk-col { min-width: 88px; }
+      .bk-col--centro { min-width: 110px; }
+      .bk-eq { padding: 3px 3px; }
+      .bk-nombre { font-size: .58rem; }
+    }
+  `;
+
+  // ── Render ───────────────────────────────────────────────────────────────
+  wrap.innerHTML = `<style>${css}</style>
     <div class="bk-tree">
-      ${_col(ladoIzq.r16,  'Dieciseisavos')}
-      ${_col(ladoIzq.oct,  'Octavos')}
-      ${_col(ladoIzq.qtr,  'Cuartos')}
-      ${_col(ladoIzq.semi, 'Semifinal')}
+      ${_col(r16Izq,  'Dieciseisavos')}
+      ${_col(octIzq,  'Octavos')}
+      ${_col(qtrIzq,  'Cuartos')}
+      ${_col(semiIzq, 'Semifinal')}
       ${_colCentro()}
-      ${_col(ladoDer.semi, 'Semifinal',    'bk-col--der')}
-      ${_col(ladoDer.qtr,  'Cuartos',      'bk-col--der')}
-      ${_col(ladoDer.oct,  'Octavos',      'bk-col--der')}
-      ${_col(ladoDer.r16,  'Dieciseisavos','bk-col--der')}
+      ${_col(semiDer, 'Semifinal',    'bk-col--der')}
+      ${_col(qtrDer,  'Cuartos',      'bk-col--der')}
+      ${_col(octDer,  'Octavos',      'bk-col--der')}
+      ${_col(r16Der,  'Dieciseisavos','bk-col--der')}
     </div>`;
 }
 
