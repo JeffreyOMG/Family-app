@@ -5,6 +5,47 @@ from cloudinary_helper import subir_a_cloudinary
 
 perfil_bp = Blueprint("perfil", __name__)
 
+
+# ─── API: datos públicos de un usuario por @usuario ──────────────────────────
+@perfil_bp.route("/api/usuario/<string:nombre_usuario>")
+def api_usuario(nombre_usuario):
+    if "uid" not in session:
+        return jsonify({"ok": False, "error": "No autenticado"}), 401
+
+    con = get_db()
+    u = con.execute(
+        "SELECT id, nombre, usuario, rol, bio, foto, fecha FROM usuarios WHERE usuario=%s",
+        (nombre_usuario,)
+    ).fetchone()
+
+    if not u:
+        return jsonify({"ok": False, "error": "Usuario no encontrado"}), 404
+
+    uid = u["id"]
+    total_posts  = con.execute("SELECT COUNT(*) FROM publicaciones WHERE usuario_id=%s", (uid,)).fetchone()[0]
+    total_likes  = con.execute(
+        "SELECT COUNT(*) FROM likes l JOIN publicaciones p ON p.id=l.post_id WHERE p.usuario_id=%s", (uid,)
+    ).fetchone()[0]
+    total_puntos = con.execute(
+        "SELECT COALESCE(SUM(puntos),0) FROM pronosticos WHERE usuario_id=%s", (uid,)
+    ).fetchone()[0]
+
+    return jsonify({
+        "ok": True,
+        "usuario": {
+            "id":           uid,
+            "nombre":       u["nombre"],
+            "usuario":      u["usuario"],
+            "rol":          u["rol"],
+            "bio":          u["bio"] or "",
+            "foto":         u["foto"] or "",
+            "fecha":        str(u["fecha"]) if u["fecha"] else "",
+            "total_posts":  total_posts,
+            "total_likes":  total_likes,
+            "total_puntos": int(total_puntos),
+        }
+    })
+
 def _is_ajax():
     return request.headers.get("X-Requested-With") == "XMLHttpRequest"
 

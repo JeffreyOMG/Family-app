@@ -1,0 +1,525 @@
+{# ══════════════════════════════════════════════════════
+   VISTA DE PERFIL DE USUARIO — Family App
+   Se activa desde posts, comentarios, buscador, panel de usuarios
+   NO es modal · NO tiene entrada en sidebar/menú
+   El botón Volver regresa a la sección de origen
+══════════════════════════════════════════════════════ #}
+
+<section class="section" id="sec-ver-perfil">
+
+  <!-- HEADER ACCIONES -->
+  <div class="vp-topbar">
+    <button class="vp-back-btn" id="vp-back-btn" onclick="cerrarVerPerfil()">
+      <span class="material-symbols-outlined">arrow_back</span>
+      <span class="vp-back-label">Volver</span>
+    </button>
+  </div>
+
+  <!-- CONTENIDO DINÁMICO (rellenado por JS) -->
+  <div id="vp-contenido">
+
+    <!-- SKELETON LOADER -->
+    <div id="vp-skeleton">
+      <div class="vp-banner-skeleton skeleton-anim"></div>
+      <div class="vp-body-skeleton">
+        <div class="vp-avatar-skeleton skeleton-anim"></div>
+        <div class="vp-info-skeleton">
+          <div class="skel-line w60 skeleton-anim"></div>
+          <div class="skel-line w40 skeleton-anim"></div>
+          <div class="skel-line w80 skeleton-anim" style="margin-top:8px;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PERFIL REAL (oculto hasta cargar) -->
+    <div id="vp-perfil" style="display:none;">
+
+      <!-- BANNER -->
+      <div class="vp-banner" id="vp-banner"></div>
+
+      <!-- AVATAR + INFO PRINCIPAL -->
+      <div class="vp-header-card content-card">
+        <div class="vp-avatar-wrap">
+          <img id="vp-foto" class="vp-avatar-img" src="" alt="" style="display:none;">
+          <div id="vp-letra" class="user-avatar vp-avatar-letter"></div>
+        </div>
+        <div class="vp-info-wrap">
+          <div class="vp-nombre-row">
+            <h2 id="vp-nombre" class="vp-nombre"></h2>
+            <span id="vp-rol-badge" class="vp-rol-badge"></span>
+          </div>
+          <p id="vp-usuario" class="vp-usuario-text"></p>
+          <p id="vp-bio" class="vp-bio"></p>
+          <p id="vp-fecha" class="vp-fecha">
+            <span class="material-symbols-outlined">calendar_today</span>
+            <span id="vp-fecha-txt"></span>
+          </p>
+        </div>
+      </div>
+
+      <!-- ESTADÍSTICAS -->
+      <div id="vp-stats" class="vp-stats-grid"></div>
+
+    </div>
+
+    <!-- ERROR STATE -->
+    <div id="vp-error" style="display:none;" class="vp-error-state">
+      <span class="material-symbols-outlined">person_off</span>
+      <p>No se pudo cargar este perfil.</p>
+    </div>
+
+  </div>
+
+</section>
+
+<style>
+/* ── VER PERFIL — estilos completos ─────────────────── */
+
+/* Topbar con botón volver */
+.vp-topbar {
+  display: flex;
+  align-items: center;
+  margin-bottom: 0;
+  padding-bottom: 12px;
+}
+
+.vp-back-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px 8px 10px;
+  background: var(--card);
+  border: 1.5px solid var(--border);
+  border-radius: 40px;
+  cursor: pointer;
+  font-size: .88rem;
+  font-weight: 600;
+  font-family: inherit;
+  color: var(--text);
+  transition: background .15s, transform .1s, box-shadow .15s;
+}
+
+.vp-back-btn:hover {
+  background: var(--bg2);
+  box-shadow: 0 2px 8px rgba(0,0,0,.07);
+}
+
+.vp-back-btn:active { transform: scale(.97); }
+
+.vp-back-btn .material-symbols-outlined {
+  font-size: 20px;
+  color: var(--accent);
+}
+
+/* Banner */
+.vp-banner {
+  width: 100%;
+  height: 160px;
+  border-radius: var(--r2);
+  background: linear-gradient(135deg, var(--accent) 0%, #a855f7 60%, #3b82f6 100%);
+  margin-bottom: -50px;
+  position: relative;
+  overflow: hidden;
+}
+
+.vp-banner::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at 20% 50%, rgba(255,255,255,.15) 0%, transparent 60%),
+    radial-gradient(ellipse at 80% 20%, rgba(255,255,255,.12) 0%, transparent 50%);
+}
+
+.vp-banner::after {
+  content: '';
+  position: absolute;
+  bottom: -20px; left: -20px; right: -20px;
+  height: 80px;
+  background: inherit;
+  filter: blur(20px);
+  opacity: .3;
+}
+
+/* Header card */
+.vp-header-card {
+  padding: 60px 20px 20px !important;
+  position: relative;
+  margin-top: 0;
+}
+
+/* Avatar */
+.vp-avatar-wrap {
+  position: absolute;
+  top: -44px;
+  left: 20px;
+}
+
+.vp-avatar-img {
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 4px solid var(--card);
+  box-shadow: 0 4px 16px rgba(0,0,0,.12);
+  display: block;
+}
+
+.vp-avatar-letter {
+  width: 88px;
+  height: 88px;
+  font-size: 36px;
+  border-radius: 50%;
+  border: 4px solid var(--card);
+  box-shadow: 0 4px 16px rgba(0,0,0,.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Info */
+.vp-info-wrap { padding-top: 4px; }
+
+.vp-nombre-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 2px;
+}
+
+.vp-nombre {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0;
+}
+
+.vp-rol-badge {
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: .72rem;
+  font-weight: 700;
+  letter-spacing: .3px;
+}
+
+.vp-rol-badge.admin {
+  background: rgba(239,68,68,.12);
+  color: #ef4444;
+}
+
+.vp-rol-badge.miembro {
+  background: rgba(34,197,94,.12);
+  color: #16a34a;
+}
+
+.vp-rol-badge.invitado {
+  background: rgba(250,204,21,.15);
+  color: #b45309;
+}
+
+.vp-usuario-text {
+  font-size: .88rem;
+  color: var(--text2);
+  margin: 0 0 8px;
+}
+
+.vp-bio {
+  font-size: .9rem;
+  color: var(--text);
+  line-height: 1.5;
+  margin: 0 0 10px;
+  display: none;
+}
+
+.vp-bio.visible { display: block; }
+
+.vp-fecha {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: .8rem;
+  color: var(--text3);
+  margin: 0;
+}
+
+.vp-fecha .material-symbols-outlined { font-size: 15px; }
+
+/* Stats */
+.vp-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-top: 12px;
+  margin-bottom: 12px;
+}
+
+.vp-stat {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px 8px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.vp-stat .material-symbols-outlined {
+  font-size: 22px;
+  color: var(--accent);
+}
+
+.vp-stat strong {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.vp-stat span:last-child {
+  font-size: .7rem;
+  color: var(--text3);
+}
+
+/* Skeleton */
+.skeleton-anim {
+  background: linear-gradient(90deg, var(--card2) 25%, var(--border-soft) 50%, var(--card2) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s infinite;
+  border-radius: 8px;
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.vp-banner-skeleton {
+  width: 100%;
+  height: 160px;
+  border-radius: var(--r2);
+  margin-bottom: 16px;
+}
+
+.vp-body-skeleton {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  padding: 0 4px;
+}
+
+.vp-avatar-skeleton {
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.vp-info-skeleton {
+  flex: 1;
+  padding-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.skel-line {
+  height: 14px;
+  border-radius: 7px;
+}
+
+.w60 { width: 60%; }
+.w40 { width: 40%; }
+.w80 { width: 80%; }
+
+/* Error */
+.vp-error-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--text3);
+}
+
+.vp-error-state .material-symbols-outlined {
+  font-size: 48px;
+  display: block;
+  margin-bottom: 12px;
+  color: var(--border);
+}
+
+/* Dark mode */
+body.dark-mode .vp-back-btn { background: var(--card); border-color: var(--border); }
+body.dark-mode .vp-back-btn:hover { background: var(--card2); }
+body.dark-mode .vp-stat { background: var(--card); }
+body.dark-mode .vp-avatar-img,
+body.dark-mode .vp-avatar-letter { border-color: var(--bg); }
+
+/* Responsive */
+@media (max-width: 480px) {
+  .vp-banner { height: 120px; margin-bottom: -40px; }
+  .vp-header-card { padding: 50px 16px 16px !important; }
+  .vp-avatar-wrap { top: -38px; left: 16px; }
+  .vp-avatar-img, .vp-avatar-letter { width: 76px; height: 76px; font-size: 28px; }
+  .vp-nombre { font-size: 1.1rem; }
+  .vp-stats-grid { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .vp-stat { padding: 12px 6px; }
+  .vp-stat strong { font-size: .95rem; }
+}
+
+@media (max-width: 340px) {
+  .vp-stats-grid { grid-template-columns: repeat(2, 1fr); }
+}
+</style>
+
+<script>
+// ─── VER PERFIL DE USUARIO ───────────────────────────────────────────────────
+
+// Sección desde donde se abrió el perfil (para el botón Volver)
+let _vpOrigenSeccion = 'inicio';
+
+/**
+ * Abre la vista de perfil de un usuario.
+ * @param {string} nombreUsuario  — @usuario (sin @)
+ * @param {string} seccionOrigen  — sección actual desde donde se llama
+ */
+async function verPerfil(nombreUsuario, seccionOrigen) {
+  if (!nombreUsuario) return;
+
+  // Guardar origen para el botón Volver
+  _vpOrigenSeccion = seccionOrigen || localStorage.getItem('seccion') || 'inicio';
+
+  // Navegar a la sección
+  irSeccion('ver-perfil');
+
+  // Mostrar skeleton, ocultar perfil/error
+  const skeleton = document.getElementById('vp-skeleton');
+  const perfilEl = document.getElementById('vp-perfil');
+  const errorEl  = document.getElementById('vp-error');
+  if (skeleton) skeleton.style.display = '';
+  if (perfilEl) perfilEl.style.display = 'none';
+  if (errorEl)  errorEl.style.display  = 'none';
+
+  try {
+    const res  = await fetch(`/api/usuario/${encodeURIComponent(nombreUsuario)}`);
+    const data = await res.json();
+
+    if (!res.ok || !data.ok) throw new Error(data.error || 'Error');
+
+    _renderVerPerfil(data.usuario);
+
+  } catch (err) {
+    if (skeleton) skeleton.style.display = 'none';
+    if (errorEl)  errorEl.style.display  = '';
+  }
+}
+
+function _renderVerPerfil(u) {
+  const skeleton = document.getElementById('vp-skeleton');
+  const perfilEl = document.getElementById('vp-perfil');
+
+  // Banner con color basado en inicial del nombre
+  const bannerColors = [
+    ['#ff4d8d','#a855f7','#3b82f6'],
+    ['#f97316','#eab308','#22c55e'],
+    ['#06b6d4','#3b82f6','#8b5cf6'],
+    ['#ec4899','#f43f5e','#f97316'],
+    ['#10b981','#06b6d4','#3b82f6'],
+  ];
+  const idx = (u.nombre || 'A').charCodeAt(0) % bannerColors.length;
+  const [c1, c2, c3] = bannerColors[idx];
+  const banner = document.getElementById('vp-banner');
+  if (banner) banner.style.background = `linear-gradient(135deg, ${c1} 0%, ${c2} 55%, ${c3} 100%)`;
+
+  // Foto / letra
+  const fotoEl  = document.getElementById('vp-foto');
+  const letraEl = document.getElementById('vp-letra');
+  if (u.foto) {
+    fotoEl.src = u.foto;
+    fotoEl.style.display = '';
+    if (letraEl) letraEl.style.display = 'none';
+  } else {
+    if (fotoEl) fotoEl.style.display = 'none';
+    if (letraEl) {
+      letraEl.textContent = (u.nombre || 'U')[0].toUpperCase();
+      letraEl.style.display = '';
+    }
+  }
+
+  // Nombre
+  const nombreEl = document.getElementById('vp-nombre');
+  if (nombreEl) nombreEl.textContent = u.nombre || '';
+
+  // @usuario
+  const usuarioEl = document.getElementById('vp-usuario');
+  if (usuarioEl) usuarioEl.textContent = '@' + (u.usuario || '');
+
+  // Rol badge
+  const rolEl = document.getElementById('vp-rol-badge');
+  if (rolEl) {
+    const rolLabels = { admin: 'Administrador', miembro: 'Miembro', invitado: 'Invitado' };
+    rolEl.textContent = rolLabels[u.rol] || u.rol || '';
+    rolEl.className = 'vp-rol-badge ' + (u.rol || 'invitado');
+  }
+
+  // Bio
+  const bioEl = document.getElementById('vp-bio');
+  if (bioEl) {
+    if (u.bio && u.bio.trim()) {
+      bioEl.textContent = u.bio;
+      bioEl.classList.add('visible');
+    } else {
+      bioEl.classList.remove('visible');
+    }
+  }
+
+  // Fecha de registro
+  const fechaTxtEl = document.getElementById('vp-fecha-txt');
+  if (fechaTxtEl && u.fecha) {
+    const d = new Date(u.fecha);
+    const meses = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+    fechaTxtEl.textContent = `Se unió en ${meses[d.getMonth()]} ${d.getFullYear()}`;
+  }
+
+  // Stats
+  const statsEl = document.getElementById('vp-stats');
+  if (statsEl) {
+    const stats = [
+      { icon: 'forum',         val: u.total_posts  || 0, label: 'Posts'      },
+      { icon: 'favorite',      val: u.total_likes  || 0, label: 'Likes'      },
+      { icon: 'emoji_events',  val: u.total_puntos || 0, label: 'Pts Mundial' },
+    ];
+    statsEl.innerHTML = stats.map(s => `
+      <div class="vp-stat">
+        <span class="material-symbols-outlined">${s.icon}</span>
+        <strong>${s.val}</strong>
+        <span>${s.label}</span>
+      </div>
+    `).join('');
+  }
+
+  // Mostrar perfil, ocultar skeleton
+  if (skeleton) skeleton.style.display = 'none';
+  if (perfilEl) perfilEl.style.display = '';
+}
+
+function cerrarVerPerfil() {
+  irSeccion(_vpOrigenSeccion || 'inicio');
+}
+
+// ─── Listeners globales para clicks en avatares / nombres / @usuarios ────────
+// Se usa delegación de eventos para capturar también elementos añadidos dinámicamente
+
+document.addEventListener('click', function(e) {
+  // Buscar el trigger más cercano con data-ver-perfil
+  const trigger = e.target.closest('[data-ver-perfil]');
+  if (!trigger) return;
+
+  e.preventDefault();
+  e.stopPropagation();
+
+  const nombreUsuario = trigger.dataset.verPerfil;
+  const seccionActual = localStorage.getItem('seccion') || 'inicio';
+
+  verPerfil(nombreUsuario, seccionActual);
+});
+</script>

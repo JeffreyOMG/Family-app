@@ -81,7 +81,8 @@
 
           <div class="bus-group-items">
             {% for r in items %}
-            <div class="bus-result-item">
+            <div class="bus-result-item{% if r.tipo == 'Usuario' %} bus-result-usuario{% endif %}"
+              {% if r.tipo == 'Usuario' and r.get('usuario') %}data-ver-perfil="{{ r.usuario }}" title="Ver perfil de {{ r.titulo }}" style="cursor:pointer;"{% endif %}>
 
               <!-- Icono/Avatar -->
               {% if r.tipo == 'Usuario' %}

@@ -21,7 +21,7 @@ def buscar():
                 "SELECT nombre, usuario, rol, foto FROM usuarios WHERE nombre LIKE %s OR usuario LIKE %s",
                 (pat, pat)
             ).fetchall():
-                resultados.append({"titulo": u["nombre"], "descripcion": f"@{u['usuario']} · {u['rol']}", "tipo": "Usuario", "foto": u["foto"]})
+                resultados.append({"titulo": u["nombre"], "descripcion": f"@{u['usuario']} · {u['rol']}", "tipo": "Usuario", "foto": u["foto"], "usuario": u["usuario"]})
         if tipo in ("todo", "publicaciones"):
             for p in con.execute(
                 "SELECT p.texto, u.nombre, p.fecha FROM publicaciones p JOIN usuarios u ON u.id=p.usuario_id WHERE p.texto LIKE %s",

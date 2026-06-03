@@ -2,13 +2,13 @@
 <article class="post-card" id="post-{{ p.id }}">
   <div class="post-header">
     {% if p.foto %}
-      <img src="{{ p.foto }}" class="user-avatar-img post-av">
+      <img src="{{ p.foto }}" class="user-avatar-img post-av" data-ver-perfil="{{ p.usuario }}" title="Ver perfil de {{ p.nombre }}" style="cursor:pointer;">
     {% else %}
-      <div class="user-avatar post-av">{{ (p.nombre[0] if p.nombre else 'U')|upper }}</div>
+      <div class="user-avatar post-av" data-ver-perfil="{{ p.usuario }}" title="Ver perfil de {{ p.nombre }}" style="cursor:pointer;">{{ (p.nombre[0] if p.nombre else 'U')|upper }}</div>
     {% endif %}
     <div class="post-meta-block">
-      <span class="post-name">{{ p.nombre }}</span>
-      <span class="post-handle">@{{ p.usuario }} · {{ p.fecha[:10] }}{% if p.get('visibilidad','general')=='privada' %} <span class="post-badge-privado">🔒 Solo miembros</span>{% endif %}</span>
+      <span class="post-name" data-ver-perfil="{{ p.usuario }}" title="Ver perfil" style="cursor:pointer;">{{ p.nombre }}</span>
+      <span class="post-handle"><span data-ver-perfil="{{ p.usuario }}" style="cursor:pointer;">@{{ p.usuario }}</span> · {{ p.fecha[:10] }}{% if p.get('visibilidad','general')=='privada' %} <span class="post-badge-privado">🔒 Solo miembros</span>{% endif %}</span>
     </div>
     {% if p.usuario_id == usuario.id or usuario.rol == 'admin' %}
     <form method="POST" action="/eliminar_post/{{ p.id }}" class="post-delete-form">
@@ -73,12 +73,12 @@
     {% for c in comentarios_por_post.get(p.id, []) %}
     <div class="comment-row">
       {% if c.foto %}
-        <img src="{{ c.foto }}" class="user-avatar-img" style="width:28px;height:28px;flex-shrink:0;">
+        <img src="{{ c.foto }}" class="user-avatar-img" style="width:28px;height:28px;flex-shrink:0;" data-ver-perfil="{{ c.usuario }}" title="Ver perfil" style="cursor:pointer;">
       {% else %}
-        <div class="user-avatar" style="width:28px;height:28px;font-size:11px;flex-shrink:0;">{{ c.nombre[0]|upper }}</div>
+        <div class="user-avatar" style="width:28px;height:28px;font-size:11px;flex-shrink:0;cursor:pointer;" data-ver-perfil="{{ c.usuario }}">{{ c.nombre[0]|upper }}</div>
       {% endif %}
       <div class="comment-bubble">
-        <strong class="comment-author">{{ c.nombre }}</strong>
+        <strong class="comment-author" data-ver-perfil="{{ c.usuario }}" style="cursor:pointer;">{{ c.nombre }}</strong>
         <span class="comment-text">{{ c.texto }}</span>
         <span class="comment-date">{{ c.fecha[:10] }}</span>
       </div>
@@ -242,7 +242,7 @@
                 Invitados <span class="usuarios-count">{{ invitados_lista|length }}</span>
               </div>
               {% endif %}
-              <div class="miembro-item">
+              <div class="miembro-item" data-ver-perfil="{{ m.usuario }}" title="Ver perfil de {{ m.nombre }}">
                 {% if m.foto %}
                   <img src="{{ m.foto }}" class="user-avatar-img miembro-av">
                 {% else %}
@@ -293,7 +293,7 @@
             </div>
             <div class="umu-lista">
               {% for m in miembros_reales %}
-              <div class="umu-fila" data-nombre="{{ m.nombre|lower }}" data-usuario="{{ m.usuario|lower }}">
+              <div class="umu-fila" data-nombre="{{ m.nombre|lower }}" data-usuario="{{ m.usuario|lower }}" data-ver-perfil="{{ m.usuario }}" title="Ver perfil de {{ m.nombre }}">
                 {% if m.foto %}
                   <img src="{{ m.foto }}" class="user-avatar-img miembro-av">
                 {% else %}
@@ -321,7 +321,7 @@
             </div>
             <div class="umu-lista">
               {% for m in invitados_lista %}
-              <div class="umu-fila" data-nombre="{{ m.nombre|lower }}" data-usuario="{{ m.usuario|lower }}">
+              <div class="umu-fila" data-nombre="{{ m.nombre|lower }}" data-usuario="{{ m.usuario|lower }}" data-ver-perfil="{{ m.usuario }}" title="Ver perfil de {{ m.nombre }}">
                 {% if m.foto %}
                   <img src="{{ m.foto }}" class="user-avatar-img miembro-av">
                 {% else %}
