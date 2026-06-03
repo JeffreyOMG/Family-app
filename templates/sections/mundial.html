@@ -1564,7 +1564,7 @@ function _renderBracket(bracket, eliPartidos) {
       color: rgba(255,255,255,.96);
       font-weight: 600;
     }
-    .bk-flag { font-size: 1.1rem; flex-shrink: 0; line-height: 1; }
+    .bk-flag { font-size: .82rem; flex-shrink: 0; line-height: 1; }
     .bk-nombre {
       flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
       font-size: .66rem;
@@ -1594,62 +1594,20 @@ function _renderBracket(bracket, eliPartidos) {
       .bk-eq { padding: 3px 3px; }
       .bk-nombre { font-size: .58rem; }
     }
-    @media (max-width: 480px) {
-      .bk-tree-wrap {
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
-        scrollbar-width: thin;
-        scrollbar-color: rgba(255,255,255,.18) transparent;
-        border-radius: 8px;
-        position: relative;
-      }
-      .bk-tree-wrap::-webkit-scrollbar { height: 4px; }
-      .bk-tree-wrap::-webkit-scrollbar-track { background: transparent; }
-      .bk-tree-wrap::-webkit-scrollbar-thumb { background: rgba(255,255,255,.18); border-radius: 4px; }
-      .bk-tree {
-        min-width: 820px;
-        padding: 6px 4px 12px;
-      }
-      .bk-col { min-width: 80px; max-width: 120px; }
-      .bk-col--centro { min-width: 96px; max-width: 140px; }
-      .bk-eq { padding: 2px 3px; gap: 2px; }
-      .bk-nombre { font-size: .54rem; }
-      .bk-flag { font-size: .95rem !important; }
-      .bk-score { font-size: .68rem; }
-      .bk-meta { font-size: .5rem; }
-      .bk-scroll-hint {
-        display: flex;
-        align-items: center;
-        gap: 4px;
-        font-size: .68rem;
-        color: rgba(255,255,255,.35);
-        padding: 4px 2px 8px;
-        justify-content: center;
-        letter-spacing: .03em;
-      }
-    }
-    @media (min-width: 481px) {
-      .bk-scroll-hint { display: none; }
-    }
+  `;
 
   // ── Render ───────────────────────────────────────────────────────────────
   wrap.innerHTML = `<style>${css}</style>
-    <div class="bk-scroll-hint">
-      <span class="material-symbols-outlined" style="font-size:.9rem;">swipe</span>
-      Desliza para ver el bracket completo
-    </div>
-    <div class="bk-tree-wrap">
-      <div class="bk-tree">
-        ${_col(r16Izq,  'Dieciseisavos')}
-        ${_col(octIzq,  'Octavos')}
-        ${_col(qtrIzq,  'Cuartos')}
-        ${_col(semiIzq, 'Semifinal')}
-        ${_colCentro()}
-        ${_col(semiDer, 'Semifinal',    'bk-col--der')}
-        ${_col(qtrDer,  'Cuartos',      'bk-col--der')}
-        ${_col(octDer,  'Octavos',      'bk-col--der')}
-        ${_col(r16Der,  'Dieciseisavos','bk-col--der')}
-      </div>
+    <div class="bk-tree">
+      ${_col(r16Izq,  'Dieciseisavos')}
+      ${_col(octIzq,  'Octavos')}
+      ${_col(qtrIzq,  'Cuartos')}
+      ${_col(semiIzq, 'Semifinal')}
+      ${_colCentro()}
+      ${_col(semiDer, 'Semifinal',    'bk-col--der')}
+      ${_col(qtrDer,  'Cuartos',      'bk-col--der')}
+      ${_col(octDer,  'Octavos',      'bk-col--der')}
+      ${_col(r16Der,  'Dieciseisavos','bk-col--der')}
     </div>`;
 }
 
