@@ -693,6 +693,26 @@ body.dark-mode .vp-stat { background: var(--card); }
 body.dark-mode .vp-avatar-img,
 body.dark-mode .vp-avatar-letter { border-color: var(--bg); }
 
+/* Botón Seguir – correcciones dark mode */
+body.dark-mode .vp-follow-btn {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+  box-shadow: 0 2px 14px color-mix(in srgb, var(--accent) 40%, transparent);
+}
+body.dark-mode .vp-follow-btn:hover {
+  background: color-mix(in srgb, var(--accent) 80%, #fff);
+  box-shadow: 0 4px 20px color-mix(in srgb, var(--accent) 55%, transparent);
+}
+body.dark-mode .vp-follow-btn.siguiendo {
+  background: color-mix(in srgb, var(--accent) 15%, transparent);
+  color: var(--accent);
+  border-color: var(--accent);
+}
+body.dark-mode .vp-follow-btn.siguiendo:hover {
+  background: color-mix(in srgb, var(--accent) 25%, transparent);
+}
+
 /* Responsive */
 @media (max-width: 480px) {
   .vp-banner { height: 120px; margin-bottom: -40px; }
