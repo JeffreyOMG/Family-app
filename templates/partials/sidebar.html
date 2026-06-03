@@ -51,11 +51,8 @@
 
   <div class="sidebar-footer">
     <div class="user-info">
-      {% if usuario.foto %}
-        <img src="{{ usuario.foto }}" class="user-avatar-img" alt="foto">
-      {% else %}
-        <div class="user-avatar">{{ usuario.nombre[0]|upper }}</div>
-      {% endif %}
+      <img src="{{ usuario.foto or '' }}" class="user-avatar-img sidebar-av-img" alt="foto" style="{{ '' if usuario.foto else 'display:none;' }}">
+      <div class="user-avatar sidebar-av-letter" style="{{ 'display:none;' if usuario.foto else '' }}">{{ usuario.nombre[0]|upper }}</div>
       <div class="user-details menu-text">
         <div class="user-name">{{ usuario.nombre.split()[0] }}</div>
         {# ── Badge de rol con color ───────────────────────────────────────── #}

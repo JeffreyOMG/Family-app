@@ -369,17 +369,19 @@ function _postFormSuccess(form, data) {
   // Perfil / ajustes / contraseña: solo toast, no recargar
   if (action === '/actualizar_perfil') {
     if (data.foto) {
-      // Actualizar TODOS los avatares de la página
-      $$('.user-avatar-img').forEach(img => img.src = data.foto);
+      // Actualizar TODOS los avatares (img y letter-divs)
+      document.querySelectorAll('img.user-avatar-img').forEach(img => { img.src = data.foto; img.style.display = ''; });
+      document.querySelectorAll('.sidebar-av-letter, .navbar-av-letter, #pf-avatar-letter').forEach(el => el.style.display = 'none');
+      document.querySelectorAll('.sidebar-av-img, .navbar-av-img').forEach(img => { img.src = data.foto; img.style.display = ''; });
       const prev = document.getElementById('preview-foto-perfil');
-      if (prev && prev.tagName === 'IMG') prev.src = data.foto;
+      if (prev) { prev.src = data.foto; prev.style.display = ''; }
     }
     if (data.nombre) {
       $$('.user-display-name').forEach(el => el.textContent = data.nombre);
-      // Actualizar nombre en el hero del perfil
       const heroNombre = document.getElementById('pf-hero-nombre');
       if (heroNombre) heroNombre.textContent = data.nombre;
     }
+    mostrarToast('✅ Perfil actualizado');
     return;
   }
 

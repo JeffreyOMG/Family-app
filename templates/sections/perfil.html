@@ -3,11 +3,8 @@
   <!-- CABECERA PERFIL -->
   <div class="content-card pf-hero">
     <div class="pf-avatar-wrap">
-      {% if usuario.foto %}
-        <img src="{{ usuario.foto }}" id="preview-foto-perfil" class="pf-avatar-img">
-      {% else %}
-        <div class="user-avatar pf-avatar-letter" id="preview-foto-perfil">{{ usuario.nombre[0]|upper }}</div>
-      {% endif %}
+      <img src="{{ usuario.foto or '' }}" id="preview-foto-perfil" class="pf-avatar-img user-avatar-img" style="{{ '' if usuario.foto else 'display:none;' }}">
+      <div class="user-avatar pf-avatar-letter" id="pf-avatar-letter" style="{{ 'display:none;' if usuario.foto else '' }}">{{ usuario.nombre[0]|upper }}</div>
       <label class="pf-camera-btn" id="pf-camera-label" title="Cambiar foto">
         <span class="material-symbols-outlined" id="pf-camera-icon">photo_camera</span>
         <input type="file" accept="image/*" id="pf-foto-direct" style="display:none;" onchange="autoGuardarFoto(this)">
@@ -306,57 +303,62 @@ body.dark-mode .pf-hero { background: var(--card); }
 </style>
 
 <script>
-// Auto-guarda la foto AL SELECCIONARLA, sin necesidad de presionar "Guardar"
+// ─── Actualiza TODOS los avatares de la página con una URL de foto ───────────
+function _aplicarFotoGlobal(fotoUrl) {
+  // 1. Imágenes que ya existen: actualizar src
+  document.querySelectorAll('img.user-avatar-img').forEach(img => {
+    img.src = fotoUrl;
+    img.style.display = '';
+  });
+  // 2. Letter-divs paralelos: ocultarlos (sidebar, navbar, perfil hero)
+  document.querySelectorAll(
+    '.sidebar-av-letter, .navbar-av-letter, #pf-avatar-letter'
+  ).forEach(el => el.style.display = 'none');
+  // 3. Asegurarse de que los img paralelos estén visibles
+  document.querySelectorAll(
+    '.sidebar-av-img, .navbar-av-img'
+  ).forEach(img => { img.src = fotoUrl; img.style.display = ''; });
+  // 4. Hero del perfil
+  const prev = document.getElementById('preview-foto-perfil');
+  if (prev) { prev.src = fotoUrl; prev.style.display = ''; }
+}
+
+// ─── Auto-guarda la foto AL SELECCIONARLA ───────────────────────────────────
 async function autoGuardarFoto(input) {
   const file = input.files[0];
   if (!file) return;
 
-  // 1. Mostrar preview local inmediato
-  const url = URL.createObjectURL(file);
-  const prev = document.getElementById('preview-foto-perfil');
-  let imgEl;
-  if (prev && prev.tagName === 'IMG') {
-    prev.src = url;
-    imgEl = prev;
-  } else {
-    imgEl = document.createElement('img');
-    imgEl.src = url;
-    imgEl.id = 'preview-foto-perfil';
-    imgEl.className = 'pf-avatar-img';
-    if (prev) prev.replaceWith(imgEl);
-  }
+  // Preview local inmediato
+  const blobUrl = URL.createObjectURL(file);
+  _aplicarFotoGlobal(blobUrl);
 
-  // 2. Mostrar spinner en cámara
-  const icon = document.getElementById('pf-camera-icon');
+  // Spinner en botón cámara
+  const icon  = document.getElementById('pf-camera-icon');
   const label = document.getElementById('pf-camera-label');
-  if (icon) { icon.textContent = 'hourglass_top'; icon.style.animation = 'spin 1s linear infinite'; }
+  if (icon)  { icon.textContent = 'hourglass_top'; icon.style.animation = 'spin 1s linear infinite'; }
   if (label) label.style.pointerEvents = 'none';
 
-  // 3. Construir FormData solo con la foto + datos actuales del form
+  // FormData: foto + campos actuales del form para no perder datos
   const formPerfil = document.getElementById('form-perfil');
   const fd = new FormData();
   fd.append('foto_perfil', file);
-  // Incluir nombre/gmail/bio para no perder esos campos
   if (formPerfil) {
-    const nombre = formPerfil.querySelector('[name="nombre"]');
-    const gmail  = formPerfil.querySelector('[name="gmail"]');
-    const bio    = formPerfil.querySelector('[name="bio"]');
-    if (nombre) fd.append('nombre', nombre.value);
-    if (gmail)  fd.append('gmail', gmail.value);
-    if (bio)    fd.append('bio', bio.value);
+    ['nombre','gmail','bio'].forEach(name => {
+      const el = formPerfil.querySelector('[name="' + name + '"]');
+      if (el) fd.append(name, el.value);
+    });
   }
 
   try {
-    const res = await fetch('/actualizar_perfil', {
+    const res  = await fetch('/actualizar_perfil', {
       method: 'POST',
       headers: { 'X-Requested-With': 'XMLHttpRequest' },
       body: fd
     });
     const data = await res.json().catch(() => ({}));
     if (res.ok && data.ok !== false) {
-      // Actualizar TODOS los avatares de la página
-      const fotoFinal = data.foto || url;
-      document.querySelectorAll('.user-avatar-img').forEach(img => img.src = fotoFinal);
+      // Reemplazar blob URL con la URL definitiva de Cloudinary
+      if (data.foto) _aplicarFotoGlobal(data.foto);
       mostrarToast('📸 Foto actualizada');
     } else {
       mostrarToast('❌ ' + (data.error || 'Error al guardar foto'), 'error');
@@ -365,10 +367,9 @@ async function autoGuardarFoto(input) {
     mostrarToast('❌ Error de conexión', 'error');
   }
 
-  // 4. Restaurar icono cámara
-  if (icon) { icon.textContent = 'photo_camera'; icon.style.animation = ''; }
+  // Restaurar icono cámara
+  if (icon)  { icon.textContent = 'photo_camera'; icon.style.animation = ''; }
   if (label) label.style.pointerEvents = '';
-  // Limpiar input para permitir seleccionar la misma foto de nuevo
-  input.value = '';
+  input.value = ''; // permite volver a seleccionar la misma imagen
 }
 </script>

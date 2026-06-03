@@ -10,10 +10,7 @@
       <span class="material-symbols-outlined">search</span>
     </button>
     <span class="navbar-date">{{ ahora }}</span>
-    {% if usuario.foto %}
-      <img src="{{ usuario.foto }}" class="user-avatar-img" style="cursor:pointer" onclick="irSeccion('perfil')" alt="perfil">
-    {% else %}
-      <div class="user-avatar" style="cursor:pointer" onclick="irSeccion('perfil')">{{ usuario.nombre[0]|upper }}</div>
-    {% endif %}
+      <img src="{{ usuario.foto or '' }}" class="user-avatar-img navbar-av-img" style="cursor:pointer;{{ '' if usuario.foto else 'display:none;' }}" onclick="irSeccion('perfil')" alt="perfil">
+      <div class="user-avatar navbar-av-letter" style="cursor:pointer;{{ 'display:none;' if usuario.foto else '' }}" onclick="irSeccion('perfil')">{{ usuario.nombre[0]|upper }}</div>
   </div>
 </nav>
