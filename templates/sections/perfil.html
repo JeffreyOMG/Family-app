@@ -324,6 +324,28 @@ function _aplicarFotoGlobal(fotoUrl) {
 }
 
 // ─── Auto-guarda la foto AL SELECCIONARLA ───────────────────────────────────
+// Comprime imagen a max 800px / JPEG 0.82 antes de subir
+function _comprimirImagen(file, maxPx = 800, quality = 0.82) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    const blobUrl = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(blobUrl);
+      let { width, height } = img;
+      if (width > maxPx || height > maxPx) {
+        if (width > height) { height = Math.round(height * maxPx / width); width = maxPx; }
+        else                { width  = Math.round(width  * maxPx / height); height = maxPx; }
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = width; canvas.height = height;
+      canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+      canvas.toBlob(blob => resolve(blob || file), 'image/jpeg', quality);
+    };
+    img.onerror = () => { URL.revokeObjectURL(blobUrl); resolve(file); };
+    img.src = blobUrl;
+  });
+}
+
 async function autoGuardarFoto(input) {
   const file = input.files[0];
   if (!file) return;
@@ -338,10 +360,13 @@ async function autoGuardarFoto(input) {
   if (icon)  { icon.textContent = 'hourglass_top'; icon.style.animation = 'spin 1s linear infinite'; }
   if (label) label.style.pointerEvents = 'none';
 
-  // FormData: foto + campos actuales del form para no perder datos
+  // Comprimir antes de subir (fotos de iPhone pueden pesar 15-20MB)
+  const compressed = await _comprimirImagen(file);
+
+  // FormData: foto comprimida + campos actuales del form para no perder datos
   const formPerfil = document.getElementById('form-perfil');
   const fd = new FormData();
-  fd.append('foto_perfil', file);
+  fd.append('foto_perfil', compressed, 'perfil.jpg');
   if (formPerfil) {
     ['nombre','gmail','bio'].forEach(name => {
       const el = formPerfil.querySelector('[name="' + name + '"]');
