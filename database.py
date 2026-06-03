@@ -162,7 +162,10 @@ _TABLES = [
         usuario TEXT UNIQUE NOT NULL, password TEXT NOT NULL,
         rol TEXT DEFAULT 'invitado', gmail TEXT DEFAULT '',
         bio TEXT DEFAULT '', foto TEXT DEFAULT '',
+        es_nuevo BOOLEAN DEFAULT TRUE,
         fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""",
+    # Migración segura: añade la columna si la tabla ya existía sin ella
+    """ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS es_nuevo BOOLEAN DEFAULT TRUE""",
     """CREATE TABLE IF NOT EXISTS publicaciones (
         id SERIAL PRIMARY KEY, usuario_id INTEGER NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
         texto TEXT DEFAULT '', media TEXT DEFAULT '', media_tipo TEXT DEFAULT '',
@@ -269,13 +272,6 @@ def init_db():
             pg.run(sql)
         except Exception as e:
             print(f"Table warning: {e}")
-
-    # Migración: agregar columna visibilidad si no existe
-    try:
-        pg.run("ALTER TABLE publicaciones ADD COLUMN visibilidad TEXT DEFAULT 'general'")
-        pg.run("COMMIT")
-    except Exception:
-        pass  # Ya existe
 
     admin_hash = generate_password_hash("admin1234")
     try:

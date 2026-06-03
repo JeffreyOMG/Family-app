@@ -386,19 +386,11 @@ def api_eliminacion_datos():
     mejores_terceros   = _get_mejores_terceros_guardados(con)
     terceros_auto      = _calcular_mejores_terceros_auto(con)
 
-    # Lista plana de todos los equipos del mundial para override manual
-    todos_equipos = []
-    for letra, equipos in GRUPOS_MUNDIAL.items():
-        for nombre, codigo in equipos:
-            todos_equipos.append({"nombre": nombre, "codigo": codigo, "grupo": letra})
-    todos_equipos.sort(key=lambda x: x["nombre"])
-
     return jsonify({
         "partidos": partidos,
         "terceros_por_grupo": terceros_por_grupo,
         "mejores_terceros": mejores_terceros,
         "terceros_auto": terceros_auto,
-        "todos_equipos": todos_equipos,
     })
 
 
@@ -474,55 +466,7 @@ def _auto_propagar_ganadores(con):
     En eliminatorias, si hay empate en tiempo reglamentario el admin debería
     registrar el resultado final (incluyendo penales). Por eso si goles_local==goles_visit
     NO propagamos — el admin debe editar para reflejar el resultado real (penales).
-
-    También refresca fijos y terceros automáticos antes de propagar,
-    para que los dieciseisavos con terceros queden completos.
     """
-    # 1) Reasignar slots fijos (primeros/segundos de grupo) a dieciseisavos
-    _auto_asignar_fijos(con)
-
-    # 2) Auto-asignar mejores terceros cuando todos los grupos están completos
-    #    (sin borrar manual_override existentes)
-    try:
-        from mundial_bracket import DIECISEISAVOS, CRUCES_CON_TERCERO
-        auto = _calcular_mejores_terceros_auto(con)
-        top8 = auto[:8]
-        if len(top8) == 8:
-            cruces_tercero = [p["id"] for p in DIECISEISAVOS if not p["fijo"]]
-            overrides = set()
-            try:
-                rows_ov = con.execute(
-                    "SELECT partido_id FROM mejores_terceros WHERE manual_override=TRUE"
-                ).fetchall()
-                overrides = {r["partido_id"] for r in rows_ov}
-            except Exception:
-                pass
-            for i, pid in enumerate(cruces_tercero):
-                if pid in overrides:
-                    continue
-                if i >= len(top8):
-                    break
-                t = top8[i]
-                con.execute("""
-                    INSERT INTO mejores_terceros(partido_id, nombre, codigo, grupo_origen, manual_override)
-                    VALUES(%s, %s, %s, %s, FALSE)
-                    ON CONFLICT(partido_id) DO UPDATE SET
-                        nombre=excluded.nombre,
-                        codigo=excluded.codigo,
-                        grupo_origen=excluded.grupo_origen,
-                        manual_override=FALSE
-                """, (pid, t["nombre"], t["codigo"], t["grupo"]))
-                partido = con.execute(
-                    "SELECT bloqueado FROM partidos_eliminacion WHERE id=%s", (pid,)
-                ).fetchone()
-                if partido and not partido["bloqueado"]:
-                    con.execute("""
-                        UPDATE partidos_eliminacion SET eq_visit=%s, cod_visit=%s WHERE id=%s
-                    """, (t["nombre"], t["codigo"], pid))
-            con.commit()
-    except Exception:
-        pass
-
     partidos = [dict(p) for p in con.execute("""
         SELECT * FROM partidos_eliminacion ORDER BY id
     """).fetchall()]
@@ -932,70 +876,6 @@ def admin_eli_equipo():
     con.commit()
     if _is_ajax():
         return jsonify({"ok": True, "codigo": codigo})
-    return _back()
-
-
-@mundial_bp.route("/admin_asignar_slot", methods=["POST"])
-def admin_asignar_slot():
-    """
-    Permite al admin asignar CUALQUIER equipo a CUALQUIER slot (local o visitante)
-    de CUALQUIER partido de eliminación, incluso si el slot tiene un valor G{id} o P{id}.
-    Esto sirve como override de emergencia cuando la propagación automática falla.
-    """
-    if session.get("rol") != "admin":
-        return jsonify({"ok": False, "msg": "Sin permiso"}), 403
-    con = get_db()
-    _ensure_eliminacion_table(con)
-
-    pid    = int(request.form.get("partido_id", 0))
-    lado   = request.form.get("lado", "")           # "local" o "visit"
-    nombre = request.form.get("nombre", "").strip()
-
-    if not pid or not lado or not nombre:
-        return jsonify({"ok": False, "msg": "Datos incompletos"}), 400
-
-    # Buscar código de país
-    codigo = "xx"
-    for equipos in GRUPOS_MUNDIAL.values():
-        for n, c in equipos:
-            if n == nombre:
-                codigo = c
-                break
-
-    if lado == "local":
-        con.execute(
-            "UPDATE partidos_eliminacion SET eq_local=%s, cod_local=%s WHERE id=%s",
-            (nombre, codigo, pid)
-        )
-    elif lado == "visit":
-        con.execute(
-            "UPDATE partidos_eliminacion SET eq_visit=%s, cod_visit=%s WHERE id=%s",
-            (nombre, codigo, pid)
-        )
-        # Si este partido es un cruce con tercero, guardar como manual_override
-        from mundial_bracket import CRUCES_CON_TERCERO
-        if pid in CRUCES_CON_TERCERO:
-            grupo_origen = ""
-            for letra, equipos in GRUPOS_MUNDIAL.items():
-                for n, c in equipos:
-                    if n == nombre:
-                        grupo_origen = letra
-                        break
-            con.execute("""
-                INSERT INTO mejores_terceros(partido_id, nombre, codigo, grupo_origen, manual_override)
-                VALUES(%s, %s, %s, %s, TRUE)
-                ON CONFLICT(partido_id) DO UPDATE SET
-                    nombre=excluded.nombre,
-                    codigo=excluded.codigo,
-                    grupo_origen=excluded.grupo_origen,
-                    manual_override=TRUE
-            """, (pid, nombre, codigo, grupo_origen))
-    else:
-        return jsonify({"ok": False, "msg": "lado inválido"}), 400
-
-    con.commit()
-    if _is_ajax():
-        return jsonify({"ok": True, "codigo": codigo, "nombre": nombre})
     return _back()
 
 

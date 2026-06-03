@@ -75,31 +75,29 @@ def get_ctx(uid, con, extra=None):
     usuario = dict(usuario)
 
     publicaciones = [dict(p, liked=bool(p["liked"]), bookmarked=bool(p["bookmarked"])) for p in con.execute("""
-        SELECT p.id, p.texto, p.media, p.media_tipo, p.visibilidad, p.fecha,
+        SELECT p.id, p.texto, p.media, p.media_tipo, p.fecha,
                u.nombre, u.usuario, u.foto, u.id AS usuario_id,
                EXISTS(SELECT 1 FROM likes l WHERE l.usuario_id=%s AND l.post_id=p.id) AS liked,
                (SELECT COUNT(*) FROM likes l2 WHERE l2.post_id=p.id) AS total_likes,
                (SELECT COUNT(*) FROM reposts r WHERE r.post_id=p.id) AS total_reposts,
                EXISTS(SELECT 1 FROM bookmarks b WHERE b.usuario_id=%s AND b.post_id=p.id) AS bookmarked
         FROM publicaciones p JOIN usuarios u ON u.id=p.usuario_id
-        WHERE (COALESCE(p.visibilidad,'general')='general' OR %s IN ('miembro','admin'))
         ORDER BY p.fecha DESC
-    """, (uid, uid, usuario["rol"])).fetchall()]
+    """, (uid, uid)).fetchall()]
 
     tendencias = [dict(p, liked=bool(p["liked"]), bookmarked=bool(p["bookmarked"])) for p in con.execute("""
-        SELECT p.id, p.texto, p.media, p.media_tipo, p.visibilidad, p.fecha,
+        SELECT p.id, p.texto, p.media, p.media_tipo, p.fecha,
                u.nombre, u.usuario, u.foto, u.id AS usuario_id,
                EXISTS(SELECT 1 FROM likes l WHERE l.usuario_id=%s AND l.post_id=p.id) AS liked,
                (SELECT COUNT(*) FROM likes l2 WHERE l2.post_id=p.id) AS total_likes,
                (SELECT COUNT(*) FROM reposts r WHERE r.post_id=p.id) AS total_reposts,
                EXISTS(SELECT 1 FROM bookmarks b WHERE b.usuario_id=%s AND b.post_id=p.id) AS bookmarked
         FROM publicaciones p JOIN usuarios u ON u.id=p.usuario_id
-        WHERE (COALESCE(p.visibilidad,'general')='general' OR %s IN ('miembro','admin'))
         ORDER BY total_likes DESC, p.fecha DESC
-    """, (uid, uid, usuario["rol"])).fetchall()]
+    """, (uid, uid)).fetchall()]
 
     guardados = [dict(p, liked=bool(p["liked"]), bookmarked=True) for p in con.execute("""
-        SELECT p.id, p.texto, p.media, p.media_tipo, p.visibilidad, p.fecha,
+        SELECT p.id, p.texto, p.media, p.media_tipo, p.fecha,
                u.nombre, u.usuario, u.foto, u.id AS usuario_id,
                EXISTS(SELECT 1 FROM likes l WHERE l.usuario_id=%s AND l.post_id=p.id) AS liked,
                (SELECT COUNT(*) FROM likes l2 WHERE l2.post_id=p.id) AS total_likes,
@@ -111,9 +109,8 @@ def get_ctx(uid, con, extra=None):
             UNION
             SELECT post_id FROM reposts WHERE usuario_id=%s
         )
-        AND (COALESCE(p.visibilidad,'general')='general' OR %s IN ('miembro','admin'))
         ORDER BY p.fecha DESC
-    """, (uid, uid, uid, uid, usuario["rol"])).fetchall()]
+    """, (uid, uid, uid)).fetchall()]
 
     comentarios_rows = con.execute("""
         SELECT c.id, c.post_id, c.texto, c.parent_id, c.fecha, u.nombre, u.foto

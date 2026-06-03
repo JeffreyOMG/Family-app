@@ -81,14 +81,65 @@ def _crear_usuario(nombre, usu, gmail, pwd, rol):
     try:
         con = get_db()
         con.execute(
-            "INSERT INTO usuarios(nombre, usuario, password, gmail, rol) "
-            "VALUES(%s, %s, %s, %s, %s) ON CONFLICT(usuario) DO NOTHING",
+            "INSERT INTO usuarios(nombre, usuario, password, gmail, rol, es_nuevo) "
+            "VALUES(%s, %s, %s, %s, %s, TRUE) ON CONFLICT(usuario) DO NOTHING",
             (nombre, usu, generate_password_hash(pwd), gmail, rol)
         )
         con.commit()
+
+        # Recuperar el nuevo usuario para publicar bienvenida
+        nuevo = con.execute(
+            "SELECT id FROM usuarios WHERE usuario=%s", (usu,)
+        ).fetchone()
+        if nuevo:
+            _post_bienvenida(nombre, nuevo["id"], con)
+
         return ""
     except IntegrityError:
         return "El usuario ya existe"
+
+
+def _post_bienvenida(nombre, nuevo_uid, con):
+    """
+    Publica un post automático de bienvenida en nombre del sistema.
+    Usa el usuario admin (id=1) o el primer admin disponible como autor.
+    Se ejecuta solo una vez al registrarse.
+    """
+    import random
+
+    # Buscar al admin para publicar como él
+    admin = con.execute(
+        "SELECT id FROM usuarios WHERE rol='admin' ORDER BY id LIMIT 1"
+    ).fetchone()
+    if not admin:
+        return  # Si no hay admin todavía, no publicamos
+
+    admin_id = admin["id"]
+
+    saludos = [
+        f"🎉 ¡Bienvenido a la familia, {nombre}! 🏡\n\nEstamos muy felices de que hayas llegado. Este es tu espacio para compartir momentos, conectar con los que más quieres y ser parte de algo especial. ¡Que disfrutes mucho! 💛✨",
+        f"👋 ¡Hola, {nombre}! ¡Ya eres parte de nuestra familia! 🎊\n\nQué alegría tenerte aquí. Este es un lugar lleno de amor, risas y recuerdos. ¡Bienvenido al grupo! 🤝❤️",
+        f"🌟 ¡{nombre} acaba de unirse a la familia! 🥳\n\nCuenta con todos nosotros — este es tu hogar digital. ¡Bienvenido con todo el amor del mundo! 💙🎉",
+        f"🫶 ¡Ya somos uno más! ¡Bienvenido, {nombre}! 🎈\n\nAquí encontrarás recuerdos, risas y mucho amor familiar. Nos alegra tenerte. ¡Explora, comparte y disfruta! ✨💛",
+        f"🎊 ¡{nombre} llegó a la familia! ¡Bienvenido! 🌈\n\nQue este sea el inicio de muchos momentos compartidos. ¡Estamos felices de tenerte! 💪❤️",
+    ]
+
+    texto_bienvenida = random.choice(saludos)
+
+    try:
+        con.execute(
+            "INSERT INTO publicaciones(usuario_id, texto, media, media_tipo) "
+            "VALUES(%s, %s, '', '')",
+            (admin_id, texto_bienvenida)
+        )
+        # Marcar al usuario como ya bienvenido para no repetir
+        con.execute(
+            "UPDATE usuarios SET es_nuevo=FALSE WHERE id=%s",
+            (nuevo_uid,)
+        )
+        con.commit()
+    except Exception as e:
+        print(f"[Bienvenida] Error publicando post: {e}")
 
 
 @auth_bp.route("/logout")

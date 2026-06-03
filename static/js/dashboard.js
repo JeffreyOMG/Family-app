@@ -98,38 +98,26 @@ function toggleSidebar() {
 }
 
 // ─────────────────────────────
-// COUNTDOWN MUNDIAL 2026
+// COUNTDOWN
 // ─────────────────────────────
 function iniciarCountdown() {
-  const meta = new Date('2026-06-11T00:00:00').getTime();
-
+  const meta = new Date('2026-12-24T00:00:00').getTime();
   function tick() {
     const diff = meta - Date.now();
-
     if (diff <= 0) {
-      ['cd-dias', 'cd-horas', 'cd-min', 'cd-seg'].forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.textContent = '00';
-      });
+      [$('cd-dias'), $('cd-horas'), $('cd-min'), $('cd-seg')].forEach(el => { if (el) el.textContent = '00'; });
       return;
     }
-
     const pad = n => String(n).padStart(2, '0');
-
-    const dias  = Math.floor(diff / 86400000);
-    const horas = Math.floor((diff % 86400000) / 3600000);
-    const mins  = Math.floor((diff % 3600000) / 60000);
-    const segs  = Math.floor((diff % 60000) / 1000);
-
-    document.getElementById('cd-dias').textContent  = pad(dias);
-    document.getElementById('cd-horas').textContent = pad(horas);
-    document.getElementById('cd-min').textContent   = pad(mins);
-    document.getElementById('cd-seg').textContent   = pad(segs);
+    if ($('cd-dias'))  $('cd-dias').textContent  = pad(Math.floor(diff / 86400000));
+    if ($('cd-horas')) $('cd-horas').textContent = pad(Math.floor((diff % 86400000) / 3600000));
+    if ($('cd-min'))   $('cd-min').textContent   = pad(Math.floor((diff % 3600000) / 60000));
+    if ($('cd-seg'))   $('cd-seg').textContent   = pad(Math.floor((diff % 60000) / 1000));
   }
-
   tick();
   setInterval(tick, 1000);
 }
+
 // ─────────────────────────────
 // LIKE (sin recarga)
 // ─────────────────────────────

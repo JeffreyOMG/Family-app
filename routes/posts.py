@@ -24,7 +24,7 @@ POST_TMPL = """
     {% else %}<div class="user-avatar post-av">{{ p.nombre[0]|upper }}</div>{% endif %}
     <div class="post-meta-block">
       <span class="post-name">{{ p.nombre }}</span>
-      <span class="post-handle">@{{ p.usuario }} · ahora{% if p.visibilidad=='privada' %} <span class="post-badge-privado">🔒 Solo miembros</span>{% endif %}</span>
+      <span class="post-handle">@{{ p.usuario }} · ahora</span>
     </div>
     <form method="POST" action="/eliminar_post/{{ p.id }}" class="post-delete-form ajax-form" data-ajax="true">
       <button type="submit" class="post-delete-btn" title="Eliminar">
@@ -106,7 +106,7 @@ def publicar_ajax():
         return jsonify({"ok": False}), 400
     con = get_db()
     p = con.execute("""
-        SELECT p.id,p.texto,p.media,p.media_tipo,p.visibilidad,u.nombre,u.usuario,u.foto
+        SELECT p.id,p.texto,p.media,p.media_tipo,u.nombre,u.usuario,u.foto
         FROM publicaciones p JOIN usuarios u ON u.id=p.usuario_id
         WHERE p.id=%s
     """, (post_id,)).fetchone()
@@ -144,17 +144,9 @@ def _guardar_post():
         media_tipo = "multi"
     if not texto and not media:
         return None
-    # Visibilidad: invitados siempre publican en general
-    rol = session.get("rol", "invitado")
-    if rol in ("miembro", "admin"):
-        visibilidad = request.form.get("visibilidad", "general")
-        if visibilidad not in ("general", "privada"):
-            visibilidad = "general"
-    else:
-        visibilidad = "general"
     cur = con.execute(
-        "INSERT INTO publicaciones(usuario_id, texto, media, media_tipo, visibilidad) VALUES(%s, %s, %s, %s, %s) RETURNING id",
-        (uid, texto, media, media_tipo, visibilidad)
+        "INSERT INTO publicaciones(usuario_id, texto, media, media_tipo) VALUES(%s, %s, %s, %s) RETURNING id",
+        (uid, texto, media, media_tipo)
     )
     con.commit()
     return cur.fetchone()[0]
