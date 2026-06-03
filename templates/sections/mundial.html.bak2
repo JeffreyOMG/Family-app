@@ -1217,263 +1217,71 @@ function _renderBracket(bracket, eliPartidos) {
   const tg = bracket.total_grupos || 12;
   if (sub) sub.textContent = `${gc}/${tg} grupos terminados`;
 
+  // clasificados = {1A:{nombre,codigo,...}, 2B:{...}, ...} — vienen del API
   const clas = bracket.clasificados || {};
 
+  // Resuelve un equipo para mostrar en el bracket:
+  // 1. eq guardado en BD (más prioridad — ya calculado por el servidor)
+  // 2. clasificados en tiempo real (solo si slot es simple como '1A','2B' y NO hay eq guardado)
+  // 3. fallback al texto del slot
   function _resolverEq(nombreGuardado, codGuardado, slot) {
-    if (nombreGuardado) return { nombre: nombreGuardado, codigo: codGuardado || 'xx', conocido: true };
+    // Prioridad absoluta: lo que ya está guardado en BD
+    if (nombreGuardado) {
+      return { nombre: nombreGuardado, codigo: codGuardado || 'xx', conocido: true };
+    }
+    // Solo intentar resolver desde clasificados si slot es exactamente '1X' o '2X'
+    // NO resolver '3-ABCDF' ni 'G74' ni 'P101' desde clasificados
     if (slot && /^[12][A-L]$/.test(slot) && clas[slot]) {
       const c = clas[slot];
       return { nombre: c.nombre, codigo: c.codigo, conocido: true };
     }
+    // Pendiente — slot descriptivo en itálica
     return { nombre: slot || '?', codigo: 'xx', conocido: false };
   }
+
+  const fases = [
+    { label: 'Dieciseisavos',        ids: [73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88] },
+    { label: 'Octavos de Final',      ids: [89,90,91,92,93,94,95,96] },
+    { label: 'Cuartos de Final',      ids: [97,98,99,100] },
+    { label: 'Semifinales',           ids: [101,102] },
+    { label: 'Tercer Puesto / Final', ids: [103,104] },
+  ];
 
   const byId = {};
   (eliPartidos||[]).forEach(p => byId[p.id] = p);
 
-  // ── Estructura del bracket ──────────────────────────────────────────────
-  // Lado izquierdo (R16 → 8vos → 4tos → Semi izq)
-  const ladoIzq = {
-    r16:    [73, 74, 75, 77, 83, 84, 81, 82],
-    oct:    [89, 90, 93, 94],
-    qtr:    [97, 98],
-    semi:   [101],
-  };
-  // Lado derecho (R16 → 8vos → 4tos → Semi der) — en orden invertido para espejado
-  const ladoDer = {
-    r16:    [76, 78, 79, 80, 86, 88, 85, 87],
-    oct:    [91, 92, 95, 96],
-    qtr:    [99, 100],
-    semi:   [102],
-  };
-
-  // Centro: tercer puesto (103) y final (104)
-  const centro = [103, 104];
-
-  // ── Función que genera una tarjeta de partido ────────────────────────────
-  function _card(pid, opts = {}) {
-    const p = byId[pid];
-    if (!p) {
-      return `<div class="bk-card bk-card--vacio">
-        <div class="bk-eq bk-eq--pend"><span class="bk-slot">P${pid}</span></div>
-        <div class="bk-eq bk-eq--pend"><span class="bk-slot">–</span></div>
-      </div>`;
-    }
-    const eqL = _resolverEq(p.eq_local,  p.cod_local,  p.slot_local);
-    const eqV = _resolverEq(p.eq_visit,  p.cod_visit,  p.slot_visit);
-
-    function _eqRow(eq, goles, esGanador) {
-      const flag = eq.conocido ? `<span class="fi fi-${_esc(eq.codigo)} fis bk-flag"></span>` : '';
-      const nombreEl = eq.conocido ? _esc(eq.nombre) : `<em class="bk-slot">${_esc(eq.nombre)}</em>`;
-      const scoreEl  = (p.bloqueado && goles !== null && goles !== undefined)
-        ? `<span class="bk-score ${esGanador ? 'bk-score--win' : ''}">${goles}</span>` : '';
-      return `<div class="bk-eq ${!eq.conocido ? 'bk-eq--pend' : ''} ${esGanador ? 'bk-eq--winner' : ''}">
-        ${flag}<span class="bk-nombre">${nombreEl}</span>${scoreEl}
-      </div>`;
-    }
-
-    let ganadorL = false, ganadorV = false;
-    if (p.bloqueado && p.goles_local !== null && p.goles_visit !== null) {
-      if (p.penales_ganador) {
-        ganadorL = (p.penales_ganador === p.eq_local);
-        ganadorV = (p.penales_ganador === p.eq_visit);
-      } else {
-        ganadorL = p.goles_local > p.goles_visit;
-        ganadorV = p.goles_visit > p.goles_local;
-      }
-    }
-
-    const fechaStr = p.fecha ? `<div class="bk-meta">${_esc(p.fecha)}</div>` : '';
-    const idStr = opts.hideId ? '' : `<div class="bk-pid">P${p.id}</div>`;
-
-    return `<div class="bk-card ${p.bloqueado ? 'bk-card--done' : ''}">
-      ${idStr}
-      ${_eqRow(eqL, p.goles_local,  ganadorL)}
-      ${_eqRow(eqV, p.goles_visit,  ganadorV)}
-      ${fechaStr}
-    </div>`;
-  }
-
-  // ── Función que genera una columna de ronda ────────────────────────────
-  function _col(ids, label, extraClass = '') {
-    return `<div class="bk-col ${extraClass}">
-      <div class="bk-col-label">${label}</div>
-      <div class="bk-col-partidos">
-        ${ids.map(id => `<div class="bk-slot-wrap">${_card(id)}</div>`).join('')}
+  wrap.innerHTML = fases.map(fase => {
+    const partidos = fase.ids.map(id => byId[id]).filter(Boolean);
+    if (!partidos.length) return '';
+    return `
+      <div class="bracket-seccion-label">
+        <span class="material-symbols-outlined">emoji_events</span> ${fase.label}
       </div>
-    </div>`;
-  }
-
-  // ── Columna central (tercer puesto + final) ────────────────────────────
-  function _colCentro() {
-    const p104 = byId[104];
-    const p103 = byId[103];
-    return `<div class="bk-col bk-col--centro">
-      <div class="bk-col-label">Final</div>
-      <div class="bk-col-partidos">
-        <div class="bk-slot-wrap bk-slot-wrap--final">${_card(104, {hideId:true})}</div>
-        <div class="bk-col-label bk-col-label--3rd">3er Puesto</div>
-        <div class="bk-slot-wrap">${_card(103, {hideId:true})}</div>
-      </div>
-    </div>`;
-  }
-
-  // ── Construir el bracket completo ───────────────────────────────────────
-  wrap.innerHTML = `
-    <style>
-      .bk-tree {
-        display: flex;
-        flex-direction: row;
-        align-items: stretch;
-        gap: 0;
-        overflow-x: auto;
-        padding: 8px 0 16px;
-        min-width: 800px;
-      }
-      .bk-col {
-        display: flex;
-        flex-direction: column;
-        flex: 1;
-        min-width: 130px;
-      }
-      .bk-col--centro {
-        flex: 1.2;
-        min-width: 150px;
-      }
-      .bk-col-label {
-        font-family: 'Bebas Neue', 'DM Sans', sans-serif;
-        font-size: .72rem;
-        letter-spacing: .08em;
-        color: rgba(255,255,255,.35);
-        text-align: center;
-        padding: 0 4px 8px;
-        text-transform: uppercase;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-      }
-      .bk-col-label--3rd {
-        font-size: .65rem;
-        padding: 12px 4px 6px;
-        color: rgba(255,255,255,.25);
-      }
-      .bk-col-partidos {
-        display: flex;
-        flex-direction: column;
-        flex: 1;
-        justify-content: space-around;
-        gap: 4px;
-        padding: 0 3px;
-      }
-      .bk-slot-wrap {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        position: relative;
-      }
-      .bk-slot-wrap--final .bk-card {
-        border-color: rgba(245,197,24,.5);
-        background: rgba(245,197,24,.07);
-        box-shadow: 0 0 12px rgba(245,197,24,.15);
-      }
-      .bk-card {
-        width: 100%;
-        background: rgba(255,255,255,.04);
-        border: 1px solid rgba(255,255,255,.1);
-        border-radius: 6px;
-        overflow: hidden;
-        transition: border-color .2s;
-      }
-      .bk-card:hover { border-color: rgba(255,255,255,.22); }
-      .bk-card--done { border-color: rgba(255,255,255,.15); }
-      .bk-card--vacio {
-        opacity: .35;
-        background: transparent;
-        border-color: rgba(255,255,255,.06);
-      }
-      .bk-pid {
-        font-family: 'Bebas Neue', monospace;
-        font-size: .6rem;
-        color: rgba(255,255,255,.2);
-        text-align: right;
-        padding: 2px 5px 0;
-        letter-spacing: .05em;
-      }
-      .bk-eq {
-        display: flex;
-        align-items: center;
-        gap: 4px;
-        padding: 4px 6px;
-        font-family: 'DM Sans', sans-serif;
-        font-size: .72rem;
-        color: rgba(255,255,255,.75);
-        border-top: 1px solid rgba(255,255,255,.06);
-      }
-      .bk-eq:first-of-type { border-top: none; }
-      .bk-eq--pend { color: rgba(255,255,255,.3); }
-      .bk-eq--winner {
-        background: rgba(245,197,24,.08);
-        color: rgba(255,255,255,.95);
-        font-weight: 600;
-      }
-      .bk-flag { font-size: .9rem; flex-shrink: 0; }
-      .bk-nombre {
-        flex: 1;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-        font-size: .7rem;
-      }
-      .bk-slot { font-style: italic; font-size: .65rem; color: rgba(255,255,255,.3); }
-      .bk-score {
-        flex-shrink: 0;
-        font-family: 'Bebas Neue', monospace;
-        font-size: .85rem;
-        min-width: 14px;
-        text-align: center;
-        color: rgba(255,255,255,.55);
-      }
-      .bk-score--win { color: #f5c518; }
-      .bk-meta {
-        font-size: .6rem;
-        color: rgba(255,255,255,.2);
-        text-align: center;
-        padding: 2px 4px 3px;
-        border-top: 1px solid rgba(255,255,255,.05);
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-      }
-
-      /* ── Conectores horizontales entre rondas ── */
-      .bk-col:not(.bk-col--centro) .bk-slot-wrap::after,
-      .bk-col:not(.bk-col--centro) .bk-slot-wrap::before {
-        content: '';
-        position: absolute;
-        top: 50%;
-        width: 3px;
-        height: 1px;
-        background: rgba(255,255,255,.1);
-      }
-
-      @media (max-width: 700px) {
-        .bk-nombre { font-size: .62rem; }
-        .bk-col { min-width: 100px; }
-        .bk-col--centro { min-width: 120px; }
-        .bk-eq { padding: 3px 4px; gap: 3px; }
-      }
-    </style>
-    <div class="bk-tree">
-      ${_col(ladoIzq.r16,  'Dieciseisavos')}
-      ${_col(ladoIzq.oct,  'Octavos')}
-      ${_col(ladoIzq.qtr,  'Cuartos')}
-      ${_col(ladoIzq.semi, 'Semifinal')}
-      ${_colCentro()}
-      ${_col(ladoDer.semi, 'Semifinal',    'bk-col--der')}
-      ${_col(ladoDer.qtr,  'Cuartos',      'bk-col--der')}
-      ${_col(ladoDer.oct,  'Octavos',      'bk-col--der')}
-      ${_col(ladoDer.r16,  'Dieciseisavos','bk-col--der')}
-    </div>`;
+      <div class="bracket-grid">
+        ${partidos.map(p => {
+          const eqL = _resolverEq(p.eq_local, p.cod_local, p.slot_local);
+          const eqV = _resolverEq(p.eq_visit, p.cod_visit, p.slot_visit);
+          const completado = eqL.conocido && eqV.conocido;
+          const lFlag = eqL.conocido ? `<span class="fi fi-${_esc(eqL.codigo)} fis bk-flag"></span>` : '';
+          const vFlag = eqV.conocido ? `<span class="fi fi-${_esc(eqV.codigo)} fis bk-flag"></span>` : '';
+          const result = p.bloqueado
+            ? `<span class="bk-result">${p.goles_local}–${p.goles_visit}${p.penales_ganador?' (P: '+_esc(p.penales_ganador)+')':''}</span>`
+            : '';
+          const lLabel = eqL.conocido ? eqL.nombre : `<em>${_esc(eqL.nombre)}</em>`;
+          const vLabel = eqV.conocido ? eqV.nombre : `<em>${_esc(eqV.nombre)}</em>`;
+          return `
+            <div class="bracket-cruce ${completado?'cruce-ok':'cruce-pend'}">
+              <div class="cruce-num">${p.id}</div>
+              <div class="cruce-equipos">
+                <div class="cruce-eq ${!eqL.conocido?'eq-pend':''}">${lFlag}<span class="cruce-nombre">${lLabel}</span></div>
+                <div class="cruce-vs">${result || 'VS'}</div>
+                <div class="cruce-eq ${!eqV.conocido?'eq-pend':''}">${vFlag}<span class="cruce-nombre">${vLabel}</span></div>
+              </div>
+              <div class="cruce-meta">${_esc(p.fecha||'')} · ${_esc(p.sede||'')}</div>
+            </div>`;
+        }).join('')}
+      </div>`;
+  }).join('');
 }
 
 // ══════════════════════════════════════════
