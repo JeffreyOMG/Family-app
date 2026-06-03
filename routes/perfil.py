@@ -24,6 +24,10 @@ def actualizar_perfil():
         url, _ = subir_a_cloudinary(foto_file, folder="familia/perfiles")
         if url:
             foto_url = url
+        else:
+            if _is_ajax():
+                return jsonify({"ok": False, "error": "No se pudo subir la foto. Verifica las credenciales de Cloudinary."}), 500
+            return redirect("/dashboard")
 
     if foto_url:
         con.execute(
@@ -35,7 +39,6 @@ def actualizar_perfil():
             "UPDATE usuarios SET nombre=%s, gmail=%s, bio=%s WHERE id=%s",
             (nombre, gmail, bio, uid)
         )
-        # Retrieve current foto to return it in JSON
         row = con.execute("SELECT foto FROM usuarios WHERE id=%s", (uid,)).fetchone()
         if row:
             foto_url = row["foto"]
