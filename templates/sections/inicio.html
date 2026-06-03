@@ -1775,7 +1775,8 @@ function abrirModalUsuarios(){
   setTimeout(() => document.getElementById('input-buscar-usuario')?.focus(), 80);
 }
 function cerrarModalUsuarios(e){
-  if(e && e.target !== document.getElementById('umu-overlay')) return;
+  // Si viene de un click en el overlay, solo cerrar si el click fue directo sobre el fondo
+  if(e && e.type === 'click' && e.currentTarget === document.getElementById('umu-overlay') && e.target !== document.getElementById('umu-overlay')) return;
   const modal = document.getElementById('umu-overlay');
   if(!modal) return;
   modal.style.display = 'none';
