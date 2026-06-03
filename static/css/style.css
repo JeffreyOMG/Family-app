@@ -531,20 +531,26 @@ textarea.form-input{
     width:260px;
 }
 
+/* LOGO */
+
 .sidebar-brand{
-    padding:15px 10px;
+    height:80px;
+    padding:10px;
     border-bottom:1px solid var(--border);
     display:flex;
     justify-content:center;
     align-items:center;
+    overflow:hidden;
 }
 
 .menu-logo{
-    width:180px;
-    max-width:100%;
+    width:60px;          /* tamaño fijo */
     height:auto;
     display:block;
+    transition:none;     /* evita efecto zoom */
 }
+
+/* RESTO */
 
 .brand-name{
     font-size:28px;
@@ -616,7 +622,6 @@ textarea.form-input{
     opacity:1;
     visibility:visible;
 }
-
 
 .sidebar-footer{
     padding:12px;
