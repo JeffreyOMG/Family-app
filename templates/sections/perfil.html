@@ -8,13 +8,13 @@
       {% else %}
         <div class="user-avatar pf-avatar-letter" id="preview-foto-perfil">{{ usuario.nombre[0]|upper }}</div>
       {% endif %}
-      <label class="pf-camera-btn" title="Cambiar foto">
-        <span class="material-symbols-outlined">photo_camera</span>
-        <input type="file" accept="image/*" style="display:none;" onchange="previsualizarFoto(this)">
+      <label class="pf-camera-btn" id="pf-camera-label" title="Cambiar foto">
+        <span class="material-symbols-outlined" id="pf-camera-icon">photo_camera</span>
+        <input type="file" accept="image/*" id="pf-foto-direct" style="display:none;" onchange="autoGuardarFoto(this)">
       </label>
     </div>
     <div class="pf-hero-info">
-      <h2 class="pf-nombre">{{ usuario.nombre }}</h2>
+      <h2 class="pf-nombre" id="pf-hero-nombre">{{ usuario.nombre }}</h2>
       <p class="pf-usuario">@{{ usuario.usuario }} &nbsp;·&nbsp; <span class="pf-rol-badge">{{ usuario.rol }}</span></p>
       {% if usuario.bio %}<p class="pf-bio">{{ usuario.bio }}</p>{% endif %}
       {% if usuario.gmail %}<p class="pf-gmail"><span class="material-symbols-outlined">mail</span>{{ usuario.gmail }}</p>{% endif %}
@@ -54,7 +54,6 @@
       <h3>Editar Información</h3>
     </div>
     <form method="POST" action="/actualizar_perfil" enctype="multipart/form-data" id="form-perfil">
-      <input type="file" name="foto_perfil" id="input-foto-hidden" accept="image/*" style="display:none;">
       <div class="pf-form-grid">
         <div class="pf-form-group">
           <label class="pf-label">Nombre completo</label>
@@ -188,7 +187,8 @@
   background: var(--card); border: 2px solid var(--border);
   cursor: pointer; display: flex; align-items: center; justify-content: center;
 }
-.pf-camera-btn .material-symbols-outlined { font-size: 15px; color: var(--text2); }
+.pf-camera-btn .material-symbols-outlined { font-size: 15px; color: var(--text2); transition: color .2s; }
+@keyframes spin { to { transform: rotate(360deg); } }
 .pf-hero-info { flex: 1; min-width: 160px; }
 .pf-nombre { font-size: 1.2rem; font-weight: 700; margin: 0 0 4px; color: var(--text); }
 .pf-usuario { font-size: .85rem; color: var(--text2); margin: 0 0 6px; display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
@@ -306,21 +306,69 @@ body.dark-mode .pf-hero { background: var(--card); }
 </style>
 
 <script>
-function previsualizarFoto(input){
+// Auto-guarda la foto AL SELECCIONARLA, sin necesidad de presionar "Guardar"
+async function autoGuardarFoto(input) {
   const file = input.files[0];
-  if(!file) return;
-  const dt = new DataTransfer();
-  dt.items.add(file);
-  document.getElementById('input-foto-hidden').files = dt.files;
+  if (!file) return;
+
+  // 1. Mostrar preview local inmediato
   const url = URL.createObjectURL(file);
   const prev = document.getElementById('preview-foto-perfil');
-  if(prev.tagName==='IMG'){
+  let imgEl;
+  if (prev && prev.tagName === 'IMG') {
     prev.src = url;
+    imgEl = prev;
   } else {
-    const img = document.createElement('img');
-    img.src = url; img.id = 'preview-foto-perfil';
-    img.className = 'pf-avatar-img';
-    prev.replaceWith(img);
+    imgEl = document.createElement('img');
+    imgEl.src = url;
+    imgEl.id = 'preview-foto-perfil';
+    imgEl.className = 'pf-avatar-img';
+    if (prev) prev.replaceWith(imgEl);
   }
+
+  // 2. Mostrar spinner en cámara
+  const icon = document.getElementById('pf-camera-icon');
+  const label = document.getElementById('pf-camera-label');
+  if (icon) { icon.textContent = 'hourglass_top'; icon.style.animation = 'spin 1s linear infinite'; }
+  if (label) label.style.pointerEvents = 'none';
+
+  // 3. Construir FormData solo con la foto + datos actuales del form
+  const formPerfil = document.getElementById('form-perfil');
+  const fd = new FormData();
+  fd.append('foto_perfil', file);
+  // Incluir nombre/gmail/bio para no perder esos campos
+  if (formPerfil) {
+    const nombre = formPerfil.querySelector('[name="nombre"]');
+    const gmail  = formPerfil.querySelector('[name="gmail"]');
+    const bio    = formPerfil.querySelector('[name="bio"]');
+    if (nombre) fd.append('nombre', nombre.value);
+    if (gmail)  fd.append('gmail', gmail.value);
+    if (bio)    fd.append('bio', bio.value);
+  }
+
+  try {
+    const res = await fetch('/actualizar_perfil', {
+      method: 'POST',
+      headers: { 'X-Requested-With': 'XMLHttpRequest' },
+      body: fd
+    });
+    const data = await res.json().catch(() => ({}));
+    if (res.ok && data.ok !== false) {
+      // Actualizar TODOS los avatares de la página
+      const fotoFinal = data.foto || url;
+      document.querySelectorAll('.user-avatar-img').forEach(img => img.src = fotoFinal);
+      mostrarToast('📸 Foto actualizada');
+    } else {
+      mostrarToast('❌ ' + (data.error || 'Error al guardar foto'), 'error');
+    }
+  } catch (err) {
+    mostrarToast('❌ Error de conexión', 'error');
+  }
+
+  // 4. Restaurar icono cámara
+  if (icon) { icon.textContent = 'photo_camera'; icon.style.animation = ''; }
+  if (label) label.style.pointerEvents = '';
+  // Limpiar input para permitir seleccionar la misma foto de nuevo
+  input.value = '';
 }
 </script>

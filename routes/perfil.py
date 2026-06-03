@@ -35,6 +35,10 @@ def actualizar_perfil():
             "UPDATE usuarios SET nombre=%s, gmail=%s, bio=%s WHERE id=%s",
             (nombre, gmail, bio, uid)
         )
+        # Retrieve current foto to return it in JSON
+        row = con.execute("SELECT foto FROM usuarios WHERE id=%s", (uid,)).fetchone()
+        if row:
+            foto_url = row["foto"]
     con.commit()
     session["nombre"] = nombre
     if _is_ajax():

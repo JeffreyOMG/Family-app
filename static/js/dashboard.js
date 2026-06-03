@@ -369,11 +369,16 @@ function _postFormSuccess(form, data) {
   // Perfil / ajustes / contraseña: solo toast, no recargar
   if (action === '/actualizar_perfil') {
     if (data.foto) {
-      // Actualizar avatares en la página sin recargar
+      // Actualizar TODOS los avatares de la página
       $$('.user-avatar-img').forEach(img => img.src = data.foto);
+      const prev = document.getElementById('preview-foto-perfil');
+      if (prev && prev.tagName === 'IMG') prev.src = data.foto;
     }
     if (data.nombre) {
       $$('.user-display-name').forEach(el => el.textContent = data.nombre);
+      // Actualizar nombre en el hero del perfil
+      const heroNombre = document.getElementById('pf-hero-nombre');
+      if (heroNombre) heroNombre.textContent = data.nombre;
     }
     return;
   }
