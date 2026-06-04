@@ -373,7 +373,34 @@
        MODAL TÉRMINOS MUNDIAL 2026 — CSS exclusivo prefijo mwt2026__
   ══════════════════════════════════════════ -->
   <style>
-    /* ── Backdrop ── */
+    /* ── Nota fuente oficial FIFA ── */
+    .mwt2026__fifa-note {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      background: rgba(245,197,24,.07);
+      border: 1px solid rgba(245,197,24,.25);
+      border-radius: 10px;
+      padding: 12px 14px;
+      margin-bottom: 18px;
+    }
+    .mwt2026__fifa-icon {
+      font-size: 1.2rem;
+      flex-shrink: 0;
+      line-height: 1.4;
+    }
+    .mwt2026__fifa-note p {
+      font-family: 'DM Sans', 'Segoe UI', sans-serif;
+      font-size: .8rem;
+      color: rgba(255,255,255,.7);
+      line-height: 1.55;
+      margin: 0;
+    }
+    .mwt2026__fifa-note strong {
+      color: #f5c518;
+    }
+
+    /* ── Backdrop — bloqueante real (pointer-events: all) ── */
     .mwt2026__backdrop {
       display: none;
       position: fixed;
@@ -382,6 +409,7 @@
       background: rgba(0,0,0,.82);
       backdrop-filter: blur(4px);
       -webkit-backdrop-filter: blur(4px);
+      pointer-events: all; /* bloquea clicks debajo del modal */
     }
     .mwt2026__backdrop.mwt2026__visible { display: block; }
 
@@ -882,6 +910,11 @@
         <p class="mwt2026__subtitle">Términos de Participación</p>
       </div>
       <div class="mwt2026__divider"></div>
+      <!-- NOTA FUENTE OFICIAL FIFA -->
+      <div class="mwt2026__fifa-note">
+        <span class="mwt2026__fifa-icon">🌐</span>
+        <p>Todos los partidos, cruces, resultados, tablas y estadísticas mostrados en el sistema corresponden <strong>exclusivamente a información oficial publicada por la FIFA</strong>. El sistema no inventa, modifica ni altera resultados bajo ninguna circunstancia.</p>
+      </div>
       <p class="mwt2026__intro">Al ingresar al Mundial 2026, aceptas las siguientes condiciones:</p>
       <ul class="mwt2026__conditions">
         <li>Una vez guardado un pronóstico, no podrá modificarse ni eliminarse.</li>
@@ -1038,9 +1071,6 @@
 
   <script>
   (function() {
-    // ── Claves localStorage (respaldo si BD falla) ──────────────────────
-    var TOS_KEY  = 'mwt2026_tos_accepted_v1';
-
     // ── Elementos ────────────────────────────────────────────────────────
     var backdrop   = document.getElementById('mwt2026-backdrop');
     var overlay    = document.getElementById('mwt2026-overlay');
@@ -1053,65 +1083,45 @@
     var regOverlay = document.getElementById('mwt2026-reg-overlay');
     var regClose   = document.getElementById('mwt2026-reg-close');
 
-    // ── ¿Ya aceptó? (caché local: localStorage como respaldo rápido) ─────
-    function yaAceptoLocal() {
-      try { return !!localStorage.getItem(TOS_KEY); } catch(e) { return false; }
-    }
+    // ── ESTADO INTERNO: validado SOLO contra BD, sin bypass de localStorage ──
+    var _tosValidado = false;
 
-    // ── Verificar en BD; callback(true/false) ────────────────────────────
+    // ── Verificar en BD — fuente de verdad única ──────────────────────────
+    // localStorage NO se usa como bypass; solo se sincroniza después de BD OK.
     function verificarTosEnBD(callback) {
       fetch('/api/mundial_tos')
         .then(function(r) { return r.json(); })
         .then(function(d) {
           if (d.accepted) {
-            try { localStorage.setItem(TOS_KEY, '1'); } catch(e) {}
+            _tosValidado = true;
             callback(true);
           } else {
+            _tosValidado = false;
             callback(false);
           }
         })
         .catch(function() {
-          // BD no disponible → usar localStorage como respaldo
-          callback(yaAceptoLocal());
+          // BD no disponible → denegar acceso por defecto (fail-secure)
+          _tosValidado = false;
+          callback(false);
         });
     }
 
-    // ── Guardar aceptación: localStorage inmediato + BD ──────────────────
+    // ── Guardar aceptación en BD ──────────────────────────────────────────
     function guardarAceptacion(onDone) {
-      try { localStorage.setItem(TOS_KEY, '1'); } catch(e) {}
       fetch('/api/mundial_tos', { method: 'POST' })
         .then(function(r) { return r.json(); })
-        .then(function() { onDone(); })
-        .catch(function() { onDone(); }); // localStorage ya guardó, continuar
+        .then(function(d) {
+          if (d.ok) { _tosValidado = true; }
+          onDone(!!d.ok);
+        })
+        .catch(function() { onDone(false); });
     }
 
-    // ── Mostrar / ocultar modal principal ────────────────────────────────
-    function mostrarTerminos() {
-      backdrop.classList.add('mwt2026__visible');
-      overlay.classList.add('mwt2026__visible');
-      document.body.style.overflow = 'hidden';
-      // Activar bloqueo de contenido mientras el modal está abierto
-      activarLock(false);
-    }
-
-    function ocultarTerminos(aceptado) {
-      backdrop.classList.remove('mwt2026__visible');
-      overlay.classList.remove('mwt2026__visible');
-      document.body.style.overflow = '';
-      if (aceptado) {
-        // Aceptó → quitar lock completamente
-        quitarLock();
-      } else {
-        // Canceló → mantener lock con mensaje + botón para volver
-        activarLock(true);
-      }
-    }
-
-    // ── Bloqueo de contenido ─────────────────────────────────────────────
+    // ── Bloqueo de contenido (lock visual sobre el contenido del mundial) ─
     var lockEl = null;
 
     function activarLock(modoCancel) {
-      // Si el lock ya existe, solo actualizar modo
       if (!lockEl) {
         lockEl = document.createElement('div');
         lockEl.className = 'mwt2026__content-lock';
@@ -1126,7 +1136,6 @@
         var reopenBtn = document.getElementById('mwt2026-lock-reopen');
         if (reopenBtn) {
           reopenBtn.addEventListener('click', function() {
-            // Resetear checkbox y volver a mostrar modal
             if (chkBox.classList.contains('mwt2026__checked')) toggleCheck();
             mostrarTerminos();
           });
@@ -1140,6 +1149,44 @@
       if (lockEl) { lockEl.remove(); lockEl = null; }
     }
 
+    // ── Prevenir scroll fuera del modal cuando está abierto ───────────────
+    function bloquearScroll() {
+      document.body.style.overflow = 'hidden';
+      document.documentElement.style.overflow = 'hidden';
+    }
+    function desbloquearScroll() {
+      document.body.style.overflow = '';
+      document.documentElement.style.overflow = '';
+    }
+
+    // ── Mostrar / ocultar modal principal ────────────────────────────────
+    function mostrarTerminos() {
+      // Resetear checkbox al mostrar
+      if (chkBox.classList.contains('mwt2026__checked')) toggleCheck();
+      btnAccept.disabled = true;
+
+      backdrop.classList.add('mwt2026__visible');
+      overlay.classList.add('mwt2026__visible');
+      bloquearScroll();
+      activarLock(false);
+
+      // Bloquear interacción con todo lo que esté fuera del modal
+      overlay.setAttribute('aria-modal', 'true');
+      // Impedir que clics en el backdrop cierren el modal
+      backdrop.onclick = function(e) { e.stopPropagation(); e.preventDefault(); return false; };
+    }
+
+    function ocultarTerminos(aceptado) {
+      backdrop.classList.remove('mwt2026__visible');
+      overlay.classList.remove('mwt2026__visible');
+      desbloquearScroll();
+      if (aceptado) {
+        quitarLock();
+      } else {
+        activarLock(true);
+      }
+    }
+
     // ── Mostrar / ocultar reglamento ─────────────────────────────────────
     function abrirReglamento() {
       regOverlay.classList.add('mwt2026__visible');
@@ -1151,35 +1198,49 @@
       regOverlay.classList.remove('mwt2026__visible');
     }
 
-    // ── Lógica del checkbox ──────────────────────────────────────────────
+    // ── Lógica del checkbox — obligatorio para habilitar botón ───────────
+    // El botón SIEMPRE inicia deshabilitado (también en HTML: disabled).
     function toggleCheck() {
       var checked = chkBox.classList.toggle('mwt2026__checked');
       chkBox.setAttribute('aria-checked', checked ? 'true' : 'false');
       chkInput.checked = checked;
+      // Habilitar/deshabilitar botón estrictamente según estado del checkbox
       btnAccept.disabled = !checked;
     }
 
-    chkBox.addEventListener('click', toggleCheck);
+    chkBox.addEventListener('click', function(e) {
+      e.preventDefault();
+      toggleCheck();
+    });
     chkBox.addEventListener('keydown', function(e) {
       if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); toggleCheck(); }
     });
-    document.getElementById('mwt2026-chk').addEventListener('change', function() {
-      if (!this.checked && chkBox.classList.contains('mwt2026__checked')) toggleCheck();
+    // Sync si alguien manipula el input oculto directamente
+    chkInput.addEventListener('change', function() {
+      var currentlyChecked = chkBox.classList.contains('mwt2026__checked');
+      if (this.checked !== currentlyChecked) toggleCheck();
     });
 
     // ── Botones ──────────────────────────────────────────────────────────
     btnCancel.addEventListener('click', function() {
-      ocultarTerminos(false);           // false = canceló → lock con mensaje
-      // Navegar a inicio
+      ocultarTerminos(false);
       if (typeof irSeccion === 'function') irSeccion('inicio');
     });
 
     btnAccept.addEventListener('click', function() {
-      if (btnAccept.disabled) return;
+      // Doble verificación: no proceder si checkbox no está marcado
+      if (btnAccept.disabled || !chkBox.classList.contains('mwt2026__checked')) return;
       btnAccept.disabled = true;
       btnAccept.textContent = '...';
-      guardarAceptacion(function() {
-        ocultarTerminos(true);          // true = aceptó → sin lock
+      guardarAceptacion(function(ok) {
+        if (ok) {
+          ocultarTerminos(true);
+        } else {
+          // Error al guardar — restaurar estado para reintentar
+          btnAccept.textContent = 'Aceptar y Continuar';
+          btnAccept.disabled = false;
+          alert('Error al guardar la aceptación. Verifica tu conexión e intenta de nuevo.');
+        }
       });
     });
 
@@ -1197,40 +1258,61 @@
       if (e.target === regOverlay) cerrarReglamento();
     });
 
-    // ── API pública: mwCheckTerminos ─────────────────────────────────────
-    // context: 'post_video'  → llamado desde cerrarOverlay (todos los roles)
-    // context: 'post_gate'   → llamado desde gate invitado aprobado
-    // ── API pública: mwCheckTerminos ─────────────────────────────────────
-    // Siempre verifica en BD primero; localStorage actúa solo como caché rápido.
-    // Si localStorage ya dice "aceptado" → skip (evita flash). Si no, consulta BD.
-    window.mwCheckTerminos = function(context) {
-      // Caché local: evitar llamada a BD si ya consta localmente
-      if (yaAceptoLocal()) return;
+    // ── Bloquear navegación directa por URL: verificar TOS en cuanto carga ──
+    // Esto protege contra acceso directo sin pasar por el video/gate.
+    function verificarAccesoInicial() {
+      {% if usuario.rol == 'invitado' %}
+      // Invitados: primero el gate maneja el flujo; si ya pasó el gate,
+      // verificar TOS. Si no pasó el gate, el gate lo bloqueará.
+      if (window._mwt2026_invitadoAprobado) {
+        verificarTosEnBD(function(aceptado) {
+          if (!aceptado) { activarLock(false); mostrarTerminos(); }
+        });
+      } else {
+        // El gate está activo o pendiente — el lock se activa desde aquí
+        // solo si el gate ya fue superado (flag del servidor)
+        // No hacer nada; el gate script maneja el bloqueo
+      }
+      {% else %}
+      // Miembro / Admin: verificar TOS directamente
+      verificarTosEnBD(function(aceptado) {
+        if (!aceptado) {
+          // Bloquear contenido inmediatamente y mostrar modal
+          activarLock(false);
+          mostrarTerminos();
+        }
+      });
+      {% endif %}
+    }
 
-      // Verificar en BD (fuente de verdad)
+    // ── API pública: mwCheckTerminos ──────────────────────────────────────
+    // context: 'post_video' → llamado desde cerrarOverlay (todos los roles)
+    // context: 'post_gate'  → llamado desde gate invitado aprobado
+    // IMPORTANTE: SIEMPRE verifica contra BD. No hay bypass por localStorage.
+    window.mwCheckTerminos = function(context) {
       verificarTosEnBD(function(aceptado) {
         if (aceptado) return;  // Ya aceptó en BD → flujo normal
 
         {% if usuario.rol == 'invitado' %}
-        // Invitado: mostrar después del gate (post_gate),
-        // o post_video si ya estaba pre-aprobado (flag del server)
         if (context === 'post_gate') {
           mostrarTerminos();
         } else if (context === 'post_video' && window._mwt2026_invitadoAprobado) {
           mostrarTerminos();
         }
-        // post_video sin aprobación → no mostrar todavía (esperar gate)
         {% else %}
-        // Miembro o Admin: mostrar directamente post_video
-        if (context === 'post_video') {
+        if (context === 'post_video' || context === 'direct') {
           mostrarTerminos();
         }
         {% endif %}
       });
     };
 
-    // Exposición adicional para llamado externo si se necesita
+    // Exposición adicional para llamado externo
     window.mwt2026_mostrarTerminos = mostrarTerminos;
+
+    // ── Ejecutar verificación inicial al cargar la sección ────────────────
+    // Esto cubre el caso de acceso por URL directa o recarga de página.
+    verificarAccesoInicial();
 
   })();
   </script>
