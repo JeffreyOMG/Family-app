@@ -140,6 +140,9 @@
       .then(function(d){
         if (!d.ok) {
           showGate(d.status || null);
+        } else {
+          // Invitado ya aprobado: marcar para que el video dispare términos correctamente
+          window._mwt2026_invitadoAprobado = true;
         }
         // si d.ok === true: acceso aprobado, no mostrar modal
       })
@@ -162,6 +165,8 @@
           // Aprobado de inmediato (no debería pasar, pero por si acaso)
           gate.style.display     = 'none';
           backdrop.style.display = 'none';
+          // Invitado aprobado → mostrar términos
+          if (typeof mwCheckTerminos === 'function') mwCheckTerminos('post_gate');
         } else if (data.pending) {
           // Enviado para revisión — bloquear input
           input.disabled  = true;
@@ -346,7 +351,11 @@
       document.body.style.overflow = '';
       overlay.style.transition = 'opacity .5s ease';
       overlay.style.opacity = '0';
-      setTimeout(function() { overlay.remove(); }, 520);
+      setTimeout(function() {
+        overlay.remove();
+        // Después del video → mostrar términos si aplica
+        if (typeof mwCheckTerminos === 'function') mwCheckTerminos('post_video');
+      }, 520);
     }
 
     // Al terminar → cerrar
@@ -357,6 +366,872 @@
       vid.pause();
       cerrarOverlay();
     };
+  })();
+  </script>
+
+  <!-- ══════════════════════════════════════════
+       MODAL TÉRMINOS MUNDIAL 2026 — CSS exclusivo prefijo mwt2026__
+  ══════════════════════════════════════════ -->
+  <style>
+    /* ── Backdrop ── */
+    .mwt2026__backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 99990;
+      background: rgba(0,0,0,.82);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+    }
+    .mwt2026__backdrop.mwt2026__visible { display: block; }
+
+    /* ── Wrapper centrado ── */
+    .mwt2026__overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 99991;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+    .mwt2026__overlay.mwt2026__visible { display: flex; }
+
+    /* ── Caja principal ── */
+    .mwt2026__box {
+      background: linear-gradient(160deg, #07111f 0%, #0d1e38 55%, #070f1c 100%);
+      border: 1px solid rgba(245,197,24,.3);
+      border-radius: 20px;
+      padding: 36px 32px 32px;
+      max-width: 480px;
+      width: 100%;
+      max-height: 90vh;
+      overflow-y: auto;
+      position: relative;
+      box-shadow:
+        0 32px 80px rgba(0,0,0,.8),
+        0 0 0 1px rgba(245,197,24,.08),
+        inset 0 1px 0 rgba(255,255,255,.06);
+      animation: mwt2026__pop .38s cubic-bezier(.34,1.52,.64,1) both;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(245,197,24,.3) transparent;
+    }
+    .mwt2026__box::-webkit-scrollbar { width: 4px; }
+    .mwt2026__box::-webkit-scrollbar-track { background: transparent; }
+    .mwt2026__box::-webkit-scrollbar-thumb { background: rgba(245,197,24,.3); border-radius: 4px; }
+
+    @keyframes mwt2026__pop {
+      from { opacity:0; transform:scale(.88) translateY(20px); }
+      to   { opacity:1; transform:scale(1)   translateY(0); }
+    }
+
+    /* Glow superior */
+    .mwt2026__box::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 180px;
+      border-radius: 20px 20px 0 0;
+      background: radial-gradient(ellipse at 50% 0%, rgba(245,197,24,.12) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    /* ── Header ── */
+    .mwt2026__header {
+      text-align: center;
+      margin-bottom: 24px;
+    }
+    .mwt2026__trophy {
+      font-size: 2.8rem;
+      line-height: 1;
+      filter: drop-shadow(0 0 14px rgba(245,197,24,.6));
+      display: block;
+      margin-bottom: 10px;
+    }
+    .mwt2026__title {
+      font-family: 'Bebas Neue', 'Impact', sans-serif;
+      font-size: 1.75rem;
+      color: #f5c518;
+      letter-spacing: .08em;
+      line-height: 1.1;
+      margin: 0 0 4px;
+    }
+    .mwt2026__subtitle {
+      font-family: 'DM Sans', 'Segoe UI', sans-serif;
+      font-size: .78rem;
+      color: rgba(255,255,255,.4);
+      letter-spacing: .04em;
+      text-transform: uppercase;
+    }
+
+    /* ── Divider ── */
+    .mwt2026__divider {
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(245,197,24,.25), transparent);
+      margin: 0 0 20px;
+    }
+
+    /* ── Intro text ── */
+    .mwt2026__intro {
+      font-family: 'DM Sans', 'Segoe UI', sans-serif;
+      font-size: .82rem;
+      color: rgba(255,255,255,.5);
+      margin: 0 0 14px;
+      line-height: 1.5;
+    }
+
+    /* ── Lista de condiciones ── */
+    .mwt2026__conditions {
+      list-style: none;
+      padding: 0;
+      margin: 0 0 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .mwt2026__conditions li {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      font-family: 'DM Sans', 'Segoe UI', sans-serif;
+      font-size: .84rem;
+      color: rgba(255,255,255,.8);
+      line-height: 1.5;
+      background: rgba(255,255,255,.04);
+      border: 1px solid rgba(255,255,255,.07);
+      border-radius: 10px;
+      padding: 10px 12px;
+    }
+    .mwt2026__conditions li::before {
+      content: '•';
+      color: #f5c518;
+      font-size: 1.1rem;
+      line-height: 1.4;
+      flex-shrink: 0;
+    }
+
+    /* ── Enlace reglamento ── */
+    .mwt2026__rules-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-family: 'DM Sans', 'Segoe UI', sans-serif;
+      font-size: .84rem;
+      color: #f5c518;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+      cursor: pointer;
+      background: none;
+      border: none;
+      padding: 0;
+      margin: 0 0 22px;
+      transition: color .15s, opacity .15s;
+    }
+    .mwt2026__rules-link:hover { color: #ffe166; opacity: .9; }
+
+    /* ── Checkbox row ── */
+    .mwt2026__check-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      margin-bottom: 24px;
+      cursor: pointer;
+      user-select: none;
+    }
+    .mwt2026__checkbox {
+      width: 20px;
+      height: 20px;
+      min-width: 20px;
+      border: 2px solid rgba(245,197,24,.5);
+      border-radius: 5px;
+      background: rgba(245,197,24,.05);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all .18s;
+      margin-top: 1px;
+      cursor: pointer;
+    }
+    .mwt2026__checkbox.mwt2026__checked {
+      background: #f5c518;
+      border-color: #f5c518;
+    }
+    .mwt2026__checkbox.mwt2026__checked::after {
+      content: '✓';
+      color: #07111f;
+      font-size: .85rem;
+      font-weight: 700;
+      line-height: 1;
+    }
+    .mwt2026__check-label {
+      font-family: 'DM Sans', 'Segoe UI', sans-serif;
+      font-size: .84rem;
+      color: rgba(255,255,255,.75);
+      line-height: 1.4;
+    }
+
+    /* ── Botones ── */
+    .mwt2026__btn-row {
+      display: flex;
+      gap: 10px;
+    }
+    .mwt2026__btn-cancel {
+      flex: 1;
+      padding: 12px 0;
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 10px;
+      color: rgba(255,255,255,.6);
+      font-family: 'DM Sans', 'Segoe UI', sans-serif;
+      font-size: .9rem;
+      cursor: pointer;
+      transition: background .15s, color .15s;
+    }
+    .mwt2026__btn-cancel:hover {
+      background: rgba(255,255,255,.1);
+      color: rgba(255,255,255,.9);
+    }
+    .mwt2026__btn-accept {
+      flex: 2;
+      padding: 12px 0;
+      background: linear-gradient(135deg, #f5c518 0%, #e6a800 100%);
+      border: none;
+      border-radius: 10px;
+      color: #07111f;
+      font-family: 'Bebas Neue', 'Impact', sans-serif;
+      font-size: 1.05rem;
+      letter-spacing: .06em;
+      cursor: pointer;
+      transition: opacity .18s, transform .12s, box-shadow .18s;
+      box-shadow: 0 4px 16px rgba(245,197,24,.3);
+    }
+    .mwt2026__btn-accept:not(:disabled):hover {
+      opacity: .92;
+      box-shadow: 0 6px 24px rgba(245,197,24,.45);
+    }
+    .mwt2026__btn-accept:not(:disabled):active { transform: scale(.97); }
+    .mwt2026__btn-accept:disabled {
+      opacity: .3;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+
+    /* ── MODAL REGLAMENTO ── */
+    .mwt2026__reg-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 99995;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      background: rgba(0,0,0,.88);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+    }
+    .mwt2026__reg-overlay.mwt2026__visible { display: flex; }
+
+    .mwt2026__reg-box {
+      background: linear-gradient(160deg, #080f1c 0%, #0c1a2e 60%, #060c17 100%);
+      border: 1px solid rgba(245,197,24,.25);
+      border-radius: 20px;
+      max-width: 600px;
+      width: 100%;
+      max-height: 88vh;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 32px 80px rgba(0,0,0,.9), 0 0 0 1px rgba(245,197,24,.06);
+      animation: mwt2026__pop .32s cubic-bezier(.34,1.52,.64,1) both;
+      position: relative;
+    }
+
+    .mwt2026__reg-head {
+      padding: 24px 28px 16px;
+      border-bottom: 1px solid rgba(245,197,24,.15);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+    .mwt2026__reg-title {
+      font-family: 'Bebas Neue', 'Impact', sans-serif;
+      font-size: 1.5rem;
+      color: #f5c518;
+      letter-spacing: .07em;
+      margin: 0;
+    }
+    .mwt2026__reg-close {
+      background: rgba(255,255,255,.08);
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 8px;
+      color: rgba(255,255,255,.7);
+      font-size: 1.1rem;
+      width: 34px;
+      height: 34px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background .15s;
+      flex-shrink: 0;
+    }
+    .mwt2026__reg-close:hover { background: rgba(255,255,255,.15); color: #fff; }
+
+    .mwt2026__reg-body {
+      padding: 22px 28px 28px;
+      overflow-y: auto;
+      flex: 1;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(245,197,24,.3) transparent;
+    }
+    .mwt2026__reg-body::-webkit-scrollbar { width: 4px; }
+    .mwt2026__reg-body::-webkit-scrollbar-thumb { background: rgba(245,197,24,.3); border-radius: 4px; }
+
+    /* Secciones del reglamento */
+    .mwt2026__reg-section { margin-bottom: 24px; }
+    .mwt2026__reg-section:last-child { margin-bottom: 0; }
+
+    .mwt2026__reg-section-title {
+      font-family: 'Bebas Neue', 'Impact', sans-serif;
+      font-size: 1.1rem;
+      color: #f5c518;
+      letter-spacing: .07em;
+      margin: 0 0 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .mwt2026__reg-section-title::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: linear-gradient(90deg, rgba(245,197,24,.25), transparent);
+    }
+
+    .mwt2026__reg-p {
+      font-family: 'DM Sans', 'Segoe UI', sans-serif;
+      font-size: .82rem;
+      color: rgba(255,255,255,.7);
+      line-height: 1.6;
+      margin: 0 0 8px;
+    }
+    .mwt2026__reg-p:last-child { margin-bottom: 0; }
+
+    .mwt2026__reg-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .mwt2026__reg-list li {
+      display: flex;
+      gap: 8px;
+      font-family: 'DM Sans', 'Segoe UI', sans-serif;
+      font-size: .82rem;
+      color: rgba(255,255,255,.75);
+      line-height: 1.5;
+    }
+    .mwt2026__reg-list li .mwt2026__bullet {
+      color: #f5c518;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .mwt2026__reg-tag {
+      display: inline-block;
+      background: rgba(245,197,24,.12);
+      border: 1px solid rgba(245,197,24,.2);
+      border-radius: 6px;
+      padding: 2px 8px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: .75rem;
+      color: #f5c518;
+      margin-bottom: 8px;
+    }
+
+    .mwt2026__pts-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-family: 'DM Sans', sans-serif;
+      font-size: .8rem;
+      margin-top: 8px;
+    }
+    .mwt2026__pts-table th {
+      text-align: left;
+      color: rgba(255,255,255,.4);
+      font-size: .72rem;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      padding: 6px 10px;
+      border-bottom: 1px solid rgba(255,255,255,.08);
+    }
+    .mwt2026__pts-table td {
+      padding: 8px 10px;
+      color: rgba(255,255,255,.75);
+      border-bottom: 1px solid rgba(255,255,255,.05);
+      line-height: 1.4;
+    }
+    .mwt2026__pts-table tr:last-child td { border-bottom: none; }
+    .mwt2026__pts-badge {
+      display: inline-block;
+      background: rgba(245,197,24,.15);
+      border: 1px solid rgba(245,197,24,.3);
+      border-radius: 5px;
+      padding: 2px 8px;
+      color: #f5c518;
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: .95rem;
+      letter-spacing: .04em;
+    }
+    .mwt2026__pts-badge--green {
+      background: rgba(76,175,80,.15);
+      border-color: rgba(76,175,80,.3);
+      color: #81c784;
+    }
+
+    .mwt2026__note {
+      background: rgba(245,197,24,.06);
+      border-left: 3px solid rgba(245,197,24,.4);
+      border-radius: 0 8px 8px 0;
+      padding: 10px 14px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: .79rem;
+      color: rgba(255,255,255,.6);
+      line-height: 1.5;
+      margin-top: 10px;
+    }
+    .mwt2026__note strong { color: #f5c518; }
+
+    /* ── Bloqueador de contenido del Mundial ── */
+    .mwt2026__content-lock {
+      position: absolute;
+      inset: 0;
+      z-index: 9500;
+      background: rgba(5,10,20,.75);
+      backdrop-filter: blur(2px);
+      -webkit-backdrop-filter: blur(2px);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      min-height: 200px;
+      border-radius: 12px;
+    }
+    .mwt2026__content-lock p {
+      font-family: 'DM Sans', 'Segoe UI', sans-serif;
+      font-size: .85rem;
+      color: rgba(255,255,255,.55);
+      text-align: center;
+      margin: 0;
+      padding: 0 20px;
+    }
+    .mwt2026__lock-btn {
+      background: linear-gradient(135deg, #f5c518 0%, #e6a800 100%);
+      border: none;
+      border-radius: 10px;
+      color: #07111f;
+      font-family: 'Bebas Neue', 'Impact', sans-serif;
+      font-size: 1rem;
+      letter-spacing: .06em;
+      padding: 10px 24px;
+      cursor: pointer;
+      box-shadow: 0 4px 16px rgba(245,197,24,.3);
+      transition: opacity .15s;
+    }
+    .mwt2026__lock-btn:hover { opacity: .88; }
+
+    /* Posición relativa obligatoria en la sección para que el lock funcione */
+    #sec-mundial { position: relative; }
+    @media (max-width: 540px) {
+      .mwt2026__overlay { align-items: flex-end; padding: 0; }
+      .mwt2026__box {
+        border-radius: 22px 22px 0 0;
+        padding: 28px 20px 36px;
+        max-width: 100%;
+        max-height: 94vh;
+        animation: mwt2026__slide-up .38s cubic-bezier(.34,1.3,.64,1) both;
+      }
+      @keyframes mwt2026__slide-up {
+        from { opacity:0; transform:translateY(100%); }
+        to   { opacity:1; transform:translateY(0); }
+      }
+      .mwt2026__reg-overlay { align-items: flex-end; padding: 0; }
+      .mwt2026__reg-box {
+        border-radius: 22px 22px 0 0;
+        max-width: 100%;
+        max-height: 94vh;
+      }
+      .mwt2026__title { font-size: 1.55rem; }
+      .mwt2026__btn-row { flex-direction: column-reverse; }
+      .mwt2026__btn-accept, .mwt2026__btn-cancel { flex: auto; }
+    }
+  </style>
+
+  <!-- Backdrop compartido para el modal principal -->
+  <div id="mwt2026-backdrop" class="mwt2026__backdrop"></div>
+
+  <!-- ── MODAL PRINCIPAL DE TÉRMINOS ── -->
+  <div id="mwt2026-overlay" class="mwt2026__overlay" role="dialog" aria-modal="true" aria-labelledby="mwt2026-title">
+    <div class="mwt2026__box">
+      <div class="mwt2026__header">
+        <span class="mwt2026__trophy">🏆</span>
+        <h2 class="mwt2026__title" id="mwt2026-title">Mundial 2026</h2>
+        <p class="mwt2026__subtitle">Términos de Participación</p>
+      </div>
+      <div class="mwt2026__divider"></div>
+      <p class="mwt2026__intro">Al ingresar al Mundial 2026, aceptas las siguientes condiciones:</p>
+      <ul class="mwt2026__conditions">
+        <li>Una vez guardado un pronóstico, no podrá modificarse ni eliminarse.</li>
+        <li>Los puntos, clasificaciones y rankings son calculados automáticamente por el sistema.</li>
+        <li>No se realizan devoluciones ni reembolsos por ningún motivo.</li>
+        <li>La plataforma no permite reclamos por errores de interpretación, uso o desconocimiento de las reglas.</li>
+        <li>Al continuar, aceptas las reglas y condiciones de participación del Mundial 2026.</li>
+      </ul>
+      <button class="mwt2026__rules-link" id="mwt2026-open-reg" type="button">
+        📖 Ver reglas completas del Mundial 2026
+      </button>
+      <label class="mwt2026__check-row" for="mwt2026-chk">
+        <div class="mwt2026__checkbox" id="mwt2026-chk-box" role="checkbox" aria-checked="false" tabindex="0"></div>
+        <input type="checkbox" id="mwt2026-chk" style="display:none">
+        <span class="mwt2026__check-label">He leído y acepto los términos de participación.</span>
+      </label>
+      <div class="mwt2026__btn-row">
+        <button class="mwt2026__btn-cancel" id="mwt2026-cancel" type="button">Cancelar</button>
+        <button class="mwt2026__btn-accept" id="mwt2026-accept" type="button" disabled>Aceptar y Continuar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── MODAL REGLAMENTO ── -->
+  <div id="mwt2026-reg-overlay" class="mwt2026__reg-overlay" role="dialog" aria-modal="true" aria-labelledby="mwt2026-reg-title">
+    <div class="mwt2026__reg-box">
+      <div class="mwt2026__reg-head">
+        <h2 class="mwt2026__reg-title" id="mwt2026-reg-title">📋 Reglamento — Sección 12</h2>
+        <button class="mwt2026__reg-close" id="mwt2026-reg-close" type="button" aria-label="Cerrar">✕</button>
+      </div>
+      <div class="mwt2026__reg-body">
+
+        <!-- 12. Acceso al Mundial -->
+        <div class="mwt2026__reg-section">
+          <h3 class="mwt2026__reg-section-title">🔑 Acceso al Mundial</h3>
+          <ul class="mwt2026__reg-list">
+            <li><span class="mwt2026__bullet">⚽</span><span><strong style="color:#f5c518">Miembros y Administradores:</strong> acceso automático y completo.</span></li>
+            <li><span class="mwt2026__bullet">🔒</span><span><strong style="color:rgba(255,255,255,.75)">Invitados:</strong> deben enviar un código de pago para que el administrador lo apruebe. Hasta que sea aprobado, no pueden pronosticar.</span></li>
+          </ul>
+        </div>
+
+        <!-- 12.1 Fase de Grupos -->
+        <div class="mwt2026__reg-section">
+          <h3 class="mwt2026__reg-section-title">🌐 Fase de Grupos — Pronósticos</h3>
+          <span class="mwt2026__reg-tag">Sección 12.1</span>
+          <p class="mwt2026__reg-p">El Mundial 2026 tiene 12 grupos (A al L) con 4 equipos cada uno. Cada grupo juega 6 partidos entre sí. El sistema contiene los 72 partidos de la fase de grupos pre-cargados.</p>
+          <p class="mwt2026__reg-p" style="color:rgba(255,255,255,.5);margin-bottom:8px;font-size:.78rem;text-transform:uppercase;letter-spacing:.04em;">Cómo pronosticar un partido</p>
+          <ul class="mwt2026__reg-list">
+            <li><span class="mwt2026__bullet" style="color:rgba(255,255,255,.35);font-size:.8rem">1.</span><span>Ve a la sección Mundial y selecciona la pestaña de Grupos.</span></li>
+            <li><span class="mwt2026__bullet" style="color:rgba(255,255,255,.35);font-size:.8rem">2.</span><span>Busca el partido que quieres pronosticar.</span></li>
+            <li><span class="mwt2026__bullet" style="color:rgba(255,255,255,.35);font-size:.8rem">3.</span><span>Ingresa los goles que predices para el equipo local.</span></li>
+            <li><span class="mwt2026__bullet" style="color:rgba(255,255,255,.35);font-size:.8rem">4.</span><span>Ingresa los goles que predices para el equipo visitante.</span></li>
+            <li><span class="mwt2026__bullet" style="color:rgba(255,255,255,.35);font-size:.8rem">5.</span><span>El pronóstico se guarda al hacer clic en <strong style="color:#f5c518">Guardar</strong>.</span></li>
+          </ul>
+          <div class="mwt2026__note">⚠️ Solo puedes pronosticar partidos que <strong>NO estén bloqueados</strong>. El administrador bloquea un partido al registrar su resultado oficial.</div>
+        </div>
+
+        <!-- 12.2 Sistema de Puntos Grupos -->
+        <div class="mwt2026__reg-section">
+          <h3 class="mwt2026__reg-section-title">🎯 Sistema de Puntos — Fase de Grupos</h3>
+          <span class="mwt2026__reg-tag">Sección 12.2</span>
+          <table class="mwt2026__pts-table">
+            <thead>
+              <tr><th>Resultado</th><th>Puntos</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Resultado exacto (marcador igual al real)</td>
+                <td><span class="mwt2026__pts-badge--green">3 pts</span></td>
+              </tr>
+              <tr>
+                <td>Ganador correcto (acertaste quién ganó, no el marcador exacto)</td>
+                <td><span class="mwt2026__pts-badge">1 pt</span></td>
+              </tr>
+              <tr>
+                <td>Empate correcto (pronosticaste empate y el partido terminó empatado)</td>
+                <td><span class="mwt2026__pts-badge">1 pt</span></td>
+              </tr>
+              <tr>
+                <td>Resultado incorrecto</td>
+                <td><span style="color:rgba(255,255,255,.35);font-size:.8rem">0 pts</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- 12.3 Fase Eliminatoria -->
+        <div class="mwt2026__reg-section">
+          <h3 class="mwt2026__reg-section-title">🏆 Fase Eliminatoria — Bracket</h3>
+          <span class="mwt2026__reg-tag">Sección 12.3</span>
+          <p class="mwt2026__reg-p">La fase eliminatoria va desde Dieciseisavos hasta la Final. Incluye 32 partidos adicionales (IDs 73 al 104). Puedes pronosticar los resultados de cada partido eliminatorio.</p>
+          <p class="mwt2026__reg-p" style="color:rgba(255,255,255,.5);margin-bottom:8px;font-size:.78rem;text-transform:uppercase;letter-spacing:.04em;">Sistema de Puntos — Fase Eliminatoria</p>
+          <table class="mwt2026__pts-table">
+            <thead>
+              <tr><th>Resultado</th><th>Puntos</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Resultado exacto (sin penales)</td>
+                <td><span class="mwt2026__pts-badge--green">3 pts</span></td>
+              </tr>
+              <tr>
+                <td>Resultado exacto (con empate en tiempo reglamentario) + acertaste ganador en penales</td>
+                <td><span class="mwt2026__pts-badge--green">4 pts</span></td>
+              </tr>
+              <tr>
+                <td>Acertaste el resultado general (ganador o empate, no el marcador exacto)</td>
+                <td><span class="mwt2026__pts-badge">1 pt</span></td>
+              </tr>
+              <tr>
+                <td>Resultado incorrecto</td>
+                <td><span style="color:rgba(255,255,255,.35);font-size:.8rem">0 pts</span></td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="mwt2026__note">ℹ️ <strong>Nota sobre penales:</strong> Si pronosticas empate en un partido eliminatorio, puedes indicar qué equipo gana en penales. Esto solo se tiene en cuenta si el partido efectivamente va a penales.</div>
+        </div>
+
+        <!-- 12.4 Ranking -->
+        <div class="mwt2026__reg-section">
+          <h3 class="mwt2026__reg-section-title">🥇 Ranking y Criterios de Desempate</h3>
+          <span class="mwt2026__reg-tag">Sección 12.4</span>
+          <p class="mwt2026__reg-p">El ranking global suma los puntos de la fase de grupos más los puntos de la fase eliminatoria. Los criterios de desempate son:</p>
+          <ul class="mwt2026__reg-list">
+            <li><span class="mwt2026__bullet">1.</span><span>Mayor cantidad de puntos totales</span></li>
+            <li><span class="mwt2026__bullet">2.</span><span>Mayor cantidad de aciertos en penales</span></li>
+            <li><span class="mwt2026__bullet">3.</span><span>Mayor cantidad de resultados exactos</span></li>
+            <li><span class="mwt2026__bullet">4.</span><span>Mayor cantidad de ganadores acertados</span></li>
+          </ul>
+        </div>
+
+        <!-- 12.5 Tablas de Grupos -->
+        <div class="mwt2026__reg-section">
+          <h3 class="mwt2026__reg-section-title">📊 Tablas de Grupos</h3>
+          <span class="mwt2026__reg-tag">Sección 12.5</span>
+          <p class="mwt2026__reg-p">La tabla de posiciones de cada grupo se actualiza automáticamente cuando el administrador registra resultados. Criterios de clasificación:</p>
+          <ul class="mwt2026__reg-list">
+            <li><span class="mwt2026__bullet">1.</span><span>Puntos</span></li>
+            <li><span class="mwt2026__bullet">2.</span><span>Diferencia de goles</span></li>
+            <li><span class="mwt2026__bullet">3.</span><span>Goles a favor</span></li>
+          </ul>
+        </div>
+
+        <!-- 12.6 Mejores Terceros -->
+        <div class="mwt2026__reg-section">
+          <h3 class="mwt2026__reg-section-title">🔄 Mejores Terceros</h3>
+          <span class="mwt2026__reg-tag">Sección 12.6</span>
+          <p class="mwt2026__reg-p">El sistema calcula automáticamente los 8 mejores terceros de los 12 grupos para completar los cruces de Dieciseisavos. El administrador puede ajustar manualmente qué tercero va en cada cruce.</p>
+        </div>
+
+      </div><!-- /.mwt2026__reg-body -->
+    </div>
+  </div>
+
+  <script>
+  (function() {
+    // ── Claves localStorage (respaldo si BD falla) ──────────────────────
+    var TOS_KEY  = 'mwt2026_tos_accepted_v1';
+
+    // ── Elementos ────────────────────────────────────────────────────────
+    var backdrop   = document.getElementById('mwt2026-backdrop');
+    var overlay    = document.getElementById('mwt2026-overlay');
+    var chkBox     = document.getElementById('mwt2026-chk-box');
+    var chkInput   = document.getElementById('mwt2026-chk');
+    var btnCancel  = document.getElementById('mwt2026-cancel');
+    var btnAccept  = document.getElementById('mwt2026-accept');
+    var btnOpenReg = document.getElementById('mwt2026-open-reg');
+
+    var regOverlay = document.getElementById('mwt2026-reg-overlay');
+    var regClose   = document.getElementById('mwt2026-reg-close');
+
+    // ── ¿Ya aceptó? (caché local: localStorage como respaldo rápido) ─────
+    function yaAceptoLocal() {
+      try { return !!localStorage.getItem(TOS_KEY); } catch(e) { return false; }
+    }
+
+    // ── Verificar en BD; callback(true/false) ────────────────────────────
+    function verificarTosEnBD(callback) {
+      fetch('/api/mundial_tos')
+        .then(function(r) { return r.json(); })
+        .then(function(d) {
+          if (d.accepted) {
+            try { localStorage.setItem(TOS_KEY, '1'); } catch(e) {}
+            callback(true);
+          } else {
+            callback(false);
+          }
+        })
+        .catch(function() {
+          // BD no disponible → usar localStorage como respaldo
+          callback(yaAceptoLocal());
+        });
+    }
+
+    // ── Guardar aceptación: localStorage inmediato + BD ──────────────────
+    function guardarAceptacion(onDone) {
+      try { localStorage.setItem(TOS_KEY, '1'); } catch(e) {}
+      fetch('/api/mundial_tos', { method: 'POST' })
+        .then(function(r) { return r.json(); })
+        .then(function() { onDone(); })
+        .catch(function() { onDone(); }); // localStorage ya guardó, continuar
+    }
+
+    // ── Mostrar / ocultar modal principal ────────────────────────────────
+    function mostrarTerminos() {
+      backdrop.classList.add('mwt2026__visible');
+      overlay.classList.add('mwt2026__visible');
+      document.body.style.overflow = 'hidden';
+      // Activar bloqueo de contenido mientras el modal está abierto
+      activarLock(false);
+    }
+
+    function ocultarTerminos(aceptado) {
+      backdrop.classList.remove('mwt2026__visible');
+      overlay.classList.remove('mwt2026__visible');
+      document.body.style.overflow = '';
+      if (aceptado) {
+        // Aceptó → quitar lock completamente
+        quitarLock();
+      } else {
+        // Canceló → mantener lock con mensaje + botón para volver
+        activarLock(true);
+      }
+    }
+
+    // ── Bloqueo de contenido ─────────────────────────────────────────────
+    var lockEl = null;
+
+    function activarLock(modoCancel) {
+      // Si el lock ya existe, solo actualizar modo
+      if (!lockEl) {
+        lockEl = document.createElement('div');
+        lockEl.className = 'mwt2026__content-lock';
+        lockEl.id = 'mwt2026-content-lock';
+        var sec = document.getElementById('sec-mundial');
+        if (sec) sec.appendChild(lockEl);
+      }
+      if (modoCancel) {
+        lockEl.innerHTML =
+          '<p>🔒 Debes aceptar los términos para acceder a los pronósticos del Mundial 2026.</p>' +
+          '<button class="mwt2026__lock-btn" id="mwt2026-lock-reopen">Ver términos</button>';
+        var reopenBtn = document.getElementById('mwt2026-lock-reopen');
+        if (reopenBtn) {
+          reopenBtn.addEventListener('click', function() {
+            // Resetear checkbox y volver a mostrar modal
+            if (chkBox.classList.contains('mwt2026__checked')) toggleCheck();
+            mostrarTerminos();
+          });
+        }
+      } else {
+        lockEl.innerHTML = '';
+      }
+    }
+
+    function quitarLock() {
+      if (lockEl) { lockEl.remove(); lockEl = null; }
+    }
+
+    // ── Mostrar / ocultar reglamento ─────────────────────────────────────
+    function abrirReglamento() {
+      regOverlay.classList.add('mwt2026__visible');
+      var body = regOverlay.querySelector('.mwt2026__reg-body');
+      if (body) body.scrollTop = 0;
+    }
+
+    function cerrarReglamento() {
+      regOverlay.classList.remove('mwt2026__visible');
+    }
+
+    // ── Lógica del checkbox ──────────────────────────────────────────────
+    function toggleCheck() {
+      var checked = chkBox.classList.toggle('mwt2026__checked');
+      chkBox.setAttribute('aria-checked', checked ? 'true' : 'false');
+      chkInput.checked = checked;
+      btnAccept.disabled = !checked;
+    }
+
+    chkBox.addEventListener('click', toggleCheck);
+    chkBox.addEventListener('keydown', function(e) {
+      if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); toggleCheck(); }
+    });
+    document.getElementById('mwt2026-chk').addEventListener('change', function() {
+      if (!this.checked && chkBox.classList.contains('mwt2026__checked')) toggleCheck();
+    });
+
+    // ── Botones ──────────────────────────────────────────────────────────
+    btnCancel.addEventListener('click', function() {
+      ocultarTerminos(false);           // false = canceló → lock con mensaje
+      // Navegar a inicio
+      if (typeof irSeccion === 'function') irSeccion('inicio');
+    });
+
+    btnAccept.addEventListener('click', function() {
+      if (btnAccept.disabled) return;
+      btnAccept.disabled = true;
+      btnAccept.textContent = '...';
+      guardarAceptacion(function() {
+        ocultarTerminos(true);          // true = aceptó → sin lock
+      });
+    });
+
+    btnOpenReg.addEventListener('click', function(e) {
+      e.preventDefault();
+      abrirReglamento();
+    });
+
+    regClose.addEventListener('click', function() {
+      cerrarReglamento();
+    });
+
+    // Cerrar reglamento con clic fuera del box → regresar al modal principal
+    regOverlay.addEventListener('click', function(e) {
+      if (e.target === regOverlay) cerrarReglamento();
+    });
+
+    // ── API pública: mwCheckTerminos ─────────────────────────────────────
+    // context: 'post_video'  → llamado desde cerrarOverlay (todos los roles)
+    // context: 'post_gate'   → llamado desde gate invitado aprobado
+    // ── API pública: mwCheckTerminos ─────────────────────────────────────
+    // Siempre verifica en BD primero; localStorage actúa solo como caché rápido.
+    // Si localStorage ya dice "aceptado" → skip (evita flash). Si no, consulta BD.
+    window.mwCheckTerminos = function(context) {
+      // Caché local: evitar llamada a BD si ya consta localmente
+      if (yaAceptoLocal()) return;
+
+      // Verificar en BD (fuente de verdad)
+      verificarTosEnBD(function(aceptado) {
+        if (aceptado) return;  // Ya aceptó en BD → flujo normal
+
+        {% if usuario.rol == 'invitado' %}
+        // Invitado: mostrar después del gate (post_gate),
+        // o post_video si ya estaba pre-aprobado (flag del server)
+        if (context === 'post_gate') {
+          mostrarTerminos();
+        } else if (context === 'post_video' && window._mwt2026_invitadoAprobado) {
+          mostrarTerminos();
+        }
+        // post_video sin aprobación → no mostrar todavía (esperar gate)
+        {% else %}
+        // Miembro o Admin: mostrar directamente post_video
+        if (context === 'post_video') {
+          mostrarTerminos();
+        }
+        {% endif %}
+      });
+    };
+
+    // Exposición adicional para llamado externo si se necesita
+    window.mwt2026_mostrarTerminos = mostrarTerminos;
+
   })();
   </script>
 

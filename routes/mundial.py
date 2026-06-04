@@ -984,6 +984,52 @@ def ranking_global():
 
 
 # ══════════════════════════════════════════
+# TÉRMINOS MUNDIAL 2026 — aceptación por usuario
+# ══════════════════════════════════════════
+
+def _ensure_tos_column():
+    """Crea la columna mundial_tos_accepted en usuarios si no existe."""
+    con = get_db()
+    try:
+        con.execute("SAVEPOINT add_col_tos")
+        con.execute("ALTER TABLE usuarios ADD COLUMN mundial_tos_accepted BOOLEAN DEFAULT FALSE")
+        con.execute("RELEASE SAVEPOINT add_col_tos")
+        con.commit()
+    except Exception:
+        con.execute("ROLLBACK TO SAVEPOINT add_col_tos")
+
+
+@mundial_bp.route("/api/mundial_tos", methods=["GET"])
+def mundial_tos_status():
+    """Devuelve si el usuario ya aceptó los términos del Mundial 2026."""
+    if "uid" not in session:
+        return jsonify({"accepted": False}), 401
+    _ensure_tos_column()
+    uid = session["uid"]
+    con = get_db()
+    row = con.execute(
+        "SELECT mundial_tos_accepted FROM usuarios WHERE id=%s", (uid,)
+    ).fetchone()
+    accepted = bool(row and row["mundial_tos_accepted"])
+    return jsonify({"accepted": accepted})
+
+
+@mundial_bp.route("/api/mundial_tos", methods=["POST"])
+def mundial_tos_accept():
+    """Registra la aceptación de los términos del Mundial 2026 en la BD."""
+    if "uid" not in session:
+        return jsonify({"ok": False, "error": "No autenticado"}), 401
+    _ensure_tos_column()
+    uid = session["uid"]
+    con = get_db()
+    con.execute(
+        "UPDATE usuarios SET mundial_tos_accepted=TRUE WHERE id=%s", (uid,)
+    )
+    con.commit()
+    return jsonify({"ok": True})
+
+
+# ══════════════════════════════════════════
 # GATE DEL MUNDIAL — verificación por admin
 # ══════════════════════════════════════════
 
