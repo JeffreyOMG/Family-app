@@ -305,6 +305,15 @@ def init_db():
     except Exception as e:
         print(f"Config warning: {e}")
 
+    # ── Fases de pronósticos: bloqueadas por defecto ─────────────────────────
+    for fase_key in ("fase_lock_grupos", "fase_lock_r16", "fase_lock_octavos",
+                     "fase_lock_cuartos", "fase_lock_semis", "fase_lock_final"):
+        try:
+            pg.run("INSERT INTO config(clave,valor) VALUES(:p1,:p2) ON CONFLICT(clave) DO NOTHING",
+                   p1=fase_key, p2="1")
+        except Exception as e:
+            print(f"Config fase warning: {e}")
+
     for pid, grupo, local, visitante in PARTIDOS_MUNDIAL:
         try:
             pg.run("INSERT INTO partidos_mundial(id,grupo,local,visitante) VALUES(:p1,:p2,:p3,:p4) ON CONFLICT(id) DO NOTHING", p1=pid, p2=grupo, p3=local, p4=visitante)

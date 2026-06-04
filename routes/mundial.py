@@ -4,6 +4,30 @@ from mundial_bracket import generar_bracket
 
 mundial_bp = Blueprint("mundial", __name__)
 
+_FASES = ("grupos", "r16", "octavos", "cuartos", "semis", "final")
+
+def _get_fases_lock(con):
+    """Retorna dict {fase: bool} — True = bloqueada."""
+    resultado = {}
+    for fase in _FASES:
+        row = con.execute("SELECT valor FROM config WHERE clave=%s", (f"fase_lock_{fase}",)).fetchone()
+        resultado[fase] = bool(int(row["valor"])) if row else True
+    return resultado
+
+def _fase_esta_bloqueada(con, fase_key):
+    """Retorna True si la fase está bloqueada."""
+    row = con.execute("SELECT valor FROM config WHERE clave=%s", (f"fase_lock_{fase_key}",)).fetchone()
+    return bool(int(row["valor"])) if row else True
+
+def _fase_de_partido_eli(partido_id):
+    """Mapea id de partido eliminatorio a clave de fase."""
+    if 73 <= partido_id <= 88:   return "r16"
+    if 89 <= partido_id <= 96:   return "octavos"
+    if 97 <= partido_id <= 100:  return "cuartos"
+    if 101 <= partido_id <= 102: return "semis"
+    if 103 <= partido_id <= 104: return "final"
+    return None
+
 @mundial_bp.route("/api/mundial_datos")
 def api_mundial_datos():
     if "uid" not in session:
@@ -107,8 +131,9 @@ def api_mundial_datos():
     except Exception:
         pass
     bracket = generar_bracket(tabla_ordenada)
+    fases_lock = _get_fases_lock(con)
 
-    return jsonify({"partidos": partidos, "tabla": tabla_ordenada, "ranking": ranking, "bracket": bracket})
+    return jsonify({"partidos": partidos, "tabla": tabla_ordenada, "ranking": ranking, "bracket": bracket, "fases_lock": fases_lock})
 
 
 def _back():
@@ -135,6 +160,11 @@ def pronostico():
         return (jsonify({"ok": False, "error": err}), 403) if _is_ajax() else redirect("/")
 
     con = get_db()
+
+    # Verificar que la fase de grupos no esté bloqueada
+    if _fase_esta_bloqueada(con, "grupos"):
+        err = "La fase de Grupos aún no ha sido habilitada por el administrador."
+        return (jsonify({"ok": False, "error": err}), 403) if _is_ajax() else redirect("/")
 
     for key, val in request.form.items():
         if key.startswith("local_"):
@@ -394,12 +424,14 @@ def api_eliminacion_datos():
     terceros_por_grupo = _get_terceros_por_grupo(con)
     mejores_terceros   = _get_mejores_terceros_guardados(con)
     terceros_auto      = _calcular_mejores_terceros_auto(con)
+    fases_lock         = _get_fases_lock(con)
 
     return jsonify({
         "partidos": partidos,
         "terceros_por_grupo": terceros_por_grupo,
         "mejores_terceros": mejores_terceros,
         "terceros_auto": terceros_auto,
+        "fases_lock": fases_lock,
     })
 
 
@@ -832,6 +864,13 @@ def pronostico_eli():
             gv  = request.form.get(f"vis_{pid}", "")
             pen = request.form.get(f"pen_{pid}", "").strip() or None
             if gl.isdigit() and gv.isdigit():
+                # Verificar bloqueo de fase
+                fase_key = _fase_de_partido_eli(pid)
+                if fase_key and _fase_esta_bloqueada(con, fase_key):
+                    nombres = {"r16": "16avos de Final", "octavos": "Octavos", "cuartos": "Cuartos",
+                               "semis": "Semifinales", "final": "Final"}
+                    err = f"La fase de {nombres.get(fase_key, fase_key)} aún no ha sido habilitada por el administrador."
+                    return (jsonify({"ok": False, "error": err}), 403) if _is_ajax() else redirect("/")
                 p = con.execute(
                     "SELECT bloqueado, eq_local, eq_visit FROM partidos_eliminacion WHERE id=%s", (pid,)
                 ).fetchone()

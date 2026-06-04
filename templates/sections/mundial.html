@@ -1429,12 +1429,12 @@
 
     <!-- Sub-tabs de ronda -->
     <div class="pron-ronda-tabs">
-      <button class="ronda-btn active" onclick="pronRonda('grupos-pron', this)">Grupos</button>
-      <button class="ronda-btn" onclick="pronRonda('r16', this)">16avos</button>
-      <button class="ronda-btn" onclick="pronRonda('octavos', this)">Octavos</button>
-      <button class="ronda-btn" onclick="pronRonda('cuartos', this)">Cuartos</button>
-      <button class="ronda-btn" onclick="pronRonda('semis', this)">Semis</button>
-      <button class="ronda-btn" onclick="pronRonda('final', this)">Final</button>
+      <button class="ronda-btn active" id="tab-btn-grupos-pron" onclick="pronRonda('grupos-pron', this)">Grupos</button>
+      <button class="ronda-btn" id="tab-btn-r16" onclick="pronRonda('r16', this)">16avos</button>
+      <button class="ronda-btn" id="tab-btn-octavos" onclick="pronRonda('octavos', this)">Octavos</button>
+      <button class="ronda-btn" id="tab-btn-cuartos" onclick="pronRonda('cuartos', this)">Cuartos</button>
+      <button class="ronda-btn" id="tab-btn-semis" onclick="pronRonda('semis', this)">Semis</button>
+      <button class="ronda-btn" id="tab-btn-final" onclick="pronRonda('final', this)">Final</button>
     </div>
 
     <!-- GRUPOS -->
@@ -1755,7 +1755,46 @@ async function _refreshMundialDatos(tab) {
     const res = await fetch('/api/mundial_datos');
     if (!res.ok) return;
     const data = await res.json();
-    if (tab === 'grupos')  _renderGrupos(data.partidos, data.tabla);
+    // Actualizar estado de fases e iconos de tabs
+    if (data.fases_lock) {
+      _fasesLock = data.fases_lock;
+      _aplicarIconosTabs(_fasesLock);
+    }
+    if (tab === 'grupos') {
+      if (_fasesLock['grupos'] !== false) {
+        const wrap = document.getElementById('pron-ronda-grupos-pron');
+        if (wrap) {
+          // Mostrar aviso de fase bloqueada sobre los formularios de grupos
+          let lockBanner = document.getElementById('grupos-lock-banner');
+          if (!lockBanner) {
+            lockBanner = document.createElement('div');
+            lockBanner.id = 'grupos-lock-banner';
+            lockBanner.style.cssText = 'margin:24px 0 16px;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.3);border-radius:14px;padding:24px;text-align:center;';
+            lockBanner.innerHTML = `
+              <span class="material-symbols-outlined" style="font-size:38px;color:#ef4444;display:block;margin-bottom:10px">lock</span>
+              <div style="font-weight:700;font-size:15px;color:#ef4444;margin-bottom:6px">Fase bloqueada</div>
+              <div style="font-size:13px;color:rgba(255,255,255,.65);line-height:1.55">
+                Esta fase aún no ha sido habilitada por el administrador.<br>
+                Los pronósticos de <strong style="color:rgba(255,255,255,.85)">Fase de Grupos</strong> no están disponibles por ahora.
+              </div>`;
+            wrap.insertBefore(lockBanner, wrap.firstChild);
+          }
+          // Deshabilitar todos los inputs de grupos
+          wrap.querySelectorAll('input[type="number"]').forEach(i => { i.disabled = true; i.style.opacity = '.35'; });
+          wrap.querySelectorAll('button[type="submit"]').forEach(b => { b.disabled = true; b.style.opacity = '.35'; });
+        }
+      } else {
+        // Remover banner si existe y re-habilitar
+        const banner = document.getElementById('grupos-lock-banner');
+        if (banner) banner.remove();
+        const wrap = document.getElementById('pron-ronda-grupos-pron');
+        if (wrap) {
+          wrap.querySelectorAll('input[type="number"]').forEach(i => { i.disabled = false; i.style.opacity = ''; });
+          wrap.querySelectorAll('button[type="submit"]').forEach(b => { b.disabled = false; b.style.opacity = ''; });
+        }
+      }
+      _renderGrupos(data.partidos, data.tabla);
+    }
     if (tab === 'ranking') _renderRanking(data.ranking);
   } catch(e) { console.warn('refresh error', e); }
 }
@@ -1893,12 +1932,32 @@ const _RONDA_IDS = {
 
 let _eliData = null;
 
+// Estado global de fases bloqueadas
+let _fasesLock = { grupos: true, r16: true, octavos: true, cuartos: true, semis: true, final: true };
+
+function _aplicarIconosTabs(lock) {
+  const MAP = { 'grupos-pron': 'grupos', r16: 'r16', octavos: 'octavos', cuartos: 'cuartos', semis: 'semis', final: 'final' };
+  const LABELS = { 'grupos-pron': 'Grupos', r16: '16avos', octavos: 'Octavos', cuartos: 'Cuartos', semis: 'Semis', final: 'Final' };
+  Object.entries(MAP).forEach(([tabId, faseKey]) => {
+    const btn = document.getElementById(`tab-btn-${tabId}`);
+    if (!btn) return;
+    const bloqueada = lock[faseKey] !== false;
+    btn.innerHTML = bloqueada
+      ? `<span class="material-symbols-outlined" style="font-size:13px;vertical-align:-2px;margin-right:3px">lock</span>${LABELS[tabId]}`
+      : LABELS[tabId];
+  });
+}
+
 async function _loadEliminacion(ronda) {
   try {
     const res = await fetch('/api/eliminacion_datos');
     if (!res.ok) return;
     const data = await res.json();
     _eliData = data.partidos;
+    if (data.fases_lock) {
+      _fasesLock = data.fases_lock;
+      _aplicarIconosTabs(_fasesLock);
+    }
     if (ronda) _renderEliRonda(ronda);
     else Object.keys(_RONDA_IDS).forEach(r => _renderEliRonda(r));
   } catch(e) { console.warn('eli error', e); }
@@ -1908,6 +1967,22 @@ function _renderEliRonda(ronda) {
   const ids  = _RONDA_IDS[ronda] || [];
   const wrap = document.getElementById(`pron-eli-${ronda}`);
   if (!wrap || !_eliData) return;
+
+  // ── Fase bloqueada: mostrar aviso y salir ──────────────────────────────
+  if (_fasesLock[ronda] !== false) {
+    const nombres = {r16:'16avos de Final', octavos:'Octavos de Final', cuartos:'Cuartos de Final', semis:'Semifinales', final:'Final'};
+    wrap.innerHTML = `
+      <div style="margin:32px auto;max-width:480px;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.3);border-radius:14px;padding:28px 24px;text-align:center;">
+        <span class="material-symbols-outlined" style="font-size:40px;color:#ef4444;display:block;margin-bottom:12px">lock</span>
+        <div style="font-weight:700;font-size:15px;color:#ef4444;margin-bottom:8px">Fase bloqueada</div>
+        <div style="font-size:13px;color:rgba(255,255,255,.65);line-height:1.55">
+          Esta fase aún no ha sido habilitada por el administrador.<br>
+          Los pronósticos de <strong style="color:rgba(255,255,255,.85)">${nombres[ronda] || ronda}</strong> no están disponibles por ahora.
+        </div>
+      </div>`;
+    return;
+  }
+
   const parts = _eliData.filter(p => ids.includes(p.id));
   if (!parts.length) {
     wrap.innerHTML = '<p style="text-align:center;opacity:.5;padding:30px;">Partidos aún no disponibles</p>'; return;
@@ -2910,6 +2985,12 @@ async function _refreshTodo(silencioso = true) {
 
     _hashGrupos = nuevoHashGrupos;
     _hashEli    = nuevoHashEli;
+
+    // Actualizar estado de fases e iconos de tabs
+    if (mundialData.fases_lock) {
+      _fasesLock = mundialData.fases_lock;
+      _aplicarIconosTabs(_fasesLock);
+    }
 
     // Siempre actualizar cache de datos eli para que estén frescos al cambiar de tab
     if (cambioEli) {

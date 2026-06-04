@@ -381,5 +381,366 @@ function filtrar() {
   });
 }
 </script>
+
+<!-- ══════════════════════════════════════════════
+     CONTROL DE FASES DE PRONÓSTICOS
+════════════════════════════════════════════════ -->
+<style>
+  /* ── Control de Fases ──────────────────────────────────────────────────── */
+  .fase-ctrl-section { padding: 0 24px 56px; }
+  .fase-ctrl-section h2 { font-size: 15px; font-weight: 700; margin-bottom: 6px; display: flex; align-items: center; gap: 8px; }
+  .fase-ctrl-subtitle { font-size: 12px; color: var(--text3); margin-bottom: 20px; }
+  .fase-ctrl-list { display: flex; flex-direction: column; gap: 10px; }
+
+  /* Tarjeta principal de cada fase */
+  .fase-card {
+    background: var(--surface1);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+    transition: border-color .2s;
+  }
+  .fase-card.locked   { border-color: rgba(239,68,68,.35); }
+  .fase-card.unlocked { border-color: rgba(34,197,94,.35); }
+
+  /* Fila superior (header) */
+  .fase-card-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 18px; gap: 12px; cursor: pointer; user-select: none;
+  }
+  .fase-card-left { display: flex; align-items: center; gap: 11px; flex: 1; min-width: 0; }
+  .fase-icon {
+    width: 34px; height: 34px; border-radius: 8px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .fase-icon.locked   { background: rgba(239,68,68,.12); color: #ef4444; }
+  .fase-icon.unlocked { background: rgba(34,197,94,.12); color: #22c55e; }
+  .fase-meta { min-width: 0; }
+  .fase-label { font-size: 13px; font-weight: 700; white-space: nowrap; }
+  .fase-status { font-size: 11px; margin-top: 2px; }
+  .fase-status.locked   { color: #ef4444; }
+  .fase-status.unlocked { color: #22c55e; }
+
+  /* Botón "Ver partidos" */
+  .fase-preview-btn {
+    display: flex; align-items: center; gap: 5px;
+    font-size: 11px; font-weight: 600; color: var(--text2);
+    background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.08);
+    border-radius: 7px; padding: 5px 10px; cursor: pointer;
+    transition: background .15s, color .15s; white-space: nowrap; flex-shrink: 0;
+  }
+  .fase-preview-btn:hover { background: rgba(255,255,255,.1); color: #fff; }
+  .fase-preview-btn .material-symbols-outlined { font-size: 14px; transition: transform .2s; }
+  .fase-preview-btn.open .material-symbols-outlined { transform: rotate(180deg); }
+
+  /* Toggle switch */
+  .toggle-wrap { display: flex; align-items: center; flex-shrink: 0; }
+  .toggle-input { display: none; }
+  .toggle-label {
+    width: 46px; height: 26px; background: rgba(239,68,68,.3);
+    border-radius: 13px; cursor: pointer; position: relative;
+    transition: background .25s; border: 1px solid rgba(239,68,68,.4);
+  }
+  .toggle-label::after {
+    content: ''; position: absolute; top: 3px; left: 3px;
+    width: 18px; height: 18px; border-radius: 50%;
+    background: #ef4444; transition: transform .25s, background .25s;
+  }
+  .toggle-input:checked + .toggle-label { background: rgba(34,197,94,.25); border-color: rgba(34,197,94,.4); }
+  .toggle-input:checked + .toggle-label::after { transform: translateX(20px); background: #22c55e; }
+
+  /* Panel expandible de partidos */
+  .fase-partidos-panel {
+    display: none; border-top: 1px solid rgba(255,255,255,.06);
+    padding: 16px 18px; background: rgba(0,0,0,.15);
+  }
+  .fase-partidos-panel.open { display: block; }
+  .fase-partidos-loading { color: var(--text3); font-size: 12px; padding: 8px 0; }
+
+  /* Tabla de cruces */
+  .fase-match-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .fase-match-table th {
+    text-align: left; color: var(--text3); font-weight: 600; font-size: 11px;
+    text-transform: uppercase; letter-spacing: .04em;
+    padding: 0 8px 8px; border-bottom: 1px solid rgba(255,255,255,.07);
+  }
+  .fase-match-table td { padding: 7px 8px; border-bottom: 1px solid rgba(255,255,255,.04); vertical-align: middle; }
+  .fase-match-table tr:last-child td { border-bottom: none; }
+  .fase-match-row:hover td { background: rgba(255,255,255,.03); }
+  .fase-team { display: flex; align-items: center; gap: 6px; }
+  .fase-team-name { font-weight: 600; color: rgba(255,255,255,.88); }
+  .fase-vs { color: var(--text3); font-size: 10px; font-weight: 700; padding: 0 4px; }
+  .fase-slot { color: var(--text3); font-style: italic; font-size: 11px; }
+  .fase-result { font-family: monospace; font-size: 12px; font-weight: 700;
+    background: rgba(245,197,24,.1); border: 1px solid rgba(245,197,24,.25);
+    border-radius: 5px; padding: 2px 7px; color: #f5c518; white-space: nowrap; }
+  .fase-result-pending { color: var(--text3); font-size: 11px; }
+  .fase-match-id { color: var(--text3); font-size: 10px; font-family: monospace; }
+  .fase-grupo-tag { display: inline-block; background: rgba(255,255,255,.07);
+    border-radius: 4px; padding: 1px 5px; font-size: 10px; color: var(--text2); margin-right: 4px; }
+</style>
+
+<div class="fase-ctrl-section">
+  <h2>
+    <span class="material-symbols-outlined" style="font-size:18px">lock</span>
+    Control de Fases de Pronósticos
+  </h2>
+  <p class="fase-ctrl-subtitle">Verifica los cruces de cada fase antes de desbloquear. Si una fase está bloqueada, los usuarios no pueden guardar pronósticos en ella.</p>
+  <div class="fase-ctrl-list" id="fase-ctrl-list">
+    <div style="color:var(--text3);font-size:13px;padding:12px 0;">Cargando fases…</div>
+  </div>
+</div>
+
+<script>
+(async function() {
+  const FASES = [
+    { key: 'grupos',  label: 'Fase de Grupos',   eliKey: null },
+    { key: 'r16',     label: '16avos de Final',   eliKey: 'Dieciseisavos' },
+    { key: 'octavos', label: 'Octavos de Final',  eliKey: 'Octavos' },
+    { key: 'cuartos', label: 'Cuartos de Final',  eliKey: 'Cuartos' },
+    { key: 'semis',   label: 'Semifinales',        eliKey: 'Semifinales' },
+    { key: 'final',   label: 'Final',              eliKey: 'Final' },
+  ];
+
+  const list = document.getElementById('fase-ctrl-list');
+
+  // Cache de datos
+  let _mundialData = null;
+  let _eliData     = null;
+  let _openPanels  = new Set();
+
+  async function fetchDatos() {
+    try {
+      const [r1, r2] = await Promise.all([
+        fetch('/api/mundial_datos'),
+        fetch('/api/eliminacion_datos'),
+      ]);
+      if (r1.ok) _mundialData = await r1.json();
+      if (r2.ok) _eliData     = await r2.json();
+    } catch(e) { /* silencioso */ }
+  }
+
+  async function cargarFases() {
+    try {
+      await fetchDatos();
+      const r = await fetch('/admin/fases_lock');
+      const lockData = await r.json();
+      renderFases(lockData);
+    } catch(e) {
+      list.innerHTML = '<div style="color:var(--text3);font-size:13px;">Error al cargar fases.</div>';
+    }
+  }
+
+  function renderFases(lockData) {
+    list.innerHTML = FASES.map(f => {
+      const bloqueada  = lockData[f.key] !== false;
+      const cls        = bloqueada ? 'locked' : 'unlocked';
+      const iconName   = bloqueada ? 'lock' : 'lock_open';
+      const statusTxt  = bloqueada ? 'Bloqueada' : 'Habilitada';
+      const panelOpen  = _openPanels.has(f.key) ? 'open' : '';
+      const btnOpen    = _openPanels.has(f.key) ? 'open' : '';
+      return `
+        <div class="fase-card ${cls}" id="fase-card-${f.key}">
+          <div class="fase-card-header" onclick="togglePanel('${f.key}')">
+            <div class="fase-card-left">
+              <div class="fase-icon ${cls}" id="fase-icon-${f.key}">
+                <span class="material-symbols-outlined" style="font-size:17px" id="fase-iconname-${f.key}">${iconName}</span>
+              </div>
+              <div class="fase-meta">
+                <div class="fase-label">${f.label}</div>
+                <div class="fase-status ${cls}" id="fase-status-${f.key}">${statusTxt}</div>
+              </div>
+            </div>
+            <button class="fase-preview-btn ${btnOpen}" id="fase-preview-btn-${f.key}" onclick="event.stopPropagation();togglePanel('${f.key}')">
+              <span class="material-symbols-outlined">expand_more</span>
+              Ver partidos
+            </button>
+            <div class="toggle-wrap" onclick="event.stopPropagation()">
+              <input type="checkbox" class="toggle-input" id="toggle-${f.key}"
+                ${bloqueada ? '' : 'checked'}
+                onchange="toggleFase('${f.key}', this.checked)">
+              <label class="toggle-label" for="toggle-${f.key}"></label>
+            </div>
+          </div>
+          <div class="fase-partidos-panel ${panelOpen}" id="fase-panel-${f.key}">
+            <div class="fase-partidos-loading">Cargando partidos…</div>
+          </div>
+        </div>`;
+    }).join('');
+
+    // Re-renderizar paneles abiertos
+    _openPanels.forEach(key => {
+      const fase = FASES.find(f => f.key === key);
+      if (fase) renderPanel(fase);
+    });
+  }
+
+  window.togglePanel = function(key) {
+    const panel  = document.getElementById(`fase-panel-${key}`);
+    const btn    = document.getElementById(`fase-preview-btn-${key}`);
+    if (!panel) return;
+    const isOpen = panel.classList.contains('open');
+    if (isOpen) {
+      panel.classList.remove('open');
+      btn && btn.classList.remove('open');
+      _openPanels.delete(key);
+    } else {
+      panel.classList.add('open');
+      btn && btn.classList.add('open');
+      _openPanels.add(key);
+      const fase = FASES.find(f => f.key === key);
+      if (fase) renderPanel(fase);
+    }
+  };
+
+  function renderPanel(fase) {
+    const panel = document.getElementById(`fase-panel-${fase.key}`);
+    if (!panel || !panel.classList.contains('open')) return;
+
+    if (fase.key === 'grupos') {
+      renderPanelGrupos(panel);
+    } else {
+      renderPanelEli(panel, fase);
+    }
+  }
+
+  function _flagImg(cod) {
+    if (!cod || cod === 'xx') return '';
+    return `<span class="fi fi-${cod} fis" style="width:18px;height:14px;border-radius:3px;flex-shrink:0"></span>`;
+  }
+
+  function renderPanelGrupos(panel) {
+    if (!_mundialData) { panel.innerHTML = '<div class="fase-partidos-loading">Sin datos aún.</div>'; return; }
+    const partidos = _mundialData.partidos || [];
+    if (!partidos.length) { panel.innerHTML = '<div class="fase-partidos-loading">No hay partidos cargados.</div>'; return; }
+
+    // Agrupar por grupo
+    const grupos = {};
+    partidos.forEach(p => {
+      if (!grupos[p.grupo]) grupos[p.grupo] = [];
+      grupos[p.grupo].push(p);
+    });
+
+    const totalPartidos = partidos.length;
+    const jugados = partidos.filter(p => p.bloqueado && p.goles_local !== null).length;
+
+    let html = `<div style="display:flex;gap:16px;margin-bottom:14px;flex-wrap:wrap">
+      <span style="font-size:11px;color:var(--text3)"><strong style="color:rgba(255,255,255,.75)">${totalPartidos}</strong> partidos totales</span>
+      <span style="font-size:11px;color:var(--text3)"><strong style="color:#22c55e">${jugados}</strong> jugados</span>
+      <span style="font-size:11px;color:var(--text3)"><strong style="color:rgba(255,255,255,.5)">${totalPartidos - jugados}</strong> pendientes</span>
+    </div>`;
+
+    Object.entries(grupos).forEach(([letra, ps]) => {
+      html += `<div style="margin-bottom:14px">
+        <div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Grupo ${letra}</div>
+        <table class="fase-match-table">
+          <thead><tr>
+            <th>#</th><th>Local</th><th style="text-align:center">VS</th><th>Visitante</th><th style="text-align:right">Resultado</th>
+          </tr></thead>
+          <tbody>
+          ${ps.map(p => {
+            const result = (p.bloqueado && p.goles_local !== null)
+              ? `<span class="fase-result">${p.goles_local} – ${p.goles_visitante}</span>`
+              : `<span class="fase-result-pending">Pendiente</span>`;
+            return `<tr class="fase-match-row">
+              <td class="fase-match-id">${p.id}</td>
+              <td><div class="fase-team">${_flagImg(p.codigo_local)}<span class="fase-team-name">${p.local}</span></div></td>
+              <td style="text-align:center"><span class="fase-vs">VS</span></td>
+              <td><div class="fase-team">${_flagImg(p.codigo_visitante)}<span class="fase-team-name">${p.visitante}</span></div></td>
+              <td style="text-align:right">${result}</td>
+            </tr>`;
+          }).join('')}
+          </tbody>
+        </table>
+      </div>`;
+    });
+
+    panel.innerHTML = html;
+  }
+
+  function renderPanelEli(panel, fase) {
+    const partidos = (_eliData && _eliData.partidos) || [];
+    const ps = partidos.filter(p => p.fase === fase.eliKey ||
+      // "Final" incluye también "Tercer puesto" para que admin vea todo
+      (fase.key === 'final' && (p.fase === 'Final' || p.fase === 'Tercer puesto')));
+
+    if (!ps.length) {
+      panel.innerHTML = `<div class="fase-partidos-loading">Partidos aún no disponibles para esta fase.</div>`;
+      return;
+    }
+
+    const totalPs  = ps.length;
+    const conEquipos = ps.filter(p => p.eq_local && p.eq_visit).length;
+    const jugados  = ps.filter(p => p.bloqueado && p.goles_local !== null).length;
+
+    let html = `<div style="display:flex;gap:16px;margin-bottom:14px;flex-wrap:wrap">
+      <span style="font-size:11px;color:var(--text3)"><strong style="color:rgba(255,255,255,.75)">${totalPs}</strong> partidos</span>
+      <span style="font-size:11px;color:var(--text3)"><strong style="color:${conEquipos===totalPs?'#22c55e':'#f5c518'}">${conEquipos}/${totalPs}</strong> con equipos asignados</span>
+      <span style="font-size:11px;color:var(--text3)"><strong style="color:#22c55e">${jugados}</strong> jugados</span>
+    </div>`;
+
+    html += `<table class="fase-match-table">
+      <thead><tr>
+        <th>#</th><th>Local</th><th style="text-align:center">VS</th><th>Visitante</th><th style="text-align:right">Resultado</th>
+      </tr></thead>
+      <tbody>
+      ${ps.map(p => {
+        const localTxt = p.eq_local
+          ? `<div class="fase-team">${_flagImg(p.cod_local)}<span class="fase-team-name">${p.eq_local}</span></div>`
+          : `<span class="fase-slot">${p.slot_local || '?'}</span>`;
+        const visitTxt = p.eq_visit
+          ? `<div class="fase-team">${_flagImg(p.cod_visit)}<span class="fase-team-name">${p.eq_visit}</span></div>`
+          : `<span class="fase-slot">${p.slot_visit || '?'}</span>`;
+        const jugado = p.bloqueado && p.goles_local !== null;
+        let resultHtml;
+        if (jugado) {
+          const penInfo = p.penales_ganador ? ` <span style="font-size:10px;color:var(--text3)">(Pen: ${p.penales_ganador})</span>` : '';
+          resultHtml = `<span class="fase-result">${p.goles_local} – ${p.goles_visit}</span>${penInfo}`;
+        } else if (p.eq_local && p.eq_visit) {
+          resultHtml = `<span class="fase-result-pending">Sin resultado</span>`;
+        } else {
+          resultHtml = `<span class="fase-result-pending" style="color:rgba(239,68,68,.6)">Sin equipos</span>`;
+        }
+        return `<tr class="fase-match-row">
+          <td class="fase-match-id">${p.id}</td>
+          <td>${localTxt}</td>
+          <td style="text-align:center"><span class="fase-vs">VS</span></td>
+          <td>${visitTxt}</td>
+          <td style="text-align:right">${resultHtml}</td>
+        </tr>`;
+      }).join('')}
+      </tbody>
+    </table>`;
+
+    panel.innerHTML = html;
+  }
+
+  window.toggleFase = async function(fase, habilitada) {
+    const estado = habilitada ? '0' : '1';
+    const r = await post('/admin/fases_lock', { fase, estado });
+    if (r.ok) {
+      const bloqueada  = estado === '1';
+      const cls        = bloqueada ? 'locked' : 'unlocked';
+      const iconName   = bloqueada ? 'lock' : 'lock_open';
+      const statusTxt  = bloqueada ? 'Bloqueada' : 'Habilitada';
+      const card       = document.getElementById(`fase-card-${fase}`);
+      const status     = document.getElementById(`fase-status-${fase}`);
+      const iconEl     = document.getElementById(`fase-icon-${fase}`);
+      const iconSpan   = document.getElementById(`fase-iconname-${fase}`);
+      card.className      = `fase-card ${cls}`;
+      iconEl.className    = `fase-icon ${cls}`;
+      iconSpan.textContent = iconName;
+      status.className    = `fase-status ${cls}`;
+      status.textContent  = statusTxt;
+      showToast(r.msg, true);
+    } else {
+      showToast(r.msg || 'Error', false);
+      document.getElementById(`toggle-${fase}`).checked = !habilitada;
+    }
+  };
+
+  cargarFases();
+})();
+</script>
 </body>
 </html>

@@ -103,3 +103,40 @@ def mundial_verificar():
     con.execute("UPDATE usuarios SET mundial_pagado=%s WHERE id=%s", (nuevo_estado, uid))
     con.commit()
     return jsonify(ok=True, msg=f"Usuario {'aprobado' if accion=='aprobar' else 'rechazado'} para el mundial")
+
+
+# ── Control de fases de pronósticos ─────────────────────────────────────────
+
+FASES_VALIDAS = ("grupos", "r16", "octavos", "cuartos", "semis", "final")
+
+
+@admin_bp.route("/admin/fases_lock")
+@admin_required
+def fases_lock_get():
+    """Devuelve el estado de bloqueo de todas las fases."""
+    con = get_db()
+    resultado = {}
+    for fase in FASES_VALIDAS:
+        row = con.execute("SELECT valor FROM config WHERE clave=%s", (f"fase_lock_{fase}",)).fetchone()
+        resultado[fase] = bool(int(row["valor"])) if row else True
+    return jsonify(resultado)
+
+
+@admin_bp.route("/admin/fases_lock", methods=["POST"])
+@admin_required
+def fases_lock_set():
+    """Bloquea o desbloquea una fase."""
+    fase   = request.form.get("fase", "").strip()
+    estado = request.form.get("estado", "1").strip()  # "1" = bloqueado, "0" = desbloqueado
+    if fase not in FASES_VALIDAS:
+        return jsonify(ok=False, msg="Fase inválida"), 400
+    if estado not in ("0", "1"):
+        return jsonify(ok=False, msg="Estado inválido"), 400
+    con = get_db()
+    con.execute("""
+        INSERT INTO config(clave, valor) VALUES(%s, %s)
+        ON CONFLICT(clave) DO UPDATE SET valor=excluded.valor
+    """, (f"fase_lock_{fase}", estado))
+    con.commit()
+    accion = "bloqueada" if estado == "1" else "desbloqueada"
+    return jsonify(ok=True, msg=f"Fase {fase} {accion}")
