@@ -1662,6 +1662,12 @@
                   <span class="material-symbols-outlined">{{ 'edit' if p.bloqueado else 'check_circle' }}</span>
                   {{ 'Editar' if p.bloqueado else 'Guardar' }}
                 </button>
+                {% if p.bloqueado %}
+                <button type="button" class="admin-btn-reset" onclick="resetarPartidoMundial({{ p.id }})" title="Borrar resultado y desbloquear este partido">
+                  <span class="material-symbols-outlined">restart_alt</span>
+                  Resetear
+                </button>
+                {% endif %}
               </div>
               {% if p.bloqueado %}
               <div class="admin-status-jugado">
@@ -2286,6 +2292,7 @@ function _adminEliCardHTML(p) {
           <span class="material-symbols-outlined">${p.bloqueado?'edit':'check_circle'}</span>
           ${p.bloqueado?'Editar':'Guardar'}
         </button>
+        ${p.bloqueado?`<button type="button" class="admin-btn-reset" onclick="resetarPartidoMundial(${p.id})" title="Borrar resultado y desbloquear este partido"><span class="material-symbols-outlined">restart_alt</span> Resetear</button>`:''}
       </div>
       <div class="admin-pen-sel" id="admin-pen-${p.id}" style="display:${(p.goles_local===p.goles_visit && p.goles_local!==null)?'block':'none'};">
         <div class="admin-pen-label"><span class="material-symbols-outlined">sports_score</span> ¿Quién ganó en penales?</div>
@@ -3061,4 +3068,23 @@ document.addEventListener('DOMContentLoaded', () => {
   _refreshTodo(true);
   _iniciarPolling();
 });
+
+// ── Resetear partido individual (admin) ──────────────────────────────────
+window.resetarPartidoMundial = async function(partidoId) {
+  if (!confirm(`¿Resetear el partido #${partidoId}?\n\nEsto borrará el resultado, desbloqueará el partido y pondrá los puntos de pronósticos a 0.`)) return;
+  try {
+    const fd = new FormData();
+    fd.append('partido_id', partidoId);
+    const r = await fetch('/admin_desbloquear', { method: 'POST', body: fd });
+    const data = await r.json();
+    if (data.ok) {
+      mostrarToast('✅ Partido #' + partidoId + ' reseteado');
+      await _refreshTodo(false);
+    } else {
+      mostrarToast('❌ ' + (data.msg || 'Error al resetear'), 'error');
+    }
+  } catch(e) {
+    mostrarToast('❌ Error de conexión', 'error');
+  }
+};
 </script>

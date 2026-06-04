@@ -471,6 +471,16 @@ function filtrar() {
   .fase-team-name { font-weight: 600; color: rgba(255,255,255,.88); }
   .fase-vs { color: var(--text3); font-size: 10px; font-weight: 700; padding: 0 4px; }
   .fase-slot { color: var(--text3); font-style: italic; font-size: 11px; }
+  .btn-reset-partido {
+    display: inline-flex; align-items: center; gap: 3px;
+    font-size: 10px; font-weight: 600; padding: 3px 7px;
+    border-radius: 6px; border: 1px solid rgba(239,68,68,.4);
+    color: var(--red, #ef4444); background: transparent;
+    cursor: pointer; transition: background .15s;
+    white-space: nowrap;
+  }
+  .btn-reset-partido:hover { background: rgba(239,68,68,.12); }
+  .btn-reset-partido .material-symbols-outlined { font-size: 12px; }
   .fase-result { font-family: monospace; font-size: 12px; font-weight: 700;
     background: rgba(245,197,24,.1); border: 1px solid rgba(245,197,24,.25);
     border-radius: 5px; padding: 2px 7px; color: #f5c518; white-space: nowrap; }
@@ -635,19 +645,26 @@ function filtrar() {
         <div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Grupo ${letra}</div>
         <table class="fase-match-table">
           <thead><tr>
-            <th>#</th><th>Local</th><th style="text-align:center">VS</th><th>Visitante</th><th style="text-align:right">Resultado</th>
+            <th>#</th><th>Local</th><th style="text-align:center">VS</th><th>Visitante</th><th style="text-align:right">Resultado</th><th style="text-align:center">Acción</th>
           </tr></thead>
           <tbody>
           ${ps.map(p => {
-            const result = (p.bloqueado && p.goles_local !== null)
+            const jugado = p.bloqueado && p.goles_local !== null;
+            const result = jugado
               ? `<span class="fase-result">${p.goles_local} – ${p.goles_visitante}</span>`
               : `<span class="fase-result-pending">Pendiente</span>`;
+            const accionBtn = jugado
+              ? `<button class="btn-reset-partido" onclick="resetarPartido(${p.id}, 'grupos')" title="Borrar resultado y desbloquear este partido">
+                   <span class="material-symbols-outlined">restart_alt</span> Resetear
+                 </button>`
+              : `<span style="color:var(--text3);font-size:10px">—</span>`;
             return `<tr class="fase-match-row">
               <td class="fase-match-id">${p.id}</td>
               <td><div class="fase-team">${_flagImg(p.codigo_local)}<span class="fase-team-name">${p.local}</span></div></td>
               <td style="text-align:center"><span class="fase-vs">VS</span></td>
               <td><div class="fase-team">${_flagImg(p.codigo_visitante)}<span class="fase-team-name">${p.visitante}</span></div></td>
               <td style="text-align:right">${result}</td>
+              <td style="text-align:center">${accionBtn}</td>
             </tr>`;
           }).join('')}
           </tbody>
@@ -681,7 +698,7 @@ function filtrar() {
 
     html += `<table class="fase-match-table">
       <thead><tr>
-        <th>#</th><th>Local</th><th style="text-align:center">VS</th><th>Visitante</th><th style="text-align:right">Resultado</th>
+        <th>#</th><th>Local</th><th style="text-align:center">VS</th><th>Visitante</th><th style="text-align:right">Resultado</th><th style="text-align:center">Acción</th>
       </tr></thead>
       <tbody>
       ${ps.map(p => {
@@ -701,12 +718,18 @@ function filtrar() {
         } else {
           resultHtml = `<span class="fase-result-pending" style="color:rgba(239,68,68,.6)">Sin equipos</span>`;
         }
+        const accionBtn = jugado
+          ? `<button class="btn-reset-partido" onclick="resetarPartido(${p.id}, 'eli')" title="Borrar resultado y desbloquear este partido">
+               <span class="material-symbols-outlined">restart_alt</span> Resetear
+             </button>`
+          : `<span style="color:var(--text3);font-size:10px">—</span>`;
         return `<tr class="fase-match-row">
           <td class="fase-match-id">${p.id}</td>
           <td>${localTxt}</td>
           <td style="text-align:center"><span class="fase-vs">VS</span></td>
           <td>${visitTxt}</td>
           <td style="text-align:right">${resultHtml}</td>
+          <td style="text-align:center">${accionBtn}</td>
         </tr>`;
       }).join('')}
       </tbody>
@@ -736,6 +759,37 @@ function filtrar() {
     } else {
       showToast(r.msg || 'Error', false);
       document.getElementById(`toggle-${fase}`).checked = !habilitada;
+    }
+  };
+
+  window.resetarPartido = async function(partidoId, tipo) {
+    if (!confirm(`¿Resetear el partido #${partidoId}?\n\nEsto borrará el resultado, desbloqueará el partido y pondrá los puntos de pronósticos a 0.`)) return;
+    try {
+      const fd = new FormData();
+      fd.append('partido_id', partidoId);
+      const r = await fetch('/admin_desbloquear', { method: 'POST', body: fd });
+      const data = await r.json();
+      if (data.ok) {
+        showToast(`✅ Partido #${partidoId} reseteado correctamente`, true);
+        // Refrescar datos y re-renderizar
+        await fetchDatos();
+        const lockR = await fetch('/admin/fases_lock');
+        const lockData = await lockR.json();
+        renderFases(lockData);
+        // Reabrir los paneles que estaban abiertos
+        _openPanels.forEach(key => {
+          const panel = document.getElementById(`fase-panel-${key}`);
+          if (panel) {
+            panel.classList.add('open');
+            const fase = FASES.find(f => f.key === key);
+            if (fase) renderPanel(fase);
+          }
+        });
+      } else {
+        showToast(data.msg || 'Error al resetear', false);
+      }
+    } catch(e) {
+      showToast('Error de conexión', false);
     }
   };
 

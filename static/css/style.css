@@ -3899,6 +3899,27 @@ body.dark-mode .tab-btn-admin.active {
   border: 1.5px solid var(--border);
 }
 
+.admin-btn-reset {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1.5px solid rgba(239,68,68,.45);
+  background: transparent;
+  color: #ef4444;
+  font-weight: 700;
+  font-size: .82rem;
+  cursor: pointer;
+  transition: background .18s, transform .1s;
+  white-space: nowrap;
+}
+.admin-btn-reset:hover { background: rgba(239,68,68,.12); }
+.admin-btn-reset:active { transform: scale(.97); }
+.admin-btn-reset .material-symbols-outlined { font-size: 16px; }
+
 .admin-btn-edit:hover {
   background: #f59e0b;
   color: #fff;
