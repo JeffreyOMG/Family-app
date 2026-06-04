@@ -125,6 +125,15 @@ def pronostico():
         return (jsonify({"ok": False}), 401) if _is_ajax() else redirect("/")
 
     uid = session["uid"]
+    rol = session.get("rol", "invitado")
+
+    # Validación server-side: acceso aprobado + términos aceptados
+    ok, motivo = _usuario_puede_pronosticar(uid, rol)
+    if not ok:
+        err = {"tos_no_aceptados": "Debes aceptar los términos del Mundial 2026 antes de pronosticar.",
+               "acceso_no_aprobado": "Tu acceso al Mundial aún no ha sido aprobado."}.get(motivo, "Acceso denegado.")
+        return (jsonify({"ok": False, "error": err}), 403) if _is_ajax() else redirect("/")
+
     con = get_db()
 
     for key, val in request.form.items():
@@ -802,7 +811,17 @@ def admin_restablecer_terceros():
 def pronostico_eli():
     if "uid" not in session:
         return (jsonify({"ok": False}), 401) if _is_ajax() else redirect("/")
+
     uid = session["uid"]
+    rol = session.get("rol", "invitado")
+
+    # Validación server-side: acceso aprobado + términos aceptados
+    ok, motivo = _usuario_puede_pronosticar(uid, rol)
+    if not ok:
+        err = {"tos_no_aceptados": "Debes aceptar los términos del Mundial 2026 antes de pronosticar.",
+               "acceso_no_aprobado": "Tu acceso al Mundial aún no ha sido aprobado."}.get(motivo, "Acceso denegado.")
+        return (jsonify({"ok": False, "error": err}), 403) if _is_ajax() else redirect("/")
+
     con = get_db()
     _ensure_eliminacion_table(con)
 
@@ -984,49 +1003,138 @@ def ranking_global():
 
 
 # ══════════════════════════════════════════
-# TÉRMINOS MUNDIAL 2026 — aceptación por usuario
+# TÉRMINOS MUNDIAL 2026 — aceptación con audit trail
 # ══════════════════════════════════════════
 
-def _ensure_tos_column():
-    """Crea la columna mundial_tos_accepted en usuarios si no existe."""
+# Versión activa del reglamento — incrementar si cambian las reglas
+# para forzar nueva aceptación a todos los usuarios.
+MUNDIAL_TOS_VERSION = "2026-v1"
+
+
+def _ensure_tos_schema():
+    """
+    Crea/migra las estructuras necesarias para TOS:
+      - Columna mundial_tos_accepted en usuarios (caché rápido para gate)
+      - Tabla mundial_tos_log (audit trail completo: userId, fecha, versión, IP)
+    """
     con = get_db()
-    try:
-        con.execute("SAVEPOINT add_col_tos")
-        con.execute("ALTER TABLE usuarios ADD COLUMN mundial_tos_accepted BOOLEAN DEFAULT FALSE")
-        con.execute("RELEASE SAVEPOINT add_col_tos")
-        con.commit()
-    except Exception:
-        con.execute("ROLLBACK TO SAVEPOINT add_col_tos")
+
+    def _col(table, column, definition):
+        try:
+            con.execute(f"SAVEPOINT add_col_{column}")
+            con.execute(f"ALTER TABLE {table} ADD COLUMN {column} {definition}")
+            con.execute(f"RELEASE SAVEPOINT add_col_{column}")
+            con.commit()
+        except Exception:
+            con.execute(f"ROLLBACK TO SAVEPOINT add_col_{column}")
+
+    _col("usuarios", "mundial_tos_accepted",    "BOOLEAN DEFAULT FALSE")
+    _col("usuarios", "mundial_tos_version",     "TEXT DEFAULT NULL")
+    _col("usuarios", "mundial_tos_fecha",       "TIMESTAMPTZ DEFAULT NULL")
+
+    con.execute("""
+        CREATE TABLE IF NOT EXISTS mundial_tos_log (
+            id          SERIAL PRIMARY KEY,
+            usuario_id  INTEGER NOT NULL,
+            version     TEXT NOT NULL,
+            aceptado_en TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            ip          TEXT,
+            user_agent  TEXT,
+            FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE
+        )
+    """)
+    con.commit()
+
+
+def _usuario_puede_pronosticar(uid, rol):
+    """
+    Comprueba que el usuario tiene acceso completo al Mundial:
+      - Invitados: deben tener mundial_pagado='aprobado'
+      - Todos: deben haber aceptado la versión activa de los términos
+    Devuelve (ok: bool, motivo: str | None)
+    """
+    con = get_db()
+    _ensure_tos_schema()
+    row = con.execute(
+        "SELECT mundial_pagado, mundial_tos_accepted, mundial_tos_version FROM usuarios WHERE id=%s",
+        (uid,)
+    ).fetchone()
+    if not row:
+        return False, "usuario_no_encontrado"
+
+    # Invitados deben estar aprobados
+    if rol == "invitado" and row["mundial_pagado"] != "aprobado":
+        return False, "acceso_no_aprobado"
+
+    # Todos deben haber aceptado la versión activa
+    if not row["mundial_tos_accepted"] or row["mundial_tos_version"] != MUNDIAL_TOS_VERSION:
+        return False, "tos_no_aceptados"
+
+    return True, None
 
 
 @mundial_bp.route("/api/mundial_tos", methods=["GET"])
 def mundial_tos_status():
-    """Devuelve si el usuario ya aceptó los términos del Mundial 2026."""
+    """
+    Devuelve si el usuario aceptó la versión activa de los términos.
+    Respuesta: { accepted: bool, version: str }
+    """
     if "uid" not in session:
         return jsonify({"accepted": False}), 401
-    _ensure_tos_column()
+    _ensure_tos_schema()
     uid = session["uid"]
     con = get_db()
     row = con.execute(
-        "SELECT mundial_tos_accepted FROM usuarios WHERE id=%s", (uid,)
+        "SELECT mundial_tos_accepted, mundial_tos_version FROM usuarios WHERE id=%s", (uid,)
     ).fetchone()
-    accepted = bool(row and row["mundial_tos_accepted"])
-    return jsonify({"accepted": accepted})
+    accepted = bool(
+        row
+        and row["mundial_tos_accepted"]
+        and row["mundial_tos_version"] == MUNDIAL_TOS_VERSION
+    )
+    return jsonify({"accepted": accepted, "version": MUNDIAL_TOS_VERSION})
 
 
 @mundial_bp.route("/api/mundial_tos", methods=["POST"])
 def mundial_tos_accept():
-    """Registra la aceptación de los términos del Mundial 2026 en la BD."""
+    """
+    Registra la aceptación de los términos en la BD con audit trail completo.
+    Guarda: userId, versión, fecha/hora (server-side), IP, User-Agent.
+    """
     if "uid" not in session:
         return jsonify({"ok": False, "error": "No autenticado"}), 401
-    _ensure_tos_column()
-    uid = session["uid"]
-    con = get_db()
-    con.execute(
-        "UPDATE usuarios SET mundial_tos_accepted=TRUE WHERE id=%s", (uid,)
-    )
+    _ensure_tos_schema()
+    uid  = session["uid"]
+    rol  = session.get("rol", "invitado")
+    con  = get_db()
+    ip   = request.headers.get("X-Forwarded-For", request.remote_addr or "")
+    ua   = request.headers.get("User-Agent", "")[:512]
+
+    # Invitado sin aprobación no puede aceptar
+    if rol == "invitado":
+        row = con.execute(
+            "SELECT mundial_pagado FROM usuarios WHERE id=%s", (uid,)
+        ).fetchone()
+        if not row or row["mundial_pagado"] != "aprobado":
+            return jsonify({"ok": False, "error": "Acceso no aprobado"}), 403
+
+    # Actualizar columnas de caché en usuarios
+    con.execute("""
+        UPDATE usuarios
+        SET mundial_tos_accepted = TRUE,
+            mundial_tos_version  = %s,
+            mundial_tos_fecha    = NOW()
+        WHERE id = %s
+    """, (MUNDIAL_TOS_VERSION, uid))
+
+    # Insertar registro en audit log (siempre, incluso si ya lo había aceptado antes)
+    con.execute("""
+        INSERT INTO mundial_tos_log (usuario_id, version, ip, user_agent)
+        VALUES (%s, %s, %s, %s)
+    """, (uid, MUNDIAL_TOS_VERSION, ip, ua))
+
     con.commit()
-    return jsonify({"ok": True})
+    return jsonify({"ok": True, "version": MUNDIAL_TOS_VERSION})
 
 
 # ══════════════════════════════════════════
