@@ -767,7 +767,7 @@ function filtrar() {
     try {
       const fd = new FormData();
       fd.append('partido_id', partidoId);
-      const r = await fetch('/admin_desbloquear', { method: 'POST', body: fd });
+      const r = await fetch('/admin_desbloquear', { method: 'POST', headers: {'X-Requested-With': 'XMLHttpRequest'}, body: fd });
       const data = await r.json();
       if (data.ok) {
         showToast(`✅ Partido #${partidoId} reseteado correctamente`, true);
