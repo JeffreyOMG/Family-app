@@ -3899,6 +3899,13 @@ body.dark-mode .tab-btn-admin.active {
   border: 1.5px solid var(--border);
 }
 
+.admin-btn-edit:hover {
+  background: #f59e0b;
+  color: #fff;
+  border-color: #f59e0b;
+  opacity: 1;
+}
+
 .admin-btn-reset {
   flex: 0 0 auto;
   display: flex;
@@ -3919,13 +3926,6 @@ body.dark-mode .tab-btn-admin.active {
 .admin-btn-reset:hover { background: rgba(239,68,68,.12); }
 .admin-btn-reset:active { transform: scale(.97); }
 .admin-btn-reset .material-symbols-outlined { font-size: 16px; }
-
-.admin-btn-edit:hover {
-  background: #f59e0b;
-  color: #fff;
-  border-color: #f59e0b;
-  opacity: 1;
-}
 
 /* STATUS JUGADO */
 .admin-status-jugado {

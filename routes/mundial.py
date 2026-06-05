@@ -248,6 +248,24 @@ def admin_desbloquear():
     return _back()
 
 
+@mundial_bp.route("/admin_desbloquear_eli", methods=["POST"])
+def admin_desbloquear_eli():
+    if session.get("rol") != "admin":
+        return (jsonify({"ok": False}), 403) if _is_ajax() else redirect("/dashboard?s=mundial")
+
+    partido_id = int(request.form.get("partido_id", 0))
+    con = get_db()
+    _ensure_eliminacion_table(con)
+    con.execute("""
+        UPDATE partidos_eliminacion SET goles_local=NULL, goles_visit=NULL, penales_ganador=NULL, bloqueado=0 WHERE id=%s
+    """, (partido_id,))
+    con.execute("UPDATE pronosticos_eli SET puntos=0 WHERE partido_id=%s", (partido_id,))
+    con.commit()
+    if _is_ajax():
+        return jsonify({"ok": True, "msg": "Partido eliminatorio desbloqueado"})
+    return _back()
+
+
 @mundial_bp.route("/admin_reset_mundial", methods=["POST"])
 def admin_reset_mundial():
     if session.get("rol") != "admin":

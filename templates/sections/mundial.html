@@ -1663,9 +1663,8 @@
                   {{ 'Editar' if p.bloqueado else 'Guardar' }}
                 </button>
                 {% if p.bloqueado %}
-                <button type="button" class="admin-btn-reset" onclick="resetarPartidoMundial({{ p.id }})" title="Borrar resultado y desbloquear este partido">
-                  <span class="material-symbols-outlined">restart_alt</span>
-                  Resetear
+                <button type="button" class="admin-btn-reset" onclick="resetarPartidoMundial({{ p.id }}, 'grupos')" title="Resetear resultado">
+                  <span class="material-symbols-outlined">restart_alt</span> Resetear
                 </button>
                 {% endif %}
               </div>
@@ -1824,13 +1823,27 @@ async function _refreshAdminGruposCards() {
       const inputVisit = form.querySelector('input[name="goles_visitante"]');
       if (inputLocal) inputLocal.value = p.goles_local !== null ? p.goles_local : '';
       if (inputVisit) inputVisit.value = p.goles_visitante !== null ? p.goles_visitante : '';
-      // Actualizar botón
+      // Actualizar botón guardar/editar
       const btn = form.querySelector('button[type="submit"]');
       if (btn) {
         btn.className = 'admin-btn-save' + (jugado ? ' admin-btn-edit' : '');
         btn.innerHTML = jugado
           ? '<span class="material-symbols-outlined">edit</span> Editar'
           : '<span class="material-symbols-outlined">check_circle</span> Guardar';
+      }
+      // Añadir/quitar botón resetear
+      const inputsRow = form.querySelector('.admin-inputs-row');
+      let resetBtn = form.querySelector('.admin-btn-reset');
+      if (jugado && !resetBtn && inputsRow) {
+        resetBtn = document.createElement('button');
+        resetBtn.type = 'button';
+        resetBtn.className = 'admin-btn-reset';
+        resetBtn.title = 'Resetear resultado';
+        resetBtn.innerHTML = '<span class="material-symbols-outlined">restart_alt</span> Resetear';
+        resetBtn.onclick = () => resetarPartidoMundial(p.id, 'grupos');
+        inputsRow.appendChild(resetBtn);
+      } else if (!jugado && resetBtn) {
+        resetBtn.remove();
       }
       // Actualizar badge de resultado
       let badge = card.querySelector('.admin-status-jugado');
@@ -2292,7 +2305,7 @@ function _adminEliCardHTML(p) {
           <span class="material-symbols-outlined">${p.bloqueado?'edit':'check_circle'}</span>
           ${p.bloqueado?'Editar':'Guardar'}
         </button>
-        ${p.bloqueado?`<button type="button" class="admin-btn-reset" onclick="resetarPartidoMundial(${p.id})" title="Borrar resultado y desbloquear este partido"><span class="material-symbols-outlined">restart_alt</span> Resetear</button>`:''}
+        ${p.bloqueado?`<button type="button" class="admin-btn-reset" onclick="resetarPartidoMundial(${p.id},'eli')" title="Resetear resultado"><span class="material-symbols-outlined">restart_alt</span> Resetear</button>`:''}
       </div>
       <div class="admin-pen-sel" id="admin-pen-${p.id}" style="display:${(p.goles_local===p.goles_visit && p.goles_local!==null)?'block':'none'};">
         <div class="admin-pen-label"><span class="material-symbols-outlined">sports_score</span> ¿Quién ganó en penales?</div>
@@ -3070,21 +3083,36 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ── Resetear partido individual (admin) ──────────────────────────────────
-window.resetarPartidoMundial = async function(partidoId) {
+window.resetarPartidoMundial = async function(partidoId, tipo) {
   if (!confirm(`¿Resetear el partido #${partidoId}?\n\nEsto borrará el resultado, desbloqueará el partido y pondrá los puntos de pronósticos a 0.`)) return;
+  // Grupos usan /admin_desbloquear, eliminación usa /admin_desbloquear_eli
+  const url = (tipo === 'eli') ? '/admin_desbloquear_eli' : '/admin_desbloquear';
   try {
     const fd = new FormData();
     fd.append('partido_id', partidoId);
-    const r = await fetch('/admin_desbloquear', { method: 'POST', headers: {'X-Requested-With': 'XMLHttpRequest'}, body: fd });
-    const data = await r.json();
+    const r = await fetch(url, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: {'X-Requested-With': 'XMLHttpRequest'},
+      body: fd
+    });
+    if (!r.ok) {
+      mostrarToast('❌ Error ' + r.status + (r.status === 403 ? ': sin permisos' : ''), 'error');
+      return;
+    }
+    let data;
+    try { data = await r.json(); } catch(e) { mostrarToast('❌ Respuesta inesperada', 'error'); return; }
     if (data.ok) {
       mostrarToast('✅ Partido #' + partidoId + ' reseteado');
       await _refreshTodo(false);
+      _refreshAdminGruposCards();
+      if (typeof _loadAdminEli === 'function') _loadAdminEli();
+      if (typeof _loadBracket === 'function') _loadBracket();
     } else {
       mostrarToast('❌ ' + (data.msg || 'Error al resetear'), 'error');
     }
   } catch(e) {
-    mostrarToast('❌ Error de conexión', 'error');
+    mostrarToast('❌ Error: ' + e.message, 'error');
   }
 };
 </script>
