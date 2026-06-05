@@ -366,6 +366,16 @@
       vid.pause();
       cerrarOverlay();
     };
+
+    // Si el usuario navega fuera de mundial → limpiar overlay y pausar video
+    document.addEventListener('mundial:salir', function() {
+      if (overlay && overlay.parentNode) {
+        vid.pause();
+        document.body.style.overflow = '';
+        document.documentElement.style.overflow = '';
+        overlay.style.display = 'none';
+      }
+    });
   })();
   </script>
 
@@ -1336,6 +1346,14 @@
     // ── Ejecutar verificación inicial al cargar la sección ────────────────
     // Esto cubre el caso de acceso por URL directa o recarga de página.
     verificarAccesoInicial();
+
+    // Si el usuario navega fuera de mundial → ocultar modal y liberar scroll
+    document.addEventListener('mundial:salir', function() {
+      backdrop.classList.remove('mwt2026__visible');
+      overlay.classList.remove('mwt2026__visible');
+      regOverlay.classList.remove('mwt2026__visible');
+      desbloquearScroll();
+    });
 
   })();
   </script>

@@ -15,6 +15,16 @@ function irSeccion(sec) {
     sec = 'inicio';
   }
 
+  // Limpiar cualquier overflow bloqueado por modales/videos de sección anterior
+  document.body.style.overflow = '';
+  document.documentElement.style.overflow = '';
+
+  // Si sale de mundial → avisar para limpiar video/modales
+  const seccionActual = localStorage.getItem('seccion') || '';
+  if (seccionActual === 'mundial' && sec !== 'mundial') {
+    document.dispatchEvent(new CustomEvent('mundial:salir'));
+  }
+
   // Si navega a mundial desde el menú → disparar evento para la intro
   if (sec === 'mundial') {
     document.dispatchEvent(new CustomEvent('mundial:entrar'));
