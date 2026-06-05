@@ -1778,9 +1778,9 @@ async function _refreshMundialDatos(tab) {
             lockBanner.innerHTML = `
               <span class="material-symbols-outlined" style="font-size:38px;color:#ef4444;display:block;margin-bottom:10px">lock</span>
               <div style="font-weight:700;font-size:15px;color:#ef4444;margin-bottom:6px">Fase bloqueada</div>
-              <div style="font-size:13px;color:rgba(255,255,255,.65);line-height:1.55">
+              <div style="font-size:13px;color:#b91c1c;line-height:1.55">
                 Esta fase aún no ha sido habilitada por el administrador.<br>
-                Los pronósticos de <strong style="color:rgba(255,255,255,.85)">Fase de Grupos</strong> no están disponibles por ahora.
+                Los pronósticos de <strong style="color:#991b1b">Fase de Grupos</strong> no están disponibles por ahora.
               </div>`;
             wrap.insertBefore(lockBanner, wrap.firstChild);
           }
@@ -1994,9 +1994,9 @@ function _renderEliRonda(ronda) {
       <div style="margin:32px auto;max-width:480px;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.3);border-radius:14px;padding:28px 24px;text-align:center;">
         <span class="material-symbols-outlined" style="font-size:40px;color:#ef4444;display:block;margin-bottom:12px">lock</span>
         <div style="font-weight:700;font-size:15px;color:#ef4444;margin-bottom:8px">Fase bloqueada</div>
-        <div style="font-size:13px;color:rgba(255,255,255,.65);line-height:1.55">
+        <div style="font-size:13px;color:#b91c1c;line-height:1.55">
           Esta fase aún no ha sido habilitada por el administrador.<br>
-          Los pronósticos de <strong style="color:rgba(255,255,255,.85)">${nombres[ronda] || ronda}</strong> no están disponibles por ahora.
+          Los pronósticos de <strong style="color:#991b1b">${nombres[ronda] || ronda}</strong> no están disponibles por ahora.
         </div>
       </div>`;
     return;
