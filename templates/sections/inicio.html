@@ -1125,8 +1125,8 @@ body.dark-mode .post-badge-privado { background: rgba(139,92,246,.2); color: #a7
   -webkit-backdrop-filter: blur(4px);
 }
 #umu-caja {
-  background: #1a1a1a !important;
-  border: 1px solid #333 !important;
+  background: var(--card, #fff) !important;
+  border: 1px solid var(--border, #e0e0e0) !important;
   border-radius: 18px !important;
   width: 400px !important;
   max-width: 90vw !important;
@@ -1134,7 +1134,7 @@ body.dark-mode .post-badge-privado { background: rgba(139,92,246,.2); color: #a7
   display: flex !important;
   flex-direction: column !important;
   overflow: hidden !important;
-  box-shadow: 0 24px 80px rgba(0,0,0,.7) !important;
+  box-shadow: 0 24px 80px rgba(0,0,0,.25) !important;
   position: relative !important;
 }
 #umu-encabezado {
@@ -1142,18 +1142,18 @@ body.dark-mode .post-badge-privado { background: rgba(139,92,246,.2); color: #a7
   align-items: center;
   justify-content: space-between;
   padding: 18px 20px 16px;
-  border-bottom: 1px solid #2e2e2e;
-  background: #1a1a1a;
+  border-bottom: 1px solid var(--border, #e0e0e0);
+  background: var(--card, #fff);
   flex-shrink: 0;
 }
 #umu-titulo {
   font-size: 16px !important;
   font-weight: 700 !important;
-  color: #f0f0f0 !important;
+  color: var(--text, #111) !important;
   margin: 0 !important;
 }
 #umu-cerrar {
-  background: #2a2a2a !important;
+  background: var(--bg2, rgba(0,0,0,.06)) !important;
   border: none !important;
   border-radius: 50% !important;
   width: 32px !important;
@@ -1162,47 +1162,47 @@ body.dark-mode .post-badge-privado { background: rgba(139,92,246,.2); color: #a7
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
-  color: #aaa !important;
+  color: var(--text2, #555) !important;
   transition: background .15s, color .15s !important;
 }
-#umu-cerrar:hover { background: #3a3a3a !important; color: #f0f0f0 !important; }
+#umu-cerrar:hover { background: rgba(233,30,140,.15) !important; color: var(--ac, #e91e8c) !important; }
 #umu-cerrar .material-symbols-outlined { font-size: 18px; }
 #umu-buscador {
   display: flex;
   align-items: center;
   gap: 8px;
   padding: 12px 16px;
-  border-bottom: 1px solid #2e2e2e;
-  background: #1a1a1a;
+  border-bottom: 1px solid var(--border, #e0e0e0);
+  background: var(--card, #fff);
   flex-shrink: 0;
 }
-#umu-lupa { font-size: 18px; color: #888; flex-shrink: 0; }
+#umu-lupa { font-size: 18px; color: var(--text3, #999); flex-shrink: 0; }
 #input-buscar-usuario {
   flex: 1 !important;
-  background: #242424 !important;
-  border: 1px solid #333 !important;
+  background: var(--bg2, #f5f5f5) !important;
+  border: 1px solid var(--border, #e0e0e0) !important;
   border-radius: 10px !important;
   padding: 8px 12px !important;
   font-size: 13px !important;
-  color: #f0f0f0 !important;
+  color: var(--text, #111) !important;
   outline: none !important;
   transition: border-color .15s !important;
   font-family: inherit !important;
 }
 #input-buscar-usuario:focus { border-color: var(--ac, #e91e8c) !important; }
-#input-buscar-usuario::placeholder { color: #666 !important; }
+#input-buscar-usuario::placeholder { color: var(--text3, #aaa) !important; }
 #btn-clear-search {
   background: none !important;
   border: none !important;
   cursor: pointer !important;
-  color: #888 !important;
+  color: var(--text3, #aaa) !important;
   display: flex !important;
   align-items: center !important;
   padding: 3px !important;
   border-radius: 50% !important;
   transition: color .15s !important;
 }
-#btn-clear-search:hover { color: #f0f0f0 !important; }
+#btn-clear-search:hover { color: var(--text, #111) !important; }
 #btn-clear-search .material-symbols-outlined { font-size: 16px; }
 #umu-cuerpo {
   overflow-y: auto;
@@ -1215,7 +1215,7 @@ body.dark-mode .post-badge-privado { background: rgba(139,92,246,.2); color: #a7
   gap: 6px;
   font-size: 11px;
   font-weight: 700;
-  color: #888;
+  color: var(--text3, #999);
   text-transform: uppercase;
   letter-spacing: .05em;
   padding: 12px 20px 6px;
@@ -1240,10 +1240,10 @@ body.dark-mode .post-badge-privado { background: rgba(139,92,246,.2); color: #a7
   cursor: pointer;
   transition: background .15s;
 }
-.umu-fila:hover { background: #242424; }
+.umu-fila:hover { background: var(--bg2, #f5f5f5); }
 .umu-info { flex: 1; min-width: 0; }
-.umu-info strong { font-size: 13px; font-weight: 600; color: #f0f0f0; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.umu-info span { font-size: 11px; color: #888; }
+.umu-info strong { font-size: 13px; font-weight: 600; color: var(--text, #111); display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.umu-info span { font-size: 11px; color: var(--text3, #999); }
 .umu-badge {
   font-size: 10px;
   font-weight: 700;
@@ -1253,12 +1253,12 @@ body.dark-mode .post-badge-privado { background: rgba(139,92,246,.2); color: #a7
   flex-shrink: 0;
 }
 .umu-badge--admin { color: var(--ac, #e91e8c); background: rgba(233,30,140,.18); }
-.umu-badge--miembro { color: #60c0ff; background: rgba(96,192,255,.14); }
-.umu-badge--invitado { color: #aaa; background: #2a2a2a; }
+.umu-badge--miembro { color: #0095f6; background: rgba(0,149,246,.13); }
+.umu-badge--invitado { color: var(--text3, #999); background: var(--bg2, #f0f0f0); }
 #umu-sin-resultados {
   text-align: center;
   padding: 32px 16px;
-  color: #666;
+  color: var(--text3, #aaa);
 }
 #umu-sin-resultados .material-symbols-outlined { font-size: 32px; display: block; margin-bottom: 8px; opacity: .4; }
 #umu-sin-resultados p { font-size: 13px; }
