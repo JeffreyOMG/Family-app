@@ -2551,7 +2551,7 @@ function _renderBracket(bracket, eliPartidos) {
       font-family: 'Bebas Neue','DM Sans',sans-serif;
       font-size: .68rem;
       letter-spacing: .07em;
-      color: rgba(255,255,255,.32);
+      color: var(--text3, #999);
       text-align: center;
       padding: 0 2px 6px;
       text-transform: uppercase;
@@ -2563,7 +2563,7 @@ function _renderBracket(bracket, eliPartidos) {
     .bk-col-label--3rd {
       font-size: .6rem;
       padding: 10px 2px 4px;
-      color: rgba(255,255,255,.22);
+      color: var(--text3, #999);
       text-align: center;
     }
 
@@ -2607,19 +2607,19 @@ function _renderBracket(bracket, eliPartidos) {
     /* Card */
     .bk-card {
       width: 100%;
-      background: rgba(255,255,255,.04);
-      border: 1px solid rgba(255,255,255,.1);
+      background: var(--card2, #f5f5f5);
+      border: 1px solid var(--border, #dbdbdb);
       border-radius: 6px;
       overflow: hidden;
       transition: border-color .18s;
     }
-    .bk-card:hover { border-color: rgba(255,255,255,.24); }
-    .bk-card--done { border-color: rgba(255,255,255,.16); }
-    .bk-card--vacio { opacity:.28; background:transparent; border-style:dashed; }
+    .bk-card:hover { border-color: var(--accent, #ff4d8d); }
+    .bk-card--done { border-color: var(--border-soft, #e0e0e0); }
+    .bk-card--vacio { opacity:.4; background:transparent; border-style:dashed; }
 
     .bk-pid {
       font-size: .58rem;
-      color: rgba(255,255,255,.18);
+      color: var(--text3, #999);
       text-align: right;
       padding: 1px 4px 0;
       letter-spacing: .04em;
@@ -2631,14 +2631,14 @@ function _renderBracket(bracket, eliPartidos) {
       gap: 3px;
       padding: 3px 5px;
       font-size: .68rem;
-      color: rgba(255,255,255,.72);
-      border-top: 1px solid rgba(255,255,255,.06);
+      color: var(--text, #111);
+      border-top: 1px solid var(--border-soft, #e0e0e0);
     }
     .bk-eq:first-of-type { border-top: none; }
-    .bk-eq--pend  { color: rgba(255,255,255,.28); }
+    .bk-eq--pend  { color: var(--text3, #999); }
     .bk-eq--winner {
-      background: rgba(245,197,24,.09);
-      color: rgba(255,255,255,.96);
+      background: rgba(245,197,24,.12);
+      color: var(--text, #111);
       font-weight: 600;
     }
     .bk-flag { font-size: .82rem; flex-shrink: 0; line-height: 1; }
@@ -2646,24 +2646,40 @@ function _renderBracket(bracket, eliPartidos) {
       flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
       font-size: .66rem;
     }
-    .bk-slot { font-style: italic; font-size: .6rem; color: rgba(255,255,255,.28); }
+    .bk-slot { font-style: italic; font-size: .6rem; color: var(--text3, #999); }
     .bk-score {
       flex-shrink: 0;
       font-size: .8rem;
       min-width: 13px;
       text-align: center;
-      color: rgba(255,255,255,.5);
+      color: var(--text2, #666);
       font-family: monospace;
     }
-    .bk-score--win { color: #f5c518; font-weight: 700; }
+    .bk-score--win { color: #d4a017; font-weight: 700; }
     .bk-meta {
       font-size: .56rem;
-      color: rgba(255,255,255,.18);
+      color: var(--text3, #999);
       text-align: center;
       padding: 1px 3px 2px;
-      border-top: 1px solid rgba(255,255,255,.04);
+      border-top: 1px solid var(--border-soft, #e0e0e0);
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
+
+    /* Dark mode overrides */
+    body.dark-mode .bk-card {
+      background: rgba(255,255,255,.04);
+      border-color: rgba(255,255,255,.1);
+    }
+    body.dark-mode .bk-card:hover { border-color: rgba(255,255,255,.28); }
+    body.dark-mode .bk-card--done { border-color: rgba(255,255,255,.16); }
+    body.dark-mode .bk-eq { color: rgba(255,255,255,.72); border-top-color: rgba(255,255,255,.06); }
+    body.dark-mode .bk-eq--pend { color: rgba(255,255,255,.28); }
+    body.dark-mode .bk-eq--winner { color: rgba(255,255,255,.96); }
+    body.dark-mode .bk-pid { color: rgba(255,255,255,.18); }
+    body.dark-mode .bk-slot { color: rgba(255,255,255,.28); }
+    body.dark-mode .bk-score { color: rgba(255,255,255,.5); }
+    body.dark-mode .bk-score--win { color: #f5c518; }
+    body.dark-mode .bk-meta { color: rgba(255,255,255,.18); border-top-color: rgba(255,255,255,.04); }
 
     @media (max-width: 720px) {
       .bk-col { min-width: 80px; }
