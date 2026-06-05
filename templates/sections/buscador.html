@@ -208,7 +208,7 @@
 .bus-clear-btn:hover { color: var(--text); background: var(--bg2, #f5f5f5); }
 .bus-clear-btn .material-symbols-outlined { font-size: 18px; }
 .bus-submit-btn {
-  background: var(--text, #111); color: var(--bg, #fff);
+  background: var(--accent-gradient, linear-gradient(135deg,#ff6b9d,#ff4d8d,#c9236a)); color: #fff;
   border: none; cursor: pointer;
   width: 36px; height: 36px; border-radius: 10px;
   display: flex; align-items: center; justify-content: center;
@@ -239,9 +239,10 @@
   color: var(--accent, #0095f6);
 }
 .bus-chip.active {
-  background: var(--accent, #0095f6);
-  border-color: var(--accent, #0095f6);
-  color: #fff; font-weight: 600;
+  background: var(--accent-gradient, linear-gradient(135deg,#ff6b9d,#ff4d8d,#c9236a));
+  border-color: var(--accent, #ff4d8d);
+  color: #fff;
+  box-shadow: 0 2px 10px rgba(255,77,141,.3); font-weight: 600;
 }
 
 /* ---- META RESULTADOS ---- */
@@ -430,12 +431,13 @@ body.dark-mode .bus-search-wrap {
   background: var(--card); border-color: var(--border);
 }
 body.dark-mode .bus-search-input { color: var(--text); }
-body.dark-mode .bus-submit-btn { background: var(--accent); color: #fff; }
+body.dark-mode .bus-submit-btn { background: var(--accent-gradient, linear-gradient(135deg,#ff6b9d,#ff4d8d,#c9236a)); color: #fff;  box-shadow:0 4px 14px rgba(255,77,141,.35); }
 body.dark-mode .bus-chip {
   background: var(--card); border-color: var(--border); color: var(--text2);
 }
 body.dark-mode .bus-chip.active {
-  background: var(--accent); border-color: var(--accent); color: #fff;
+  background: var(--accent-gradient, linear-gradient(135deg,#ff6b9d,#ff4d8d,#c9236a)); border-color: var(--accent); color: #fff;
+  box-shadow: 0 2px 10px rgba(255,77,141,.35);
 }
 body.dark-mode .bus-group-items { background: var(--card); border-color: var(--border); }
 body.dark-mode .bus-result-item { border-bottom-color: var(--border); }

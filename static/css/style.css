@@ -40,6 +40,9 @@
   --accent: #ff4d8d;
   --accent-hover: #e0386f;
   --accent-soft: rgba(255, 77, 141, .15);
+  --accent-gradient: linear-gradient(135deg, #ff6b9d 0%, #ff4d8d 35%, #e0386f 70%, #c9236a 100%);
+  --accent-gradient-hover: linear-gradient(135deg, #ff85ad 0%, #ff6b9d 35%, #f04d82 70%, #d93578 100%);
+  --accent-shadow: 0 4px 16px rgba(255, 77, 141, .40);
 
   /* =====================
      BUTTON SYSTEM
@@ -389,9 +392,9 @@ textarea.form-input{
 }
 
 .btn-gold{
-    background:var(--accent);
-    color:var(--bg2);
-    box-shadow:0 4px 12px rgba(0,0,0,.15);
+    background:var(--accent-gradient);
+    color:#fff;
+    box-shadow:var(--accent-shadow);
 }
 
 .btn-gold:hover{
@@ -1448,18 +1451,20 @@ textarea.form-input{
 ========================= */
 
 .btn-primary{
-  background:var(--text);
-  color:var(--bg);
+  background:var(--accent-gradient);
+  color:#fff;
   border:none;
   padding:12px 20px;
   border-radius:12px;
   cursor:pointer;
   transition:.25s;
+  box-shadow:var(--accent-shadow);
 }
 
 .btn-primary:hover{
-  background:var(--text2);
+  background:var(--accent-gradient-hover);
   transform:translateY(-2px);
+  box-shadow:0 6px 22px rgba(255,77,141,.5);
 }
 
 
@@ -1894,8 +1899,9 @@ body.dark-mode .btn-outline{
 }
 
 body.dark-mode .btn-primary{
-  background:var(--accent);
+  background:var(--accent-gradient);
   color:#fff;
+  box-shadow:var(--accent-shadow);
 }
 
 /* POST CARDS & INTERACTIONS */
@@ -2411,8 +2417,9 @@ html{
   border-radius: 8px; font-size: .88rem; transition: all .2s;
 }
 .tab-btn.active {
-  background: var(--accent, #ff4d8d); color: #111;
+  background: var(--accent-gradient, linear-gradient(135deg,#ff6b9d,#ff4d8d,#c9236a)); color: #fff;
   border-color: transparent; font-weight: 700;
+  box-shadow: 0 3px 12px rgba(255,77,141,.35);
 }
 
 /* --- Partidos Mundial --- */
@@ -2789,7 +2796,7 @@ select.form-input.tipo-evento[data-color="cumpleanos"] { background-color: rgba(
   background: #fff; transition: transform .25s, background .25s;
   box-shadow: 0 1px 4px rgba(0,0,0,.3);
 }
-.toggle-switch input:checked + .toggle-track { background: var(--accent, #ff4d8d); }
+.toggle-switch input:checked + .toggle-track { background: var(--accent-gradient, linear-gradient(135deg,#ff6b9d,#ff4d8d,#c9236a)); }
 .toggle-switch input:checked + .toggle-track .toggle-thumb { transform: translateX(20px); background: #111; }
 
 .ajuste-row {
@@ -2847,12 +2854,12 @@ input[type="checkbox"]:not(.toggle-switch input) {
   transition: all .2s;
 }
 input[type="checkbox"]:checked {
-  background: var(--accent, #ff4d8d);
+  background: var(--accent-gradient, linear-gradient(135deg,#ff6b9d,#ff4d8d,#c9236a));
   border-color: var(--accent, #ff4d8d);
 }
 input[type="checkbox"]:checked::after {
   content: '✓'; position: absolute; top: -1px; left: 2px;
-  font-size: 12px; font-weight: 700; color: #111;
+  font-size: 12px; font-weight: 700; color: #fff;
 }
 
 /* =========================================
@@ -2940,7 +2947,7 @@ input[type="checkbox"]:checked::after {
 }
 
 .tab-btn.active {
-  background: #ff4d8d !important;
+  background: var(--accent-gradient, linear-gradient(135deg,#ff6b9d,#ff4d8d,#c9236a)) !important;
   color: #ffffff !important;
   border: 1px solid rgba(0,0,0,.15) !important;
 }
@@ -3408,8 +3415,9 @@ input[type="checkbox"]:checked::after {
 
 /* ACTIVE ROSA (tipo Instagram) */
 .pron-grupo-btn.active {
-  background: #ff4d8d;
-  border-color: #ff4d8d;
+  background: var(--accent-gradient);
+  border-color: var(--accent);
+  box-shadow: var(--accent-shadow);
   color: #ffffff;
 }
 /* PANEL DE GRUPO */
@@ -3625,11 +3633,12 @@ input[type="checkbox"]:checked::after {
   padding: 14px;
   border-radius: 14px;
   border: none;
-  background: var(--accent);
+  background: var(--accent-gradient);
   color: #fff;
   font-weight: 700;
   font-size: .95rem;
   cursor: pointer;
+  box-shadow: var(--accent-shadow);
   transition: opacity .18s ease, transform .12s ease;
 }
 
@@ -4079,7 +4088,7 @@ body.dark-mode .admin-btn-edit {
   min-width: 26px;
   height: 26px;
   border-radius: 50%;
-  background: var(--accent);
+  background: var(--accent-gradient);
   color: #fff;
   font-size: .72rem;
   font-weight: 800;
@@ -4157,7 +4166,7 @@ body.dark-mode .cruce-num {
   min-width: 22px;
   height: 22px;
   border-radius: 50%;
-  background: var(--accent);
+  background: var(--accent-gradient);
   color: #fff;
   font-size: .7rem;
   font-weight: 800;
@@ -4187,9 +4196,10 @@ body.dark-mode .cruce-num {
 }
 .ronda-btn.active,
 .ronda-btn:hover {
-  background: #ff4d8d;
+  background: var(--accent-gradient);
   color: #ffffff;
-  border-color: #ff4d8d;
+  border-color: var(--accent);
+  box-shadow: var(--accent-shadow);
 }
 .pron-ronda { display: none; }
 .pron-ronda.active { display: block; }
@@ -4272,7 +4282,7 @@ body.dark-mode .cruce-num {
 .cruce-pend { opacity: .7; }
 .cruce-num {
   min-width: 26px; height: 26px; border-radius: 50%;
-  background: var(--accent); color: #fff; font-size: .7rem; font-weight: 800;
+  background: var(--accent-gradient); color: #fff; font-size: .7rem; font-weight: 800;
   display: flex; align-items: center; justify-content: center; flex-shrink: 0;
 }
 .cruce-pend .cruce-num { background: var(--border); color: var(--text2); }
@@ -4688,9 +4698,10 @@ body.dark-mode .cruce-num {
   width: 44px !important; text-align: center; font-size: .82rem;
 }
 .bk-pron-btn {
-  background: var(--accent); color: #fff;
+  background: var(--accent-gradient); color: #fff;
   border: none; border-radius: 6px; padding: 5px 7px; cursor: pointer;
   display: flex; align-items: center;
+  box-shadow: 0 2px 8px rgba(255,77,141,.3);
 }
 .bk-pron-btn .material-symbols-outlined { font-size: 14px; }
 .bk-pron-btn:hover { opacity: .85; }

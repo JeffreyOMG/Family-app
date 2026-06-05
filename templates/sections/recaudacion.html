@@ -785,7 +785,7 @@ body.dark-mode {
 .tabla-aportes td { padding:10px 12px;border-bottom:1px solid var(--border,#dbdbdb);vertical-align:middle; }
 .fila-aporte:hover td { background:var(--bg2,#f5f5f5); }
 .rec-user-cell { display:flex;align-items:center;gap:8px; }
-.rec-avatar { width:30px;height:30px;border-radius:50%;background:var(--accent,#0095f6);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0; }
+.rec-avatar { width:30px;height:30px;border-radius:50%;background:var(--accent-gradient, linear-gradient(135deg,#ff6b9d,#ff4d8d,#c9236a));color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0; }
 .rec-desc-cell { max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
 .rec-monto { font-weight:700;color:#4caf50; }
 .rec-fecha { color:var(--text2);font-size:12px;white-space:nowrap; }
@@ -861,7 +861,7 @@ body.dark-mode {
 .rec-upload-hint { font-size:11px;color:var(--text3,#999);display:block;margin-top:4px; }
 .rec-btn-cancel { padding:10px 18px;border:1.5px solid #c0c0c0;border-radius:10px;background:#f0f0f0;color:#222;cursor:pointer;font-size:14px;font-weight:700;transition:background .15s,border-color .15s;font-family:inherit; }
 .rec-btn-cancel:hover { background:#e0e0e0;border-color:#aaa; }
-.rec-btn-submit { padding:10px 18px;border:none;border-radius:10px;background:var(--accent,#0095f6);color:#fff;cursor:pointer;font-size:14px;font-weight:700;display:flex;align-items:center;gap:6px;white-space:nowrap;font-family:inherit;transition:opacity .15s,transform .1s; }
+.rec-btn-submit { padding:10px 18px;border:none;border-radius:10px;background:var(--accent-gradient, linear-gradient(135deg,#ff6b9d,#ff4d8d,#c9236a));color:#fff;cursor:pointer;font-size:14px;font-weight:700;display:flex;align-items:center;gap:6px;white-space:nowrap;font-family:inherit;transition:opacity .15s,transform .1s; }
 .rec-btn-submit:hover { opacity:.88; }
 .rec-btn-submit:active { transform:scale(.97); }
 .rec-btn-danger { padding:10px 18px;border:none;border-radius:10px;background:#f44336;color:#fff;cursor:pointer;font-size:14px;font-weight:600;display:flex;align-items:center;gap:6px; }
@@ -887,7 +887,7 @@ body.dark-mode {
    MODO CLARO (ROSA SUAVE)
 ========================= */
 body:not(.dark-mode) .btn-aporte-principal {
-    background: #ff4d8d;
+    background: var(--accent-gradient, linear-gradient(135deg,#ff6b9d,#ff4d8d,#c9236a));
     color: #ffffff;
 }
 
@@ -895,8 +895,9 @@ body:not(.dark-mode) .btn-aporte-principal {
    MODO OSCURO
 ========================= */
 body.dark-mode .btn-aporte-principal {
-    background: #f8fafc;
-    color: #111111;
+    background: var(--accent-gradient, linear-gradient(135deg,#ff6b9d,#ff4d8d,#c9236a));
+    color: #fff;
+    box-shadow: 0 4px 18px rgba(255,77,141,.4);
 }
 
 /* =========================
@@ -938,7 +939,7 @@ body.dark-mode .tipo-info strong {
 /* ---- FAMILIA TABS ---- */
 .familia-tabs { display:flex;gap:6px;margin-bottom:16px; }
 .familia-tab { flex:1;padding:8px;border:1px solid var(--border);border-radius:10px;background:var(--bg2);cursor:pointer;font-size:13px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:4px;color:var(--text2);transition:all .15s; }
-.familia-tab.active { background:var(--accent,#0095f6);color:#fff;border-color:var(--accent,#0095f6); }
+.familia-tab.active { background:var(--accent-gradient, linear-gradient(135deg,#ff6b9d,#ff4d8d,#c9236a));color:#fff;border-color:var(--accent,#ff4d8d);box-shadow:0 2px 10px rgba(255,77,141,.3); }
 
 /* ---- CAJITAS ---- */
 .cajitas-lista { display:flex;flex-direction:column;gap:8px; }
@@ -951,7 +952,7 @@ body.dark-mode .tipo-info strong {
 .miembro-check { display:flex;align-items:center;gap:8px;cursor:pointer;padding:4px;border-radius:8px; }
 .miembro-check:hover { background:var(--bg2); }
 .miembro-check input { accent-color:var(--accent,#0095f6); }
-.miembro-avatar { width:26px;height:26px;border-radius:50%;background:var(--accent,#0095f6);color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0; }
+.miembro-avatar { width:26px;height:26px;border-radius:50%;background:var(--accent-gradient, linear-gradient(135deg,#ff6b9d,#ff4d8d,#c9236a));color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0; }
 
 /* ---- FASES POLLA ---- */
 .fases-grid { display:flex;flex-direction:column;gap:10px; }
@@ -965,7 +966,7 @@ body.dark-mode .tipo-info strong {
 .fase-precio { font-weight:700;color:var(--accent);font-size:14px;white-space:nowrap; }
 .fase-estado { margin-bottom:8px; }
 
-.fase-btn{width:100%;padding:10px;border:none;border-radius:10px;background:#ff4d8d;color:#fff;font-weight:600;font-size:14px;cursor:pointer;transition:opacity .15s ease,transform .1s ease,background .2s ease}
+.fase-btn{width:100%;padding:10px;border:none;border-radius:10px;background:var(--accent-gradient, linear-gradient(135deg,#ff6b9d,#ff4d8d,#c9236a));color:#fff;font-weight:600;font-size:14px;cursor:pointer;box-shadow:0 3px 12px rgba(255,77,141,.35);transition:opacity .15s ease,transform .1s ease,background .2s ease}
 .fase-btn:hover{opacity:.88}
 .fase-btn:active{opacity:.8;transform:translateY(0)}
 .fase-btn:disabled{background:var(--bg2);color:var(--text2);border:1px solid var(--border);cursor:not-allowed;opacity:.8}
@@ -1020,7 +1021,7 @@ body.dark-mode .rec-btn-cancel:hover { background:#333;border-color:#666; }
 body.dark-mode .rec-btn-submit { box-shadow:0 4px 12px rgba(0,0,0,.3); }
 body.dark-mode .rec-btn-submit:hover { opacity:.88; }
 body.dark-mode .familia-tab { background:var(--bg2);border-color:var(--border);color:var(--text2); }
-body.dark-mode .familia-tab.active { background:var(--accent);color:#fff;border-color:var(--accent); }
+body.dark-mode .familia-tab.active { background:var(--accent-gradient, linear-gradient(135deg,#ff6b9d,#ff4d8d,#c9236a));color:#fff;border-color:var(--accent);box-shadow:0 2px 10px rgba(255,77,141,.3); }
 body.dark-mode .rec-modal-header { border-color:var(--border); }
 body.dark-mode .rec-modal-footer { border-color:var(--border); }
 body.dark-mode .rec-upload-area { border-color:var(--border); }

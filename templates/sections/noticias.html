@@ -450,7 +450,7 @@ body.dark-mode {
 
   padding: 10px 18px;
 
-  background: #ff4d8d;
+  background: var(--accent-gradient, linear-gradient(135deg,#ff6b9d,#ff4d8d,#c9236a));
   color: #ffffff;
 
   border: none;
@@ -529,7 +529,7 @@ body.dark-mode .nt-contador-ano .nt-cd-num { color:#818cf8; }
   background:var(--bg2);color:var(--text2);cursor:pointer;font-size:12px;font-weight:600;
   font-family:inherit;transition:all .15s;
 }
-.nt-cal-hoy-btn:hover { background:var(--accent);color:#fff;border-color:var(--accent); }
+.nt-cal-hoy-btn:hover { background:var(--accent-gradient, linear-gradient(135deg,#ff6b9d,#ff4d8d,#c9236a));color:#fff;border-color:var(--accent); }
 
 .nt-cal-grid { display:grid;grid-template-columns:repeat(7,1fr);gap:3px; }
 .nt-cal-day-header { text-align:center;font-size:.65rem;font-weight:700;color:var(--text3);padding:4px 0;text-transform:uppercase; }
@@ -543,11 +543,11 @@ body.dark-mode .nt-contador-ano .nt-cd-num { color:#818cf8; }
 .nt-cal-cell.cal-hoy { background:rgba(0,149,246,.1);border-color:rgba(0,149,246,.4); }
 .nt-cal-cell.cal-con-evento { cursor:pointer; }
 .nt-cal-cell.cal-con-evento:hover { background:var(--card2);transform:scale(1.05); }
-.nt-cal-cell.cal-selected { background:var(--accent) !important;border-color:var(--accent) !important; }
+.nt-cal-cell.cal-selected { background:var(--accent-gradient, linear-gradient(135deg,#ff6b9d,#ff4d8d,#c9236a)) !important;border-color:var(--accent) !important; }
 .nt-cal-cell.cal-selected .nt-cal-num { color:#fff;font-weight:700; }
 .nt-cal-num { font-size:.8rem;font-weight:600;line-height:1;color:var(--text); }
 .cal-hoy .nt-cal-num { color:var(--accent);font-weight:800; }
-.nt-cal-dot { width:5px;height:5px;border-radius:50%;background:var(--accent);margin-top:3px; }
+.nt-cal-dot { width:5px;height:5px;border-radius:50%;background:var(--accent-gradient, linear-gradient(135deg,#ff6b9d,#ff4d8d,#c9236a));margin-top:3px; }
 .nt-cal-dots { display:flex;gap:2px;margin-top:2px;flex-wrap:wrap;justify-content:center; }
 .nt-cal-dot-color { width:5px;height:5px;border-radius:50%; }
 
@@ -567,7 +567,7 @@ body.dark-mode .nt-contador-ano .nt-cd-num { color:#818cf8; }
 .nt-eventos-dia-vacio { text-align:center;color:var(--text3);font-size:.85rem;padding:8px 0; }
 .nt-eventos-dia-agenda { display:flex;justify-content:center;margin-top:8px; }
 .nt-dia-agenda-btn {
-  padding:6px 14px;background:var(--accent);color:#fff;border:none;border-radius:8px;
+  padding:6px 14px;background:var(--accent-gradient, linear-gradient(135deg,#ff6b9d,#ff4d8d,#c9236a));color:#fff;border:none;border-radius:8px;box-shadow:0 2px 8px rgba(255,77,141,.3);
   font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;
 }
 
@@ -662,7 +662,7 @@ body.dark-mode .nt-contador-ano .nt-cd-num { color:#818cf8; }
   background:var(--bg2);color:var(--text);cursor:pointer;font-size:.83rem;font-weight:600;
   font-family:inherit;transition:background .15s;
 }
-.nt-btn-nuevo-sm:hover { background:var(--accent);color:#fff;border-color:var(--accent); }
+.nt-btn-nuevo-sm:hover { background:var(--accent-gradient, linear-gradient(135deg,#ff6b9d,#ff4d8d,#c9236a));color:#fff;border-color:var(--accent); }
 
 /* ═══════════════════════════════════════════
    MODAL AGENDAR EVENTO — Sistema propio NTM
@@ -784,7 +784,8 @@ body.dark-mode .nt-contador-ano .nt-cd-num { color:#818cf8; }
 .ntm-cancel:hover { background:#e0e0e0;border-color:#999; }
 .ntm-submit {
   flex:2;padding:13px;border:none;border-radius:12px;
-  background:#0095f6;color:#fff;cursor:pointer;font-size:15px;font-weight:700;
+  background:var(--accent-gradient, linear-gradient(135deg,#ff6b9d,#ff4d8d,#c9236a));color:#fff;cursor:pointer;font-size:15px;font-weight:700;
+  box-shadow:0 4px 16px rgba(255,77,141,.38);
   display:flex;align-items:center;justify-content:center;gap:7px;
   font-family:inherit;transition:opacity .15s,transform .1s;
 }
@@ -834,7 +835,7 @@ body.dark-mode .nt-btn-nuevo-inline:hover { background:#323238;color:#e5e7eb; }
 body.dark-mode .nt-btn-publicar { background:var(--accent);color:#fff;box-shadow:0 4px 14px rgba(255,77,141,.25); }
 body.dark-mode .nt-btn-publicar:hover { opacity:.88; }
 body.dark-mode .nt-btn-nuevo-sm { background:#1f1f1f;border-color:#3a3a40;color:#e2e8f0; }
-body.dark-mode .nt-btn-nuevo-sm:hover { background:var(--accent);color:#fff;border-color:var(--accent); }
+body.dark-mode .nt-btn-nuevo-sm:hover { background:var(--accent-gradient, linear-gradient(135deg,#ff6b9d,#ff4d8d,#c9236a));color:#fff;border-color:var(--accent); }
 body.dark-mode .nt-cal-cell.has-num { background:var(--bg2); }
 body.dark-mode .nt-cal-cell.cal-hoy { background:rgba(255,77,141,.1);border-color:rgba(255,77,141,.35); }
 body.dark-mode .cal-hoy .nt-cal-num { color:var(--accent); }
