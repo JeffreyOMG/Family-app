@@ -1829,8 +1829,8 @@ body.dark-mode{
   --text3:#7a7a7a;
 
   /* ACCENT */
-  --accent:#ffffff;
-  --accent-2:#d0d0d0;
+  --accent:#ff4d8d;
+  --accent-2:#e0386f;
 
   --score-empty-bg: #242222;
   --score-empty-color: #ddd;
@@ -1887,8 +1887,8 @@ body.dark-mode .btn-outline{
 }
 
 body.dark-mode .btn-primary{
-  background:var(--text);
-  color:var(--bg);
+  background:var(--accent);
+  color:#fff;
 }
 
 /* POST CARDS & INTERACTIONS */
@@ -1898,8 +1898,8 @@ body.dark-mode .post-card {
 }
 
 body.dark-mode .btn-comment {
-  background: var(--text);
-  color: var(--bg);
+  background: linear-gradient(135deg, #ff7a18, #af002d);
+  color: #fff;
 }
 
 body.dark-mode .btn-comment:hover {
@@ -1927,7 +1927,7 @@ body.dark-mode .bottom-nav-item {
 }
 
 body.dark-mode .bottom-nav-item.active {
-  color: var(--text);
+  color: var(--accent);
 }
 
 /* PROGRESS */

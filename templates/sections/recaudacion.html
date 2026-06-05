@@ -1016,11 +1016,11 @@ body.dark-mode .rec-input:focus { border-color:var(--accent);box-shadow:0 0 0 3p
 body.dark-mode .rec-input-prefix { color:#999; }
 body.dark-mode .rec-btn-cancel { background:#2a2a2e;border-color:#444;color:#e0e0e0; }
 body.dark-mode .rec-btn-cancel:hover { background:#333;border-color:#666; }
-/* submit en dark: blanco con letra negra */
-body.dark-mode .rec-btn-submit { background:#ffffff !important;color:#111111 !important;border:none; }
+/* submit en dark: conserva color original, solo añade sombra */
+body.dark-mode .rec-btn-submit { box-shadow:0 4px 12px rgba(0,0,0,.3); }
 body.dark-mode .rec-btn-submit:hover { opacity:.88; }
 body.dark-mode .familia-tab { background:var(--bg2);border-color:var(--border);color:var(--text2); }
-body.dark-mode .familia-tab.active { background:var(--accent);color:var(--bg);border-color:var(--accent); }
+body.dark-mode .familia-tab.active { background:var(--accent);color:#fff;border-color:var(--accent); }
 body.dark-mode .rec-modal-header { border-color:var(--border); }
 body.dark-mode .rec-modal-footer { border-color:var(--border); }
 body.dark-mode .rec-upload-area { border-color:var(--border); }
