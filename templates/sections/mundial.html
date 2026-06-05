@@ -2953,6 +2953,8 @@ document.addEventListener('DOMContentLoaded', function() {
         if (action === '/admin_resultado') {
           _refreshMundialDatos('grupos');
           _refreshAdminGruposCards();
+          // Siempre recargar bracket ya que los clasificados 1°/2° pudieron cambiar
+          _loadBracket();
         } else if (action === '/admin_resultado_eli') {
           _loadAdminEli();
           _loadBracket();
@@ -2982,7 +2984,8 @@ function _esc(s) {
 // ══════════════════════════════════════════
 
 // Cache para detectar cambios y solo re-renderizar si algo cambió
-let _hashGrupos = '', _hashEli = '';
+// NOTA: _hashBracket trackea cambios en clasificados para forzar re-render del bracket
+let _hashGrupos = '', _hashEli = '', _hashBracket = '';
 
 async function _refreshTodo(silencioso = true) {
   try {
@@ -2996,15 +2999,19 @@ async function _refreshTodo(silencioso = true) {
     const eliData     = await r2.json();
 
     // Detectar si algo cambió usando hash simple
-    const nuevoHashGrupos = JSON.stringify(mundialData.tabla);
-    const nuevoHashEli    = JSON.stringify(eliData.partidos);
-    const cambioGrupos    = nuevoHashGrupos !== _hashGrupos;
-    const cambioEli       = nuevoHashEli    !== _hashEli;
+    const nuevoHashGrupos  = JSON.stringify(mundialData.tabla);
+    const nuevoHashEli     = JSON.stringify(eliData.partidos);
+    // Trackear también cambios en los clasificados del bracket para forzar re-render
+    const nuevoHashBracket = JSON.stringify(mundialData.bracket?.clasificados || {});
+    const cambioGrupos    = nuevoHashGrupos  !== _hashGrupos;
+    const cambioEli       = nuevoHashEli     !== _hashEli;
+    const cambioBracket   = nuevoHashBracket !== _hashBracket;
 
-    if (!cambioGrupos && !cambioEli) return;  // nada cambió, no re-renderizar
+    if (!cambioGrupos && !cambioEli && !cambioBracket) return;  // nada cambió
 
-    _hashGrupos = nuevoHashGrupos;
-    _hashEli    = nuevoHashEli;
+    _hashGrupos  = nuevoHashGrupos;
+    _hashEli     = nuevoHashEli;
+    _hashBracket = nuevoHashBracket;
 
     // Actualizar estado de fases e iconos de tabs
     if (mundialData.fases_lock) {
@@ -3013,7 +3020,7 @@ async function _refreshTodo(silencioso = true) {
     }
 
     // Siempre actualizar cache de datos eli para que estén frescos al cambiar de tab
-    if (cambioEli) {
+    if (cambioEli || cambioBracket) {
       _eliData = eliData.partidos;
       _tercerosPorGrupo = eliData.terceros_por_grupo || {};
     }
@@ -3026,20 +3033,23 @@ async function _refreshTodo(silencioso = true) {
       _renderRanking(mundialData.ranking);
     }
     if (_tabActivo === 'bracket') {
-      _renderBracket(mundialData.bracket, eliData.partidos);
-      if (cambioEli) _loadAdminTerceros();
+      // Re-renderizar si cambió eli, bracket (clasificados) o grupos
+      if (cambioEli || cambioBracket || cambioGrupos) {
+        _renderBracket(mundialData.bracket, eliData.partidos);
+      }
+      if (cambioEli || cambioBracket) _loadAdminTerceros();
     }
     if (_tabActivo === 'partidos') {
       if (_rondaActivaPron === 'grupos-pron') {
         _renderGrupos(mundialData.partidos, mundialData.tabla);
-      } else if (cambioEli) {
+      } else if (cambioEli || cambioBracket) {
         _renderEliRonda(_rondaActivaPron);
       }
     }
-    // Si cambian datos eli pero el usuario está en otro tab, re-renderizar
+    // Si cambian datos eli/bracket pero el usuario está en otro tab, re-renderizar
     // la ronda activa de pronósticos en background (actualiza el DOM oculto)
     // para que al volver al tab ya esté listo con los equipos nuevos
-    if (cambioEli && _tabActivo !== 'partidos' && _rondaActivaPron !== 'grupos-pron') {
+    if ((cambioEli || cambioBracket) && _tabActivo !== 'partidos' && _rondaActivaPron !== 'grupos-pron') {
       _renderEliRonda(_rondaActivaPron);
     }
     if (_tabActivo === 'admin') {
@@ -3047,11 +3057,11 @@ async function _refreshTodo(silencioso = true) {
       const eliActivo = document.getElementById('admin-ronda-eli-adm')?.style.display !== 'none';
       if (eliActivo) {
         const wrap = document.getElementById('admin-eli-lista');
-        if (wrap && cambioEli) _loadAdminEli();
+        if (wrap && (cambioEli || cambioBracket)) _loadAdminEli();
       }
     }
 
-    if (!silencioso && (cambioGrupos || cambioEli)) {
+    if (!silencioso && (cambioGrupos || cambioEli || cambioBracket)) {
       mostrarToast('🔄 Datos actualizados');
     }
 
@@ -3104,6 +3114,8 @@ window.resetarPartidoMundial = async function(partidoId, tipo) {
     try { data = await r.json(); } catch(e) { mostrarToast('❌ Respuesta inesperada', 'error'); return; }
     if (data.ok) {
       mostrarToast('✅ Partido #' + partidoId + ' reseteado');
+      // Limpiar hashes para forzar re-render aunque los datos "parezcan" iguales
+      _hashGrupos = ''; _hashEli = ''; _hashBracket = '';
       await _refreshTodo(false);
       _refreshAdminGruposCards();
       if (typeof _loadAdminEli === 'function') _loadAdminEli();

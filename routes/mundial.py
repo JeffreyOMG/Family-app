@@ -126,8 +126,7 @@ def api_mundial_datos():
 
     try:
         _ensure_eliminacion_table(con)
-        _auto_asignar_fijos(con)
-        _auto_propagar_ganadores(con)
+        _reconstruir_bracket_desde_grupos(con)
     except Exception:
         pass
     bracket = generar_bracket(tabla_ordenada)
@@ -226,6 +225,14 @@ def admin_resultado():
         con.execute("UPDATE pronosticos SET puntos=%s WHERE id=%s", (puntos, p["id"]))
 
     con.commit()
+
+    # Reconstruir bracket automáticamente tras registrar resultado de grupos
+    try:
+        _ensure_eliminacion_table(con)
+        _reconstruir_bracket_desde_grupos(con)
+    except Exception:
+        pass
+
     if _is_ajax():
         return jsonify({"ok": True, "msg": "Resultado guardado"})
     return _back()
@@ -243,6 +250,14 @@ def admin_desbloquear():
     """, (partido_id,))
     con.execute("UPDATE pronosticos SET puntos=0 WHERE partido_id=%s", (partido_id,))
     con.commit()
+
+    # Reconstruir bracket: recalcular clasificados 1°/2° y limpiar slots afectados
+    try:
+        _ensure_eliminacion_table(con)
+        _reconstruir_bracket_desde_grupos(con)
+    except Exception:
+        pass
+
     if _is_ajax():
         return jsonify({"ok": True, "msg": "Partido desbloqueado"})
     return _back()
@@ -425,8 +440,7 @@ def api_eliminacion_datos():
     uid = session["uid"]
     con = get_db()
     _ensure_eliminacion_table(con)
-    _auto_asignar_fijos(con)
-    _auto_propagar_ganadores(con)
+    _reconstruir_bracket_desde_grupos(con)
     # Aplicar terceros guardados en mejores_terceros (solo si no manual_override ya aplicado)
     _aplicar_mejores_terceros(con)
 
@@ -488,8 +502,23 @@ def _calcular_tabla_grupos(con):
     return ordenada
 
 
-def _auto_asignar_fijos(con):
+def _reconstruir_bracket_desde_grupos(con):
+    """
+    Reconstruye completamente los clasificados 1°/2° en el bracket
+    a partir del estado actual de los resultados de grupos.
+
+    Flujo:
+    1. Recalcular tabla de posiciones desde cero (sin caché).
+    2. Actualizar eq_local/eq_visit de todos los dieciseisavos que
+       dependen de clasificados de grupos (fijos y slots 1X de no-fijos).
+    3. Si un clasificado cambia o se elimina, limpiar los equipos en
+       octavos/cuartos/semis/final que dependían del dieciseisavo afectado,
+       SOLO si ese partido eliminatorio no está bloqueado.
+    4. NO tocar los partidos eliminatorios bloqueados (resultado ya registrado).
+    5. NO tocar los terceros (eso lo gestiona el admin manualmente).
+    """
     from mundial_bracket import DIECISEISAVOS
+
     tabla = _calcular_tabla_grupos(con)
 
     def _resolver_slot(slot):
@@ -498,24 +527,177 @@ def _auto_asignar_fijos(con):
             letra = slot[1].upper()
             rows  = tabla.get(letra, [])
             if pos < len(rows):
-                return rows[pos][0], rows[pos][1]["codigo"]
+                nombre = rows[pos][0]
+                codigo = rows[pos][1]["codigo"]
+                pj     = rows[pos][1].get("pj", 0)
+                if pj > 0:
+                    return nombre, codigo
+        return None, None
+
+    # ── Paso 1: Guardar estado anterior de los 16avos fijos y locales no-fijos ──
+    partidos_16 = {
+        p["id"]: dict(p)
+        for p in con.execute(
+            "SELECT id, eq_local, cod_local, eq_visit, cod_visit, bloqueado "
+            "FROM partidos_eliminacion WHERE id BETWEEN 73 AND 88"
+        ).fetchall()
+    }
+
+    # ── Paso 2: Actualizar clasificados en los 16avos ────────────────────────
+    for p_data in DIECISEISAVOS:
+        pid = p_data["id"]
+        if pid not in partidos_16:
+            continue
+
+        nombre_l, codigo_l = _resolver_slot(p_data["slot_l"])
+
+        if p_data["fijo"]:
+            nombre_v, codigo_v = _resolver_slot(p_data["slot_v"])
+            # Actualizar siempre (bloqueado o no) para que el bracket sea correcto
+            con.execute("""
+                UPDATE partidos_eliminacion
+                SET eq_local=%s, cod_local=%s, eq_visit=%s, cod_visit=%s
+                WHERE id=%s
+            """, (nombre_l, codigo_l, nombre_v, codigo_v, pid))
+        else:
+            # Solo actualizar el local (1X) — el visitante es un tercero gestionado por el admin
+            con.execute("""
+                UPDATE partidos_eliminacion
+                SET eq_local=%s, cod_local=%s
+                WHERE id=%s
+            """, (nombre_l, codigo_l, pid))
+
+    con.commit()
+
+    # ── Paso 3: Detectar 16avos cuyos equipos cambiaron ─────────────────────
+    # y limpiar sus ganadores/perdedores en octavos/cuartos/semis/final
+    # (solo partidos NO bloqueados)
+    partidos_16_nuevo = {
+        p["id"]: dict(p)
+        for p in con.execute(
+            "SELECT id, eq_local, cod_local, eq_visit, cod_visit, bloqueado "
+            "FROM partidos_eliminacion WHERE id BETWEEN 73 AND 88"
+        ).fetchall()
+    }
+
+    ids_16_cambiados = set()
+    for pid, nuevo in partidos_16_nuevo.items():
+        viejo = partidos_16.get(pid, {})
+        if (nuevo.get("eq_local") != viejo.get("eq_local") or
+                nuevo.get("eq_visit") != viejo.get("eq_visit")):
+            ids_16_cambiados.add(pid)
+
+    if ids_16_cambiados:
+        # Limpiar slots G<pid> en los partidos siguientes no bloqueados
+        partidos_siguientes = [dict(p) for p in con.execute(
+            "SELECT id, slot_local, slot_visit, bloqueado "
+            "FROM partidos_eliminacion WHERE id > 88"
+        ).fetchall()]
+
+        for p in partidos_siguientes:
+            if p["bloqueado"]:
+                continue
+            updates = {}
+            for campo_slot, campo_eq, campo_cod in [
+                ("slot_local", "eq_local", "cod_local"),
+                ("slot_visit", "eq_visit", "cod_visit"),
+            ]:
+                slot = p.get(campo_slot) or ""
+                if not slot.startswith("G"):
+                    continue
+                try:
+                    origen = int(slot[1:])
+                except ValueError:
+                    continue
+                if origen in ids_16_cambiados:
+                    updates[campo_eq]  = None
+                    updates[campo_cod] = None
+
+            if updates:
+                sets = ", ".join(f"{k}=%s" for k in updates)
+                vals = list(updates.values()) + [p["id"]]
+                con.execute(f"UPDATE partidos_eliminacion SET {sets} WHERE id=%s", vals)
+
+        con.commit()
+
+    # ── Paso 4: Repropagar ganadores hacia adelante ──────────────────────────
+    _auto_propagar_ganadores(con)
+
+
+def _auto_asignar_fijos(con):
+    """
+    Recalcula desde cero los clasificados 1°/2° de cada grupo y los asigna
+    a todos los dieciseisavos que dependen de ellos.
+
+    Reglas:
+    - Si el partido de dieciseisavos NO está bloqueado: actualizar eq/cod.
+    - Si el partido de dieciseisavos SÍ está bloqueado: actualizar eq/cod igualmente
+      para que el bracket siempre muestre la información correcta (el resultado
+      ya fue registrado, pero el equipo que juega es el que la tabla indica).
+    - Para los slots "1X" en dieciseisavos con fijo=False también se actualiza
+      el lado local (que siempre es un 1° de grupo).
+    - Si el slot no se puede resolver (grupo sin datos), se pone NULL para
+      limpiar clasificados obsoletos.
+    """
+    from mundial_bracket import DIECISEISAVOS
+    tabla = _calcular_tabla_grupos(con)
+
+    def _resolver_slot(slot):
+        """Resuelve '1A', '2B', etc. desde la tabla actual. Retorna (nombre, codigo) o (None, None)."""
+        if len(slot) == 2 and slot[0] in "12" and slot[1].isalpha():
+            pos   = int(slot[0]) - 1
+            letra = slot[1].upper()
+            rows  = tabla.get(letra, [])
+            if pos < len(rows):
+                nombre = rows[pos][0]
+                codigo = rows[pos][1]["codigo"]
+                # Solo retornar si el equipo tiene al menos algún partido jugado
+                # (evitar mostrar clasificados de grupos sin resultados)
+                pts = rows[pos][1].get("pts", 0)
+                pj  = rows[pos][1].get("pj", 0)
+                if pj > 0 or pts > 0:
+                    return nombre, codigo
         return None, None
 
     for p_data in DIECISEISAVOS:
-        if not p_data["fijo"]:
-            continue
         row = con.execute(
             "SELECT bloqueado FROM partidos_eliminacion WHERE id=%s", (p_data["id"],)
         ).fetchone()
-        if not row or row["bloqueado"]:
+        if not row:
             continue
-        nombre_l, codigo_l = _resolver_slot(p_data["slot_l"])
-        nombre_v, codigo_v = _resolver_slot(p_data["slot_v"])
-        con.execute("""
-            UPDATE partidos_eliminacion
-            SET eq_local=%s, cod_local=%s, eq_visit=%s, cod_visit=%s
-            WHERE id=%s
-        """, (nombre_l, codigo_l, nombre_v, codigo_v, p_data["id"]))
+
+        if p_data["fijo"]:
+            # Partido fijo: ambos slots son 1X/2X → recalcular siempre
+            nombre_l, codigo_l = _resolver_slot(p_data["slot_l"])
+            nombre_v, codigo_v = _resolver_slot(p_data["slot_v"])
+            con.execute("""
+                UPDATE partidos_eliminacion
+                SET eq_local=%s, cod_local=%s, eq_visit=%s, cod_visit=%s
+                WHERE id=%s AND bloqueado=0
+            """, (nombre_l, codigo_l, nombre_v, codigo_v, p_data["id"]))
+            # Aunque esté bloqueado, actualizar al menos la identidad del equipo
+            # para que el bracket muestre el nombre correcto (no el score)
+            con.execute("""
+                UPDATE partidos_eliminacion
+                SET eq_local=%s, cod_local=%s, eq_visit=%s, cod_visit=%s
+                WHERE id=%s AND bloqueado=1
+            """, (nombre_l, codigo_l, nombre_v, codigo_v, p_data["id"]))
+        else:
+            # Partido con tercero: slot_l es siempre 1X (grupo líder)
+            # slot_v es "3-XXXXX" (tercero — lo gestiona el admin)
+            nombre_l, codigo_l = _resolver_slot(p_data["slot_l"])
+            con.execute("""
+                UPDATE partidos_eliminacion
+                SET eq_local=%s, cod_local=%s
+                WHERE id=%s AND bloqueado=0
+            """, (nombre_l, codigo_l, p_data["id"]))
+            # Para bloqueados también actualizamos identidad del local
+            con.execute("""
+                UPDATE partidos_eliminacion
+                SET eq_local=%s, cod_local=%s
+                WHERE id=%s AND bloqueado=1
+            """, (nombre_l, codigo_l, p_data["id"]))
+
     con.commit()
 
 
