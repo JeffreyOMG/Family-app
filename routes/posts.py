@@ -1,4 +1,4 @@
-from decorators import miembro_required
+from decorators import miembro_required, login_required
 from flask import Blueprint, request, redirect, session, jsonify, render_template_string
 from database import get_db
 from cloudinary_helper import subir_a_cloudinary
@@ -89,7 +89,7 @@ POST_TMPL = """
 """
 
 @posts_bp.route("/publicar", methods=["POST"])
-@miembro_required
+@login_required
 def publicar():
     if "uid" not in session:
         return redirect("/")
@@ -97,7 +97,7 @@ def publicar():
     return redirect("/dashboard")
 
 @posts_bp.route("/publicar_ajax", methods=["POST"])
-@miembro_required
+@login_required
 def publicar_ajax():
     if "uid" not in session:
         return jsonify({"ok": False}), 401
@@ -146,6 +146,9 @@ def _guardar_post():
         return None
     visibilidad = request.form.get('visibilidad', 'general')
     if visibilidad not in ('general', 'privada'):
+        visibilidad = 'general'
+    # Invitados siempre publican en general (no tienen la opción de privado)
+    if session.get('rol', 'invitado') == 'invitado':
         visibilidad = 'general'
     cur = con.execute(
         "INSERT INTO publicaciones(usuario_id, texto, media, media_tipo, visibilidad) VALUES(%s, %s, %s, %s, %s) RETURNING id",
