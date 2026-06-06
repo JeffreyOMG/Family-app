@@ -325,85 +325,6 @@
         {% endif %}
       </div>
 
-      <!-- MODAL TODOS LOS USUARIOS (solo desktop) -->
-      <div id="umu-overlay" onclick="cerrarModalUsuarios(event)" style="display:none;">
-        <div id="umu-caja">
-          <div id="umu-encabezado">
-            <h3 id="umu-titulo">Todos los usuarios</h3>
-            <button id="umu-cerrar" onclick="cerrarModalUsuarios()">
-              <span class="material-symbols-outlined">close</span>
-            </button>
-          </div>
-          <div id="umu-buscador">
-            <span class="material-symbols-outlined" id="umu-lupa">search</span>
-            <input type="text" id="input-buscar-usuario" id="umu-input" placeholder="Buscar por nombre o @usuario…" oninput="filtrarUsuariosModal(this.value)" autocomplete="off">
-            <button id="btn-clear-search" onclick="limpiarBusquedaModal()" style="display:none;">
-              <span class="material-symbols-outlined">close</span>
-            </button>
-          </div>
-          <div id="umu-cuerpo">
-            {% set miembros_reales = miembros | selectattr('rol', 'in', ['miembro', 'admin']) | list %}
-            {% set invitados_lista = miembros | selectattr('rol', 'equalto', 'invitado') | list %}
-
-            {% if miembros_reales %}
-            <div class="umu-grupo-label" id="umu-grupo-miembros">
-              <span class="material-symbols-outlined">verified_user</span>
-              <span>Miembros</span>
-              <span class="umu-count">{{ miembros_reales|length }}</span>
-            </div>
-            <div class="umu-lista">
-              {% for m in miembros_reales %}
-              <div class="umu-fila" data-nombre="{{ m.nombre|lower }}" data-usuario="{{ m.usuario|lower }}" data-ver-perfil="{{ m.usuario }}" title="Ver perfil de {{ m.nombre }}">
-                {% if m.foto %}
-                  <img src="{{ m.foto }}" class="user-avatar-img miembro-av">
-                {% else %}
-                  <div class="user-avatar miembro-av">{{ m.nombre[0]|upper }}</div>
-                {% endif %}
-                <div class="umu-info">
-                  <strong>{{ m.nombre }}</strong>
-                  <span>@{{ m.usuario }}</span>
-                </div>
-                {% if m.rol == 'admin' %}
-                  <span class="umu-badge umu-badge--admin">Admin</span>
-                {% else %}
-                  <span class="umu-badge umu-badge--miembro">Miembro</span>
-                {% endif %}
-              </div>
-              {% endfor %}
-            </div>
-            {% endif %}
-
-            {% if invitados_lista %}
-            <div class="umu-grupo-label" id="umu-grupo-invitados">
-              <span class="material-symbols-outlined">person_outline</span>
-              <span>Invitados</span>
-              <span class="umu-count">{{ invitados_lista|length }}</span>
-            </div>
-            <div class="umu-lista">
-              {% for m in invitados_lista %}
-              <div class="umu-fila" data-nombre="{{ m.nombre|lower }}" data-usuario="{{ m.usuario|lower }}" data-ver-perfil="{{ m.usuario }}" title="Ver perfil de {{ m.nombre }}">
-                {% if m.foto %}
-                  <img src="{{ m.foto }}" class="user-avatar-img miembro-av">
-                {% else %}
-                  <div class="user-avatar miembro-av">{{ m.nombre[0]|upper }}</div>
-                {% endif %}
-                <div class="umu-info">
-                  <strong>{{ m.nombre }}</strong>
-                  <span>@{{ m.usuario }}</span>
-                </div>
-                <span class="umu-badge umu-badge--invitado">Invitado</span>
-              </div>
-              {% endfor %}
-            </div>
-            {% endif %}
-
-            <div id="umu-sin-resultados" style="display:none;">
-              <span class="material-symbols-outlined">search_off</span>
-              <p>Sin resultados</p>
-            </div>
-          </div>
-        </div>
-      </div>
 
       <!-- NOTICIAS -->
       <div class="panel-card">
@@ -434,6 +355,90 @@
     </aside>
   </div>
 </section>
+
+<!-- ═══════════════════════════════
+     MODAL TODOS LOS USUARIOS (solo desktop)
+     Colocado aquí (fuera del aside) para que position:fixed funcione correctamente.
+     El aside tiene position:sticky, lo que atrapa los fixed anidados en él.
+═══════════════════════════════ -->
+<div id="umu-overlay" onclick="cerrarModalUsuarios(event)" style="display:none;">
+  <div id="umu-caja">
+    <div id="umu-encabezado">
+      <h3 id="umu-titulo">Todos los usuarios</h3>
+      <button id="umu-cerrar" onclick="cerrarModalUsuarios()">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
+    <div id="umu-buscador">
+      <span class="material-symbols-outlined" id="umu-lupa">search</span>
+      <input type="text" id="input-buscar-usuario" placeholder="Buscar por nombre o @usuario…" oninput="filtrarUsuariosModal(this.value)" autocomplete="off">
+      <button id="btn-clear-search" onclick="limpiarBusquedaModal()" style="display:none;">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
+    <div id="umu-cuerpo">
+      {% set miembros_reales = miembros | selectattr('rol', 'in', ['miembro', 'admin']) | list %}
+      {% set invitados_lista = miembros | selectattr('rol', 'equalto', 'invitado') | list %}
+
+      {% if miembros_reales %}
+      <div class="umu-grupo-label" id="umu-grupo-miembros">
+        <span class="material-symbols-outlined">verified_user</span>
+        <span>Miembros</span>
+        <span class="umu-count">{{ miembros_reales|length }}</span>
+      </div>
+      <div class="umu-lista">
+        {% for m in miembros_reales %}
+        <div class="umu-fila" data-nombre="{{ m.nombre|lower }}" data-usuario="{{ m.usuario|lower }}" data-ver-perfil="{{ m.usuario }}" title="Ver perfil de {{ m.nombre }}">
+          {% if m.foto %}
+            <img src="{{ m.foto }}" class="user-avatar-img miembro-av">
+          {% else %}
+            <div class="user-avatar miembro-av">{{ m.nombre[0]|upper }}</div>
+          {% endif %}
+          <div class="umu-info">
+            <strong>{{ m.nombre }}</strong>
+            <span>@{{ m.usuario }}</span>
+          </div>
+          {% if m.rol == 'admin' %}
+            <span class="umu-badge umu-badge--admin">Admin</span>
+          {% else %}
+            <span class="umu-badge umu-badge--miembro">Miembro</span>
+          {% endif %}
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      {% if invitados_lista %}
+      <div class="umu-grupo-label" id="umu-grupo-invitados">
+        <span class="material-symbols-outlined">person_outline</span>
+        <span>Invitados</span>
+        <span class="umu-count">{{ invitados_lista|length }}</span>
+      </div>
+      <div class="umu-lista">
+        {% for m in invitados_lista %}
+        <div class="umu-fila" data-nombre="{{ m.nombre|lower }}" data-usuario="{{ m.usuario|lower }}" data-ver-perfil="{{ m.usuario }}" title="Ver perfil de {{ m.nombre }}">
+          {% if m.foto %}
+            <img src="{{ m.foto }}" class="user-avatar-img miembro-av">
+          {% else %}
+            <div class="user-avatar miembro-av">{{ m.nombre[0]|upper }}</div>
+          {% endif %}
+          <div class="umu-info">
+            <strong>{{ m.nombre }}</strong>
+            <span>@{{ m.usuario }}</span>
+          </div>
+          <span class="umu-badge umu-badge--invitado">Invitado</span>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      <div id="umu-sin-resultados" style="display:none;">
+        <span class="material-symbols-outlined">search_off</span>
+        <p>Sin resultados</p>
+      </div>
+    </div>
+  </div>
+</div>
 
 <!-- ═══════════════════════════════
      MODAL COMPOSITOR
@@ -1989,10 +1994,6 @@ function toggleMiembros(){
 function abrirModalUsuarios(){
   const modal = document.getElementById('umu-overlay');
   if(!modal) return;
-  // Mover al body para que position:fixed funcione correctamente
-  if(modal.parentElement !== document.body) {
-    document.body.appendChild(modal);
-  }
   modal.style.display = 'flex';
   document.body.style.overflow = 'hidden';
   setTimeout(() => document.getElementById('input-buscar-usuario')?.focus(), 80);
@@ -2353,6 +2354,7 @@ function onComposerInput(){
   fill.style.width = Math.min(pct,100)+'%';
   fill.style.background = pct>90 ? '#e03030' : pct>70 ? '#d97706' : 'var(--text)';
   actualizarPublicarBtn();
+  const ta = document.getElementById('mc-texto');
   gestionarMenciones(ta);
 }
 
