@@ -173,14 +173,74 @@
 
       <!-- POSTS FEED: PARA TI -->
       <div id="feed-posts">
-      {% for p in publicaciones %}
-      {{ render_post(p) }}
+      {% if publicaciones %}
+        {# Filtrar miembros que el usuario actual NO sigue (excluir al propio usuario) #}
+        {% set sugerencias_base = miembros | selectattr('id', 'ne', usuario.id) | list %}
+
+        {% for p in publicaciones %}
+          {{ render_post(p) }}
+
+          {# Cada 8 posts insertar bloque "A quién seguir" #}
+          {% if loop.index is divisibleby 8 %}
+            {% set offset = (loop.index // 8 - 1) * 5 %}
+            {% set panel_sugerencias = sugerencias_base[offset : offset + 5] %}
+            {% if not panel_sugerencias %}
+              {% set panel_sugerencias = sugerencias_base[:5] %}
+            {% endif %}
+
+            {% if panel_sugerencias %}
+            <div class="seguir-card" id="seguir-panel-{{ loop.index }}">
+              <div class="seguir-header">
+                <span class="material-symbols-outlined">person_add</span>
+                <h3>A quién seguir</h3>
+              </div>
+              <div class="seguir-lista">
+                {% for m in panel_sugerencias %}
+                <div class="seguir-item" id="sugerencia-{{ m.id }}-{{ loop.index }}">
+                  <div class="seguir-av-wrap" data-ver-perfil="{{ m.usuario }}" style="cursor:pointer;">
+                    {% if m.foto %}
+                      <img src="{{ m.foto }}" class="user-avatar-img seguir-av" title="{{ m.nombre }}">
+                    {% else %}
+                      <div class="user-avatar seguir-av">{{ (m.nombre[0] if m.nombre else 'U')|upper }}</div>
+                    {% endif %}
+                  </div>
+                  <div class="seguir-info" data-ver-perfil="{{ m.usuario }}" style="cursor:pointer;">
+                    <strong class="seguir-nombre">{{ m.nombre }}</strong>
+                    <span class="seguir-handle">@{{ m.usuario }}</span>
+                    {% if m.rol == 'admin' %}
+                      <span class="seguir-badge seguir-badge--admin">Admin</span>
+                    {% elif m.rol == 'invitado' %}
+                      <span class="seguir-badge seguir-badge--invitado">Invitado</span>
+                    {% else %}
+                      <span class="seguir-badge seguir-badge--miembro">Miembro</span>
+                    {% endif %}
+                  </div>
+                  <button
+                    class="btn-seguir"
+                    data-uid="{{ m.id }}"
+                    data-nombre="{{ m.nombre }}"
+                    onclick="accionSeguir(this)"
+                    title="Seguir a {{ m.nombre }}">
+                    <span class="material-symbols-outlined">person_add</span>
+                    <span class="btn-seguir-txt">Seguir</span>
+                  </button>
+                </div>
+                {% endfor %}
+              </div>
+              <button class="seguir-ver-mas" onclick="irSeccion('buscador')">
+                Ver más personas
+                <span class="material-symbols-outlined">arrow_forward</span>
+              </button>
+            </div>
+            {% endif %}
+          {% endif %}
+        {% endfor %}
       {% else %}
       <div class="feed-empty">
         <span class="material-symbols-outlined">auto_awesome</span>
         <p>Sé el primero en publicar algo para la familia</p>
       </div>
-      {% endfor %}
+      {% endif %}
       </div>
 
       <!-- FEED: GUARDADOS -->
@@ -559,8 +619,167 @@
 </script>
 
 <style>
-/* ════════════════════════════════════════════════
-   PALETA LIMPIA — variables locales de inicio
+/* ════════════════════════════════════════
+   BLOQUE "A QUIÉN SEGUIR" EN EL FEED
+════════════════════════════════════════ */
+.seguir-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 0;
+  margin-bottom: 10px;
+  overflow: hidden;
+  animation: fadeInUp .3s ease;
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.seguir-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 16px 10px;
+  border-bottom: 1px solid var(--border);
+}
+.seguir-header .material-symbols-outlined {
+  font-size: 18px;
+  color: var(--ac);
+}
+.seguir-header h3 {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0;
+}
+
+.seguir-lista {
+  padding: 4px 0;
+}
+
+.seguir-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 16px;
+  transition: background .15s;
+}
+.seguir-item:hover {
+  background: var(--bg2);
+}
+
+.seguir-av-wrap { flex-shrink: 0; }
+.seguir-av {
+  width: 40px !important;
+  height: 40px !important;
+  font-size: 15px !important;
+}
+
+.seguir-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.seguir-nombre {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.seguir-handle {
+  font-size: 11.5px;
+  color: var(--text3);
+}
+
+.seguir-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 7px;
+  border-radius: 20px;
+  margin-top: 2px;
+  display: inline-block;
+  width: fit-content;
+}
+.seguir-badge--admin   { color: var(--ac); background: var(--ac-soft); }
+.seguir-badge--miembro { color: #0095f6; background: rgba(0,149,246,.12); }
+.seguir-badge--invitado { color: var(--text3); background: var(--bg2); }
+
+/* Botón Seguir */
+.btn-seguir {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 7px 14px;
+  border-radius: 22px;
+  border: 1.5px solid var(--text);
+  background: var(--text);
+  color: var(--bg);
+  font-family: var(--font);
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: all .18s;
+}
+.btn-seguir .material-symbols-outlined { font-size: 15px; }
+.btn-seguir:hover { opacity: .82; transform: scale(1.04); }
+
+/* Estado: ya siguiendo */
+.btn-seguir.siguiendo {
+  background: transparent;
+  color: var(--text2);
+  border-color: var(--border);
+}
+.btn-seguir.siguiendo:hover {
+  border-color: #e03030;
+  color: #e03030;
+  background: rgba(224,48,48,.07);
+}
+.btn-seguir.siguiendo .btn-seguir-txt::after {
+  content: 'Siguiendo';
+}
+.btn-seguir.siguiendo .btn-seguir-icon { display: none; }
+
+/* Estado: loading */
+.btn-seguir.loading {
+  opacity: .55;
+  pointer-events: none;
+}
+
+.seguir-ver-mas {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  width: 100%;
+  padding: 12px 16px;
+  background: none;
+  border: none;
+  border-top: 1px solid var(--border);
+  color: var(--ac);
+  font-family: var(--font);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background .15s;
+}
+.seguir-ver-mas:hover { background: var(--ac-soft); }
+.seguir-ver-mas .material-symbols-outlined { font-size: 16px; }
+
+/* Mobile: compactar un poco */
+@media (max-width: 480px) {
+  .seguir-item { padding: 8px 12px; gap: 8px; }
+  .btn-seguir { padding: 6px 12px; font-size: 12px; }
+  .seguir-av { width: 36px !important; height: 36px !important; }
+}
+
    Nota: colores base vienen del :root / dark-mode
 ════════════════════════════════════════════════ */
 
@@ -2472,8 +2691,62 @@ function attachCarousel(car){
 }
 
 // También init cuando llegan posts nuevos del AJAX
-/* ── TOAST ── */
-function mostrarToast(msg, tipo='ok'){
+/* ════════════════════════════════
+   BOTÓN SEGUIR / DEJAR DE SEGUIR
+════════════════════════════════ */
+async function accionSeguir(btn){
+  if(btn.disabled || btn.classList.contains('loading')) return;
+  const uid    = btn.dataset.uid;
+  const nombre = btn.dataset.nombre || 'este usuario';
+  const ya     = btn.classList.contains('siguiendo');
+
+  btn.classList.add('loading');
+
+  try {
+    const endpoint = ya ? `/api/dejar_de_seguir/${uid}` : `/api/seguir/${uid}`;
+    const res  = await fetch(endpoint, { method: 'POST' });
+    const data = await res.json();
+
+    if(data.ok){
+      if(ya){
+        // Dejar de seguir
+        btn.classList.remove('siguiendo');
+        btn.innerHTML = `<span class="material-symbols-outlined">person_add</span><span class="btn-seguir-txt">Seguir</span>`;
+        btn.title = `Seguir a ${nombre}`;
+        mostrarToast(`Dejaste de seguir a ${nombre}`);
+      } else {
+        // Ahora sigues
+        btn.classList.add('siguiendo');
+        btn.innerHTML = `<span class="material-symbols-outlined">check</span><span class="btn-seguir-txt">Siguiendo</span>`;
+        btn.title = `Dejar de seguir a ${nombre}`;
+        mostrarToast(`✅ Ahora sigues a ${nombre}`);
+
+        // Animación: desvanecer ítem después de 1.5s
+        const item = btn.closest('.seguir-item');
+        if(item){
+          setTimeout(()=>{
+            item.style.transition = 'all .35s ease';
+            item.style.opacity    = '0';
+            item.style.maxHeight  = item.offsetHeight + 'px';
+            requestAnimationFrame(()=>{
+              item.style.maxHeight  = '0';
+              item.style.padding    = '0 16px';
+              item.style.overflow   = 'hidden';
+            });
+            setTimeout(()=> item.remove(), 370);
+          }, 1200);
+        }
+      }
+    } else {
+      mostrarToast(data.error || 'Error al procesar', 'err');
+    }
+  } catch(e){
+    mostrarToast('Error de conexión', 'err');
+  }
+
+  btn.classList.remove('loading');
+}
+
   let c = document.getElementById('toast-container');
   if(!c){ c=document.createElement('div'); c.id='toast-container'; Object.assign(c.style,{position:'fixed',bottom:'74px',left:'50%',transform:'translateX(-50%)',zIndex:'20000',display:'flex',flexDirection:'column',alignItems:'center',gap:'6px',pointerEvents:'none'}); document.body.appendChild(c); }
   const t=document.createElement('div');
