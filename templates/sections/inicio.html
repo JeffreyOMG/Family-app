@@ -326,16 +326,6 @@
       </div>
 
 
-            {% set miembros_reales = miembros | selectattr('rol', 'in', ['miembro', 'admin']) | list %}
-            {% set invitados_lista = miembros | selectattr('rol', 'equalto', 'invitado') | list %}
-
-            {% if miembros_reales %}
-            <div class="umu-grupo-label" id="umu-grupo-miembros">
-              <span class="material-symbols-outlined">verified_user</span>
-              <span>Miembros</span>
-              <span class="umu-count">{{ miembros_reales|length }}</span>
-            </div>
-            <div class="umu-lista">
       <!-- NOTICIAS -->
       <div class="panel-card">
         <div class="panel-header">
