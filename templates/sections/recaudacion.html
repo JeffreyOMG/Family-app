@@ -13,6 +13,10 @@
         <span class="material-symbols-outlined">edit</span>
         Editar meta
       </button>
+      <button class="btn-admin-meta" onclick="fixPollaMontos()" title="Corregir montos de polla a precios actuales" style="border-color:#f9a825;color:#f9a825;">
+        <span class="material-symbols-outlined">price_check</span>
+        Corregir montos polla
+      </button>
       {% endif %}
       <button class="btn-aporte-principal" onclick="abrirModalAporte()">
         <span class="material-symbols-outlined">add_circle</span>
@@ -1398,6 +1402,20 @@ function cancelarEliminar(e) {
 }
 
 /* ===================== MODAL META (ADMIN) ===================== */
+function fixPollaMontos() {
+  if (!confirm('Esto actualizará los montos de todos los pagos de polla a los precios actuales (Fase 1: $30.000, Fase 2: $20.000, Fase 3: $10.000). ¿Continuar?')) return;
+  fetch('/api/admin/fix_polla_montos', { method: 'POST' })
+    .then(r => r.json())
+    .then(d => {
+      if (d.ok) {
+        alert('Montos corregidos: ' + d.actualizados + ' registro(s) actualizado(s). Recargando...');
+        location.reload();
+      } else {
+        alert('Error: ' + (d.error || 'desconocido'));
+      }
+    }).catch(() => alert('Error de conexión'));
+}
+
 function abrirModalMeta() {
   show('modal-meta');
 }
@@ -1473,7 +1491,12 @@ function renderHistorial(rows) {
       ? (r.descripcion || r.cajita_nombre || '—')
       : (r.tipo === 'polla' ? `Polla Fase ${r.fase}` : '—');
 
-    const monto = r.monto ? `<span class="rec-monto">$${Math.round(r.monto).toLocaleString()}</span>` : '—';
+    // Para polla, usar siempre el precio oficial por fase (corrige registros con precio viejo)
+    const PRECIOS_POLLA = {1: 30000, 2: 20000, 3: 10000};
+    const montoReal = (r.tipo === 'polla' && r.fase && PRECIOS_POLLA[r.fase])
+      ? PRECIOS_POLLA[r.fase]
+      : (r.monto || 0);
+    const monto = montoReal ? `<span class="rec-monto">$${Math.round(montoReal).toLocaleString('es-CO')}</span>` : '—';
     const fecha = (r.fecha || '').slice(0,10);
     const soporte = r.soporte
       ? (r.soporte.endsWith('.pdf')

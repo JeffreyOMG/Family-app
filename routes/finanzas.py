@@ -347,3 +347,19 @@ def api_admin_meta():
     )
     con.commit()
     return jsonify({"ok": True, "meta": nueva_meta})
+
+@fin_bp.route("/api/admin/fix_polla_montos", methods=["POST"])
+def fix_polla_montos():
+    """Corrige montos de polla_pagos existentes segun los precios actuales por fase."""
+    if session.get("rol") != "admin":
+        return jsonify({"ok": False, "error": "Sin permiso"}), 403
+    con = get_db()
+    actualizados = 0
+    for fase, monto_correcto in FASES_POLLA.items():
+        result = con.execute(
+            "UPDATE polla_pagos SET monto=%s WHERE fase=%s AND monto!=%s",
+            (monto_correcto, fase, monto_correcto)
+        )
+        actualizados += result.rowcount
+    con.commit()
+    return jsonify({"ok": True, "actualizados": actualizados})
