@@ -128,7 +128,7 @@ def _aporte_evento():
         return jsonify({"ok": True, "msg": "Aporte registrado"})
     return redirect("/dashboard?s=recaudacion")
 
-FASES_POLLA  = {1: 20000, 2: 10000, 3: 10000}
+FASES_POLLA  = {1: 30000, 2: 20000, 3: 10000}
 FASES_NOMBRES = {1: "Fase 1 – Grupos", 2: "Fase 2 – Eliminatorias", 3: "Fase 3 – Semifinal y Final"}
 
 def _aporte_polla():
@@ -249,7 +249,7 @@ def api_historial():
     """).fetchall():
         registros.append({**dict(a), "tipo": "evento"})
     for p in con.execute("""
-        SELECT pp.id, pp.fase, pp.monto, pp.estado, pp.fecha, u.nombre AS usuario
+        SELECT pp.id, pp.fase, pp.monto, pp.soporte, pp.estado, pp.fecha, u.nombre AS usuario
         FROM polla_pagos pp JOIN usuarios u ON u.id=pp.usuario_id
         ORDER BY pp.fecha DESC
     """).fetchall():
