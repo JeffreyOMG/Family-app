@@ -785,7 +785,7 @@
   .seguir-av { width: 36px !important; height: 36px !important; }
 }
 
-   Nota: colores base vienen del :root / dark-mode
+/* Nota: colores base vienen del :root / dark-mode
 ════════════════════════════════════════════════ */
 
 /* Acento principal: rojo oscuro tipo Instagram en light, rosa marca en dark */
@@ -2749,6 +2749,7 @@ async function accionSeguir(btn){
   btn.classList.remove('loading');
 }
 
+function mostrarToast(msg, tipo='ok'){
   let c = document.getElementById('toast-container');
   if(!c){ c=document.createElement('div'); c.id='toast-container'; Object.assign(c.style,{position:'fixed',bottom:'74px',left:'50%',transform:'translateX(-50%)',zIndex:'20000',display:'flex',flexDirection:'column',alignItems:'center',gap:'6px',pointerEvents:'none'}); document.body.appendChild(c); }
   const t=document.createElement('div');
