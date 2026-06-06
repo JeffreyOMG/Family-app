@@ -444,3 +444,26 @@ function setCheckbox(s) {
   const cb = document.querySelector('input[name="tema_oscuro"]');
   if (cb) cb.checked = s;
 }
+
+// ─────────────────────────────
+// FIX MODALES: Mover al body para que position:fixed funcione correctamente
+// Esto soluciona el problema de modales cortadas en desktop cuando están
+// dentro de contenedores con overflow o transform.
+// ─────────────────────────────
+document.addEventListener('DOMContentLoaded', function() {
+  const modalSelectors = [
+    '.modal-overlay',
+    '.ntm-overlay',
+    '.rec-modal-overlay',
+    '#umu-overlay',
+    '#media-modal',
+    '.as-modal-overlay'
+  ];
+  modalSelectors.forEach(function(sel) {
+    document.querySelectorAll(sel).forEach(function(modal) {
+      if (modal.parentElement !== document.body) {
+        document.body.appendChild(modal);
+      }
+    });
+  });
+});

@@ -1195,6 +1195,11 @@ function abrirModalCalendario(fecha) {
 
   if (!modal) return;
 
+  // Mover al body para que position:fixed funcione correctamente
+  if (modal.parentElement !== document.body) {
+    document.body.appendChild(modal);
+  }
+
   modal.style.display = 'flex';
 
   document.body.style.overflow = 'hidden';
