@@ -513,6 +513,74 @@
       </label>
     </div>
 
+    <!-- Panel de Encuesta -->
+    <div id="mc-poll-panel" class="mc-poll-panel" style="display:none;">
+      <div class="mc-poll-header">
+        <span class="material-symbols-outlined">poll</span>
+        <span>Encuesta</span>
+      </div>
+      <div id="mc-poll-options">
+        <div class="mc-poll-option-row">
+          <label class="mc-poll-img-btn" title="Añadir imagen a opción 1">
+            <span class="material-symbols-outlined">image</span>
+            <input type="file" accept="image/*" style="display:none" onchange="setPollOptionImg(this,0)">
+          </label>
+          <input type="text" class="mc-poll-opt-input" placeholder="Opción 1" maxlength="25" oninput="updatePollChars(this,0)" data-index="0">
+          <span class="mc-poll-chars">0 / 25</span>
+        </div>
+        <div class="mc-poll-option-row">
+          <label class="mc-poll-img-btn" title="Añadir imagen a opción 2">
+            <span class="material-symbols-outlined">image</span>
+            <input type="file" accept="image/*" style="display:none" onchange="setPollOptionImg(this,1)">
+          </label>
+          <input type="text" class="mc-poll-opt-input" placeholder="Opción 2" maxlength="25" oninput="updatePollChars(this,1)" data-index="1">
+          <span class="mc-poll-chars">0 / 25</span>
+        </div>
+      </div>
+      <button class="mc-poll-add-btn" id="mc-poll-add" onclick="addPollOption()">
+        <span class="material-symbols-outlined">add</span>
+        <span>Agregar opción</span>
+      </button>
+      <div class="mc-poll-duration">
+        <span class="mc-poll-dur-label">Duración de la encuesta</span>
+        <div class="mc-poll-dur-selects">
+          <div class="mc-poll-dur-group">
+            <label>Días</label>
+            <select id="poll-dias" class="mc-poll-select">
+              <option value="0">0</option>
+              <option value="1" selected>1</option>
+              <option value="2">2</option>
+              <option value="3">3</option>
+              <option value="4">4</option>
+              <option value="5">5</option>
+              <option value="6">6</option>
+              <option value="7">7</option>
+            </select>
+          </div>
+          <div class="mc-poll-dur-group">
+            <label>Horas</label>
+            <select id="poll-horas" class="mc-poll-select">
+              <option value="0" selected>0</option>
+              <option value="1">1</option><option value="2">2</option><option value="3">3</option>
+              <option value="4">4</option><option value="5">5</option><option value="6">6</option>
+              <option value="6">6</option><option value="12">12</option><option value="18">18</option>
+              <option value="23">23</option>
+            </select>
+          </div>
+          <div class="mc-poll-dur-group">
+            <label>Minutos</label>
+            <select id="poll-minutos" class="mc-poll-select">
+              <option value="0" selected>0</option>
+              <option value="15">15</option><option value="30">30</option><option value="45">45</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <button class="mc-poll-remove-btn" onclick="togglePanel('poll')">
+        <span>Eliminar encuesta</span>
+      </button>
+    </div>
+
     <!-- Footer de acciones -->
     <div class="mc-footer">
       <div class="mc-footer-actions">
@@ -531,6 +599,9 @@
         </button>
         <button class="mc-act-btn" title="Ubicación" onclick="toggleUbicacion()">
           <span class="material-symbols-outlined">location_on</span>
+        </button>
+        <button class="mc-act-btn" title="Encuesta" id="btn-poll-toggle" onclick="togglePanel('poll')">
+          <span class="material-symbols-outlined">poll</span>
         </button>
       </div>
       {% if usuario.rol in ('miembro', 'admin') %}
@@ -1883,6 +1954,140 @@ body.dark-mode .post-badge-privado { background: rgba(139,92,246,.2); color: #a7
 .mc-act-btn .material-symbols-outlined { font-size: 20px; }
 .mc-gif-label-txt { font-size: 12.5px; font-weight: 800; letter-spacing: .5px; }
 
+/* ── ENCUESTA ── */
+.mc-poll-panel {
+  border-top: 1px solid var(--border);
+  padding: 12px 16px 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.mc-poll-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ac);
+}
+.mc-poll-header .material-symbols-outlined { font-size: 18px; }
+.mc-poll-option-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 6px 10px;
+  transition: border-color .2s;
+}
+.mc-poll-option-row:focus-within { border-color: var(--ac); }
+.mc-poll-img-btn {
+  cursor: pointer;
+  color: var(--text3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  flex-shrink: 0;
+  transition: background .15s, color .15s;
+}
+.mc-poll-img-btn:hover { background: var(--ac-soft); color: var(--ac); }
+.mc-poll-img-btn .material-symbols-outlined { font-size: 18px; }
+.mc-poll-opt-input {
+  flex: 1;
+  background: none;
+  border: none;
+  outline: none;
+  font-size: 14px;
+  color: var(--text);
+  font-family: inherit;
+}
+.mc-poll-opt-input::placeholder { color: var(--text3); }
+.mc-poll-chars { font-size: 11px; color: var(--text3); flex-shrink: 0; }
+.mc-poll-add-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: 1.5px dashed var(--border);
+  border-radius: 10px;
+  padding: 7px 12px;
+  font-size: 13px;
+  color: var(--ac);
+  cursor: pointer;
+  width: 100%;
+  transition: background .15s, border-color .15s;
+}
+.mc-poll-add-btn:hover { background: var(--ac-soft); border-color: var(--ac); }
+.mc-poll-add-btn .material-symbols-outlined { font-size: 16px; }
+.mc-poll-add-btn:disabled { opacity: .4; cursor: not-allowed; }
+.mc-poll-duration {
+  border-top: 1px solid var(--border);
+  padding-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.mc-poll-dur-label { font-size: 12px; font-weight: 600; color: var(--text2); }
+.mc-poll-dur-selects {
+  display: flex;
+  gap: 10px;
+}
+.mc-poll-dur-group {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.mc-poll-dur-group label { font-size: 11px; color: var(--text3); }
+.mc-poll-select {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 600;
+  padding: 6px 8px;
+  outline: none;
+  cursor: pointer;
+  width: 100%;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  padding-right: 28px;
+}
+.mc-poll-select:focus { border-color: var(--ac); }
+.mc-poll-remove-btn {
+  background: none;
+  border: none;
+  color: #e03030;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 8px 0 4px;
+  width: 100%;
+  text-align: center;
+  border-top: 1px solid var(--border);
+  margin-top: 4px;
+}
+.mc-poll-remove-btn:hover { opacity: .75; }
+.mc-poll-opt-preview {
+  width: 32px;
+  height: 32px;
+  object-fit: cover;
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+#btn-poll-toggle.mc-act-btn.active {
+  color: var(--ac);
+  background: var(--ac-soft);
+}
+
 /* Solución para ocupar toda la pantalla dentro de main-content */
 .main-content > .mc-overlay {
   width: 100vw !important;
@@ -2281,6 +2486,9 @@ function abrirComposer(modo){
   document.getElementById('mc-media-preview').innerHTML = '';
   document.getElementById('mc-emoji-panel').style.display = 'none';
   document.getElementById('mc-gif-panel').style.display = 'none';
+  document.getElementById('mc-poll-panel').style.display = 'none';
+  const pollBtn = document.getElementById('btn-poll-toggle');
+  if(pollBtn) pollBtn.classList.remove('active');
   document.getElementById('mc-location-row').style.display = 'none';
   document.getElementById('mc-location-input').value = '';
   document.getElementById('mc-tags').innerHTML = '';
@@ -2362,8 +2570,9 @@ function actualizarPublicarBtn(){
   const texto = mcGetText().trim();
   const hasMedia = _mediaFiles.length > 0 || !!_gifFile;
   const hasImg = document.getElementById('mc-texto')?.querySelector('img') !== null;
+  const hasPoll = !!getPollData();
   const btn   = document.getElementById('btn-publicar-modal');
-  if(btn) btn.disabled = !(texto || hasMedia || hasImg);
+  if(btn) btn.disabled = !(texto || hasMedia || hasImg || hasPoll);
 }
 
 /* ── Emojis ── */
@@ -2388,16 +2597,124 @@ function insertEmoji(emoji){
 function togglePanel(tipo){
   const emojiP = document.getElementById('mc-emoji-panel');
   const gifP   = document.getElementById('mc-gif-panel');
+  const pollP  = document.getElementById('mc-poll-panel');
+  const pollBtn= document.getElementById('btn-poll-toggle');
   if(tipo==='emoji'){
     const open = emojiP.style.display!=='none';
     emojiP.style.display = open?'none':'block';
     gifP.style.display   = 'none';
+    pollP.style.display  = 'none';
+    if(pollBtn) pollBtn.classList.remove('active');
     if(!open) initEmojis();
-  } else {
+  } else if(tipo==='gif'){
     const open = gifP.style.display!=='none';
     gifP.style.display   = open?'none':'block';
     emojiP.style.display = 'none';
+    pollP.style.display  = 'none';
+    if(pollBtn) pollBtn.classList.remove('active');
+  } else if(tipo==='poll'){
+    const open = pollP.style.display!=='none';
+    pollP.style.display  = open?'none':'flex';
+    emojiP.style.display = 'none';
+    gifP.style.display   = 'none';
+    if(pollBtn) pollBtn.classList.toggle('active', !open);
+    if(!open) initPoll();
   }
+}
+
+/* ── ENCUESTA ── */
+let _pollOptionImgs = [null, null, null, null];
+
+function initPoll(){
+  // Reset opciones al abrir
+  const container = document.getElementById('mc-poll-options');
+  const rows = container.querySelectorAll('.mc-poll-option-row');
+  rows.forEach((r,i)=>{
+    const inp = r.querySelector('.mc-poll-opt-input');
+    if(inp){ inp.value=''; updatePollChars(inp,i); }
+    const prev = r.querySelector('.mc-poll-opt-preview');
+    if(prev) prev.remove();
+    _pollOptionImgs[i]=null;
+  });
+  // Quitar opciones extra (3 y 4)
+  const allRows = container.querySelectorAll('.mc-poll-option-row');
+  allRows.forEach((r,i)=>{ if(i>=2) r.remove(); });
+  _pollOptionImgs = [null,null,null,null];
+  document.getElementById('mc-poll-add').disabled = false;
+}
+
+function updatePollChars(input, index){
+  const row = input.closest('.mc-poll-option-row');
+  const span = row.querySelector('.mc-poll-chars');
+  if(span) span.textContent = input.value.length + ' / 25';
+}
+
+function addPollOption(){
+  const container = document.getElementById('mc-poll-options');
+  const current = container.querySelectorAll('.mc-poll-option-row').length;
+  if(current >= 4) return;
+  const idx = current;
+  const row = document.createElement('div');
+  row.className = 'mc-poll-option-row';
+  row.innerHTML = `
+    <label class="mc-poll-img-btn" title="Añadir imagen">
+      <span class="material-symbols-outlined">image</span>
+      <input type="file" accept="image/*" style="display:none" onchange="setPollOptionImg(this,${idx})">
+    </label>
+    <input type="text" class="mc-poll-opt-input" placeholder="Opción ${idx+1}" maxlength="25"
+      oninput="updatePollChars(this,${idx})" data-index="${idx}">
+    <span class="mc-poll-chars">0 / 25</span>
+    <button onclick="removePollOption(this)" style="background:none;border:none;color:var(--text3);cursor:pointer;padding:2px;display:flex;align-items:center;">
+      <span class="material-symbols-outlined" style="font-size:16px;">close</span>
+    </button>`;
+  container.appendChild(row);
+  if(container.querySelectorAll('.mc-poll-option-row').length >= 4){
+    document.getElementById('mc-poll-add').disabled = true;
+  }
+}
+
+function removePollOption(btn){
+  const row = btn.closest('.mc-poll-option-row');
+  row.remove();
+  document.getElementById('mc-poll-add').disabled = false;
+  // Re-numerar placeholders
+  document.querySelectorAll('#mc-poll-options .mc-poll-opt-input').forEach((inp,i)=>{
+    inp.placeholder = 'Opción '+(i+1);
+    inp.dataset.index = i;
+    inp.setAttribute('oninput',`updatePollChars(this,${i})`);
+  });
+}
+
+function setPollOptionImg(input, index){
+  const file = input.files[0];
+  if(!file) return;
+  _pollOptionImgs[index] = file;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const row = input.closest('.mc-poll-option-row');
+    let prev = row.querySelector('.mc-poll-opt-preview');
+    if(!prev){
+      prev = document.createElement('img');
+      prev.className = 'mc-poll-opt-preview';
+      row.insertBefore(prev, row.querySelector('.mc-poll-opt-input'));
+    }
+    prev.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function getPollData(){
+  const panel = document.getElementById('mc-poll-panel');
+  if(!panel || panel.style.display==='none') return null;
+  const options = [];
+  document.querySelectorAll('#mc-poll-options .mc-poll-opt-input').forEach(inp=>{
+    if(inp.value.trim()) options.push(inp.value.trim());
+  });
+  if(options.length < 2) return null;
+  const dias    = parseInt(document.getElementById('poll-dias')?.value||'1');
+  const horas   = parseInt(document.getElementById('poll-horas')?.value||'0');
+  const minutos = parseInt(document.getElementById('poll-minutos')?.value||'0');
+  return { options, dias, horas, minutos };
 }
 
 /* ── Ubicación ── */
@@ -2572,7 +2889,8 @@ async function submitComposer(){
   const texto = mcGetText().trim();
   const loc   = document.getElementById('mc-location-input')?.value.trim();
   const hasMedia = _mediaFiles.length > 0 || !!_gifFile;
-  if(!texto && !hasMedia){ mostrarToast('Escribe algo o adjunta media','err'); return; }
+  const hasPoll  = !!getPollData();
+  if(!texto && !hasMedia && !hasPoll){ mostrarToast('Escribe algo o adjunta media','err'); return; }
 
   const btn = document.getElementById('btn-publicar-modal');
   if(btn){ btn.disabled=true; btn.textContent='Publicando...'; }
@@ -2585,6 +2903,18 @@ async function submitComposer(){
   const fd = new FormData();
   if(textoFinal) fd.append('texto', textoFinal);
   fd.append('visibilidad', _visibilidad);
+
+  // Encuesta
+  const pollData = getPollData();
+  if(pollData){
+    fd.append('poll_options', JSON.stringify(pollData.options));
+    fd.append('poll_dias',    pollData.dias);
+    fd.append('poll_horas',   pollData.horas);
+    fd.append('poll_minutos', pollData.minutos);
+    // Imágenes de opciones
+    _pollOptionImgs.forEach((img,i)=>{ if(img) fd.append('poll_img_'+i, img); });
+  }
+
   if(_gifFile){
     fd.append('media', _gifFile);
   } else if(_mediaFiles.length){
