@@ -124,8 +124,8 @@
           <button class="rec-filtro-clear" onclick="limpiarFiltros()" title="Limpiar filtros">
             <span class="material-symbols-outlined">filter_alt_off</span>
           </button>
-          <button class="rec-btn-export" onclick="exportarHistorial()" title="Exportar CSV">
-            <span class="material-symbols-outlined">download</span> <span class="rec-export-txt">Exportar</span>
+          <button class="rec-btn-export" onclick="exportarHistorial()" title="Exportar Excel">
+            <span class="material-symbols-outlined">download</span> <span class="rec-export-txt">Exportar Excel</span>
           </button>
         </div>
       </div>
@@ -1586,20 +1586,281 @@ function limpiarFiltros() {
   filtrarHistorial();
 }
 
-function exportarHistorial() {
+/* ===================== EXPORTAR EXCEL (SheetJS) ===================== */
+async function exportarHistorial() {
   const rows = _historialData;
-  if (!rows.length) return;
-  const headers = ['Usuario','Tipo','Descripción','Monto','Fecha','Estado'];
-  const lines = [headers.join(',')];
-  rows.forEach(r => {
-    const desc = r.tipo === 'evento' ? r.nombre_evento : r.tipo === 'familia' ? (r.descripcion || r.cajita_nombre) : `Polla Fase ${r.fase}`;
-    lines.push([r.usuario, r.tipo, desc, r.monto, (r.fecha||'').slice(0,10), r.estado].map(v => `"${(v||'').toString().replace(/"/g,'""')}"`).join(','));
-  });
-  const blob = new Blob([lines.join('\n')], {type:'text/csv'});
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = 'historial-aportes.csv';
-  a.click();
+  if (!rows.length) { alert('No hay datos para exportar.'); return; }
+
+  // Cargar SheetJS dinámicamente si no está disponible
+  if (typeof XLSX === 'undefined') {
+    await new Promise((res, rej) => {
+      const s = document.createElement('script');
+      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+      s.onload = res; s.onerror = rej;
+      document.head.appendChild(s);
+    });
+  }
+
+  const PRECIOS_POLLA = {1: 30000, 2: 20000, 3: 10000};
+  const hoy = new Date().toLocaleDateString('es-CO');
+  const wb = XLSX.utils.book_new();
+
+  // ── Estilos reutilizables ──────────────────────────────────────────
+  const ST = {
+    titulo: { font:{bold:true, sz:14, color:{rgb:'FFFFFF'}}, fill:{fgColor:{rgb:'C9236A'}}, alignment:{horizontal:'center',vertical:'center'} },
+    header: { font:{bold:true, sz:11, color:{rgb:'FFFFFF'}}, fill:{fgColor:{rgb:'333333'}}, alignment:{horizontal:'center',vertical:'center'}, border:{bottom:{style:'thin',color:{rgb:'999999'}}} },
+    subHeader: { font:{bold:true, sz:10, color:{rgb:'FFFFFF'}}, fill:{fgColor:{rgb:'555555'}}, alignment:{horizontal:'center'} },
+    celda:  { font:{sz:10}, alignment:{vertical:'center', wrapText:false}, border:{bottom:{style:'thin',color:{rgb:'EEEEEE'}}} },
+    monto:  { font:{bold:true, sz:10, color:{rgb:'1A7A1A'}}, alignment:{horizontal:'right',vertical:'center'}, numFmt:'"$"#,##0', border:{bottom:{style:'thin',color:{rgb:'EEEEEE'}}} },
+    montoNeg: { font:{bold:true,sz:10,color:{rgb:'CC0000'}}, alignment:{horizontal:'right',vertical:'center'}, numFmt:'"$"#,##0', border:{bottom:{style:'thin',color:{rgb:'EEEEEE'}}} },
+    badgeVer: { font:{bold:true,sz:9,color:{rgb:'1A7A1A'}}, fill:{fgColor:{rgb:'E8F5E9'}}, alignment:{horizontal:'center'} },
+    badgePend:{ font:{bold:true,sz:9,color:{rgb:'E65100'}}, fill:{fgColor:{rgb:'FFF3E0'}}, alignment:{horizontal:'center'} },
+    badgePag: { font:{bold:true,sz:9,color:{rgb:'1A5276'}}, fill:{fgColor:{rgb:'EBF5FB'}}, alignment:{horizontal:'center'} },
+    celdaAlt: { font:{sz:10}, fill:{fgColor:{rgb:'FAFAFA'}}, alignment:{vertical:'center'}, border:{bottom:{style:'thin',color:{rgb:'EEEEEE'}}} },
+    montoAlt: { font:{bold:true,sz:10,color:{rgb:'1A7A1A'}}, fill:{fgColor:{rgb:'FAFAFA'}}, alignment:{horizontal:'right',vertical:'center'}, numFmt:'"$"#,##0', border:{bottom:{style:'thin',color:{rgb:'EEEEEE'}}} },
+  };
+
+  function fmtFecha(f) { return f ? f.slice(0,10) : '—'; }
+  function fmtHora(f) {
+    if (!f) return '—';
+    const d = new Date(f);
+    return isNaN(d) ? f.slice(11,16)||'—' : d.toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit'});
+  }
+  function estadoBadge(e) {
+    if (e === 'verificado') return '✓ Verificado';
+    if (e === 'pagado')     return '✅ Pagado';
+    return '⏳ Pendiente';
+  }
+  function estadoSt(e) {
+    if (e === 'verificado') return ST.badgeVer;
+    if (e === 'pagado')     return ST.badgePag;
+    return ST.badgePend;
+  }
+
+  function aplicarEstiloRango(ws, fila, col0, col1, estilo) {
+    for (let c = col0; c <= col1; c++) {
+      const addr = XLSX.utils.encode_cell({r:fila, c});
+      if (!ws[addr]) ws[addr] = {v:'', t:'s'};
+      ws[addr].s = estilo;
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────────
+  // HOJA 1 — HISTORIAL COMPLETO
+  // ─────────────────────────────────────────────────────────────────
+  (function() {
+    const wsData = [];
+    const COLS = 8;
+
+    // Fila 0: título
+    wsData.push([{v:`📋 HISTORIAL COMPLETO DE APORTES — Generado ${hoy}`,t:'s',s:ST.titulo},...Array(COLS-1).fill({v:'',t:'s',s:ST.titulo})]);
+    // Fila 1: vacía
+    wsData.push(Array(COLS).fill({v:'',t:'s'}));
+    // Fila 2: encabezados
+    const hdrs = ['#','Usuario','Tipo','Descripción','Monto (COP)','Fecha','Hora','Estado'];
+    wsData.push(hdrs.map(h => ({v:h, t:'s', s:ST.header})));
+
+    rows.forEach((r, i) => {
+      const desc = r.tipo === 'evento'
+        ? (r.nombre_evento || '—')
+        : r.tipo === 'familia'
+        ? (r.descripcion || r.cajita_nombre || '—')
+        : `Polla Fase ${r.fase}`;
+      const tipoLabel = r.tipo === 'evento' ? '📅 Evento' : r.tipo === 'familia' ? '🏠 Familia' : `⚽ Polla F${r.fase}`;
+      const montoReal = (r.tipo === 'polla' && r.fase && PRECIOS_POLLA[r.fase]) ? PRECIOS_POLLA[r.fase] : (r.monto || 0);
+      const alt = i % 2 === 1;
+      const cSt = alt ? ST.celdaAlt : ST.celda;
+      const mSt = alt ? ST.montoAlt : ST.monto;
+      wsData.push([
+        {v: i+1,           t:'n', s: cSt},
+        {v: r.usuario||'—',t:'s', s: cSt},
+        {v: tipoLabel,     t:'s', s: cSt},
+        {v: desc,          t:'s', s: cSt},
+        {v: montoReal,     t:'n', s: mSt},
+        {v: fmtFecha(r.fecha), t:'s', s: cSt},
+        {v: fmtHora(r.fecha),  t:'s', s: cSt},
+        {v: estadoBadge(r.estado), t:'s', s: estadoSt(r.estado)},
+      ]);
+    });
+
+    // Fila total
+    const totalMonto = rows.reduce((acc, r) => {
+      const m = (r.tipo === 'polla' && r.fase && PRECIOS_POLLA[r.fase]) ? PRECIOS_POLLA[r.fase] : (r.monto||0);
+      return acc + m;
+    }, 0);
+    wsData.push([
+      {v:'',t:'s'},{v:'',t:'s'},{v:'',t:'s'},
+      {v:'TOTAL', t:'s', s:{font:{bold:true,sz:11},alignment:{horizontal:'right'}}},
+      {v: totalMonto, t:'n', s:{font:{bold:true,sz:11,color:{rgb:'C9236A'}},numFmt:'"$"#,##0',alignment:{horizontal:'right'}}},
+      {v:'',t:'s'},{v:'',t:'s'},{v:'',t:'s'},
+    ]);
+
+    const ws = XLSX.utils.aoa_to_sheet(wsData);
+    // Merge título
+    ws['!merges'] = [{s:{r:0,c:0}, e:{r:0,c:COLS-1}}];
+    ws['!cols'] = [{wch:5},{wch:20},{wch:14},{wch:35},{wch:16},{wch:12},{wch:8},{wch:16}];
+    ws['!rows'] = [{hpx:28}, {hpx:6}, {hpx:22}];
+    // Auto-filter en fila de headers
+    ws['!autofilter'] = {ref: XLSX.utils.encode_range({s:{r:2,c:0}, e:{r:2+rows.length,c:COLS-1}})};
+    XLSX.utils.book_append_sheet(wb, ws, '📋 Historial Completo');
+  })();
+
+  // ─────────────────────────────────────────────────────────────────
+  // HOJA 2 — RECAUDACIÓN POR EVENTOS
+  // ─────────────────────────────────────────────────────────────────
+  (function() {
+    const eventos = rows.filter(r => r.tipo === 'evento');
+    const wsData = [];
+    const COLS = 7;
+    wsData.push([{v:`📅 RECAUDACIÓN POR EVENTOS — ${hoy}`,t:'s',s:ST.titulo},...Array(COLS-1).fill({v:'',t:'s',s:ST.titulo})]);
+    wsData.push(Array(COLS).fill({v:'',t:'s'}));
+    wsData.push(['#','Usuario','Nombre Evento','Descripción','Monto (COP)','Fecha','Estado']
+      .map(h => ({v:h,t:'s',s:ST.header})));
+
+    if (eventos.length) {
+      eventos.forEach((r, i) => {
+        const alt = i % 2 === 1;
+        const cSt = alt ? ST.celdaAlt : ST.celda;
+        wsData.push([
+          {v:i+1,                      t:'n', s:cSt},
+          {v:r.usuario||'—',           t:'s', s:cSt},
+          {v:r.nombre_evento||'—',     t:'s', s:cSt},
+          {v:r.descripcion||'—',       t:'s', s:cSt},
+          {v:r.monto||0,               t:'n', s: alt?ST.montoAlt:ST.monto},
+          {v:fmtFecha(r.fecha),        t:'s', s:cSt},
+          {v:estadoBadge(r.estado),    t:'s', s:estadoSt(r.estado)},
+        ]);
+      });
+      const tot = eventos.reduce((a,r)=>a+(r.monto||0),0);
+      wsData.push([{v:'',t:'s'},{v:'',t:'s'},{v:'',t:'s'},{v:'TOTAL',t:'s',s:{font:{bold:true,sz:11},alignment:{horizontal:'right'}}},{v:tot,t:'n',s:{font:{bold:true,sz:11,color:{rgb:'C9236A'}},numFmt:'"$"#,##0',alignment:{horizontal:'right'}}},{v:'',t:'s'},{v:'',t:'s'}]);
+    } else {
+      wsData.push([{v:'Sin registros de eventos aún.',t:'s',s:{font:{italic:true},alignment:{horizontal:'center'}}},...Array(COLS-1).fill({v:'',t:'s'})]);
+    }
+
+    const ws = XLSX.utils.aoa_to_sheet(wsData);
+    ws['!merges'] = [{s:{r:0,c:0},e:{r:0,c:COLS-1}}];
+    ws['!cols'] = [{wch:5},{wch:20},{wch:28},{wch:35},{wch:16},{wch:12},{wch:16}];
+    ws['!autofilter'] = {ref: XLSX.utils.encode_range({s:{r:2,c:0}, e:{r:2+eventos.length,c:COLS-1}})};
+    XLSX.utils.book_append_sheet(wb, ws, '📅 Eventos');
+  })();
+
+  // ─────────────────────────────────────────────────────────────────
+  // HOJA 3 — POLLA MUNDIALISTA
+  // ─────────────────────────────────────────────────────────────────
+  (function() {
+    const polla = rows.filter(r => r.tipo === 'polla');
+    const wsData = [];
+    const COLS = 7;
+    wsData.push([{v:`⚽ POLLA MUNDIALISTA — ${hoy}`,t:'s',s:ST.titulo},...Array(COLS-1).fill({v:'',t:'s',s:ST.titulo})]);
+    wsData.push(Array(COLS).fill({v:'',t:'s'}));
+
+    // Info de fases
+    const infoFases = [
+      {v:'Fase 1 — Grupos: $30.000',t:'s',s:{font:{bold:true,sz:9},fill:{fgColor:{rgb:'FFF9C4'}}}},
+      {v:'Fase 2 — Eliminatorias: $20.000',t:'s',s:{font:{bold:true,sz:9},fill:{fgColor:{rgb:'FFF9C4'}}}},
+      {v:'Fase 3 — Semifinal y Final: $10.000',t:'s',s:{font:{bold:true,sz:9},fill:{fgColor:{rgb:'FFF9C4'}}}},
+      ...Array(COLS-3).fill({v:'',t:'s',s:{fill:{fgColor:{rgb:'FFF9C4'}}}})
+    ];
+    wsData.push(infoFases);
+    wsData.push(Array(COLS).fill({v:'',t:'s'}));
+
+    wsData.push(['#','Usuario','Fase','Descripción Fase','Monto (COP)','Fecha','Estado']
+      .map(h => ({v:h,t:'s',s:ST.header})));
+
+    if (polla.length) {
+      const faseNombres = {1:'Grupos',2:'Eliminatorias',3:'Semifinal y Final'};
+      polla.forEach((r, i) => {
+        const alt = i % 2 === 1;
+        const cSt = alt ? ST.celdaAlt : ST.celda;
+        const monto = PRECIOS_POLLA[r.fase] || r.monto || 0;
+        wsData.push([
+          {v:i+1,                                    t:'n', s:cSt},
+          {v:r.usuario||'—',                          t:'s', s:cSt},
+          {v:`Fase ${r.fase}`,                         t:'s', s:cSt},
+          {v:`${faseNombres[r.fase]||'—'}`,            t:'s', s:cSt},
+          {v:monto,                                   t:'n', s: alt?ST.montoAlt:ST.monto},
+          {v:fmtFecha(r.fecha),                       t:'s', s:cSt},
+          {v:estadoBadge(r.estado),                   t:'s', s:estadoSt(r.estado)},
+        ]);
+      });
+      const tot = polla.reduce((a,r)=>a+(PRECIOS_POLLA[r.fase]||r.monto||0),0);
+      wsData.push([{v:'',t:'s'},{v:'',t:'s'},{v:'',t:'s'},{v:'TOTAL',t:'s',s:{font:{bold:true,sz:11},alignment:{horizontal:'right'}}},{v:tot,t:'n',s:{font:{bold:true,sz:11,color:{rgb:'C9236A'}},numFmt:'"$"#,##0',alignment:{horizontal:'right'}}},{v:'',t:'s'},{v:'',t:'s'}]);
+    } else {
+      wsData.push([{v:'Sin inscripciones aún.',t:'s',s:{font:{italic:true},alignment:{horizontal:'center'}}},...Array(COLS-1).fill({v:'',t:'s'})]);
+    }
+
+    const ws = XLSX.utils.aoa_to_sheet(wsData);
+    ws['!merges'] = [{s:{r:0,c:0},e:{r:0,c:COLS-1}},{s:{r:2,c:0},e:{r:2,c:COLS-1}}];
+    ws['!cols'] = [{wch:5},{wch:22},{wch:10},{wch:28},{wch:16},{wch:12},{wch:16}];
+    ws['!autofilter'] = {ref: XLSX.utils.encode_range({s:{r:5,c:0}, e:{r:5+polla.length,c:COLS-1}})};
+    XLSX.utils.book_append_sheet(wb, ws, '⚽ Polla Mundialista');
+  })();
+
+  // ─────────────────────────────────────────────────────────────────
+  // HOJA 4 — RESUMEN
+  // ─────────────────────────────────────────────────────────────────
+  (function() {
+    const eventos = rows.filter(r => r.tipo === 'evento');
+    const polla   = rows.filter(r => r.tipo === 'polla');
+    const familia = rows.filter(r => r.tipo === 'familia');
+    const totEv   = eventos.reduce((a,r)=>a+(r.monto||0),0);
+    const totPo   = polla.reduce((a,r)=>a+(PRECIOS_POLLA[r.fase]||r.monto||0),0);
+    const totFam  = familia.reduce((a,r)=>a+(r.monto||0),0);
+    const totGral = totEv + totPo + totFam;
+
+    // Ranking por persona
+    const rankMap = {};
+    rows.forEach(r => {
+      if (!r.usuario) return;
+      const m = (r.tipo === 'polla' && r.fase && PRECIOS_POLLA[r.fase]) ? PRECIOS_POLLA[r.fase] : (r.monto||0);
+      rankMap[r.usuario] = (rankMap[r.usuario]||0) + m;
+    });
+    const ranking = Object.entries(rankMap).sort((a,b)=>b[1]-a[1]);
+
+    const wsData = [];
+    wsData.push([{v:`📊 RESUMEN FINANCIERO — ${hoy}`,t:'s',s:ST.titulo},{v:'',t:'s',s:ST.titulo},{v:'',t:'s',s:ST.titulo}]);
+    wsData.push([{v:'',t:'s'},{v:'',t:'s'},{v:'',t:'s'}]);
+
+    // Totales por categoría
+    wsData.push([{v:'CATEGORÍA',t:'s',s:ST.header},{v:'REGISTROS',t:'s',s:ST.header},{v:'TOTAL (COP)',t:'s',s:ST.header}]);
+    wsData.push([{v:'📅 Eventos',t:'s',s:ST.celda},{v:eventos.length,t:'n',s:ST.celda},{v:totEv,t:'n',s:ST.monto}]);
+    wsData.push([{v:'⚽ Polla Mundialista',t:'s',s:ST.celdaAlt},{v:polla.length,t:'n',s:ST.celdaAlt},{v:totPo,t:'n',s:ST.montoAlt}]);
+    wsData.push([{v:'🏠 Familia',t:'s',s:ST.celda},{v:familia.length,t:'n',s:ST.celda},{v:totFam,t:'n',s:ST.monto}]);
+    wsData.push([
+      {v:'TOTAL GENERAL',t:'s',s:{font:{bold:true,sz:12},fill:{fgColor:{rgb:'FFE0EC'}},alignment:{horizontal:'center'}}},
+      {v:rows.length,    t:'n',s:{font:{bold:true,sz:12},fill:{fgColor:{rgb:'FFE0EC'}},alignment:{horizontal:'center'}}},
+      {v:totGral,        t:'n',s:{font:{bold:true,sz:12,color:{rgb:'C9236A'}},fill:{fgColor:{rgb:'FFE0EC'}},numFmt:'"$"#,##0',alignment:{horizontal:'right'}}},
+    ]);
+
+    wsData.push([{v:'',t:'s'},{v:'',t:'s'},{v:'',t:'s'}]);
+    wsData.push([{v:'',t:'s'},{v:'',t:'s'},{v:'',t:'s'}]);
+
+    // Ranking
+    wsData.push([{v:'🏆 RANKING DE APORTES',t:'s',s:ST.titulo},{v:'',t:'s',s:ST.titulo},{v:'',t:'s',s:ST.titulo}]);
+    wsData.push([{v:'Posición',t:'s',s:ST.header},{v:'Participante',t:'s',s:ST.header},{v:'Total Aportado (COP)',t:'s',s:ST.header}]);
+    const medallas = ['🥇','🥈','🥉'];
+    ranking.forEach(([nombre, total], i) => {
+      const alt = i % 2 === 1;
+      const cSt = alt ? ST.celdaAlt : ST.celda;
+      wsData.push([
+        {v:`${medallas[i]||'#'+(i+1)} ${i+1}`,t:'s',s:{...cSt,alignment:{horizontal:'center'}}},
+        {v:nombre,t:'s',s:cSt},
+        {v:total,t:'n',s: alt?ST.montoAlt:ST.monto},
+      ]);
+    });
+
+    const ws = XLSX.utils.aoa_to_sheet(wsData);
+    ws['!merges'] = [
+      {s:{r:0,c:0},e:{r:0,c:2}},
+      {s:{r:9,c:0},e:{r:9,c:2}},
+    ];
+    ws['!cols'] = [{wch:22},{wch:16},{wch:22}];
+    XLSX.utils.book_append_sheet(wb, ws, '📊 Resumen');
+  })();
+
+  // ─── Descargar ──────────────────────────────────────────────────
+  const fechaStr = new Date().toISOString().slice(0,10);
+  XLSX.writeFile(wb, `familia-aportes-${fechaStr}.xlsx`);
 }
 
 // Cargar historial al iniciar
