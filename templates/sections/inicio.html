@@ -325,25 +325,70 @@
         {% endif %}
       </div>
 
-      <!-- MODAL TODOS LOS USUARIOS (solo desktop) -->
-      <div id="umu-overlay" onclick="cerrarModalUsuarios(event)" style="display:none;">
-        <div id="umu-caja">
-          <div id="umu-encabezado">
-            <h3 id="umu-titulo">Todos los usuarios</h3>
-            <button id="umu-cerrar" onclick="cerrarModalUsuarios()">
-              <span class="material-symbols-outlined">close</span>
-            </button>
-          </div>
-          <div id="umu-buscador">
-            <span class="material-symbols-outlined" id="umu-lupa">search</span>
-            <input type="text" id="input-buscar-usuario" id="umu-input" placeholder="Buscar por nombre o @usuario…" oninput="filtrarUsuariosModal(this.value)" autocomplete="off">
-            <button id="btn-clear-search" onclick="limpiarBusquedaModal()" style="display:none;">
-              <span class="material-symbols-outlined">close</span>
-            </button>
-          </div>
-          <div id="umu-cuerpo">
+
             {% set miembros_reales = miembros | selectattr('rol', 'in', ['miembro', 'admin']) | list %}
             {% set invitados_lista = miembros | selectattr('rol', 'equalto', 'invitado') | list %}
+
+            {% if miembros_reales %}
+            <div class="umu-grupo-label" id="umu-grupo-miembros">
+              <span class="material-symbols-outlined">verified_user</span>
+              <span>Miembros</span>
+              <span class="umu-count">{{ miembros_reales|length }}</span>
+            </div>
+            <div class="umu-lista">
+      <!-- NOTICIAS -->
+      <div class="panel-card">
+        <div class="panel-header">
+          <h3>Últimas noticias</h3>
+          <button class="panel-ver-mas" onclick="irSeccion('noticias')">Ver todo</button>
+        </div>
+        {% if noticias_recientes %}
+          <div class="noticias-list">
+            {% for n in noticias_recientes %}
+            <div class="noticia-item">
+              <div class="noticia-dot {% if n.categoria == 'finanzas' %}dot-ok{% elif n.categoria in ['galeria','galería'] %}dot-info{% elif n.categoria == 'mundial' %}dot-warn{% else %}dot-def{% endif %}"></div>
+              <div>
+                <p class="noticia-titulo">{{ n.titulo }}</p>
+                <span class="noticia-meta">{{ n.fecha[:10] }} · {{ n.categoria|capitalize if n.categoria else 'General' }}</span>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="panel-empty">
+            <span class="material-symbols-outlined">newspaper</span>
+            <p>Sin noticias por ahora</p>
+          </div>
+        {% endif %}
+      </div>
+
+    </aside>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════
+     MODAL TODOS LOS USUARIOS (solo desktop)
+     Colocado aquí (fuera del aside) para que position:fixed funcione correctamente.
+     El aside tiene position:sticky, lo que atrapa los fixed anidados en él.
+═══════════════════════════════ -->
+<div id="umu-overlay" onclick="cerrarModalUsuarios(event)" style="display:none;">
+  <div id="umu-caja">
+    <div id="umu-encabezado">
+      <h3 id="umu-titulo">Todos los usuarios</h3>
+      <button id="umu-cerrar" onclick="cerrarModalUsuarios()">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
+    <div id="umu-buscador">
+      <span class="material-symbols-outlined" id="umu-lupa">search</span>
+      <input type="text" id="input-buscar-usuario" placeholder="Buscar por nombre o @usuario…" oninput="filtrarUsuariosModal(this.value)" autocomplete="off">
+      <button id="btn-clear-search" onclick="limpiarBusquedaModal()" style="display:none;">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
+    <div id="umu-cuerpo">
+      {% set miembros_reales = miembros | selectattr('rol', 'in', ['miembro', 'admin']) | list %}
+      {% set invitados_lista = miembros | selectattr('rol', 'equalto', 'invitado') | list %}
 
       {% if miembros_reales %}
       <div class="umu-grupo-label" id="umu-grupo-miembros">
