@@ -111,7 +111,7 @@ function toggleSidebar() {
 // COUNTDOWN
 // ─────────────────────────────
 function iniciarCountdown() {
-  const meta = new Date('2026-06-11T18:00:00').getTime(); // Apertura FIFA 2026
+  const meta = new Date('2026-06-11T12:30:00').getTime(); // Apertura FIFA 2026
   function tick() {
     const diff = meta - Date.now();
     if (diff <= 0) {
