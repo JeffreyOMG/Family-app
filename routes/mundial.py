@@ -96,8 +96,45 @@ def api_mundial_datos():
     tabla_ordenada = {}
     for letra, equipos in tabla.items():
         rows = [{"nombre": n, **v} for n, v in equipos.items()]
-        rows.sort(key=lambda x: (-x["pts"], -x["dg"], -x["gf"]))
-        tabla_ordenada[letra] = rows
+        # Orden inicial: pts → dg → gf → alfabético
+        rows.sort(key=lambda x: (-x["pts"], -x["dg"], -x["gf"], x["nombre"]))
+        # H2H entre subgrupos completamente empatados
+        partidos_grupo = [p for p in partidos if p["bloqueado"] and p["goles_local"] is not None and p["grupo"] == letra]
+        resultado_rows = []
+        i = 0
+        while i < len(rows):
+            j = i + 1
+            while j < len(rows):
+                if (rows[i]["pts"] == rows[j]["pts"] and
+                        rows[i]["dg"] == rows[j]["dg"] and
+                        rows[i]["gf"] == rows[j]["gf"]):
+                    j += 1
+                else:
+                    break
+            subgrupo = rows[i:j]
+            if len(subgrupo) > 1:
+                nombres_set = {e["nombre"] for e in subgrupo}
+                h2h = {e["nombre"]: {"pts": 0, "dg": 0, "gf": 0} for e in subgrupo}
+                for pg in partidos_grupo:
+                    def _n(s, _s=None): return s.split("|")[0].strip() if "|" in s else s.strip()
+                    loc = _n(pg["local"]); vis = _n(pg["visitante"])
+                    if loc not in nombres_set or vis not in nombres_set:
+                        continue
+                    gl2, gv2 = pg["goles_local"], pg["goles_visitante"]
+                    h2h[loc]["gf"] += gl2; h2h[loc]["dg"] += gl2 - gv2
+                    h2h[vis]["gf"] += gv2; h2h[vis]["dg"] += gv2 - gl2
+                    if gl2 > gv2: h2h[loc]["pts"] += 3
+                    elif gl2 == gv2: h2h[loc]["pts"] += 1; h2h[vis]["pts"] += 1
+                    else: h2h[vis]["pts"] += 3
+                subgrupo = sorted(subgrupo, key=lambda x: (
+                    -h2h[x["nombre"]]["pts"],
+                    -h2h[x["nombre"]]["dg"],
+                    -h2h[x["nombre"]]["gf"],
+                    x["nombre"]
+                ))
+            resultado_rows.extend(subgrupo)
+            i = j
+        tabla_ordenada[letra] = resultado_rows
 
     # ── RANKING: grupos + eliminación directa ────────────────────────────────
     ranking = [dict(r) for r in con.execute("""
@@ -271,10 +308,37 @@ def admin_desbloquear_eli():
     partido_id = int(request.form.get("partido_id", 0))
     con = get_db()
     _ensure_eliminacion_table(con)
+
+    # 1. Limpiar resultado, bloqueado y marcador de obsoleto del partido resetado
     con.execute("""
-        UPDATE partidos_eliminacion SET goles_local=NULL, goles_visit=NULL, penales_ganador=NULL, bloqueado=0 WHERE id=%s
+        UPDATE partidos_eliminacion
+        SET goles_local=NULL, goles_visit=NULL, penales_ganador=NULL,
+            bloqueado=0, clasificado_obsoleto=0
+        WHERE id=%s
     """, (partido_id,))
     con.execute("UPDATE pronosticos_eli SET puntos=0 WHERE partido_id=%s", (partido_id,))
+
+    # 2. Limpiar slots G<partido_id> / P<partido_id> en partidos siguientes NO bloqueados
+    partidos_sig = [dict(p) for p in con.execute(
+        "SELECT id, slot_local, slot_visit, bloqueado FROM partidos_eliminacion WHERE id > %s",
+        (partido_id,)
+    ).fetchall()]
+    for p in partidos_sig:
+        if p["bloqueado"]:
+            continue
+        updates = {}
+        for cs, ce, cc in [("slot_local","eq_local","cod_local"),("slot_visit","eq_visit","cod_visit")]:
+            slot = p.get(cs) or ""
+            if not slot: continue
+            try: origen = int(slot[1:])
+            except ValueError: continue
+            if origen == partido_id:
+                updates[ce] = None; updates[cc] = None
+        if updates:
+            sets = ", ".join(f"{k}=%s" for k in updates)
+            vals = list(updates.values()) + [p["id"]]
+            con.execute(f"UPDATE partidos_eliminacion SET {sets} WHERE id=%s", vals)
+
     con.commit()
     if _is_ajax():
         return jsonify({"ok": True, "msg": "Partido eliminatorio desbloqueado"})
@@ -287,11 +351,40 @@ def admin_reset_mundial():
         return (jsonify({"ok": False}), 403) if _is_ajax() else redirect("/dashboard?s=mundial")
 
     con = get_db()
+
+    # 1. Limpiar fase de grupos
     con.execute("UPDATE partidos_mundial SET goles_local=NULL, goles_visitante=NULL, bloqueado=0")
     con.execute("UPDATE pronosticos SET puntos=0")
+
+    # 2. Limpiar fase eliminatoria: equipos y resultados
+    try:
+        con.execute("""
+            UPDATE partidos_eliminacion SET
+                eq_local=NULL, cod_local=NULL,
+                eq_visit=NULL, cod_visit=NULL,
+                goles_local=NULL, goles_visit=NULL,
+                penales_ganador=NULL, bloqueado=0,
+                clasificado_obsoleto=0
+        """)
+    except Exception:
+        pass
+
+    # 3. Limpiar pronósticos eliminatorios
+    try:
+        con.execute("UPDATE pronosticos_eli SET puntos=0")
+    except Exception:
+        pass
+
+    # 4. Limpiar mejores terceros (selecciones manuales del admin)
+    try:
+        con.execute("DELETE FROM mejores_terceros")
+    except Exception:
+        pass
+
     con.commit()
+
     if _is_ajax():
-        return jsonify({"ok": True, "msg": "Mundial reiniciado"})
+        return jsonify({"ok": True, "msg": "Mundial reiniciado completamente"})
     return _back()
 
 
@@ -376,6 +469,7 @@ def _ensure_eliminacion_table(con):
             con.execute(f"ROLLBACK TO SAVEPOINT add_col_{column}")
 
     _add_column_safe("partidos_eliminacion", "penales_ganador", "TEXT DEFAULT NULL")
+    _add_column_safe("partidos_eliminacion", "clasificado_obsoleto", "INTEGER DEFAULT 0")
 
     con.execute("""
         CREATE TABLE IF NOT EXISTS pronosticos_eli (
@@ -468,10 +562,21 @@ def api_eliminacion_datos():
 
 
 def _calcular_tabla_grupos(con):
+    """
+    Calcula la tabla de posiciones de grupos con criterios de desempate completos:
+    1. Puntos
+    2. Diferencia de gol
+    3. Goles a favor
+    4. Enfrentamiento directo (Head-to-Head): pts → dg → gf (entre los empatados)
+    5. Orden alfabético (criterio final de seguridad)
+    """
     partidos_raw = [dict(p) for p in con.execute("""
         SELECT grupo, local, visitante, goles_local, goles_visitante
         FROM partidos_mundial WHERE bloqueado=1 AND goles_local IS NOT NULL
     """).fetchall()]
+
+    def _nombre(s):
+        return s.split("|")[0].strip() if "|" in s else s.strip()
 
     tabla = {}
     for letra, equipos in GRUPOS_MUNDIAL.items():
@@ -479,26 +584,101 @@ def _calcular_tabla_grupos(con):
         for nombre, codigo in equipos:
             tabla[letra][nombre] = {"codigo": codigo, "pts": 0, "dg": 0, "gf": 0, "gc": 0, "pj": 0}
 
+    # Guardar partidos por grupo para H2H
+    partidos_por_grupo = {}
     for p in partidos_raw:
         letra = p["grupo"]
-        if letra not in tabla: continue
+        if letra not in tabla:
+            continue
+        if letra not in partidos_por_grupo:
+            partidos_por_grupo[letra] = []
+        partidos_por_grupo[letra].append(p)
         gl, gv = p["goles_local"], p["goles_visitante"]
-        def _nombre(s): return s.split("|")[0].strip() if "|" in s else s.strip()
         loc, vis = _nombre(p["local"]), _nombre(p["visitante"])
         for equipo, es_local in [(loc, True), (vis, False)]:
-            if equipo not in tabla.get(letra, {}): continue
+            if equipo not in tabla.get(letra, {}):
+                continue
             t = tabla[letra][equipo]
             t["pj"] += 1
             gf = gl if es_local else gv
             gc = gv if es_local else gl
-            t["gf"] += gf; t["gc"] += gc; t["dg"] = t["gf"] - t["gc"]
-            if gl == gv:   t["pts"] += 1
-            elif (gl > gv) == es_local: t["pts"] += 3
+            t["gf"] += gf
+            t["gc"] += gc
+            t["dg"] = t["gf"] - t["gc"]
+            if gl == gv:
+                t["pts"] += 1
+            elif (gl > gv) == es_local:
+                t["pts"] += 3
+
+    def _h2h_stats(equipos_set, partidos):
+        """Calcula pts/dg/gf de enfrentamiento directo entre un conjunto de equipos."""
+        stats = {e: {"pts": 0, "dg": 0, "gf": 0} for e in equipos_set}
+        for p in partidos:
+            loc = _nombre(p["local"])
+            vis = _nombre(p["visitante"])
+            if loc not in equipos_set or vis not in equipos_set:
+                continue
+            gl, gv = p["goles_local"], p["goles_visitante"]
+            # local
+            stats[loc]["gf"] += gl
+            stats[loc]["dg"] += gl - gv
+            if gl > gv:
+                stats[loc]["pts"] += 3
+            elif gl == gv:
+                stats[loc]["pts"] += 1
+            # visitante
+            stats[vis]["gf"] += gv
+            stats[vis]["dg"] += gv - gl
+            if gv > gl:
+                stats[vis]["pts"] += 3
+            elif gv == gl:
+                stats[vis]["pts"] += 1
+        return stats
+
+    def _ordenar_grupo(equipos_items, partidos_grupo):
+        """
+        Ordena equipos con desempate completo.
+        equipos_items: lista de (nombre, stats_dict)
+        """
+        # Orden inicial: pts → dg → gf → alfabético
+        rows = sorted(equipos_items, key=lambda x: (-x[1]["pts"], -x[1]["dg"], -x[1]["gf"], x[0]))
+
+        # Aplicar H2H entre grupos de equipos completamente empatados en pts/dg/gf
+        resultado = []
+        i = 0
+        while i < len(rows):
+            j = i + 1
+            while j < len(rows):
+                a = rows[i][1]
+                b = rows[j][1]
+                if a["pts"] == b["pts"] and a["dg"] == b["dg"] and a["gf"] == b["gf"]:
+                    j += 1
+                else:
+                    break
+            grupo_empatado = rows[i:j]
+            if len(grupo_empatado) > 1:
+                nombres_set = {e[0] for e in grupo_empatado}
+                h2h = _h2h_stats(nombres_set, partidos_grupo)
+                # Reordenar el subgrupo por H2H pts → dg → gf → alfabético
+                grupo_empatado = sorted(
+                    grupo_empatado,
+                    key=lambda x: (
+                        -h2h[x[0]]["pts"],
+                        -h2h[x[0]]["dg"],
+                        -h2h[x[0]]["gf"],
+                        x[0]  # alfabético como criterio final
+                    )
+                )
+            resultado.extend(grupo_empatado)
+            i = j
+
+        return resultado
 
     ordenada = {}
     for letra, equipos in tabla.items():
-        rows = sorted(equipos.items(), key=lambda x: (-x[1]["pts"], -x[1]["dg"], -x[1]["gf"]))
-        ordenada[letra] = rows
+        equipos_items = list(equipos.items())
+        partidos_grupo = partidos_por_grupo.get(letra, [])
+        ordenada[letra] = _ordenar_grupo(equipos_items, partidos_grupo)
     return ordenada
 
 
@@ -509,13 +689,13 @@ def _reconstruir_bracket_desde_grupos(con):
 
     Flujo:
     1. Recalcular tabla de posiciones desde cero (sin caché).
-    2. Actualizar eq_local/eq_visit de todos los dieciseisavos que
-       dependen de clasificados de grupos (fijos y slots 1X de no-fijos).
-    3. Si un clasificado cambia o se elimina, limpiar los equipos en
-       octavos/cuartos/semis/final que dependían del dieciseisavo afectado,
-       SOLO si ese partido eliminatorio no está bloqueado.
-    4. NO tocar los partidos eliminatorios bloqueados (resultado ya registrado).
-    5. NO tocar los terceros (eso lo gestiona el admin manualmente).
+    2. Para cada dieciseisavo:
+       - Si NO está bloqueado: actualizar eq/cod normalmente y limpiar clasificado_obsoleto.
+       - Si SÍ está bloqueado Y el clasificado cambió: marcar clasificado_obsoleto=1
+         (no borrar el resultado registrado, pero marcar la inconsistencia para el frontend).
+       - Si SÍ está bloqueado Y el clasificado coincide: limpiar clasificado_obsoleto.
+    3. Limpiar ganadores propagados desde 16avos obsoletos (solo partidos no bloqueados).
+    4. No tocar los terceros (gestionados manualmente por el admin).
     """
     from mundial_bracket import DIECISEISAVOS
 
@@ -534,14 +714,17 @@ def _reconstruir_bracket_desde_grupos(con):
                     return nombre, codigo
         return None, None
 
-    # ── Paso 1: Guardar estado anterior de los 16avos fijos y locales no-fijos ──
+    # ── Paso 1: Leer estado actual de los 16avos ────────────────────────────
     partidos_16 = {
         p["id"]: dict(p)
         for p in con.execute(
-            "SELECT id, eq_local, cod_local, eq_visit, cod_visit, bloqueado "
+            "SELECT id, eq_local, cod_local, eq_visit, cod_visit, bloqueado, "
+            "COALESCE(clasificado_obsoleto, 0) AS clasificado_obsoleto "
             "FROM partidos_eliminacion WHERE id BETWEEN 73 AND 88"
         ).fetchall()
     }
+
+    ids_16_cambiados = set()
 
     # ── Paso 2: Actualizar clasificados en los 16avos ────────────────────────
     for p_data in DIECISEISAVOS:
@@ -549,46 +732,66 @@ def _reconstruir_bracket_desde_grupos(con):
         if pid not in partidos_16:
             continue
 
+        actual = partidos_16[pid]
+        bloqueado = bool(actual["bloqueado"])
+
         nombre_l, codigo_l = _resolver_slot(p_data["slot_l"])
 
         if p_data["fijo"]:
             nombre_v, codigo_v = _resolver_slot(p_data["slot_v"])
-            # Actualizar siempre (bloqueado o no) para que el bracket sea correcto
-            con.execute("""
-                UPDATE partidos_eliminacion
-                SET eq_local=%s, cod_local=%s, eq_visit=%s, cod_visit=%s
-                WHERE id=%s
-            """, (nombre_l, codigo_l, nombre_v, codigo_v, pid))
+
+            if not bloqueado:
+                # Partido no bloqueado: actualizar y limpiar obsoleto
+                con.execute("""
+                    UPDATE partidos_eliminacion
+                    SET eq_local=%s, cod_local=%s, eq_visit=%s, cod_visit=%s,
+                        clasificado_obsoleto=0
+                    WHERE id=%s
+                """, (nombre_l, codigo_l, nombre_v, codigo_v, pid))
+            else:
+                # Partido bloqueado: detectar si el clasificado cambió
+                cambio_local  = (nombre_l != actual.get("eq_local"))
+                cambio_visit  = (nombre_v != actual.get("eq_visit"))
+                if cambio_local or cambio_visit:
+                    # Marcar obsoleto pero NO borrar resultado
+                    con.execute("""
+                        UPDATE partidos_eliminacion
+                        SET eq_local=%s, cod_local=%s, eq_visit=%s, cod_visit=%s,
+                            clasificado_obsoleto=1
+                        WHERE id=%s
+                    """, (nombre_l, codigo_l, nombre_v, codigo_v, pid))
+                    ids_16_cambiados.add(pid)
+                else:
+                    # Clasificado igual: asegurar obsoleto=0
+                    con.execute("""
+                        UPDATE partidos_eliminacion SET clasificado_obsoleto=0 WHERE id=%s
+                    """, (pid,))
         else:
-            # Solo actualizar el local (1X) — el visitante es un tercero gestionado por el admin
-            con.execute("""
-                UPDATE partidos_eliminacion
-                SET eq_local=%s, cod_local=%s
-                WHERE id=%s
-            """, (nombre_l, codigo_l, pid))
+            # Solo actualizar el local (slot 1X); visitante es tercero del admin
+            if not bloqueado:
+                con.execute("""
+                    UPDATE partidos_eliminacion
+                    SET eq_local=%s, cod_local=%s, clasificado_obsoleto=0
+                    WHERE id=%s
+                """, (nombre_l, codigo_l, pid))
+            else:
+                cambio_local = (nombre_l != actual.get("eq_local"))
+                if cambio_local:
+                    con.execute("""
+                        UPDATE partidos_eliminacion
+                        SET eq_local=%s, cod_local=%s, clasificado_obsoleto=1
+                        WHERE id=%s
+                    """, (nombre_l, codigo_l, pid))
+                    ids_16_cambiados.add(pid)
+                else:
+                    con.execute("""
+                        UPDATE partidos_eliminacion SET clasificado_obsoleto=0 WHERE id=%s
+                    """, (pid,))
 
     con.commit()
 
-    # ── Paso 3: Detectar 16avos cuyos equipos cambiaron ─────────────────────
-    # y limpiar sus ganadores/perdedores en octavos/cuartos/semis/final
-    # (solo partidos NO bloqueados)
-    partidos_16_nuevo = {
-        p["id"]: dict(p)
-        for p in con.execute(
-            "SELECT id, eq_local, cod_local, eq_visit, cod_visit, bloqueado "
-            "FROM partidos_eliminacion WHERE id BETWEEN 73 AND 88"
-        ).fetchall()
-    }
-
-    ids_16_cambiados = set()
-    for pid, nuevo in partidos_16_nuevo.items():
-        viejo = partidos_16.get(pid, {})
-        if (nuevo.get("eq_local") != viejo.get("eq_local") or
-                nuevo.get("eq_visit") != viejo.get("eq_visit")):
-            ids_16_cambiados.add(pid)
-
+    # ── Paso 3: Limpiar slots G<pid> en partidos siguientes no bloqueados ───
     if ids_16_cambiados:
-        # Limpiar slots G<pid> en los partidos siguientes no bloqueados
         partidos_siguientes = [dict(p) for p in con.execute(
             "SELECT id, slot_local, slot_visit, bloqueado "
             "FROM partidos_eliminacion WHERE id > 88"
@@ -624,92 +827,18 @@ def _reconstruir_bracket_desde_grupos(con):
     _auto_propagar_ganadores(con)
 
 
-def _auto_asignar_fijos(con):
-    """
-    Recalcula desde cero los clasificados 1°/2° de cada grupo y los asigna
-    a todos los dieciseisavos que dependen de ellos.
-
-    Reglas:
-    - Si el partido de dieciseisavos NO está bloqueado: actualizar eq/cod.
-    - Si el partido de dieciseisavos SÍ está bloqueado: actualizar eq/cod igualmente
-      para que el bracket siempre muestre la información correcta (el resultado
-      ya fue registrado, pero el equipo que juega es el que la tabla indica).
-    - Para los slots "1X" en dieciseisavos con fijo=False también se actualiza
-      el lado local (que siempre es un 1° de grupo).
-    - Si el slot no se puede resolver (grupo sin datos), se pone NULL para
-      limpiar clasificados obsoletos.
-    """
-    from mundial_bracket import DIECISEISAVOS
-    tabla = _calcular_tabla_grupos(con)
-
-    def _resolver_slot(slot):
-        """Resuelve '1A', '2B', etc. desde la tabla actual. Retorna (nombre, codigo) o (None, None)."""
-        if len(slot) == 2 and slot[0] in "12" and slot[1].isalpha():
-            pos   = int(slot[0]) - 1
-            letra = slot[1].upper()
-            rows  = tabla.get(letra, [])
-            if pos < len(rows):
-                nombre = rows[pos][0]
-                codigo = rows[pos][1]["codigo"]
-                # Solo retornar si el equipo tiene al menos algún partido jugado
-                # (evitar mostrar clasificados de grupos sin resultados)
-                pts = rows[pos][1].get("pts", 0)
-                pj  = rows[pos][1].get("pj", 0)
-                if pj > 0 or pts > 0:
-                    return nombre, codigo
-        return None, None
-
-    for p_data in DIECISEISAVOS:
-        row = con.execute(
-            "SELECT bloqueado FROM partidos_eliminacion WHERE id=%s", (p_data["id"],)
-        ).fetchone()
-        if not row:
-            continue
-
-        if p_data["fijo"]:
-            # Partido fijo: ambos slots son 1X/2X → recalcular siempre
-            nombre_l, codigo_l = _resolver_slot(p_data["slot_l"])
-            nombre_v, codigo_v = _resolver_slot(p_data["slot_v"])
-            con.execute("""
-                UPDATE partidos_eliminacion
-                SET eq_local=%s, cod_local=%s, eq_visit=%s, cod_visit=%s
-                WHERE id=%s AND bloqueado=0
-            """, (nombre_l, codigo_l, nombre_v, codigo_v, p_data["id"]))
-            # Aunque esté bloqueado, actualizar al menos la identidad del equipo
-            # para que el bracket muestre el nombre correcto (no el score)
-            con.execute("""
-                UPDATE partidos_eliminacion
-                SET eq_local=%s, cod_local=%s, eq_visit=%s, cod_visit=%s
-                WHERE id=%s AND bloqueado=1
-            """, (nombre_l, codigo_l, nombre_v, codigo_v, p_data["id"]))
-        else:
-            # Partido con tercero: slot_l es siempre 1X (grupo líder)
-            # slot_v es "3-XXXXX" (tercero — lo gestiona el admin)
-            nombre_l, codigo_l = _resolver_slot(p_data["slot_l"])
-            con.execute("""
-                UPDATE partidos_eliminacion
-                SET eq_local=%s, cod_local=%s
-                WHERE id=%s AND bloqueado=0
-            """, (nombre_l, codigo_l, p_data["id"]))
-            # Para bloqueados también actualizamos identidad del local
-            con.execute("""
-                UPDATE partidos_eliminacion
-                SET eq_local=%s, cod_local=%s
-                WHERE id=%s AND bloqueado=1
-            """, (nombre_l, codigo_l, p_data["id"]))
-
-    con.commit()
 
 
 def _auto_propagar_ganadores(con):
     """
     Propaga ganadores (y perdedores para tercer puesto) a lo largo del bracket.
-    En eliminatorias, si hay empate en tiempo reglamentario el admin debería
-    registrar el resultado final (incluyendo penales). Por eso si goles_local==goles_visit
-    NO propagamos — el admin debe editar para reflejar el resultado real (penales).
+    - Si hay empate en tiempo reglamentario sin penales definidos, NO propagamos.
+    - Si el partido origen tiene clasificado_obsoleto=1, NO propagamos desde él
+      (evita que un resultado inválido se extienda al bracket).
     """
     partidos = [dict(p) for p in con.execute("""
-        SELECT * FROM partidos_eliminacion ORDER BY id
+        SELECT *, COALESCE(clasificado_obsoleto, 0) AS clasificado_obsoleto
+        FROM partidos_eliminacion ORDER BY id
     """).fetchall()]
 
     resultados = {}
@@ -717,6 +846,9 @@ def _auto_propagar_ganadores(con):
         if not p.get("bloqueado") or p.get("goles_local") is None or p.get("goles_visit") is None:
             continue
         if not p.get("eq_local") or not p.get("eq_visit"):
+            continue
+        # No propagar desde partidos con clasificado obsoleto
+        if p.get("clasificado_obsoleto"):
             continue
 
         gl = p["goles_local"]
@@ -1108,6 +1240,15 @@ def admin_eli_equipo():
             if n == nombre:
                 codigo = c
                 break
+
+    # No permitir cambiar equipos en partidos ya bloqueados
+    partido_row = con.execute(
+        "SELECT bloqueado FROM partidos_eliminacion WHERE id=%s", (pid,)
+    ).fetchone()
+    if partido_row and partido_row["bloqueado"]:
+        if _is_ajax():
+            return jsonify({"ok": False, "error": "No se puede cambiar el equipo de un partido con resultado registrado. Desbloquéalo primero."})
+        return _back()
 
     if lado == "local":
         con.execute("UPDATE partidos_eliminacion SET eq_local=%s, cod_local=%s WHERE id=%s", (nombre, codigo, pid))

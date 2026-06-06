@@ -2503,8 +2503,12 @@ function _renderBracket(bracket, eliPartidos) {
     const fecha  = p.fecha ? `<div class="bk-meta">${_esc(p.fecha)}</div>` : '';
     const pid_el = opts.hideId ? '' : `<div class="bk-pid">P${p.id}</div>`;
 
-    return `<div class="bk-card ${p.bloqueado ? 'bk-card--done' : ''}">
-      ${pid_el}${_eqRow(eqL, p.goles_local, wL)}${_eqRow(eqV, p.goles_visit, wV)}${fecha}
+    const obsoleto = p.clasificado_obsoleto ? ' bk-card--obsoleto' : '';
+    const obsWarning = p.clasificado_obsoleto
+      ? `<div class="bk-obsoleto-warn" title="Clasificado cambió tras registrar este partido">⚠️ Clasificado obsoleto</div>`
+      : '';
+    return `<div class="bk-card ${p.bloqueado ? 'bk-card--done' : ''}${obsoleto}">
+      ${pid_el}${obsWarning}${_eqRow(eqL, p.goles_local, wL)}${_eqRow(eqV, p.goles_visit, wV)}${fecha}
     </div>`;
   }
 
@@ -2634,6 +2638,12 @@ function _renderBracket(bracket, eliPartidos) {
     .bk-card:hover { border-color: var(--accent, #ff4d8d); }
     .bk-card--done { border-color: var(--border-soft, #e0e0e0); }
     .bk-card--vacio { opacity:.4; background:transparent; border-style:dashed; }
+    .bk-card--obsoleto { border: 2px solid #f59e0b !important; background: rgba(245,158,11,.06) !important; }
+    .bk-obsoleto-warn {
+      font-size: .6rem; color: #f59e0b; text-align: center;
+      padding: 2px 4px; font-weight: 700; letter-spacing: .03em;
+      background: rgba(245,158,11,.1); border-bottom: 1px solid rgba(245,158,11,.2);
+    }
 
     .bk-pid {
       font-size: .58rem;
