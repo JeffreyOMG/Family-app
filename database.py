@@ -174,6 +174,7 @@ _TABLES = [
         fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""",
     # Migración: columna visibilidad ('general' = todos ven, 'privada' = solo miembros/admin)
     """ALTER TABLE publicaciones ADD COLUMN IF NOT EXISTS visibilidad TEXT DEFAULT 'general'""",
+    """ALTER TABLE publicaciones ADD COLUMN IF NOT EXISTS fijado BOOLEAN DEFAULT FALSE""",
     """CREATE TABLE IF NOT EXISTS likes (
         usuario_id INTEGER NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
         post_id INTEGER NOT NULL REFERENCES publicaciones(id) ON DELETE CASCADE,

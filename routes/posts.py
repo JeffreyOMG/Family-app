@@ -276,3 +276,54 @@ def repost(post_id):
     con.commit()
     total = con.execute("SELECT COUNT(*) FROM reposts WHERE post_id=%s", (post_id,)).fetchone()[0]
     return jsonify({"ok": True, "reposted": reposted, "reposts": total})
+
+
+# ─── FIJAR POST ───────────────────────────────────────────────────────────────
+@posts_bp.route("/fijar_post/<int:post_id>", methods=["POST"])
+def fijar_post(post_id):
+    if "uid" not in session:
+        return jsonify({"ok": False}), 401
+    uid = session["uid"]
+    con = get_db()
+    post = con.execute("SELECT usuario_id, fijado FROM publicaciones WHERE id=%s", (post_id,)).fetchone()
+    if not post or post["usuario_id"] != uid:
+        return jsonify({"ok": False, "error": "No autorizado"}), 403
+
+    ya_fijado = bool(post["fijado"])
+
+    if ya_fijado:
+        # Desfijar este post
+        con.execute("UPDATE publicaciones SET fijado=FALSE WHERE id=%s AND usuario_id=%s", (post_id, uid))
+        con.commit()
+        return jsonify({"ok": True, "fijado": False})
+    else:
+        # Desfijar cualquier otro post previo del usuario y fijar este
+        con.execute("UPDATE publicaciones SET fijado=FALSE WHERE usuario_id=%s", (uid,))
+        con.execute("UPDATE publicaciones SET fijado=TRUE  WHERE id=%s AND usuario_id=%s", (post_id, uid))
+        con.commit()
+        return jsonify({"ok": True, "fijado": True})
+
+
+# ─── ACTIVIDAD DEL POST ───────────────────────────────────────────────────────
+@posts_bp.route("/api/post_actividad/<int:post_id>")
+def post_actividad(post_id):
+    if "uid" not in session:
+        return jsonify({"ok": False}), 401
+    uid = session["uid"]
+    con = get_db()
+    post = con.execute("SELECT usuario_id FROM publicaciones WHERE id=%s", (post_id,)).fetchone()
+    if not post or post["usuario_id"] != uid:
+        return jsonify({"ok": False, "error": "No autorizado"}), 403
+
+    total_likes    = con.execute("SELECT COUNT(*) FROM likes    WHERE post_id=%s", (post_id,)).fetchone()[0]
+    total_reposts  = con.execute("SELECT COUNT(*) FROM reposts  WHERE post_id=%s", (post_id,)).fetchone()[0]
+    total_comments = con.execute("SELECT COUNT(*) FROM comentarios WHERE post_id=%s", (post_id,)).fetchone()[0]
+    total_bookmarks= con.execute("SELECT COUNT(*) FROM bookmarks WHERE post_id=%s", (post_id,)).fetchone()[0]
+
+    return jsonify({
+        "ok": True,
+        "likes":     int(total_likes),
+        "reposts":   int(total_reposts),
+        "comments":  int(total_comments),
+        "bookmarks": int(total_bookmarks),
+    })

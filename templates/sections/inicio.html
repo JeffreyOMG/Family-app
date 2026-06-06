@@ -1,5 +1,11 @@
 {% macro render_post(p) %}
-<article class="post-card" id="post-{{ p.id }}">
+<article class="post-card" id="post-{{ p.id }}" data-fijado="{{ 'true' if p.get('fijado') else 'false' }}">
+  {% if p.get('fijado') %}
+  <div class="post-pin-banner">
+    <span class="material-symbols-outlined">push_pin</span>
+    <span>Publicación fijada</span>
+  </div>
+  {% endif %}
   <div class="post-header">
     {% if p.foto %}
       <img src="{{ p.foto }}" class="user-avatar-img post-av" data-ver-perfil="{{ p.usuario }}" title="Ver perfil de {{ p.nombre }}" style="cursor:pointer;">
@@ -11,11 +17,10 @@
       <span class="post-handle"><span data-ver-perfil="{{ p.usuario }}" style="cursor:pointer;">@{{ p.usuario }}</span> · {{ p.fecha[:10] }}{% if p.get('visibilidad','general')=='privada' %} <span class="post-badge-privado">🔒 Solo miembros</span>{% endif %}</span>
     </div>
     {% if p.usuario_id == usuario.id or usuario.rol == 'admin' %}
-    <form method="POST" action="/eliminar_post/{{ p.id }}" class="post-delete-form">
-      <button type="submit" class="post-delete-btn" title="Eliminar">
-        <span class="material-symbols-outlined">more_horiz</span>
-      </button>
-    </form>
+    <button type="button" class="post-options-btn" title="Opciones"
+      onclick="abrirMenuPost({{ p.id }}, {{ 'true' if p.usuario_id == usuario.id else 'false' }}, {{ 'true' if p.get('fijado') else 'false' }}, event)">
+      <span class="material-symbols-outlined">more_horiz</span>
+    </button>
     {% endif %}
   </div>
 
@@ -130,7 +135,7 @@
         <div class="cd-fifa-top">
           <span class="cd-fifa-emoji">⚽</span>
           <div class="cd-fifa-info">
-            <div class="cd-fifa-titulo">Inauguración Mundial FIFA 2026</div>
+            <div class="cd-fifa-titulo">Inauguración del  Mundial FIFA 2026</div>
             <div class="cd-fifa-sub">11 de junio · México · USA · Canadá</div>
           </div>
         </div>
@@ -512,7 +517,7 @@
         <input type="file" id="mc-gif-input" accept=".gif,image/gif" style="display:none" onchange="previewGif(this)">
       </label>
     </div>
-
+    
     <!-- Panel de Encuesta -->
     <div id="mc-poll-panel" class="mc-poll-panel" style="display:none;">
       <div class="mc-poll-header">
@@ -581,6 +586,7 @@
       </button>
     </div>
 
+
     <!-- Footer de acciones -->
     <div class="mc-footer">
       <div class="mc-footer-actions">
@@ -600,7 +606,7 @@
         <button class="mc-act-btn" title="Ubicación" onclick="toggleUbicacion()">
           <span class="material-symbols-outlined">location_on</span>
         </button>
-        <button class="mc-act-btn" title="Encuesta" id="btn-poll-toggle" onclick="togglePanel('poll')">
+         <button class="mc-act-btn" title="Encuesta" id="btn-poll-toggle" onclick="togglePanel('poll')">
           <span class="material-symbols-outlined">poll</span>
         </button>
       </div>
@@ -1128,8 +1134,27 @@ body.dark-mode .post-badge-privado { background: rgba(139,92,246,.2); color: #a7
 .post-meta-block { display: flex; flex-direction: column; gap: 1px; flex: 1; min-width: 0; }
 .post-name { font-size: 14px; font-weight: 700; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .post-handle { font-size: 12px; color: var(--text3); }
-.post-delete-form { margin-left: auto; }
-.post-delete-btn {
+
+/* Pin banner */
+.post-pin-banner {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text3);
+  margin-bottom: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+.post-pin-banner .material-symbols-outlined {
+  font-size: 14px;
+  color: var(--accent, #ff4d8d);
+  transform: rotate(45deg);
+}
+
+/* 3-dot options button */
+.post-options-btn {
   background: transparent;
   border: none;
   color: var(--text3);
@@ -1138,10 +1163,136 @@ body.dark-mode .post-badge-privado { background: rgba(139,92,246,.2); color: #a7
   border-radius: 50%;
   display: flex;
   align-items: center;
+  margin-left: auto;
+  flex-shrink: 0;
   transition: background .15s, color .15s;
 }
-.post-delete-btn:hover { background: var(--bg2); color: var(--text); }
-.post-delete-btn .material-symbols-outlined { font-size: 18px; }
+.post-options-btn:hover { background: var(--bg2); color: var(--text); }
+.post-options-btn .material-symbols-outlined { font-size: 18px; }
+
+/* ── POST OPTIONS BOTTOM SHEET ── */
+#post-menu-overlay {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0,0,0,.55);
+  z-index: 99990;
+  display: none;
+  align-items: flex-end;
+  justify-content: center;
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  animation: pmFadeIn .18s ease;
+}
+#post-menu-overlay.visible { display: flex; }
+@keyframes pmFadeIn { from { opacity:0; } to { opacity:1; } }
+
+#post-menu-sheet {
+  background: var(--card, #fff);
+  border: 1px solid var(--border, #e5e5e5);
+  border-bottom: none;
+  border-radius: 20px 20px 0 0;
+  width: 100%;
+  max-width: 520px;
+  padding: 8px 0 calc(env(safe-area-inset-bottom, 0px) + 12px);
+  box-shadow: 0 -8px 40px rgba(0,0,0,.18);
+  animation: pmSlideUp .24s cubic-bezier(.32,1,.6,1);
+}
+@keyframes pmSlideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+
+.pm-handle {
+  width: 36px; height: 4px;
+  background: var(--border, #ddd);
+  border-radius: 2px;
+  margin: 6px auto 10px;
+}
+.pm-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 22px;
+  font-size: 15px;
+  font-family: var(--font, inherit);
+  font-weight: 500;
+  color: var(--text, #111);
+  background: transparent;
+  border: none;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  transition: background .12s;
+}
+.pm-item:hover { background: var(--bg2, rgba(0,0,0,.04)); }
+.pm-item .material-symbols-outlined { font-size: 21px; color: var(--text2, #555); }
+.pm-item.pm-danger { color: #ef4444; }
+.pm-item.pm-danger .material-symbols-outlined { color: #ef4444; }
+.pm-item.pm-pin .material-symbols-outlined { transform: rotate(45deg); }
+.pm-divider { height: 1px; background: var(--border, #e5e5e5); margin: 4px 0; }
+
+/* ── ACTIVITY MODAL ── */
+#pm-activity-modal {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0,0,0,.55);
+  z-index: 99995;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(4px);
+}
+#pm-activity-modal.visible { display: flex; }
+#pm-activity-box {
+  background: var(--card, #fff);
+  border: 1px solid var(--border, #e5e5e5);
+  border-radius: 20px;
+  width: 90%;
+  max-width: 360px;
+  padding: 24px;
+  box-shadow: 0 16px 60px rgba(0,0,0,.2);
+  animation: modalIn .22s ease;
+}
+.pm-act-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+.pm-act-title { font-size: 16px; font-weight: 700; color: var(--text); margin: 0; }
+.pm-act-close {
+  background: var(--bg2, rgba(0,0,0,.06));
+  border: none;
+  border-radius: 50%;
+  width: 32px; height: 32px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  color: var(--text2);
+}
+.pm-act-close:hover { background: rgba(239,68,68,.1); color: #ef4444; }
+.pm-act-close .material-symbols-outlined { font-size: 18px; }
+.pm-act-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.pm-act-stat {
+  background: var(--bg2, rgba(0,0,0,.04));
+  border-radius: 14px;
+  padding: 16px 12px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+.pm-act-stat .material-symbols-outlined { font-size: 26px; color: var(--accent, #ff4d8d); }
+.pm-act-stat strong { font-size: 1.4rem; font-weight: 800; color: var(--text); }
+.pm-act-stat span { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: .04em; }
+.pm-act-loading { text-align: center; color: var(--text3); padding: 20px 0; }
+.pm-act-loading .material-symbols-outlined { font-size: 28px; display: block; margin-bottom: 8px; animation: vp-spin .8s linear infinite; }
+@keyframes vp-spin { to { transform: rotate(360deg); } }
 
 .post-text { font-size: 14.5px; line-height: 1.65; color: var(--text); margin-bottom: 10px; white-space: pre-wrap; word-break: break-word; }
 .post-media { width: 100%; border-radius: 12px; margin-bottom: 10px; max-height: 480px; object-fit: cover; cursor: pointer; }
@@ -2171,6 +2322,45 @@ body.dark-mode .post-badge-privado { background: rgba(139,92,246,.2); color: #a7
 }
 </style>
 
+<!-- ── POST OPTIONS BOTTOM SHEET ── -->
+<div id="post-menu-overlay" onclick="cerrarMenuPost(event)">
+  <div id="post-menu-sheet">
+    <div class="pm-handle"></div>
+    <button class="pm-item pm-pin" id="pm-btn-pin" onclick="pmAccion('fijar')">
+      <span class="material-symbols-outlined">push_pin</span>
+      <span id="pm-pin-label">Fijar publicación</span>
+    </button>
+    <div class="pm-divider"></div>
+    <button class="pm-item" id="pm-btn-actividad" onclick="pmAccion('actividad')">
+      <span class="material-symbols-outlined">bar_chart</span>
+      <span>Ver actividad</span>
+    </button>
+    <div class="pm-divider"></div>
+    <button class="pm-item pm-danger" id="pm-btn-eliminar" onclick="pmAccion('eliminar')">
+      <span class="material-symbols-outlined">delete</span>
+      <span>Eliminar</span>
+    </button>
+  </div>
+</div>
+
+<!-- ── ACTIVITY MODAL ── -->
+<div id="pm-activity-modal" onclick="cerrarActividadModal(event)">
+  <div id="pm-activity-box">
+    <div class="pm-act-header">
+      <h3 class="pm-act-title">Actividad del post</h3>
+      <button class="pm-act-close" onclick="cerrarActividadModal()">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
+    <div id="pm-act-content">
+      <div class="pm-act-loading">
+        <span class="material-symbols-outlined">progress_activity</span>
+        Cargando…
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
 /* ── TABS ── */
 const _feeds = {
@@ -2903,7 +3093,7 @@ async function submitComposer(){
   const fd = new FormData();
   if(textoFinal) fd.append('texto', textoFinal);
   fd.append('visibilidad', _visibilidad);
-
+  
   // Encuesta
   const pollData = getPollData();
   if(pollData){
@@ -3089,4 +3279,151 @@ function mostrarToast(msg, tipo='ok'){
   requestAnimationFrame(()=>{ t.style.opacity='1'; t.style.transform='translateY(0)'; });
   setTimeout(()=>{ t.style.opacity='0'; t.style.transform='translateY(6px)'; setTimeout(()=>t.remove(),220); },3000);
 }
+
+// ── POST OPTIONS MENU ─────────────────────────────────────────────────────────
+let _pmPostId = null;
+let _pmEsMio  = false;
+let _pmFijado = false;
+
+function abrirMenuPost(postId, esMio, fijado, event) {
+  if (event) { event.stopPropagation(); event.preventDefault(); }
+  _pmPostId = postId;
+  _pmEsMio  = esMio;
+  _pmFijado = fijado;
+
+  const pinBtn   = document.getElementById('pm-btn-pin');
+  const pinLabel = document.getElementById('pm-pin-label');
+  const actBtn   = document.getElementById('pm-btn-actividad');
+
+  if (esMio) {
+    pinBtn.style.display = '';
+    actBtn.style.display = '';
+    pinLabel.textContent = fijado ? 'Desfijar publicación' : 'Fijar publicación';
+  } else {
+    pinBtn.style.display = 'none';
+    actBtn.style.display = 'none';
+  }
+
+  const overlay = document.getElementById('post-menu-overlay');
+  overlay.classList.add('visible');
+  document.body.style.overflow = 'hidden';
+}
+
+function cerrarMenuPost(event) {
+  if (event && event.target !== document.getElementById('post-menu-overlay')) return;
+  document.getElementById('post-menu-overlay').classList.remove('visible');
+  document.body.style.overflow = '';
+}
+
+async function pmAccion(accion) {
+  cerrarMenuPost({ target: document.getElementById('post-menu-overlay') });
+
+  if (accion === 'eliminar') {
+    if (!confirm('¿Eliminar esta publicación?')) return;
+    try {
+      const res  = await fetch('/eliminar_post/' + _pmPostId, {
+        method: 'POST',
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+      });
+      const data = await res.json();
+      if (data.ok) {
+        const card = document.getElementById('post-' + _pmPostId);
+        if (card) {
+          card.style.transition = 'opacity .3s, transform .3s';
+          card.style.opacity = '0';
+          card.style.transform = 'scale(.97)';
+          setTimeout(() => card.remove(), 320);
+        }
+        mostrarToast('Publicación eliminada');
+      }
+    } catch(e) { mostrarToast('Error al eliminar', 'err'); }
+
+  } else if (accion === 'fijar') {
+    try {
+      const res  = await fetch('/fijar_post/' + _pmPostId, {
+        method: 'POST',
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+      });
+      const data = await res.json();
+      if (data.ok) {
+        // Quitar banner fijado de todos los posts
+        document.querySelectorAll('.post-pin-banner').forEach(b => b.remove());
+        document.querySelectorAll('.post-card').forEach(c => c.dataset.fijado = 'false');
+
+        const card = document.getElementById('post-' + _pmPostId);
+        if (card) {
+          if (data.fijado) {
+            const banner = document.createElement('div');
+            banner.className = 'post-pin-banner';
+            banner.innerHTML = '<span class="material-symbols-outlined">push_pin</span><span>Publicación fijada</span>';
+            card.insertBefore(banner, card.firstChild);
+            card.dataset.fijado = 'true';
+            const feed = card.closest('#feed-posts, .vp-posts-lista');
+            if (feed) feed.insertBefore(card, feed.firstChild);
+            mostrarToast('📌 Publicación fijada en tu perfil');
+          } else {
+            mostrarToast('Publicación desfijada');
+          }
+          _pmFijado = data.fijado;
+        }
+      }
+    } catch(e) { mostrarToast('Error al fijar', 'err'); }
+
+  } else if (accion === 'actividad') {
+    const modal   = document.getElementById('pm-activity-modal');
+    const content = document.getElementById('pm-act-content');
+    content.innerHTML = '<div class="pm-act-loading"><span class="material-symbols-outlined">progress_activity</span>Cargando…</div>';
+    modal.classList.add('visible');
+    document.body.style.overflow = 'hidden';
+    try {
+      const res  = await fetch('/api/post_actividad/' + _pmPostId, {
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+      });
+      const data = await res.json();
+      if (data.ok) {
+        content.innerHTML = `
+          <div class="pm-act-grid">
+            <div class="pm-act-stat">
+              <span class="material-symbols-outlined">favorite</span>
+              <strong>${data.likes}</strong>
+              <span>Me gusta</span>
+            </div>
+            <div class="pm-act-stat">
+              <span class="material-symbols-outlined">chat_bubble</span>
+              <strong>${data.comments}</strong>
+              <span>Comentarios</span>
+            </div>
+            <div class="pm-act-stat">
+              <span class="material-symbols-outlined">repeat</span>
+              <strong>${data.reposts}</strong>
+              <span>Reposts</span>
+            </div>
+            <div class="pm-act-stat">
+              <span class="material-symbols-outlined">bookmark</span>
+              <strong>${data.bookmarks}</strong>
+              <span>Guardados</span>
+            </div>
+          </div>`;
+      } else {
+        content.innerHTML = '<p style="color:var(--text3);text-align:center;padding:16px;">No se pudo cargar la actividad.</p>';
+      }
+    } catch(e) {
+      content.innerHTML = '<p style="color:var(--text3);text-align:center;padding:16px;">Error al cargar.</p>';
+    }
+  }
+}
+
+function cerrarActividadModal(event) {
+  if (event && event.target !== document.getElementById('pm-activity-modal')) return;
+  document.getElementById('pm-activity-modal').classList.remove('visible');
+  document.body.style.overflow = '';
+}
+
+// Cerrar con Escape
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') {
+    cerrarMenuPost({ target: document.getElementById('post-menu-overlay') });
+    cerrarActividadModal({ target: document.getElementById('pm-activity-modal') });
+  }
+});
 </script>

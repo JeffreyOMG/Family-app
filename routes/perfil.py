@@ -64,12 +64,12 @@ def api_perfil_posts(uid):
         return jsonify({"ok": False, "error": "No autenticado"}), 401
     con = get_db()
     rows = con.execute(
-        """SELECT p.id, p.texto, p.media, p.media_tipo, p.fecha,
+        """SELECT p.id, p.texto, p.media, p.media_tipo, p.fecha, p.fijado,
                   u.nombre, u.usuario, u.foto,
                   (SELECT COUNT(*) FROM likes l WHERE l.post_id=p.id) AS total_likes,
                   (SELECT COUNT(*) FROM comentarios c WHERE c.post_id=p.id) AS total_comentarios
            FROM publicaciones p JOIN usuarios u ON u.id=p.usuario_id
-           WHERE p.usuario_id=%s ORDER BY p.fecha DESC""",
+           WHERE p.usuario_id=%s ORDER BY p.fijado DESC, p.fecha DESC""",
         (uid,)
     ).fetchall()
     posts = []
@@ -80,6 +80,7 @@ def api_perfil_posts(uid):
             "media": r["media"] or "",
             "media_tipo": r["media_tipo"] or "",
             "fecha": str(r["fecha"])[:10] if r["fecha"] else "",
+            "fijado": bool(r["fijado"]),
             "nombre": r["nombre"],
             "usuario": r["usuario"],
             "foto": r["foto"] or "",
