@@ -108,10 +108,13 @@ function toggleSidebar() {
 }
 
 // ─────────────────────────────
-// COUNTDOWN
+// COUNTDOWN (Configurado en Zona Horaria de Oregon - PDT)
 // ─────────────────────────────
 function iniciarCountdown() {
-  const meta = new Date('2026-06-11T12:30:00-05:00').getTime(); // Apertura FIFA 2026
+  // 10:30 AM en Oregon equivale a las 12:30 PM en Colombia
+  // El sufijo -07:00 asegura que la fecha se interprete en horario del Pacífico
+  const meta = new Date('2026-06-11T10:30:00-07:00').getTime(); 
+  
   function tick() {
     const diff = meta - Date.now();
     if (diff <= 0) {
@@ -127,6 +130,7 @@ function iniciarCountdown() {
   tick();
   setInterval(tick, 1000);
 }
+
 
 // ─────────────────────────────
 // LIKE (sin recarga)
