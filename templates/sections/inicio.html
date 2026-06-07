@@ -1491,34 +1491,47 @@ body.dark-mode .post-badge-privado { background: rgba(139,92,246,.2); color: #a7
 /* ── POST VIEWER OVERLAY ── */
 #pv-overlay {
   position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0);
+  top: 0;
+  bottom: 0;
+  right: 0;
+  /* Empieza donde termina el sidebar — así justify-content:center
+     centra el box en el área de contenido real (viewport − 80px) */
+  left: 80px;
+  background: transparent;
   z-index: 99994;
   display: none;
   align-items: center;
   justify-content: center;
+  transition: backdrop-filter .22s ease;
+}
+/* El fondo oscuro cubre TODO el viewport (incluyendo sidebar) via ::before */
+#pv-overlay::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0);
   backdrop-filter: blur(0px);
   transition: background .22s ease, backdrop-filter .22s ease;
-  /* Compensar sidebar de 80px para centrado visual real */
-  padding-left: 80px;
-  box-sizing: border-box;
+  pointer-events: none;
+  z-index: -1;
 }
 #pv-overlay.visible {
   display: flex;
+}
+#pv-overlay.visible::before {
   background: rgba(0,0,0,.6);
   backdrop-filter: blur(6px);
 }
-#pv-overlay.pv-closing {
+#pv-overlay.pv-closing::before {
   background: rgba(0,0,0,0) !important;
   backdrop-filter: blur(0px) !important;
 }
 
-/* Modal box — centrado real dentro del área disponible */
+/* Modal box */
 #pv-box {
   background: var(--card, #fff);
   border: 1px solid var(--border, #e5e5e5);
   border-radius: 18px;
-  /* Ancho relativo al área sin sidebar */
   width: min(900px, calc(100% - 32px));
   height: 85vh;
   max-height: 85vh;
@@ -1532,8 +1545,6 @@ body.dark-mode .post-badge-privado { background: rgba(139,92,246,.2); color: #a7
   animation: pvScaleIn .24s cubic-bezier(.34,1.36,.64,1);
   overflow: hidden;
   position: relative;
-  /* Garantiza centrado aunque padding asimétrico del overlay */
-  margin: 0 auto;
 }
 #pv-box.pv-closing {
   animation: pvScaleOut .18s ease forwards;
@@ -2051,11 +2062,14 @@ body.dark-mode .post-badge-privado { background: rgba(139,92,246,.2); color: #a7
 
 /* ── MOBILE — bottom sheet, columna única ── */
 @media (max-width: 700px) {
-  /* Overlay: alinear abajo, sin offset de sidebar */
+  /* Overlay: pantalla completa, sin offset de sidebar */
   #pv-overlay {
+    left: 0;
     align-items: flex-end;
-    padding-left: 0;
-    padding-right: 0;
+  }
+  #pv-overlay::before {
+    /* En mobile el ::before ya cubre inset:0 por default — no hace falta override */
+    content: '';
   }
 
   /* Box: ocupa casi toda la pantalla, sube desde abajo */

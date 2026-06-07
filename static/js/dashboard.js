@@ -496,7 +496,9 @@ document.addEventListener('DOMContentLoaded', function() {
     '.rec-modal-overlay',
     '#umu-overlay',
     '#media-modal',
-    '.as-modal-overlay'
+    '.as-modal-overlay',
+    '#pv-overlay',          // Post viewer modal
+    '#pm-activity-modal',   // Activity modal
   ];
   modalSelectors.forEach(function(sel) {
     document.querySelectorAll(sel).forEach(function(modal) {
