@@ -187,6 +187,14 @@
 <style>
 /* ── VER PERFIL — estilos completos ─────────────────── */
 
+/* Evitar efecto de escala/jump al abrir: el contenedor siempre ocupa espacio */
+#sec-ver-perfil {
+  min-height: 100vh;
+}
+#vp-contenido {
+  min-height: 600px;
+}
+
 /* Topbar con botón volver */
 .vp-topbar {
   display: flex;
@@ -641,6 +649,10 @@
   margin-bottom: 16px;
 }
 
+#vp-skeleton {
+  min-height: 500px;
+}
+
 .vp-body-skeleton {
   display: flex;
   gap: 16px;
@@ -997,7 +1009,15 @@ function _renderVerPerfil(u) {
 
   // Mostrar perfil, ocultar skeleton
   if (skeleton) skeleton.style.display = 'none';
-  if (perfilEl) perfilEl.style.display = '';
+  if (perfilEl) {
+    perfilEl.style.opacity = '0';
+    perfilEl.style.display = '';
+    // Fade-in suave sin transform/scale
+    requestAnimationFrame(() => {
+      perfilEl.style.transition = 'opacity .18s ease';
+      perfilEl.style.opacity = '1';
+    });
+  }
 
   // Guardar UID y resetear pestañas para carga fresca
   _vpUidActual = u.id;

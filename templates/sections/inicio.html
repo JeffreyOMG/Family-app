@@ -1490,7 +1490,11 @@ body.dark-mode .post-badge-privado { background: rgba(139,92,246,.2); color: #a7
 /* Overlay con animación fade */
 #pv-overlay {
   position: fixed;
-  inset: 0;
+  top: 0;
+  bottom: 0;
+  /* Desktop: excluir sidebar fijo (80px) para centrado real en el área de contenido */
+  left: 80px;
+  right: 0;
   background: rgba(0,0,0,0);
   z-index: 99994;
   display: none;
@@ -1976,7 +1980,7 @@ body.dark-mode .post-badge-privado { background: rgba(139,92,246,.2); color: #a7
 
 /* ── MOBILE — bottom sheet, columna única ── */
 @media (max-width: 700px) {
-  #pv-overlay { align-items: flex-end; }
+  #pv-overlay { align-items: flex-end; left: 0; right: 0; top: 0; bottom: 0; }
   #pv-box {
     display: flex;
     flex-direction: column;
@@ -2005,9 +2009,10 @@ body.dark-mode .post-badge-privado { background: rgba(139,92,246,.2); color: #a7
 /* ── ACTIVITY MODAL ── */
 #pm-activity-modal {
   position: fixed;
-  inset: 0;
-  width: 100vw;
-  height: 100vh;
+  top: 0;
+  bottom: 0;
+  left: 80px;
+  right: 0;
   background: rgba(0,0,0,.55);
   z-index: 99995;
   display: none;
@@ -2016,6 +2021,9 @@ body.dark-mode .post-badge-privado { background: rgba(139,92,246,.2); color: #a7
   backdrop-filter: blur(4px);
 }
 #pm-activity-modal.visible { display: flex; }
+@media (max-width: 700px) {
+  #pm-activity-modal { left: 0; right: 0; top: 0; bottom: 0; }
+}
 #pm-activity-box {
   background: var(--card, #fff);
   border: 1px solid var(--border, #e5e5e5);
@@ -5284,9 +5292,9 @@ function _renderPostModal(p) {
   content.innerHTML = `
     <div class="pv-post">
       <div class="pv-post-header">
-        ${avHtml}
+        <span data-ver-perfil="${escHTML(p.usuario)}" style="cursor:pointer;" title="Ver perfil de ${escHTML(p.nombre)}">${avHtml}</span>
         <div class="pv-meta">
-          <span class="pv-name">${escHTML(p.nombre)}</span>
+          <span class="pv-name" data-ver-perfil="${escHTML(p.usuario)}" style="cursor:pointer;" title="Ver perfil">${escHTML(p.nombre)}</span>
           <span class="pv-handle">@${escHTML(p.usuario)}${privBadge}</span>
         </div>
       </div>
