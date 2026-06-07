@@ -1,54 +1,67 @@
 /**
- * emote-picker.js — v4 (UX Pro: nunca muestra errores técnicos)
+ * emote-picker.js — v5 (Paginación Load More + rendimiento pro)
  *
- * CAMBIOS v4:
- *  • _showError() eliminada — ahora va a showEmpty() silencioso
- *  • Debounce de 250ms (era 300ms)
- *  • Solo 2 estados UI: "resultados" o "sin resultados"
- *  • Trending emotes al abrir (si no hay recientes)
- *  • Navegación por teclado: ↑↓ entre emotes, Enter inserta
- *  • Historial de búsquedas en localStorage
- *  • Sin throw al exterior: todos los errores son silenciosos
+ * NUEVO en v5:
+ *  • Paginación client-side: 20 iniciales, botón "Cargar más"
+ *  • allEmotes[] guarda el lote completo de la API
+ *  • Append incremental al DOM (no re-render completo)
+ *  • Botón load-more se auto-oculta cuando no quedan más
+ *  • Scroll infinito opcional (IntersectionObserver en sentinel)
+ *  • emotes-post más grandes: clase .inline-emote gestionada desde CSS
+ *  • Sin mensajes de error técnicos: todo silencioso
  */
 
 import {
-  searchEmotes,
+  fetchAllEmotes,
   registerEmoteUsage,
   prefetchPopularEmotes,
   globalEmoteCache,
 } from "./emote-api.js";
 
-// ─── Estado ───────────────────────────────────────────────────────────────────
+// ─── Paginación ───────────────────────────────────────────────────────────────
+
+const PAGE_SIZE = 20;
+let allEmotes   = [];   // lote completo de la búsqueda actual
+let currentPage = 0;    // página que ya se mostró (0-based)
+let currentQuery = "";
+
+function _getPage(page) {
+  const start = page * PAGE_SIZE;
+  return allEmotes.slice(start, start + PAGE_SIZE);
+}
+
+function _hasMore() {
+  return (currentPage + 1) * PAGE_SIZE < allEmotes.length;
+}
+
+// ─── Estado general ───────────────────────────────────────────────────────────
 
 let activeAbort   = null;
 let debounceTimer = null;
 let currentTarget = null;
-let lastResults   = [];
+let lastFirstEmote = null; // primer emote del lote (para Enter)
 let focusedIdx    = -1;
 
-const RECENTS_KEY  = "emote_recents";
-const HISTORY_KEY  = "emote_search_history";
-const MAX_RECENTS  = 20;
-const MAX_HISTORY  = 10;
+const RECENTS_KEY = "emote_recents";
+const HISTORY_KEY = "emote_search_history";
+const MAX_RECENTS = 20;
+const MAX_HISTORY = 10;
 
-// Trending por defecto si la API cae o no hay recientes
-const TRENDING_FALLBACK = [
-  { id: "60ae4b5b36a2c8add ef48b3", name: "PogChamp"  },
-  { id: "6268a27f5e3ede527d74ce74", name: "GIGACHAD"  },
-  { id: "6042089e0f012f43dae27d35", name: "monkaS"    },
-  { id: "60ae4b5b36a2c8addef48c1b", name: "OMEGALUL"  },
-  { id: "60ae4b5b36a2c8addef48b87", name: "PauseChamp"},
-  { id: "61b6f1793cbbc72a0e9d9611", name: "BASED"     },
-  { id: "60ae4b5b36a2c8addef48b5f", name: "Pog"       },
-  { id: "60ae4b5b36a2c8addef48b69", name: "FeelsGoodMan"},
-].map(e => ({
-  ...e,
-  id:  e.id.replace(/\s/g, ""), // limpiar IDs con espacios
-  url: `https://cdn.7tv.app/emote/${e.id.replace(/\s/g, "")}/2x.webp`,
-  animated: false,
-}));
+// Trending fallback cuando no hay recientes ni búsqueda
+const TRENDING = [
+  { id: "60ae4b5b36a2c8addef48b3e", name: "PogChamp",    animated: false },
+  { id: "6268a27f5e3ede527d74ce74", name: "GIGACHAD",    animated: false },
+  { id: "6042089e0f012f43dae27d35", name: "monkaS",      animated: false },
+  { id: "60ae4b5b36a2c8addef48c1b", name: "OMEGALUL",    animated: false },
+  { id: "60ae4b5b36a2c8addef48b87", name: "PauseChamp",  animated: false },
+  { id: "61b6f1793cbbc72a0e9d9611", name: "BASED",       animated: false },
+  { id: "60ae4b5b36a2c8addef48b5f", name: "Pog",         animated: false },
+  { id: "60ae4b5b36a2c8addef48b69", name: "FeelsGoodMan",animated: false },
+  { id: "60ae4b5b36a2c8addef48c35", name: "Sadge",       animated: false },
+  { id: "60ae4b5b36a2c8addef48b9f", name: "peepoHappy",  animated: false },
+].map(e => ({ ...e, url: `https://cdn.7tv.app/emote/${e.id}/2x.webp` }));
 
-let modal, searchInput, resultsGrid, recentRow, closeBtn;
+let modal, searchInput, resultsGrid, recentRow, closeBtn, loadMoreBtn;
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
 
@@ -58,10 +71,11 @@ export function initEmotePicker(textarea, triggerBtnId = "btnEmotes") {
   resultsGrid = document.getElementById("emoteResults");
   recentRow   = document.getElementById("emoteRecent");
   closeBtn    = document.getElementById("closeEmote");
+  loadMoreBtn = document.getElementById("emoteLoadMore");
   const openBtn = document.getElementById(triggerBtnId);
 
   if (!modal || !searchInput || !resultsGrid || !openBtn) {
-    console.warn("[EmotePicker] DOM incompleto — verifica IDs del modal.");
+    console.warn("[EmotePicker] DOM incompleto.");
     return;
   }
 
@@ -71,53 +85,74 @@ export function initEmotePicker(textarea, triggerBtnId = "btnEmotes") {
   closeBtn?.addEventListener("click", _close);
   modal.addEventListener("click", e => { if (e.target === modal) _close(); });
 
-  // Teclado global
+  // Botón load more
+  loadMoreBtn?.addEventListener("click", _loadMore);
+
+  // Teclado
   document.addEventListener("keydown", _handleGlobalKey);
 
-  // Input con debounce
+  // Input debounce 250ms
   searchInput.addEventListener("input", e => {
     const q = e.target.value.trim();
     clearTimeout(debounceTimer);
     focusedIdx = -1;
-
-    if (!q) {
-      _cancelSearch();
-      loadRecents();
-      return;
-    }
-
+    if (!q) { _cancelSearch(); loadRecents(); return; }
     debounceTimer = setTimeout(() => _doSearch(q), 250);
   });
 
-  // Warm-up al arrancar
   _warmupRecentCache();
+
+  // Scroll infinito en el grid (sentinel al fondo del grid)
+  _setupScrollSentinel();
 }
 
-export function setEmoteTarget(el) {
-  currentTarget = el;
-}
+export function setEmoteTarget(el) { currentTarget = el; }
 
-// ─── Búsqueda ─────────────────────────────────────────────────────────────────
+// ─── Búsqueda con paginación ──────────────────────────────────────────────────
 
 async function _doSearch(q) {
-  _cancelSearch();
-  activeAbort = new AbortController();
-  _showLoading();
+  if (q === currentQuery && allEmotes.length) {
+    // misma query y ya tenemos datos: sólo re-renderizar
+    currentPage = 0;
+    _renderPage(0, false);
+    _updateLoadMore();
+    return;
+  }
 
-  // Guardar en historial
+  _cancelSearch();
+  activeAbort  = new AbortController();
+  currentQuery = q;
+  currentPage  = 0;
+  allEmotes    = [];
+
+  _showLoading();
   _saveHistory(q);
 
-  // searchEmotes NUNCA lanza: devuelve [] en caso de error
-  const emotes = await searchEmotes(q, activeAbort.signal);
-  lastResults = emotes;
-  _renderPickerEmotes(emotes);
+  // Trae hasta 80 emotes de una vez; el picker pagina client-side
+  allEmotes = await fetchAllEmotes(q, activeAbort.signal, 80);
+  lastFirstEmote = allEmotes[0] ?? null;
+
+  if (!allEmotes.length) {
+    _showEmpty();
+    _hideLoadMore();
+    return;
+  }
+
+  _renderPage(0, false);
+  _updateLoadMore();
+}
+
+function _loadMore() {
+  if (!_hasMore()) return;
+  currentPage++;
+  _renderPage(currentPage, true); // append = true
+  _updateLoadMore();
+  // Scroll suave al nuevo bloque
+  loadMoreBtn?.scrollIntoView({ behavior: "smooth", block: "center" });
 }
 
 function _cancelSearch() {
-  if (activeAbort) {
-    activeAbort.abort();
-    activeAbort = null;
-  }
+  if (activeAbort) { activeAbort.abort(); activeAbort = null; }
   clearTimeout(debounceTimer);
 }
 
@@ -126,12 +161,12 @@ function _cancelSearch() {
 function _open() {
   modal.classList.add("open");
   searchInput.value = "";
-  lastResults = [];
-  focusedIdx  = -1;
+  allEmotes    = [];
+  currentPage  = 0;
+  currentQuery = "";
+  focusedIdx   = -1;
   loadRecents();
   requestAnimationFrame(() => searchInput.focus());
-
-  // Prefetch de populares en idle
   if ("requestIdleCallback" in window) {
     requestIdleCallback(() => prefetchPopularEmotes(), { timeout: 2000 });
   }
@@ -146,12 +181,7 @@ function _close() {
 
 function _handleGlobalKey(e) {
   if (!modal?.classList.contains("open")) return;
-
-  if (e.key === "Escape") {
-    e.preventDefault();
-    _close();
-    return;
-  }
+  if (e.key === "Escape") { e.preventDefault(); _close(); return; }
 
   const items = resultsGrid?.querySelectorAll(".emote-item");
   if (!items?.length) return;
@@ -164,28 +194,30 @@ function _handleGlobalKey(e) {
     e.preventDefault();
     focusedIdx = Math.max(focusedIdx - 1, 0);
     items[focusedIdx]?.focus();
-  } else if (e.key === "Enter" && lastResults[0] && document.activeElement === searchInput) {
-    // Enter en el input = insertar primer resultado
-    _pickEmote(lastResults[0]);
+  } else if (e.key === "Enter" && lastFirstEmote && document.activeElement === searchInput) {
+    _pickEmote(lastFirstEmote);
   }
 }
 
-// ─── Render resultados ────────────────────────────────────────────────────────
+// ─── Render ───────────────────────────────────────────────────────────────────
 
-function _renderPickerEmotes(emotes) {
-  if (!resultsGrid) return;
-  resultsGrid.innerHTML = "";
+/**
+ * Renderiza una página al grid.
+ * @param {number} page  - página a renderizar
+ * @param {boolean} append - si true, añade al final; si false, limpia primero
+ */
+function _renderPage(page, append) {
+  const emotes = _getPage(page);
+  if (!emotes.length) return;
 
-  if (!emotes || !emotes.length) {
-    _showEmpty();
-    return;
+  if (!append) {
+    // Limpiar sólo los emote-items anteriores, dejar el sentinel
+    const existing = resultsGrid.querySelectorAll(".emote-item");
+    existing.forEach(el => el.remove());
   }
 
   const frag = document.createDocumentFragment();
-  emotes.forEach((emote, idx) => {
-    const el = _makeEmoteItem(emote, idx);
-    frag.appendChild(el);
-  });
+  emotes.forEach((emote, i) => frag.appendChild(_makeEmoteItem(emote, page * PAGE_SIZE + i)));
   resultsGrid.appendChild(frag);
 }
 
@@ -198,14 +230,14 @@ function _makeEmoteItem(emote, idx) {
   el.setAttribute("aria-label", `Emote ${emote.name}`);
   el.dataset.idx = idx;
 
-  const img = document.createElement("img");
+  const img   = document.createElement("img");
   img.alt     = emote.name;
   img.loading = "lazy";
-  img.width   = 32;
-  img.height  = 32;
+  img.width   = 40;   // más grande: era 32px
+  img.height  = 40;
   img.style.opacity = "0";
-  img.onload  = () => { img.style.opacity = "1"; img.classList.add("loaded"); };
-  img.onerror = () => { img.style.opacity = "0.4"; }; // fallo silencioso
+  img.onload  = () => { img.style.transition = "opacity .15s ease"; img.style.opacity = "1"; img.classList.add("loaded"); };
+  img.onerror = () => { img.style.opacity = "0.35"; };
   img.src     = emote.url;
 
   const label = document.createElement("span");
@@ -216,11 +248,7 @@ function _makeEmoteItem(emote, idx) {
 
   const pick = () => _pickEmote(emote);
   el.addEventListener("click", pick);
-  el.addEventListener("keydown", e => {
-    if (e.key === "Enter" || e.key === " ") { e.preventDefault(); pick(); }
-  });
-
-  // Hover prefetch
+  el.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); pick(); } });
   el.addEventListener("mouseenter", () => {
     globalEmoteCache.set(emote.name.toLowerCase(), emote.url);
   }, { once: true });
@@ -234,19 +262,67 @@ function _pickEmote(emote) {
   _close();
 }
 
-// ─── Estados UI (solo 2 visibles al usuario) ──────────────────────────────────
+// ─── Load More button ─────────────────────────────────────────────────────────
+
+function _updateLoadMore() {
+  if (!loadMoreBtn) return;
+  if (_hasMore()) {
+    const remaining = allEmotes.length - (currentPage + 1) * PAGE_SIZE;
+    loadMoreBtn.textContent = `Cargar ${Math.min(remaining, PAGE_SIZE)} más`;
+    loadMoreBtn.style.display = "flex";
+  } else {
+    _hideLoadMore();
+  }
+}
+
+function _hideLoadMore() {
+  if (loadMoreBtn) loadMoreBtn.style.display = "none";
+}
+
+// ─── Scroll infinito (sentinel) ───────────────────────────────────────────────
+
+function _setupScrollSentinel() {
+  if (!resultsGrid) return;
+  const sentinel = document.createElement("div");
+  sentinel.id = "emote-sentinel";
+  sentinel.style.height = "1px";
+  resultsGrid.appendChild(sentinel);
+
+  const io = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting && _hasMore() && searchInput?.value.trim()) {
+        currentPage++;
+        _renderPage(currentPage, true);
+        _updateLoadMore();
+      }
+    });
+  }, { root: resultsGrid, rootMargin: "60px" });
+
+  io.observe(sentinel);
+}
+
+// ─── Estados UI ───────────────────────────────────────────────────────────────
 
 function _showLoading() {
   if (!resultsGrid) return;
-  resultsGrid.innerHTML = `
-    <div class="emote-loading">
-      <span class="emote-spinner"></span>
-    </div>`;
+  resultsGrid.querySelectorAll(".emote-item").forEach(el => el.remove());
+  // Conservar sentinel; añadir spinner al principio
+  const spinner = document.createElement("div");
+  spinner.className = "emote-loading";
+  spinner.innerHTML = `<span class="emote-spinner"></span>`;
+  spinner.id = "__emote-spinner";
+  resultsGrid.insertBefore(spinner, resultsGrid.firstChild);
+  _hideLoadMore();
 }
 
 function _showEmpty() {
   if (!resultsGrid) return;
-  resultsGrid.innerHTML = `<div class="emote-empty">Sin resultados</div>`;
+  const old = resultsGrid.querySelectorAll(".emote-item, .emote-loading, .emote-hint, #__emote-spinner");
+  old.forEach(el => el.remove());
+  const empty = document.createElement("div");
+  empty.className = "emote-empty";
+  empty.textContent = "Sin resultados";
+  resultsGrid.insertBefore(empty, resultsGrid.firstChild);
 }
 
 // ─── Inserción en cursor ──────────────────────────────────────────────────────
@@ -296,8 +372,12 @@ export function loadRecents() {
 
   if (!list.length) {
     recentRow.innerHTML = `<span class="emote-recent-empty">Sin recientes</span>`;
-    // Mostrar trending como placeholder
-    _renderPickerEmotes(TRENDING_FALLBACK);
+    // Mostrar trending en el grid
+    resultsGrid.querySelectorAll(".emote-item, .emote-hint, #__emote-spinner").forEach(el => el.remove());
+    allEmotes   = TRENDING;
+    currentPage = 0;
+    _renderPage(0, false);
+    _hideLoadMore();
     return;
   }
 
@@ -311,13 +391,22 @@ export function loadRecents() {
     img.className = "recent-emote";
     img.style.opacity = "0";
     img.onload  = () => { img.style.opacity = "1"; img.classList.add("loaded"); };
-    img.onerror = () => { img.style.opacity = "0.4"; };
+    img.onerror = () => { img.style.opacity = "0.35"; };
     img.src     = emote.url;
     img.addEventListener("click", () => _pickEmote(emote));
     frag.appendChild(img);
   });
   recentRow.appendChild(frag);
-  resultsGrid.innerHTML = `<div class="emote-hint">Busca un emote arriba ☝️</div>`;
+
+  // Grid → hint si no hay búsqueda activa
+  if (!searchInput?.value.trim()) {
+    resultsGrid.querySelectorAll(".emote-item, #__emote-spinner").forEach(el => el.remove());
+    const hint = document.createElement("div");
+    hint.className = "emote-hint";
+    hint.textContent = "Busca un emote arriba ☝️";
+    resultsGrid.insertBefore(hint, resultsGrid.firstChild);
+    _hideLoadMore();
+  }
 }
 
 function _getRecents() {
@@ -330,7 +419,7 @@ function _warmupRecentCache() {
   });
 }
 
-// ─── Historial de búsquedas ───────────────────────────────────────────────────
+// ─── Historial ────────────────────────────────────────────────────────────────
 
 function _saveHistory(q) {
   try {
