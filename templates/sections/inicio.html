@@ -45,7 +45,7 @@
       {% set imgs = p.media|fromjson %}
       <div class="post-carousel">
         <div class="pc-track">
-          {% for img in imgs %}<div class="pc-slide"><img src="{{ img }}" class="pc-img" onclick="abrirMediaModal('{{ img }}','imagen')"></div>{% endfor %}
+          {% for img in imgs %}<div class="pc-slide"><img src="{{ img }}" class="pc-img img-loading" loading="lazy" onclick="abrirMediaModal('{{ img }}','imagen')" onload="this.classList.remove('img-loading');this.classList.add('img-loaded')" onerror="this.classList.remove('img-loading');this.classList.add('img-loaded')"></div>{% endfor %}
         </div>
         {% if imgs|length > 1 %}
         <button class="pc-btn pc-prev" onclick="pcMove(this,-1)">&#8249;</button>
@@ -54,7 +54,7 @@
         {% endif %}
       </div>
     {% elif p.media_tipo == 'imagen' %}
-      <img src="{{ p.media }}" class="post-media" onclick="abrirMediaModal('{{ p.media }}','imagen')">
+      <img src="{{ p.media }}" class="post-media img-loading" loading="lazy" onclick="abrirMediaModal('{{ p.media }}','imagen')" onload="this.classList.remove('img-loading');this.classList.add('img-loaded')" onerror="this.classList.remove('img-loading');this.classList.add('img-loaded')">
     {% elif p.media_tipo == 'video' %}
       <video controls class="post-media"><source src="{{ p.media }}"></video>
     {% endif %}
@@ -274,6 +274,27 @@
       </div>
 
       <!-- POSTS FEED: PARA TI -->
+
+      <!-- SKELETON LOADER -->
+      <div id="feed-skeleton" style="display:none;">
+        <div class="post-skeleton">
+          <div class="sk-header"><div class="sk-avatar skeleton"></div><div class="sk-meta"><div class="sk-name skeleton"></div><div class="sk-handle skeleton"></div></div></div>
+          <div class="sk-line l100 skeleton"></div><div class="sk-line l80 skeleton"></div><div class="sk-line l60 skeleton"></div>
+          <div class="sk-img skeleton"></div>
+          <div class="sk-actions"><div class="sk-btn skeleton"></div><div class="sk-btn skeleton"></div><div class="sk-btn skeleton"></div></div>
+        </div>
+        <div class="post-skeleton">
+          <div class="sk-header"><div class="sk-avatar skeleton"></div><div class="sk-meta"><div class="sk-name skeleton"></div><div class="sk-handle skeleton"></div></div></div>
+          <div class="sk-line l100 skeleton"></div><div class="sk-line l80 skeleton"></div>
+          <div class="sk-actions"><div class="sk-btn skeleton"></div><div class="sk-btn skeleton"></div><div class="sk-btn skeleton"></div></div>
+        </div>
+        <div class="post-skeleton">
+          <div class="sk-header"><div class="sk-avatar skeleton"></div><div class="sk-meta"><div class="sk-name skeleton"></div><div class="sk-handle skeleton"></div></div></div>
+          <div class="sk-line l100 skeleton"></div><div class="sk-line l60 skeleton"></div>
+          <div class="sk-actions"><div class="sk-btn skeleton"></div><div class="sk-btn skeleton"></div><div class="sk-btn skeleton"></div></div>
+        </div>
+      </div>
+
       <div id="feed-posts">
       {% if publicaciones %}
         {# Filtrar miembros que el usuario actual NO sigue (excluir al propio usuario) #}
@@ -457,6 +478,41 @@
     </aside>
   </div>
 </section>
+
+<!-- ── PARTE 5: FAB móvil para publicar rápido ── -->
+<button class="compose-fab" onclick="abrirComposer()" title="Nueva publicación" aria-label="Publicar">
+  <span class="material-symbols-outlined">add</span>
+</button>
+
+<style>
+.compose-fab {
+  display: none;
+  position: fixed;
+  bottom: 80px;
+  right: 18px;
+  z-index: 500;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: var(--accent, #ff4d8d);
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 4px 18px rgba(255,77,141,.45);
+  align-items: center;
+  justify-content: center;
+  transition: transform .2s, box-shadow .2s;
+  -webkit-appearance: none;
+  appearance: none;
+}
+.compose-fab .material-symbols-outlined { font-size: 26px; }
+.compose-fab:hover { transform: scale(1.08); box-shadow: 0 6px 24px rgba(255,77,141,.55); }
+.compose-fab:active { transform: scale(.93); }
+
+@media (max-width: 640px) {
+  .compose-fab { display: flex; }
+}
+</style>
 
 <!-- ═══════════════════════════════
      MODAL TODOS LOS USUARIOS (solo desktop)
@@ -2763,6 +2819,297 @@ body.dark-mode .post-badge-privado { background: rgba(139,92,246,.2); color: #a7
   .mc-visibilidad-row { padding: 6px 10px 5px; }
   .mc-vis-btn { font-size: .75rem; padding: 4px 10px; }
 }
+
+/* ============================================================
+   PARTE 5 — UX FEED MODERNO
+   Skeleton · Animaciones · Jerarquía · Microinteracciones
+   ============================================================ */
+
+/* ── Fase 5.1 — Skeleton Loading ── */
+@keyframes skeletonShimmer {
+  0%   { background-position: -600px 0; }
+  100% { background-position: 600px 0; }
+}
+
+.skeleton {
+  background: linear-gradient(90deg,
+    var(--bg2) 25%,
+    var(--border) 50%,
+    var(--bg2) 75%);
+  background-size: 600px 100%;
+  animation: skeletonShimmer 1.4s ease-in-out infinite;
+  border-radius: 6px;
+}
+
+.post-skeleton {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 16px;
+  margin-bottom: 10px;
+}
+.post-skeleton .sk-header {
+  display: flex; align-items: center; gap: 10px; margin-bottom: 14px;
+}
+.post-skeleton .sk-avatar {
+  width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0;
+}
+.post-skeleton .sk-meta { flex: 1; display: flex; flex-direction: column; gap: 6px; }
+.post-skeleton .sk-name  { height: 13px; width: 120px; }
+.post-skeleton .sk-handle{ height: 10px; width: 80px; }
+.post-skeleton .sk-line  { height: 12px; margin-bottom: 7px; }
+.post-skeleton .sk-line.l100 { width: 100%; }
+.post-skeleton .sk-line.l80  { width: 80%; }
+.post-skeleton .sk-line.l60  { width: 60%; }
+.post-skeleton .sk-img   { height: 200px; margin: 12px 0; border-radius: 12px; }
+.post-skeleton .sk-actions {
+  display: flex; gap: 12px; margin-top: 14px; padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+.post-skeleton .sk-btn { height: 28px; width: 60px; border-radius: 20px; }
+
+/* ── Fase 5.2 — Animación de aparición ── */
+@keyframes fadeSlideIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeSlideInComment {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.post-card {
+  animation: fadeSlideIn .35s ease both;
+}
+
+/* Nuevos comentarios añadidos vía AJAX */
+.comment-row.comment-new {
+  animation: fadeSlideInComment .3s ease both;
+}
+
+/* ── Fase 5.2 — Jerarquía visual mejorada ── */
+.post-card {
+  padding: 18px 18px 14px;
+  margin-bottom: 12px;
+  border-radius: 18px;
+  transition: box-shadow .2s, transform .2s;
+}
+.post-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 20px rgba(0,0,0,.07);
+}
+
+.post-header {
+  margin-bottom: 12px;
+  padding-bottom: 0;
+}
+.post-av {
+  width: 42px !important;
+  height: 42px !important;
+}
+.post-name {
+  font-size: 14.5px;
+  font-weight: 700;
+  letter-spacing: -.01em;
+}
+.post-handle {
+  font-size: 12px;
+  color: var(--text3);
+}
+
+.post-text {
+  font-size: 14.5px;
+  line-height: 1.6;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+
+.post-media {
+  margin-top: 10px;
+  margin-bottom: 2px;
+  border-radius: 14px;
+  max-height: 500px;
+  object-fit: cover;
+  width: 100%;
+  cursor: pointer;
+  /* lazy fade-in handled by JS */
+  transition: opacity .3s;
+}
+.post-media.img-loading { opacity: 0; }
+.post-media.img-loaded  { opacity: 1; }
+
+.post-actions {
+  margin-top: 12px;
+  padding-top: 11px;
+  gap: 4px;
+}
+
+/* ── Fase 5.2 — Feedback de like mejorado ── */
+@keyframes likeHeart {
+  0%   { transform: scale(1); }
+  30%  { transform: scale(1.45); }
+  60%  { transform: scale(.85); }
+  80%  { transform: scale(1.15); }
+  100% { transform: scale(1); }
+}
+@keyframes likeCountPop {
+  0%   { transform: translateY(0); opacity: 1; }
+  40%  { transform: translateY(-4px); opacity: 0; }
+  60%  { transform: translateY(4px); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+
+.like-btn.pop .heart-icon {
+  animation: likeHeart .4s cubic-bezier(.25,.46,.45,.94) both;
+}
+.like-btn.count-pop .like-count {
+  animation: likeCountPop .3s ease both;
+}
+
+.post-action-btn {
+  padding: 7px 11px;
+  border-radius: 22px;
+  font-size: 13px;
+  gap: 5px;
+  transition: background .15s, color .15s, transform .1s;
+}
+.post-action-btn:hover {
+  transform: scale(1.06);
+}
+.post-action-btn:active {
+  transform: scale(.95);
+}
+
+/* ── Fase 5.2 — Hover en cards ── */
+.post-card {
+  will-change: transform;
+}
+
+/* ── Fase 5.3 — Redesign comentarios ── */
+.comments-section {
+  margin-top: 10px;
+  padding-top: 10px;
+}
+
+.comment-row {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  margin-bottom: 8px;
+}
+
+.comment-bubble {
+  background: var(--bg2);
+  border-radius: 14px;
+  padding: 7px 12px 8px;
+  flex: 1;
+  min-width: 0;
+  border: 1px solid transparent;
+  transition: border-color .15s;
+}
+.comment-bubble:hover {
+  border-color: var(--border);
+}
+.comment-author {
+  font-size: 12.5px;
+  font-weight: 700;
+}
+.comment-text {
+  font-size: 13px;
+  line-height: 1.5;
+  display: block;
+  margin-top: 1px;
+}
+.comment-date {
+  font-size: 10px;
+  color: var(--text3);
+  margin-top: 3px;
+  display: block;
+}
+
+.cmt-ver-mas {
+  font-size: 12.5px;
+  font-weight: 600;
+  padding: 3px 0 8px 40px;
+  transition: color .15s, letter-spacing .15s;
+}
+.cmt-ver-mas:hover {
+  color: var(--accent, #ff4d8d);
+  letter-spacing: .01em;
+}
+
+.comment-input {
+  border-radius: 22px;
+  font-size: 13px;
+  padding: 8px 15px;
+  transition: border-color .2s, box-shadow .2s;
+}
+.comment-input:focus {
+  border-color: var(--accent, #ff4d8d);
+  box-shadow: 0 0 0 3px rgba(255,77,141,.1);
+}
+
+/* ── Fase 5.3 — Loader entre posts (infinite scroll feel) ── */
+.feed-inline-loader {
+  display: flex;
+  justify-content: center;
+  padding: 16px 0;
+}
+.feed-inline-loader .feed-spinner {
+  width: 22px; height: 22px;
+  border: 2.5px solid var(--border);
+  border-top-color: var(--accent, #ff4d8d);
+  border-radius: 50%;
+  animation: spin .7s linear infinite;
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Fase 5.3 — Composer: FAB handles mobile, no sticky needed ── */
+
+/* ── Microinteracciones generales ── */
+/* (.post-text-more already defined above with full styles) */
+
+/* Composer card mejora visual */
+.compose-card {
+  transition: box-shadow .2s;
+}
+.compose-card:hover {
+  box-shadow: 0 4px 16px rgba(0,0,0,.07);
+}
+.compose-fake-input {
+  transition: color .15s;
+}
+.compose-card:hover .compose-fake-input {
+  color: var(--text2);
+}
+
+/* Botones de acción composer */
+.cq-btn {
+  transition: background .15s, color .15s, transform .12s;
+}
+.cq-btn:active {
+  transform: scale(.93);
+}
+
+/* Smooth para feed-tab switch */
+#feed-posts, #feed-guardados, #feed-tendencias {
+  transition: opacity .2s;
+}
+
+/* Reduce FOUC en post cards */
+.post-card:nth-child(1) { animation-delay: .02s; }
+.post-card:nth-child(2) { animation-delay: .05s; }
+.post-card:nth-child(3) { animation-delay: .08s; }
+.post-card:nth-child(4) { animation-delay: .11s; }
+.post-card:nth-child(5) { animation-delay: .14s; }
+.post-card:nth-child(6) { animation-delay: .17s; }
+
+/* ── Mobile: FAB replaces compose-card ── */
+@media (max-width: 640px) {
+  .compose-card { display: none !important; }
+}
 </style>
 
 <!-- ── POST OPTIONS BOTTOM SHEET ── -->
@@ -2839,12 +3186,32 @@ document.querySelectorAll('.feed-tab').forEach(tab => {
     document.querySelectorAll('.feed-tab').forEach(t=>t.classList.remove('active'));
     this.classList.add('active');
     const feedKey = this.dataset.feed;
+    const target = document.getElementById(_feeds[feedKey] || 'feed-posts');
+    if(!target) return;
+
+    // Hide all feeds
     Object.values(_feeds).forEach(id => {
       const el = document.getElementById(id);
       if(el) el.style.display = 'none';
     });
-    const target = document.getElementById(_feeds[feedKey] || 'feed-posts');
-    if(target) target.style.display = 'block';
+
+    // Show skeleton briefly, then fade in target (Parte 5 UX)
+    const skeleton = document.getElementById('feed-skeleton');
+    if(skeleton){
+      skeleton.style.display = 'block';
+      setTimeout(() => {
+        skeleton.style.display = 'none';
+        target.style.opacity = '0';
+        target.style.display = 'block';
+        requestAnimationFrame(() => {
+          target.style.transition = 'opacity .25s';
+          target.style.opacity   = '1';
+          setTimeout(() => { target.style.transition = ''; }, 280);
+        });
+      }, 300);
+    } else {
+      target.style.display = 'block';
+    }
   });
 });
 
@@ -2934,7 +3301,7 @@ async function enviarComentario(postId, input){
       const form = sec?.querySelector('.comment-form');
       if(form && sec){
         const row = document.createElement('div');
-        row.className = 'comment-row';
+        row.className = 'comment-row comment-new';
         row.innerHTML = `
           <div class="user-avatar" style="width:28px;height:28px;font-size:11px;flex-shrink:0;">${data.inicial}</div>
           <div class="comment-bubble">
@@ -3082,10 +3449,12 @@ async function darLike(id, btn){
     const res  = await fetch('/like/'+id,{method:'POST'});
     const data = await res.json();
     if(data.ok){
-      btn.querySelector('.like-count').textContent = data.likes;
+      const countEl = btn.querySelector('.like-count');
+      countEl.textContent = data.likes;
       btn.classList.toggle('liked', data.liked);
       btn.classList.add('pop');
-      setTimeout(()=>btn.classList.remove('pop'),200);
+      countEl.classList.add('count-pop');
+      setTimeout(()=>{btn.classList.remove('pop'); countEl.classList.remove('count-pop');},420);
     }
   } catch(e){}
   setTimeout(()=>btn.disabled=false,350);
@@ -4329,4 +4698,16 @@ document.addEventListener('keydown', function(e) {
     cerrarActividadModal({ target: document.getElementById('pm-activity-modal') });
   }
 });
+
+/* ── PARTE 5 UX: Lazy Images init ── */
+(function() {
+  // Ensure images already in DOM get the fade-in treatment
+  document.querySelectorAll('.post-media').forEach(img => {
+    if (img.complete && img.naturalWidth > 0) {
+      img.classList.remove('img-loading');
+      img.classList.add('img-loaded');
+    }
+    // Images not yet loaded: inline onload handles them
+  });
+})();
 </script>
