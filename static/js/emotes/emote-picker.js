@@ -1,14 +1,12 @@
 /**
- * emote-picker.js — v5 (Paginación Load More + rendimiento pro)
+ * emote-picker.js — v5.1 (FIX: sin duplicación de hint/spinner)
  *
- * NUEVO en v5:
- *  • Paginación client-side: 20 iniciales, botón "Cargar más"
- *  • allEmotes[] guarda el lote completo de la API
- *  • Append incremental al DOM (no re-render completo)
- *  • Botón load-more se auto-oculta cuando no quedan más
- *  • Scroll infinito opcional (IntersectionObserver en sentinel)
- *  • emotes-post más grandes: clase .inline-emote gestionada desde CSS
- *  • Sin mensajes de error técnicos: todo silencioso
+ * BUGS corregidos:
+ *  • _clearGrid() centralizado — limpia TODO el contenido del grid de una vez
+ *  • Sentinel vive en el BOX (fuera del grid), no dentro
+ *  • loadRecents ya no puede duplicar el hint al llamarse varias veces
+ *  • _renderPage limpia correctamente antes de pintar la primera página
+ *  • _showLoading y _showEmpty usan _clearGrid()
  */
 
 import {
@@ -20,48 +18,65 @@ import {
 
 // ─── Paginación ───────────────────────────────────────────────────────────────
 
-const PAGE_SIZE = 20;
-let allEmotes   = [];   // lote completo de la búsqueda actual
-let currentPage = 0;    // página que ya se mostró (0-based)
-let currentQuery = "";
+const PAGE_SIZE  = 20;
+let   allEmotes  = [];
+let   currentPage = 0;
+let   currentQuery = "";
 
 function _getPage(page) {
   const start = page * PAGE_SIZE;
   return allEmotes.slice(start, start + PAGE_SIZE);
 }
-
 function _hasMore() {
   return (currentPage + 1) * PAGE_SIZE < allEmotes.length;
 }
 
-// ─── Estado general ───────────────────────────────────────────────────────────
+// ─── Estado ───────────────────────────────────────────────────────────────────
 
-let activeAbort   = null;
-let debounceTimer = null;
-let currentTarget = null;
-let lastFirstEmote = null; // primer emote del lote (para Enter)
-let focusedIdx    = -1;
+let activeAbort    = null;
+let debounceTimer  = null;
+let currentTarget  = null;
+let lastFirstEmote = null;
+let focusedIdx     = -1;
 
 const RECENTS_KEY = "emote_recents";
 const HISTORY_KEY = "emote_search_history";
 const MAX_RECENTS = 20;
 const MAX_HISTORY = 10;
 
-// Trending fallback cuando no hay recientes ni búsqueda
 const TRENDING = [
-  { id: "60ae4b5b36a2c8addef48b3e", name: "PogChamp",    animated: false },
-  { id: "6268a27f5e3ede527d74ce74", name: "GIGACHAD",    animated: false },
-  { id: "6042089e0f012f43dae27d35", name: "monkaS",      animated: false },
-  { id: "60ae4b5b36a2c8addef48c1b", name: "OMEGALUL",    animated: false },
-  { id: "60ae4b5b36a2c8addef48b87", name: "PauseChamp",  animated: false },
-  { id: "61b6f1793cbbc72a0e9d9611", name: "BASED",       animated: false },
-  { id: "60ae4b5b36a2c8addef48b5f", name: "Pog",         animated: false },
-  { id: "60ae4b5b36a2c8addef48b69", name: "FeelsGoodMan",animated: false },
-  { id: "60ae4b5b36a2c8addef48c35", name: "Sadge",       animated: false },
-  { id: "60ae4b5b36a2c8addef48b9f", name: "peepoHappy",  animated: false },
-].map(e => ({ ...e, url: `https://cdn.7tv.app/emote/${e.id}/2x.webp` }));
+  { id: "60ae4b5b36a2c8addef48b3e", name: "PogChamp"    },
+  { id: "6268a27f5e3ede527d74ce74", name: "GIGACHAD"    },
+  { id: "6042089e0f012f43dae27d35", name: "monkaS"      },
+  { id: "60ae4b5b36a2c8addef48c1b", name: "OMEGALUL"    },
+  { id: "60ae4b5b36a2c8addef48b87", name: "PauseChamp"  },
+  { id: "61b6f1793cbbc72a0e9d9611", name: "BASED"       },
+  { id: "60ae4b5b36a2c8addef48b5f", name: "Pog"         },
+  { id: "60ae4b5b36a2c8addef48b69", name: "FeelsGoodMan"},
+  { id: "60ae4b5b36a2c8addef48c35", name: "Sadge"       },
+  { id: "60ae4b5b36a2c8addef48b9f", name: "peepoHappy"  },
+].map(e => ({ ...e, url: `https://cdn.7tv.app/emote/${e.id}/2x.webp`, animated: false }));
 
 let modal, searchInput, resultsGrid, recentRow, closeBtn, loadMoreBtn;
+let _sentinelIO = null;   // IntersectionObserver del scroll infinito
+
+// ─── HELPER CENTRAL: limpiar el grid ─────────────────────────────────────────
+// Borra TODO el contenido del grid. Punto único de verdad.
+
+function _clearGrid() {
+  if (resultsGrid) resultsGrid.innerHTML = "";
+}
+
+// ─── Poner contenido en el grid ───────────────────────────────────────────────
+
+function _gridAppend(el) {
+  resultsGrid?.appendChild(el);
+}
+
+function _gridPrepend(node) {
+  if (!resultsGrid) return;
+  resultsGrid.insertBefore(node, resultsGrid.firstChild);
+}
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
 
@@ -84,14 +99,9 @@ export function initEmotePicker(textarea, triggerBtnId = "btnEmotes") {
   openBtn.addEventListener("click", () => { currentTarget = textarea; _open(); });
   closeBtn?.addEventListener("click", _close);
   modal.addEventListener("click", e => { if (e.target === modal) _close(); });
-
-  // Botón load more
   loadMoreBtn?.addEventListener("click", _loadMore);
-
-  // Teclado
   document.addEventListener("keydown", _handleGlobalKey);
 
-  // Input debounce 250ms
   searchInput.addEventListener("input", e => {
     const q = e.target.value.trim();
     clearTimeout(debounceTimer);
@@ -101,36 +111,36 @@ export function initEmotePicker(textarea, triggerBtnId = "btnEmotes") {
   });
 
   _warmupRecentCache();
-
-  // Scroll infinito en el grid (sentinel al fondo del grid)
   _setupScrollSentinel();
 }
 
 export function setEmoteTarget(el) { currentTarget = el; }
 
-// ─── Búsqueda con paginación ──────────────────────────────────────────────────
+// ─── Búsqueda ─────────────────────────────────────────────────────────────────
 
 async function _doSearch(q) {
   if (q === currentQuery && allEmotes.length) {
-    // misma query y ya tenemos datos: sólo re-renderizar
     currentPage = 0;
-    _renderPage(0, false);
+    _clearGrid();
+    _renderPage(0);
     _updateLoadMore();
     return;
   }
 
   _cancelSearch();
-  activeAbort  = new AbortController();
-  currentQuery = q;
-  currentPage  = 0;
-  allEmotes    = [];
+  activeAbort   = new AbortController();
+  currentQuery  = q;
+  currentPage   = 0;
+  allEmotes     = [];
+  lastFirstEmote = null;
 
   _showLoading();
   _saveHistory(q);
 
-  // Trae hasta 80 emotes de una vez; el picker pagina client-side
-  allEmotes = await fetchAllEmotes(q, activeAbort.signal, 80);
+  allEmotes      = await fetchAllEmotes(q, activeAbort.signal, 80);
   lastFirstEmote = allEmotes[0] ?? null;
+
+  _clearGrid();
 
   if (!allEmotes.length) {
     _showEmpty();
@@ -138,17 +148,15 @@ async function _doSearch(q) {
     return;
   }
 
-  _renderPage(0, false);
+  _renderPage(0);
   _updateLoadMore();
 }
 
 function _loadMore() {
   if (!_hasMore()) return;
   currentPage++;
-  _renderPage(currentPage, true); // append = true
+  _renderPage(currentPage, true);
   _updateLoadMore();
-  // Scroll suave al nuevo bloque
-  loadMoreBtn?.scrollIntoView({ behavior: "smooth", block: "center" });
 }
 
 function _cancelSearch() {
@@ -161,10 +169,11 @@ function _cancelSearch() {
 function _open() {
   modal.classList.add("open");
   searchInput.value = "";
-  allEmotes    = [];
-  currentPage  = 0;
-  currentQuery = "";
-  focusedIdx   = -1;
+  allEmotes     = [];
+  currentPage   = 0;
+  currentQuery  = "";
+  focusedIdx    = -1;
+  lastFirstEmote = null;
   loadRecents();
   requestAnimationFrame(() => searchInput.focus());
   if ("requestIdleCallback" in window) {
@@ -199,26 +208,21 @@ function _handleGlobalKey(e) {
   }
 }
 
-// ─── Render ───────────────────────────────────────────────────────────────────
+// ─── Render página ────────────────────────────────────────────────────────────
 
 /**
- * Renderiza una página al grid.
- * @param {number} page  - página a renderizar
- * @param {boolean} append - si true, añade al final; si false, limpia primero
+ * @param {number}  page   - índice de página (0-based)
+ * @param {boolean} append - si true, añade al final; si false, REEMPLAZA todo
  */
-function _renderPage(page, append) {
+function _renderPage(page, append = false) {
   const emotes = _getPage(page);
   if (!emotes.length) return;
 
-  if (!append) {
-    // Limpiar sólo los emote-items anteriores, dejar el sentinel
-    const existing = resultsGrid.querySelectorAll(".emote-item");
-    existing.forEach(el => el.remove());
-  }
+  if (!append) _clearGrid();
 
   const frag = document.createDocumentFragment();
   emotes.forEach((emote, i) => frag.appendChild(_makeEmoteItem(emote, page * PAGE_SIZE + i)));
-  resultsGrid.appendChild(frag);
+  _gridAppend(frag);
 }
 
 function _makeEmoteItem(emote, idx) {
@@ -233,7 +237,7 @@ function _makeEmoteItem(emote, idx) {
   const img   = document.createElement("img");
   img.alt     = emote.name;
   img.loading = "lazy";
-  img.width   = 40;   // más grande: era 32px
+  img.width   = 40;
   img.height  = 40;
   img.style.opacity = "0";
   img.onload  = () => { img.style.transition = "opacity .15s ease"; img.style.opacity = "1"; img.classList.add("loaded"); };
@@ -262,7 +266,7 @@ function _pickEmote(emote) {
   _close();
 }
 
-// ─── Load More button ─────────────────────────────────────────────────────────
+// ─── Load More ────────────────────────────────────────────────────────────────
 
 function _updateLoadMore() {
   if (!loadMoreBtn) return;
@@ -279,50 +283,51 @@ function _hideLoadMore() {
   if (loadMoreBtn) loadMoreBtn.style.display = "none";
 }
 
-// ─── Scroll infinito (sentinel) ───────────────────────────────────────────────
+// ─── Scroll infinito ──────────────────────────────────────────────────────────
+// El sentinel NO vive dentro del grid (evita conflictos con innerHTML).
+// Vive como hermano del grid dentro del .emote-box.
 
 function _setupScrollSentinel() {
   if (!resultsGrid) return;
-  const sentinel = document.createElement("div");
-  sentinel.id = "emote-sentinel";
-  sentinel.style.height = "1px";
-  resultsGrid.appendChild(sentinel);
 
-  const io = new IntersectionObserver(entries => {
-    entries.forEach(entry => {
-      if (entry.isIntersecting && _hasMore() && searchInput?.value.trim()) {
-        currentPage++;
-        _renderPage(currentPage, true);
-        _updateLoadMore();
-      }
-    });
-  }, { root: resultsGrid, rootMargin: "60px" });
-
-  io.observe(sentinel);
+  // Usar el scroll del propio grid
+  resultsGrid.addEventListener("scroll", () => {
+    if (!_hasMore() || !searchInput?.value.trim()) return;
+    const { scrollTop, scrollHeight, clientHeight } = resultsGrid;
+    if (scrollHeight - scrollTop - clientHeight < 80) {
+      currentPage++;
+      _renderPage(currentPage, true);
+      _updateLoadMore();
+    }
+  }, { passive: true });
 }
 
 // ─── Estados UI ───────────────────────────────────────────────────────────────
 
 function _showLoading() {
-  if (!resultsGrid) return;
-  resultsGrid.querySelectorAll(".emote-item").forEach(el => el.remove());
-  // Conservar sentinel; añadir spinner al principio
-  const spinner = document.createElement("div");
-  spinner.className = "emote-loading";
-  spinner.innerHTML = `<span class="emote-spinner"></span>`;
-  spinner.id = "__emote-spinner";
-  resultsGrid.insertBefore(spinner, resultsGrid.firstChild);
+  _clearGrid();
+  const el = document.createElement("div");
+  el.className = "emote-loading";
+  el.innerHTML = `<span class="emote-spinner"></span>`;
+  _gridAppend(el);
   _hideLoadMore();
 }
 
 function _showEmpty() {
-  if (!resultsGrid) return;
-  const old = resultsGrid.querySelectorAll(".emote-item, .emote-loading, .emote-hint, #__emote-spinner");
-  old.forEach(el => el.remove());
-  const empty = document.createElement("div");
-  empty.className = "emote-empty";
-  empty.textContent = "Sin resultados";
-  resultsGrid.insertBefore(empty, resultsGrid.firstChild);
+  _clearGrid();
+  const el = document.createElement("div");
+  el.className = "emote-empty";
+  el.textContent = "Sin resultados";
+  _gridAppend(el);
+}
+
+function _showHint() {
+  _clearGrid();
+  const el = document.createElement("div");
+  el.className = "emote-hint";
+  el.textContent = "Busca un emote arriba ☝️";
+  _gridAppend(el);
+  _hideLoadMore();
 }
 
 // ─── Inserción en cursor ──────────────────────────────────────────────────────
@@ -363,21 +368,35 @@ export function saveRecent(emote) {
   list = list.slice(0, MAX_RECENTS);
   try { localStorage.setItem(RECENTS_KEY, JSON.stringify(list)); } catch {}
   registerEmoteUsage(emote.name, emote.url);
-  loadRecents();
+  // NO llamar loadRecents() aquí — sólo actualizar la fila de recientes
+  _refreshRecentRow();
 }
 
 export function loadRecents() {
-  if (!recentRow || !resultsGrid) return;
+  _refreshRecentRow();
+
+  // Grid: si no hay búsqueda activa, mostrar hint o trending
+  if (!searchInput?.value.trim()) {
+    const list = _getRecents();
+    if (!list.length) {
+      // Sin recientes → trending
+      allEmotes   = TRENDING;
+      currentPage = 0;
+      _renderPage(0);
+      _hideLoadMore();
+    } else {
+      _showHint();
+    }
+  }
+}
+
+/** Sólo refresca la fila de recientes (sin tocar el grid). */
+function _refreshRecentRow() {
+  if (!recentRow) return;
   const list = _getRecents();
 
   if (!list.length) {
     recentRow.innerHTML = `<span class="emote-recent-empty">Sin recientes</span>`;
-    // Mostrar trending en el grid
-    resultsGrid.querySelectorAll(".emote-item, .emote-hint, #__emote-spinner").forEach(el => el.remove());
-    allEmotes   = TRENDING;
-    currentPage = 0;
-    _renderPage(0, false);
-    _hideLoadMore();
     return;
   }
 
@@ -397,16 +416,6 @@ export function loadRecents() {
     frag.appendChild(img);
   });
   recentRow.appendChild(frag);
-
-  // Grid → hint si no hay búsqueda activa
-  if (!searchInput?.value.trim()) {
-    resultsGrid.querySelectorAll(".emote-item, #__emote-spinner").forEach(el => el.remove());
-    const hint = document.createElement("div");
-    hint.className = "emote-hint";
-    hint.textContent = "Busca un emote arriba ☝️";
-    resultsGrid.insertBefore(hint, resultsGrid.firstChild);
-    _hideLoadMore();
-  }
 }
 
 function _getRecents() {
