@@ -5744,6 +5744,9 @@ async function pvEnviarComentario(postId) {
   const input = document.getElementById('pv-cinput');
   const texto = input?.value?.trim();
   if (!texto) return;
+  // Guard: evitar doble envío si ya hay una petición en vuelo
+  if (input.dataset.sending === '1') return;
+  input.dataset.sending = '1';
   input.disabled = true;
   try {
     const fd = new FormData();
@@ -5793,6 +5796,7 @@ async function pvEnviarComentario(postId) {
     } else { mostrarToast('Error al comentar','err'); }
   } catch(e) { mostrarToast('Error de red','err'); }
   input.disabled = false;
+  input.dataset.sending = '';
   input.focus();
   // Limpiar media adjunta y paneles auxiliares
   pvQuitarMedia();

@@ -49,6 +49,27 @@ function irSeccion(sec) {
     $('sidebar')?.classList.remove('open');
     $('overlay')?.classList.remove('active');
   }
+
+  // FAB solo visible en inicio (mobile)
+  _syncFab(sec);
+}
+
+// ─────────────────────────────
+// FAB — visible solo en sección inicio (mobile)
+// ─────────────────────────────
+function _syncFab(sec) {
+  const fab = document.querySelector('.compose-fab');
+  if (!fab) return;
+  // Solo mostrar en inicio; en cualquier otra sección ocultar
+  if (sec === 'inicio') {
+    fab.style.display = '';       // deja que el @media (max-width:640px) decida
+    fab.style.visibility = '';
+    fab.style.pointerEvents = '';
+  } else {
+    fab.style.display = 'none';
+    fab.style.visibility = 'hidden';
+    fab.style.pointerEvents = 'none';
+  }
 }
 
 // ─────────────────────────────
@@ -70,6 +91,9 @@ window.addEventListener('DOMContentLoaded', () => {
 
   const navTitle = $('nav-title');
   if (navTitle && item) navTitle.textContent = item.querySelector('.menu-text')?.textContent || target;
+
+  // FAB solo visible en inicio (mobile)
+  _syncFab(target);
 
   initTheme();
   iniciarCountdown();
@@ -152,10 +176,21 @@ async function darLike(id, btn) {
 }
 
 // ─────────────────────────────
-// COMENTARIOS toggle
+// COMENTARIOS — siempre modal (inline desactivado en desktop)
+// NOTA: inicio.html define la versión completa con abrirPost().
+// Esta función es el fallback seguro: delega a abrirPost si existe,
+// o hace toggle inline solo en mobile (≤700px) como último recurso.
 // ─────────────────────────────
 function abrirComentarios(id) {
-  $('comentarios-' + id)?.classList.toggle('open');
+  // Si abrirPost existe (lo define inicio.html) → usarla siempre
+  if (typeof abrirPost === 'function') {
+    abrirPost(id, true);
+    return;
+  }
+  // Fallback mobile-only: toggle inline (nunca debe ejecutarse en desktop)
+  if (window.innerWidth <= 700) {
+    $('comentarios-' + id)?.classList.toggle('open');
+  }
 }
 
 // ─────────────────────────────
