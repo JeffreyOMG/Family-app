@@ -80,6 +80,8 @@
     </div>
   </div>
   {% endif %}
+
+  <div class="post-actions">
     <button type="button"
       class="post-action-btn like-btn {% if p.liked %}liked{% endif %}"
       onclick="darLike({{ p.id }}, this)">
