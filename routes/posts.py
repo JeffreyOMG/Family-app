@@ -2,8 +2,66 @@ from decorators import miembro_required, login_required
 from flask import Blueprint, request, redirect, session, jsonify, render_template_string
 from database import get_db
 from cloudinary_helper import subir_a_cloudinary
+import json as _json
+import datetime
 
 posts_bp = Blueprint("posts", __name__)
+
+def _get_poll(con, post_id, uid=None):
+    """Retorna datos de encuesta para un post, con % por opción y voto del usuario."""
+    enc = con.execute(
+        "SELECT id, expira_en, anonima FROM encuestas WHERE post_id=%s", (post_id,)
+    ).fetchone()
+    if not enc:
+        return None
+    enc_id = enc["id"]
+    opciones = con.execute(
+        "SELECT id, texto, imagen FROM encuesta_opciones WHERE encuesta_id=%s ORDER BY orden",
+        (enc_id,)
+    ).fetchall()
+    total = con.execute(
+        "SELECT COUNT(*) FROM encuesta_votos WHERE encuesta_id=%s", (enc_id,)
+    ).fetchone()[0]
+    mi_voto = None
+    if uid:
+        v = con.execute(
+            "SELECT opcion_id FROM encuesta_votos WHERE encuesta_id=%s AND usuario_id=%s",
+            (enc_id, uid)
+        ).fetchone()
+        if v:
+            mi_voto = v["opcion_id"]
+    expira_str = str(enc["expira_en"]) if enc["expira_en"] else None
+    expirada = False
+    if expira_str:
+        try:
+            expirada = datetime.datetime.utcnow() > datetime.datetime.fromisoformat(expira_str)
+        except Exception:
+            pass
+    result_opciones = []
+    for op in opciones:
+        cnt = con.execute(
+            "SELECT COUNT(*) FROM encuesta_votos WHERE opcion_id=%s", (op["id"],)
+        ).fetchone()[0]
+        pct = round((cnt / total * 100) if total else 0, 1)
+        votantes = []
+        if not enc["anonima"]:
+            rows = con.execute(
+                """SELECT u.nombre, u.usuario, u.foto FROM encuesta_votos ev
+                   JOIN usuarios u ON u.id=ev.usuario_id
+                   WHERE ev.opcion_id=%s ORDER BY ev.votado_en DESC LIMIT 8""",
+                (op["id"],)
+            ).fetchall()
+            votantes = [dict(r) for r in rows]
+        result_opciones.append({
+            "id": op["id"], "texto": op["texto"], "imagen": op["imagen"],
+            "votos": cnt, "pct": pct, "votantes": votantes,
+        })
+    return {
+        "id": enc_id, "anonima": bool(enc["anonima"]),
+        "expira_en": expira_str, "expirada": expirada,
+        "total_votos": total, "mi_voto": mi_voto,
+        "opciones": result_opciones,
+    }
 ALLOWED = {"png", "jpg", "jpeg", "gif", "webp", "mp4", "mov", "avi", "webm"}
 
 def _is_ajax():
@@ -104,6 +162,7 @@ def publicar_ajax():
     post_id = _guardar_post()
     if not post_id:
         return jsonify({"ok": False}), 400
+    uid = session["uid"]
     con = get_db()
     p = con.execute("""
         SELECT p.id,p.texto,p.media,p.media_tipo,p.fecha,u.nombre,u.usuario,u.foto
@@ -112,11 +171,11 @@ def publicar_ajax():
     """, (post_id,)).fetchone()
     if not p:
         return jsonify({"ok": False}), 400
-    html = render_template_string(POST_TMPL, p=dict(p))
+    poll = _get_poll(con, post_id, uid)
+    html = render_template_string(POST_TMPL, p=dict(p), poll=poll)
     return jsonify({"ok": True, "html": html})
 
 def _guardar_post():
-    import json as _json
     uid     = session["uid"]
     texto   = request.form.get("texto", "").strip()
     archivos = request.files.getlist("media")[:5]  # max 5
@@ -134,7 +193,6 @@ def _guardar_post():
                 )
     if urls:
         con.commit()
-    # Serializar: si es 1 queda compatible con columnas existentes; si son varios va como JSON
     if len(urls) == 0:
         media, media_tipo = "", ""
     elif len(urls) == 1:
@@ -142,20 +200,60 @@ def _guardar_post():
     else:
         media      = _json.dumps(urls)
         media_tipo = "multi"
-    if not texto and not media:
+
+    # ── Poll ──
+    poll_opts_raw = request.form.get("poll_options", "")
+    poll_opts = []
+    if poll_opts_raw:
+        try:
+            poll_opts = _json.loads(poll_opts_raw)
+        except Exception:
+            poll_opts = []
+    has_poll = len(poll_opts) >= 2
+
+    if not texto and not media and not has_poll:
         return None
+
     visibilidad = request.form.get('visibilidad', 'general')
     if visibilidad not in ('general', 'privada'):
         visibilidad = 'general'
-    # Invitados siempre publican en general (no tienen la opción de privado)
     if session.get('rol', 'invitado') == 'invitado':
         visibilidad = 'general'
+
     cur = con.execute(
         "INSERT INTO publicaciones(usuario_id, texto, media, media_tipo, visibilidad) VALUES(%s, %s, %s, %s, %s) RETURNING id",
         (uid, texto, media, media_tipo, visibilidad)
     )
     con.commit()
-    return cur.fetchone()[0]
+    post_id = cur.fetchone()[0]
+
+    if has_poll:
+        dias    = int(request.form.get("poll_dias", 1) or 1)
+        horas   = int(request.form.get("poll_horas", 0) or 0)
+        minutos = int(request.form.get("poll_minutos", 0) or 0)
+        total_mins = dias * 24 * 60 + horas * 60 + minutos
+        if total_mins < 5:
+            total_mins = 1440
+        expira_en = datetime.datetime.utcnow() + datetime.timedelta(minutes=total_mins)
+        anonima_val = request.form.get("poll_anonima", "true").lower() != "false"
+        cur_enc = con.execute(
+            "INSERT INTO encuestas(post_id, expira_en, anonima) VALUES(%s, %s, %s) RETURNING id",
+            (post_id, expira_en, anonima_val)
+        )
+        con.commit()
+        enc_id = cur_enc.fetchone()[0]
+        for i, opt_text in enumerate(poll_opts[:4]):
+            img_url = ""
+            img_file = request.files.get(f"poll_img_{i}")
+            if img_file and img_file.filename:
+                img_url, _ = subir_a_cloudinary(img_file, folder="familia/polls")
+            con.execute(
+                "INSERT INTO encuesta_opciones(encuesta_id, texto, imagen, orden) VALUES(%s, %s, %s, %s)",
+                (enc_id, str(opt_text)[:25], img_url or "", i)
+            )
+        con.commit()
+
+    return post_id
 
 @posts_bp.route("/like/<int:post_id>", methods=["POST"])
 def like(post_id):
@@ -327,3 +425,83 @@ def post_actividad(post_id):
         "comments":  int(total_comments),
         "bookmarks": int(total_bookmarks),
     })
+
+# ─── ENCUESTA: VOTAR ──────────────────────────────────────────────────────────
+@posts_bp.route("/votar_encuesta/<int:enc_id>/<int:opcion_id>", methods=["POST"])
+def votar_encuesta(enc_id, opcion_id):
+    if "uid" not in session:
+        return jsonify({"ok": False}), 401
+    uid = session["uid"]
+    con = get_db()
+    enc = con.execute("SELECT id, expira_en FROM encuestas WHERE id=%s", (enc_id,)).fetchone()
+    if not enc:
+        return jsonify({"ok": False, "error": "Encuesta no encontrada"}), 404
+    expira = enc["expira_en"]
+    if expira:
+        try:
+            if datetime.datetime.utcnow() > datetime.datetime.fromisoformat(str(expira)):
+                return jsonify({"ok": False, "error": "Encuesta cerrada"}), 400
+        except Exception:
+            pass
+    op = con.execute(
+        "SELECT id FROM encuesta_opciones WHERE id=%s AND encuesta_id=%s", (opcion_id, enc_id)
+    ).fetchone()
+    if not op:
+        return jsonify({"ok": False}), 400
+    exist = con.execute(
+        "SELECT id FROM encuesta_votos WHERE encuesta_id=%s AND usuario_id=%s", (enc_id, uid)
+    ).fetchone()
+    if exist:
+        con.execute(
+            "UPDATE encuesta_votos SET opcion_id=%s, votado_en=NOW() WHERE encuesta_id=%s AND usuario_id=%s",
+            (opcion_id, enc_id, uid)
+        )
+    else:
+        con.execute(
+            "INSERT INTO encuesta_votos(encuesta_id, opcion_id, usuario_id) VALUES(%s, %s, %s)",
+            (enc_id, opcion_id, uid)
+        )
+    con.commit()
+    post = con.execute("SELECT post_id FROM encuestas WHERE id=%s", (enc_id,)).fetchone()
+    poll = _get_poll(con, post["post_id"], uid)
+    return jsonify({"ok": True, "poll": poll})
+
+
+# ─── ENCUESTA: QUITAR VOTO ────────────────────────────────────────────────────
+@posts_bp.route("/quitar_voto/<int:enc_id>", methods=["POST"])
+def quitar_voto(enc_id):
+    if "uid" not in session:
+        return jsonify({"ok": False}), 401
+    uid = session["uid"]
+    con = get_db()
+    enc = con.execute("SELECT id, expira_en FROM encuestas WHERE id=%s", (enc_id,)).fetchone()
+    if not enc:
+        return jsonify({"ok": False}), 404
+    expira = enc["expira_en"]
+    if expira:
+        try:
+            if datetime.datetime.utcnow() > datetime.datetime.fromisoformat(str(expira)):
+                return jsonify({"ok": False, "error": "Encuesta cerrada"}), 400
+        except Exception:
+            pass
+    con.execute(
+        "DELETE FROM encuesta_votos WHERE encuesta_id=%s AND usuario_id=%s", (enc_id, uid)
+    )
+    con.commit()
+    post = con.execute("SELECT post_id FROM encuestas WHERE id=%s", (enc_id,)).fetchone()
+    poll = _get_poll(con, post["post_id"], uid)
+    return jsonify({"ok": True, "poll": poll})
+
+
+# ─── ENCUESTA: RESULTADOS (tiempo real) ───────────────────────────────────────
+@posts_bp.route("/poll_resultados/<int:enc_id>")
+def poll_resultados(enc_id):
+    if "uid" not in session:
+        return jsonify({"ok": False}), 401
+    uid = session["uid"]
+    con = get_db()
+    post = con.execute("SELECT post_id FROM encuestas WHERE id=%s", (enc_id,)).fetchone()
+    if not post:
+        return jsonify({"ok": False}), 404
+    poll = _get_poll(con, post["post_id"], uid)
+    return jsonify({"ok": True, "poll": poll})

@@ -46,7 +46,40 @@
     {% endif %}
   {% endif %}
 
-  <div class="post-actions">
+  {# ── ENCUESTA ── #}
+  {% if p.get('poll') %}{% set poll = p.poll %}{% set ya_voto = poll.mi_voto is not none %}{% set mostrar = ya_voto or poll.expirada %}
+  <div class="post-poll" id="poll-{{ poll.id }}" data-poll="{{ poll.id }}">
+    {% for op in poll.opciones %}
+    <div class="poll-option {% if mostrar %}poll-voted{% endif %} {% if poll.mi_voto == op.id %}poll-my-vote{% endif %}"
+         {% if not mostrar %}onclick="votarEncuesta({{ poll.id }}, {{ op.id }})"{% endif %}
+         data-opcion="{{ op.id }}">
+      {% if op.imagen %}<img src="{{ op.imagen }}" class="poll-opt-img">{% endif %}
+      <div class="poll-opt-body">
+        <div class="poll-opt-top">
+          <span class="poll-opt-txt">{{ op.texto }}</span>
+          {% if mostrar %}<span class="poll-opt-pct">{{ op.pct }}%</span>{% endif %}
+          {% if poll.mi_voto == op.id %}<span class="poll-check">✓</span>{% endif %}
+        </div>
+        {% if mostrar %}
+        <div class="poll-bar-wrap"><div class="poll-bar" style="width:{{ op.pct }}%"></div></div>
+        {% if not poll.anonima and op.votantes %}
+        <div class="poll-voters">
+          {% for v in op.votantes %}<span class="poll-voter-chip" title="{{ v.nombre }}">{% if v.foto %}<img src="{{ v.foto }}" class="poll-voter-av">{% else %}<span class="poll-voter-init">{{ v.nombre[0]|upper }}</span>{% endif %}</span>{% endfor %}
+          {% if op.votos > op.votantes|length %}<span class="poll-voter-more">+{{ op.votos - op.votantes|length }}</span>{% endif %}
+        </div>
+        {% endif %}
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+    <div class="poll-meta">
+      <span class="poll-total">{{ poll.total_votos }} voto{{ 's' if poll.total_votos != 1 else '' }}</span>
+      {% if poll.anonima %}<span class="poll-anon-badge">🔒 Anónima</span>{% else %}<span class="poll-anon-badge poll-pub-badge">👥 Pública</span>{% endif %}
+      {% if ya_voto and not poll.expirada %}<button class="poll-change-btn" onclick="cambiarVoto({{ poll.id }})">Editar voto</button>{% endif %}
+      {% if poll.expirada %}<span class="poll-closed">Encuesta cerrada</span>{% endif %}
+    </div>
+  </div>
+  {% endif %}
     <button type="button"
       class="post-action-btn like-btn {% if p.liked %}liked{% endif %}"
       onclick="darLike({{ p.id }}, this)">
@@ -580,6 +613,17 @@
             </select>
           </div>
         </div>
+      </div>
+      <div class="mc-poll-anon-row">
+        <span class="material-symbols-outlined" id="poll-anon-icon">lock</span>
+        <div>
+          <div class="mc-poll-anon-label" id="poll-anon-label">Encuesta anónima</div>
+          <div class="mc-poll-anon-desc" id="poll-anon-desc">No se verá quién votó qué</div>
+        </div>
+        <label class="mc-toggle">
+          <input type="checkbox" id="poll-anonima-check" checked onchange="togglePollAnon(this)">
+          <span class="mc-toggle-slider"></span>
+        </label>
       </div>
       <button class="mc-poll-remove-btn" onclick="togglePanel('poll')">
         <span>Eliminar encuesta</span>
@@ -2256,6 +2300,48 @@ body.dark-mode .post-badge-privado { background: rgba(139,92,246,.2); color: #a7
   background: var(--ac-soft);
 }
 
+/* ── Toggle switch ── */
+.mc-toggle { position:relative; display:inline-flex; width:42px; height:24px; flex-shrink:0; cursor:pointer; }
+.mc-toggle input { opacity:0; width:0; height:0; }
+.mc-toggle-slider { position:absolute; inset:0; background:var(--border); border-radius:24px; transition:background .2s; }
+.mc-toggle-slider::before { content:''; position:absolute; left:3px; top:3px; width:18px; height:18px; background:#fff; border-radius:50%; transition:transform .2s; }
+.mc-toggle input:checked + .mc-toggle-slider { background:var(--ac); }
+.mc-toggle input:checked + .mc-toggle-slider::before { transform:translateX(18px); }
+/* Anónima row en composer */
+.mc-poll-anon-row { display:flex; align-items:center; gap:10px; border-top:1px solid var(--border); padding-top:10px; }
+.mc-poll-anon-row .material-symbols-outlined { font-size:20px; color:var(--text3); flex-shrink:0; }
+.mc-poll-anon-label { font-size:13px; font-weight:600; color:var(--text); }
+.mc-poll-anon-desc { font-size:11px; color:var(--text3); }
+.mc-poll-anon-row > div:nth-child(2) { flex:1; }
+
+/* ── Encuesta en el feed ── */
+.post-poll { border:1px solid var(--border); border-radius:14px; overflow:hidden; margin:10px 0 4px; }
+.poll-option { display:flex; align-items:center; gap:10px; padding:10px 14px; cursor:pointer; border-bottom:1px solid var(--border); position:relative; overflow:hidden; transition:background .15s; }
+.poll-option:last-of-type { border-bottom:none; }
+.poll-option:not(.poll-voted):hover { background:var(--ac-soft); }
+.poll-voted { cursor:default; }
+.poll-my-vote { background:var(--ac-soft) !important; }
+.poll-opt-img { width:40px; height:40px; object-fit:cover; border-radius:8px; flex-shrink:0; }
+.poll-opt-body { flex:1; min-width:0; }
+.poll-opt-top { display:flex; align-items:center; gap:6px; }
+.poll-opt-txt { flex:1; font-size:14px; font-weight:500; color:var(--text); }
+.poll-opt-pct { font-size:13px; font-weight:700; color:var(--ac); min-width:38px; text-align:right; }
+.poll-check { font-size:14px; color:var(--ac); font-weight:700; }
+.poll-bar-wrap { margin-top:6px; height:5px; background:var(--border); border-radius:3px; overflow:hidden; }
+.poll-bar { height:100%; background:var(--ac); border-radius:3px; transition:width .6s ease; }
+.poll-voters { display:flex; align-items:center; gap:3px; margin-top:5px; flex-wrap:wrap; }
+.poll-voter-chip { display:flex; }
+.poll-voter-av { width:20px; height:20px; border-radius:50%; object-fit:cover; border:1px solid var(--bg); }
+.poll-voter-init { width:20px; height:20px; border-radius:50%; background:var(--ac); color:#fff; font-size:10px; font-weight:700; display:flex; align-items:center; justify-content:center; }
+.poll-voter-more { font-size:11px; color:var(--text3); }
+.poll-meta { display:flex; align-items:center; gap:10px; padding:8px 14px; background:var(--bg2); font-size:12px; flex-wrap:wrap; }
+.poll-total { color:var(--text3); }
+.poll-anon-badge { font-size:11px; padding:2px 7px; border-radius:20px; background:var(--bg); border:1px solid var(--border); color:var(--text3); }
+.poll-pub-badge { color:var(--ac); border-color:var(--ac); }
+.poll-change-btn { background:none; border:none; color:var(--ac); font-size:12px; font-weight:600; cursor:pointer; padding:0; margin-left:auto; }
+.poll-change-btn:hover { text-decoration:underline; }
+.poll-closed { font-size:11px; color:var(--text3); margin-left:auto; }
+
 /* Solución para ocupar toda la pantalla dentro de main-content */
 .main-content > .mc-overlay {
   width: 100vw !important;
@@ -2506,6 +2592,107 @@ async function enviarComentario(postId, input){
 function escHTML(s){ const d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
 
 /* ── LIKE ── */
+/* ══ ENCUESTA: votar, cambiar, render, tiempo real ══ */
+
+function togglePollAnon(chk){
+  const icon  = document.getElementById('poll-anon-icon');
+  const label = document.getElementById('poll-anon-label');
+  const desc  = document.getElementById('poll-anon-desc');
+  if(chk.checked){
+    icon.textContent='lock'; label.textContent='Encuesta anónima'; desc.textContent='No se verá quién votó qué';
+  } else {
+    icon.textContent='group'; label.textContent='Encuesta pública'; desc.textContent='Se verá quién votó cada opción';
+  }
+}
+
+function renderPoll(pollEl, poll){
+  if(!pollEl || !poll) return;
+  const ya = poll.mi_voto !== null && poll.mi_voto !== undefined;
+  const mostrar = ya || poll.expirada;
+  const total = poll.total_votos;
+  poll.opciones.forEach(op => {
+    const row = pollEl.querySelector('[data-opcion="'+op.id+'"]');
+    if(!row) return;
+    if(mostrar){
+      row.classList.add('poll-voted');
+      if(ya && op.id === poll.mi_voto) row.classList.add('poll-my-vote');
+      else row.classList.remove('poll-my-vote');
+      row.onclick = null;
+    } else {
+      row.classList.remove('poll-voted','poll-my-vote');
+      row.onclick = ()=>votarEncuesta(poll.id, op.id);
+    }
+    const top = row.querySelector('.poll-opt-top');
+    // % label
+    let pctEl = row.querySelector('.poll-opt-pct');
+    if(mostrar){
+      if(!pctEl){ pctEl=document.createElement('span'); pctEl.className='poll-opt-pct'; top.appendChild(pctEl); }
+      pctEl.textContent = op.pct+'%';
+    } else if(pctEl) pctEl.remove();
+    // check
+    let chkEl = row.querySelector('.poll-check');
+    if(ya && op.id===poll.mi_voto){
+      if(!chkEl){ chkEl=document.createElement('span'); chkEl.className='poll-check'; chkEl.textContent='✓'; top.appendChild(chkEl); }
+    } else if(chkEl) chkEl.remove();
+    // bar
+    const body = row.querySelector('.poll-opt-body');
+    let bw = row.querySelector('.poll-bar-wrap');
+    if(mostrar){
+      if(!bw){ bw=document.createElement('div'); bw.className='poll-bar-wrap'; const b=document.createElement('div'); b.className='poll-bar'; bw.appendChild(b); body.appendChild(bw); }
+      bw.querySelector('.poll-bar').style.width = op.pct+'%';
+    } else if(bw) bw.remove();
+    // votantes
+    if(!poll.anonima && mostrar && op.votantes){
+      let vEl = row.querySelector('.poll-voters');
+      if(!vEl){ vEl=document.createElement('div'); vEl.className='poll-voters'; body.appendChild(vEl); }
+      vEl.innerHTML = op.votantes.map(v=>'<span class="poll-voter-chip" title="'+v.nombre+'">'+(v.foto?'<img src="'+v.foto+'" class="poll-voter-av">':`<span class="poll-voter-init">${v.nombre[0].toUpperCase()}</span>`)+'</span>').join('')+(op.votos>op.votantes.length?'<span class="poll-voter-more">+'+(op.votos-op.votantes.length)+'</span>':'');
+    }
+  });
+  const meta = pollEl.querySelector('.poll-meta');
+  if(meta){
+    const totEl = meta.querySelector('.poll-total');
+    if(totEl) totEl.textContent = total+' voto'+(total!==1?'s':'');
+    let changeBtn = meta.querySelector('.poll-change-btn');
+    if(ya && !poll.expirada){
+      if(!changeBtn){ changeBtn=document.createElement('button'); changeBtn.className='poll-change-btn'; changeBtn.textContent='Editar voto'; changeBtn.style.marginLeft='auto'; changeBtn.onclick=()=>cambiarVoto(poll.id); meta.appendChild(changeBtn); }
+    } else if(changeBtn) changeBtn.remove();
+    const closed = meta.querySelector('.poll-closed');
+    if(poll.expirada && !closed){ const s=document.createElement('span'); s.className='poll-closed'; s.textContent='Encuesta cerrada'; s.style.marginLeft='auto'; meta.appendChild(s); }
+  }
+}
+
+async function votarEncuesta(encId, opcionId){
+  try {
+    const res = await fetch('/votar_encuesta/'+encId+'/'+opcionId, {method:'POST'});
+    const data = await res.json();
+    if(data.ok){ renderPoll(document.querySelector('[data-poll="'+encId+'"]'), data.poll); }
+    else { mostrarToast(data.error||'No se pudo votar','err'); }
+  } catch(e){ mostrarToast('Error de red','err'); }
+}
+
+async function cambiarVoto(encId){
+  try {
+    const res = await fetch('/quitar_voto/'+encId, {method:'POST'});
+    const data = await res.json();
+    if(data.ok){ renderPoll(document.querySelector('[data-poll="'+encId+'"]'), data.poll); mostrarToast('Voto eliminado. Ya puedes votar de nuevo.'); }
+    else { mostrarToast(data.error||'Error','err'); }
+  } catch(e){ mostrarToast('Error de red','err'); }
+}
+
+// Actualización automática cada 15s
+(function initPollRefresh(){
+  setInterval(async ()=>{
+    for(const pollEl of document.querySelectorAll('.post-poll[data-poll]')){
+      if(pollEl.querySelector('.poll-closed')) continue;
+      try {
+        const res = await fetch('/poll_resultados/'+pollEl.dataset.poll);
+        const data = await res.json();
+        if(data.ok) renderPoll(pollEl, data.poll);
+      } catch(e){}
+    }
+  }, 15000);
+})();
+
 async function darLike(id, btn){
   if(btn.disabled) return;
   btn.disabled = true;
@@ -2921,7 +3108,8 @@ function getPollData(){
   const dias    = parseInt(document.getElementById('poll-dias')?.value||'1');
   const horas   = parseInt(document.getElementById('poll-horas')?.value||'0');
   const minutos = parseInt(document.getElementById('poll-minutos')?.value||'0');
-  return { options, dias, horas, minutos };
+  const anonima = document.getElementById('poll-anonima-check')?.checked !== false;
+  return { options, dias, horas, minutos, anonima };
 }
 
 /* ── Ubicación ── */
@@ -3118,6 +3306,7 @@ async function submitComposer(){
     fd.append('poll_dias',    pollData.dias);
     fd.append('poll_horas',   pollData.horas);
     fd.append('poll_minutos', pollData.minutos);
+    fd.append('poll_anonima', pollData.anonima ? 'true' : 'false');
     // Imágenes de opciones
     _pollOptionImgs.forEach((img,i)=>{ if(img) fd.append('poll_img_'+i, img); });
   }

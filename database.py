@@ -285,6 +285,26 @@ _TABLES = [
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         CONSTRAINT no_self_follow CHECK (follower_id <> following_id),
         UNIQUE (follower_id, following_id))""",
+    # ── Encuestas ────────────────────────────────────────────────────────────
+    """CREATE TABLE IF NOT EXISTS encuestas (
+        id SERIAL PRIMARY KEY,
+        post_id INTEGER NOT NULL REFERENCES publicaciones(id) ON DELETE CASCADE,
+        expira_en TIMESTAMP,
+        anonima BOOLEAN DEFAULT TRUE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""",
+    """CREATE TABLE IF NOT EXISTS encuesta_opciones (
+        id SERIAL PRIMARY KEY,
+        encuesta_id INTEGER NOT NULL REFERENCES encuestas(id) ON DELETE CASCADE,
+        texto TEXT NOT NULL,
+        imagen TEXT DEFAULT '',
+        orden INTEGER DEFAULT 0)""",
+    """CREATE TABLE IF NOT EXISTS encuesta_votos (
+        id SERIAL PRIMARY KEY,
+        encuesta_id INTEGER NOT NULL REFERENCES encuestas(id) ON DELETE CASCADE,
+        opcion_id INTEGER NOT NULL REFERENCES encuesta_opciones(id) ON DELETE CASCADE,
+        usuario_id INTEGER NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+        votado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE (encuesta_id, usuario_id))""",
 ]
 
 def init_db():

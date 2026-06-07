@@ -4,6 +4,10 @@ from datetime import datetime
 
 dash_bp = Blueprint("dashboard", __name__)
 
+def _get_poll_for_post(con, post_id, uid):
+    from routes.posts import _get_poll
+    return _get_poll(con, post_id, uid)
+
 def _sel(nombre_con_codigo):
     if "|" in nombre_con_codigo:
         nombre, codigo = nombre_con_codigo.split("|", 1)
@@ -89,6 +93,8 @@ def get_ctx(uid, con, extra=None):
         WHERE 1=1 {vis_filter}
         ORDER BY p.fecha DESC
     """, (uid, uid)).fetchall()]
+    for _p in publicaciones:
+        _p['poll'] = _get_poll_for_post(con, _p['id'], uid)
 
     tendencias = [dict(p, liked=bool(p["liked"]), bookmarked=bool(p["bookmarked"])) for p in con.execute(f"""
         SELECT p.id, p.texto, p.media, p.media_tipo, p.fecha,
@@ -102,6 +108,8 @@ def get_ctx(uid, con, extra=None):
         WHERE 1=1 {vis_filter}
         ORDER BY total_likes DESC, p.fecha DESC
     """, (uid, uid)).fetchall()]
+    for _p in tendencias:
+        _p['poll'] = _get_poll_for_post(con, _p['id'], uid)
 
     guardados = [dict(p, liked=bool(p["liked"]), bookmarked=True) for p in con.execute(f"""
         SELECT p.id, p.texto, p.media, p.media_tipo, p.fecha,
@@ -119,6 +127,8 @@ def get_ctx(uid, con, extra=None):
         ) {vis_filter}
         ORDER BY p.fecha DESC
     """, (uid, uid, uid)).fetchall()]
+    for _p in guardados:
+        _p['poll'] = _get_poll_for_post(con, _p['id'], uid)
 
     comentarios_rows = con.execute("""
         SELECT c.id, c.post_id, c.texto, c.parent_id, c.fecha, u.nombre, u.foto
