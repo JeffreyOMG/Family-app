@@ -1488,6 +1488,7 @@ body.dark-mode .post-badge-privado { background: rgba(139,92,246,.2); color: #a7
 /* ══ PARTE 6 — POST MODAL MODERNO (X / Threads style) ══ */
 
 /* Overlay con animación fade */
+/* ── POST VIEWER OVERLAY ── */
 #pv-overlay {
   position: fixed;
   inset: 0;
@@ -1495,11 +1496,12 @@ body.dark-mode .post-badge-privado { background: rgba(139,92,246,.2); color: #a7
   z-index: 99994;
   display: none;
   align-items: center;
-  /* Desktop: centrar el box dentro del área de contenido real (sidebar 80px) */
   justify-content: center;
-  padding-left: 80px;
   backdrop-filter: blur(0px);
   transition: background .22s ease, backdrop-filter .22s ease;
+  /* Compensar sidebar de 80px para centrado visual real */
+  padding-left: 80px;
+  box-sizing: border-box;
 }
 #pv-overlay.visible {
   display: flex;
@@ -1511,18 +1513,18 @@ body.dark-mode .post-badge-privado { background: rgba(139,92,246,.2); color: #a7
   backdrop-filter: blur(0px) !important;
 }
 
-/* Modal box — scale-in */
+/* Modal box — centrado real dentro del área disponible */
 #pv-box {
   background: var(--card, #fff);
   border: 1px solid var(--border, #e5e5e5);
   border-radius: 18px;
-  width: 96%;
-  max-width: 900px;
+  /* Ancho relativo al área sin sidebar */
+  width: min(900px, calc(100% - 32px));
   height: 85vh;
   max-height: 85vh;
   display: grid;
   grid-template-rows: auto 1fr;
-  grid-template-columns: 60% 40%;
+  grid-template-columns: 58% 42%;
   grid-template-areas:
     "header header"
     "post   comments";
@@ -1530,6 +1532,8 @@ body.dark-mode .post-badge-privado { background: rgba(139,92,246,.2); color: #a7
   animation: pvScaleIn .24s cubic-bezier(.34,1.36,.64,1);
   overflow: hidden;
   position: relative;
+  /* Garantiza centrado aunque padding asimétrico del overlay */
+  margin: 0 auto;
 }
 #pv-box.pv-closing {
   animation: pvScaleOut .18s ease forwards;
@@ -2047,16 +2051,30 @@ body.dark-mode .post-badge-privado { background: rgba(139,92,246,.2); color: #a7
 
 /* ── MOBILE — bottom sheet, columna única ── */
 @media (max-width: 700px) {
-  #pv-overlay { align-items: flex-end; padding-left: 0; }
+  /* Overlay: alinear abajo, sin offset de sidebar */
+  #pv-overlay {
+    align-items: flex-end;
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  /* Box: ocupa casi toda la pantalla, sube desde abajo */
   #pv-box {
     display: flex;
     flex-direction: column;
     border-radius: 22px 22px 0 0;
-    height: 97vh;
-    max-height: 97vh;
+    /* vh fallback para Samsung Internet / Safari < 15.4 */
+    height: 96vh;
+    max-height: 96vh;
+    /* dvh para manejar barra de navegación del browser */
+    height: 96dvh;
+    max-height: 96dvh;
     width: 100%;
     max-width: 100%;
+    margin: 0;
     animation: pvSlideUp .26s cubic-bezier(.34,1.1,.64,1);
+    /* Overflow en el box NO — cada zona gestiona el suyo */
+    overflow: hidden;
   }
   #pv-box.pv-closing { animation: pvSlideDown .18s ease forwards; }
   @keyframes pvSlideUp {
@@ -2067,13 +2085,64 @@ body.dark-mode .post-badge-privado { background: rgba(139,92,246,.2); color: #a7
     from { opacity: 1; transform: translateY(0); }
     to   { opacity: 0; transform: translateY(60px); }
   }
-  #pv-content { border-right: none; border-bottom: 1px solid var(--border, #eee); flex: 0 0 auto; max-height: 42vh; overflow-y: auto; }
-  #pv-comments-panel { flex: 1; background: var(--card, #fff); display: flex; flex-direction: column; min-height: 0; }
-  #pv-comments-scroll { flex: 1; overflow-y: auto; }
+
+  /* Header SIEMPRE visible — position sticky dentro del flex */
+  .pv-header {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    flex-shrink: 0;
+    background: var(--card, #fff);
+    /* Safe area para notch / Dynamic Island */
+    padding-top: calc(13px + env(safe-area-inset-top, 0px));
+    border-bottom: 1px solid var(--border, #eee);
+  }
+
+  /* Zona post: scroll propio, altura dinámica (no fija) */
+  #pv-content {
+    border-right: none;
+    border-bottom: 1px solid var(--border, #eee);
+    flex: 0 0 auto;
+    /* Máximo 40% pero se adapta si el contenido es corto */
+    max-height: 40vh;
+    max-height: 40dvh;
+    overflow-y: auto;
+    /* Fix scroll iOS/WebKit */
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
+    touch-action: pan-y;
+  }
+
+  /* Panel comentarios: el resto del espacio disponible */
+  #pv-comments-panel {
+    flex: 1;
+    min-height: 0;
+    background: var(--card, #fff);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* Scroll de comentarios: fill and scroll correctamente */
+  #pv-comments-scroll {
+    flex: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
+    touch-action: pan-y;
+  }
+
+  /* Formulario de comentario: siempre al fondo, safe-area */
+  .pv-comment-form {
+    flex-shrink: 0;
+    padding: 6px 8px;
+    padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+    gap: 4px;
+  }
+
   .pv-texto { font-size: 15px; }
-  /* Botones de acción del comentario en mobile: scroll horizontal si hace falta */
+  /* Botones de acción en mobile: scroll horizontal */
   .pv-cmt-actions { overflow-x: auto; gap: 0; }
-  .pv-comment-form { padding: 6px 8px 10px; gap: 4px; }
   .pv-cinput-row { gap: 8px; }
   /* Paneles aux en mobile: más compactos */
   .pv-aux-panel { max-height: 140px; }
