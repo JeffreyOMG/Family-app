@@ -196,6 +196,8 @@
         placeholder="Escribe un comentario..."
         id="cinput-{{ p.id }}"
         onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();enviarComentario({{ p.id }},this);}">
+      <button type="button" class="btn-emote-cmt" title="Emotes 7TV"
+        onclick="abrirEmotePicker(document.getElementById('cinput-{{ p.id }}'))">7TV</button>
       <button type="button" class="btn-comment"
         onclick="enviarComentario({{ p.id }}, document.getElementById('cinput-{{ p.id }}'))">
         <span class="material-symbols-outlined">arrow_upward</span>
@@ -773,6 +775,9 @@
          <button class="mc-act-btn" title="Encuesta" id="btn-poll-toggle" onclick="togglePanel('poll')">
           <span class="material-symbols-outlined">poll</span>
         </button>
+        <button class="mc-act-btn" title="Emotes 7TV" id="btnEmotes" onclick="abrirEmotePicker(document.getElementById('mc-texto'))">
+          <span style="font-size:12px;font-weight:800;letter-spacing:-.5px;background:linear-gradient(135deg,#9147ff,#5e3bee);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">7TV</span>
+        </button>
       </div>
       {% if usuario.rol in ('miembro', 'admin') %}
       <div class="mc-visibilidad-row" id="mc-vis-row">
@@ -788,6 +793,34 @@
       {% endif %}
     </div>
 
+  </div>
+</div>
+
+<!-- ═══════════════════════════════
+     MODAL EMOTES 7TV
+═══════════════════════════════ -->
+<div id="emoteModal" class="emote-overlay" onclick="if(event.target===this)document.getElementById('emoteModal').classList.remove('open')">
+  <div class="emote-box">
+    <div class="emote-header">
+      <span class="emote-title">
+        <span class="emote-7tv-badge">7TV</span>
+        Emotes
+      </span>
+      <button class="emote-close" id="closeEmote" aria-label="Cerrar">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
+    <div class="emote-search-row">
+      <span class="material-symbols-outlined emote-search-icon">search</span>
+      <input type="text" id="emoteSearch" class="emote-search-input"
+        placeholder="Buscar emote..." autocomplete="off" spellcheck="false">
+    </div>
+    <div class="emote-section-label">Recientes</div>
+    <div id="emoteRecent" class="emote-recents-row"></div>
+    <div class="emote-section-label">Resultados</div>
+    <div id="emoteResults" class="emote-results-grid">
+      <div class="emote-hint">Busca un emote arriba ☝️</div>
+    </div>
   </div>
 </div>
 
@@ -3310,6 +3343,232 @@ body.dark-mode .post-badge-privado { background: rgba(139,92,246,.2); color: #a7
 @media (max-width: 640px) {
   .compose-card { display: none !important; }
 }
+
+/* ═══════════════════════════════════════════
+   INLINE EMOTES (render tipo Twitch/Kick)
+═══════════════════════════════════════════ */
+img.inline-emote {
+  display: inline-block;
+  width: auto;
+  height: 1.4em;       /* escala con el tamaño del texto */
+  min-width: 20px;
+  max-width: 48px;
+  vertical-align: middle;
+  object-fit: contain;
+  margin: 0 2px;
+  border-radius: 3px;
+  image-rendering: auto;
+  opacity: 0;
+  transition: opacity .2s ease, transform .12s ease;
+}
+img.inline-emote.loaded {
+  opacity: 1;
+}
+img.inline-emote:hover {
+  transform: scale(1.35);
+  z-index: 10;
+  position: relative;
+}
+
+/* ═══════════════════════════════════════════
+   EMOTE PICKER MODAL 7TV
+═══════════════════════════════════════════ */
+.emote-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.6);
+  z-index: 9999;
+  align-items: center;
+  justify-content: center;
+}
+.emote-overlay.open { display: flex; }
+
+.emote-box {
+  background: var(--bg1, #16161e);
+  border: 1px solid var(--border, #2a2a3e);
+  border-radius: 18px;
+  width: min(430px, 95vw);
+  max-height: 82vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 28px 70px rgba(0,0,0,.6), 0 0 0 1px rgba(145,71,255,.15);
+  animation: emoteBoxIn .18s cubic-bezier(.34,1.56,.64,1);
+}
+@keyframes emoteBoxIn {
+  from { opacity: 0; transform: scale(.92) translateY(8px); }
+  to   { opacity: 1; transform: scale(1)   translateY(0);   }
+}
+
+.emote-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px 10px;
+  border-bottom: 1px solid var(--border, #2a2a3e);
+  flex-shrink: 0;
+}
+.emote-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--text1, #fff);
+}
+.emote-7tv-badge {
+  background: linear-gradient(135deg, #9147ff, #5e3bee);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+  padding: 2px 7px;
+  border-radius: 5px;
+  letter-spacing: .5px;
+}
+.emote-close {
+  background: none;
+  border: none;
+  color: var(--text3, #888);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  padding: 4px;
+  border-radius: 8px;
+  transition: background .15s, color .15s;
+}
+.emote-close:hover { background: var(--bg2, #252538); color: var(--text1, #fff); }
+
+.emote-search-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border, #2a2a3e);
+  flex-shrink: 0;
+  background: var(--bg0, #111118);
+}
+.emote-search-icon { color: var(--text3, #888); font-size: 18px; }
+.emote-search-input {
+  flex: 1;
+  background: none;
+  border: none;
+  outline: none;
+  color: var(--text1, #fff);
+  font-size: 14px;
+  font-family: inherit;
+}
+.emote-search-input::placeholder { color: var(--text3, #888); }
+
+.emote-section-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .7px;
+  text-transform: uppercase;
+  color: var(--text3, #888);
+  padding: 8px 14px 3px;
+  flex-shrink: 0;
+}
+.emote-recents-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  padding: 4px 14px 8px;
+  min-height: 44px;
+  border-bottom: 1px solid var(--border, #2a2a3e);
+  flex-shrink: 0;
+}
+.recent-emote {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+  cursor: pointer;
+  border-radius: 6px;
+  padding: 2px;
+  opacity: 0;
+  transition: opacity .2s ease, transform .15s, background .15s;
+}
+.recent-emote.loaded { opacity: 1; }
+.recent-emote:hover { transform: scale(1.3); background: var(--bg2, #252538); }
+.emote-recent-empty { font-size: 12px; color: var(--text3, #888); align-self: center; }
+
+.emote-results-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
+  gap: 3px;
+  padding: 6px 10px 14px;
+  overflow-y: auto;
+  flex: 1;
+}
+.emote-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 7px 4px;
+  border-radius: 9px;
+  cursor: pointer;
+  transition: background .15s, transform .12s;
+}
+.emote-item:hover { background: var(--bg2, #252538); transform: scale(1.06); }
+.emote-item img {
+  width: 34px;
+  height: 34px;
+  object-fit: contain;
+  opacity: 0;
+  transition: opacity .2s ease;
+}
+.emote-item img.loaded { opacity: 1; }
+
+/* Loading spinner */
+.emote-spinner {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--border, #2a2a3e);
+  border-top-color: #9147ff;
+  border-radius: 50%;
+  animation: emote-spin .7s linear infinite;
+  vertical-align: middle;
+  margin-right: 8px;
+}
+@keyframes emote-spin { to { transform: rotate(360deg); } }
+.emote-item span {
+  font-size: 9px;
+  color: var(--text2, #bbb);
+  text-align: center;
+  word-break: break-all;
+  line-height: 1.2;
+  max-width: 65px;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+.emote-loading, .emote-error, .emote-empty, .emote-hint {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 28px 0;
+  color: var(--text3, #888);
+  font-size: 13px;
+}
+.emote-error { color: #f87171; }
+
+/* Botón 7TV en comment-form */
+.btn-emote-cmt {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 5px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: -.5px;
+  color: var(--text3, #888);
+  transition: background .15s, color .15s;
+  flex-shrink: 0;
+}
+.btn-emote-cmt:hover { background: var(--bg2); color: #9147ff; }
 </style>
 
 <!-- ── POST OPTIONS BOTTOM SHEET ── -->
@@ -3510,6 +3769,10 @@ async function enviarComentario(postId, input){
             <span class="comment-date">${new Date().toISOString().slice(0,10)}</span>
           </div>`;
         sec.insertBefore(row, form);
+        // Renderizar emotes en el comentario recién añadido
+        if (window._emoteRenderer) {
+          row.querySelectorAll('.comment-text').forEach(el => window._emoteRenderer.renderEmoteNode(el));
+        }
       }
       const cnt = document.getElementById('cmt-count-'+postId);
       if(cnt) cnt.textContent = parseInt(cnt.textContent||0)+1;
@@ -4816,10 +5079,15 @@ function _renderPostModal(p) {
           placeholder="Escribe un comentario…"
           onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();pvEnviarComentario(${p.id});}">
       </div>
+      <button type="button" class="btn-emote-cmt" title="Emotes 7TV"
+        onclick="abrirEmotePicker(document.getElementById('pv-cinput'))">7TV</button>
       <button class="pv-comment-send" onclick="pvEnviarComentario(${p.id})" aria-label="Enviar">
         <span class="material-symbols-outlined">arrow_upward</span>
       </button>
     </div>`);
+
+  // Renderizar emotes en el modal recién pintado
+  if (window._emoteRenderer) window._emoteRenderer.renderEmotesInModal();
 }
 
 function pvFocoComentario() {
@@ -4916,6 +5184,10 @@ async function pvEnviarComentario(postId) {
             <span class="pv-comment-text">${escHTML(data.texto)}</span>
           </div>`;
         list.appendChild(row);
+        // Renderizar emotes en el nuevo comentario del modal
+        if (window._emoteRenderer) {
+          row.querySelectorAll('.pv-comment-text').forEach(el => window._emoteRenderer.renderEmoteNode(el));
+        }
         // Scroll suave al nuevo comentario
         const pvContent = document.getElementById('pv-content');
         if (pvContent) {
@@ -4959,4 +5231,38 @@ document.addEventListener('keydown', function(e) {
     // Images not yet loaded: inline onload handles them
   });
 })();
+</script>
+
+<!-- ═══════════════════════════════════════════════════
+     SISTEMA DE EMOTES 7TV — PARTE 1 (picker) + PARTE 2 (renderer)
+════════════════════════════════════════════════════ -->
+<script type="module">
+import { initEmotePicker, insertEmoteAtCursor, setEmoteTarget } from "/static/js/emotes/emote-picker.js";
+import { initEmoteRenderer, renderEmoteNode, renderEmotesInModal } from "/static/js/emotes/emote-renderer.js";
+
+// ── Parte 1: Picker ligado al composer div[contenteditable] ──────────────────
+const composerEl = document.getElementById("mc-texto");
+initEmotePicker(composerEl, "btnEmotes");
+
+// ── Parte 2: Renderer — iniciar observer en el feed ──────────────────────────
+initEmoteRenderer();
+
+// ── Exponer helpers globales ─────────────────────────────────────────────────
+window._emotePickerLib = { insertEmoteAtCursor, setEmoteTarget };
+window._emoteRenderer  = { renderEmoteNode, renderEmotesInModal };
+</script>
+
+<script>
+/**
+ * abrirEmotePicker(target)
+ * Función global accesible desde cualquier botón del feed (incluyendo los
+ * generados dinámicamente en las tarjetas de post y el modal de detalle).
+ */
+function abrirEmotePicker(target) {
+  const modal = document.getElementById("emoteModal");
+  if (!modal) return;
+  if (window._emotePickerLib) window._emotePickerLib.setEmoteTarget(target);
+  modal.classList.add("open");
+  setTimeout(() => document.getElementById("emoteSearch")?.focus(), 50);
+}
 </script>
