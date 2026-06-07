@@ -214,6 +214,9 @@ def _guardar_post():
     if not texto and not media and not has_poll:
         return None
 
+    if texto and len(texto) > 800:
+        return None   # silently reject oversized text (frontend already blocks it)
+
     visibilidad = request.form.get('visibilidad', 'general')
     if visibilidad not in ('general', 'privada'):
         visibilidad = 'general'
@@ -425,6 +428,66 @@ def post_actividad(post_id):
         "comments":  int(total_comments),
         "bookmarks": int(total_bookmarks),
     })
+
+# ─── VER POST COMPLETO ───────────────────────────────────────────────────────
+@posts_bp.route("/api/post/<int:post_id>")
+def api_ver_post(post_id):
+    if "uid" not in session:
+        return jsonify({"ok": False}), 401
+    uid = session["uid"]
+    con = get_db()
+
+    p = con.execute("""
+        SELECT p.id, p.texto, p.media, p.media_tipo, p.fecha,
+               COALESCE(p.visibilidad,'general') AS visibilidad,
+               u.nombre, u.usuario, u.foto, u.id AS usuario_id,
+               EXISTS(SELECT 1 FROM likes l WHERE l.usuario_id=%s AND l.post_id=p.id) AS liked,
+               (SELECT COUNT(*) FROM likes l2 WHERE l2.post_id=p.id) AS total_likes,
+               (SELECT COUNT(*) FROM reposts r WHERE r.post_id=p.id) AS total_reposts,
+               EXISTS(SELECT 1 FROM bookmarks b WHERE b.usuario_id=%s AND b.post_id=p.id) AS bookmarked
+        FROM publicaciones p JOIN usuarios u ON u.id=p.usuario_id
+        WHERE p.id=%s
+    """, (uid, uid, post_id)).fetchone()
+
+    if not p:
+        return jsonify({"ok": False, "error": "Post no encontrado"}), 404
+
+    # Visibilidad: invitados solo ven posts generales
+    rol = session.get("rol", "invitado")
+    if rol not in ("miembro", "admin") and p["visibilidad"] == "privada":
+        return jsonify({"ok": False, "error": "No autorizado"}), 403
+
+    comentarios_rows = con.execute("""
+        SELECT c.texto, c.fecha, u.nombre, u.usuario, u.foto
+        FROM comentarios c JOIN usuarios u ON u.id=c.usuario_id
+        WHERE c.post_id=%s ORDER BY c.fecha ASC
+    """, (post_id,)).fetchall()
+
+    comentarios = [dict(c) for c in comentarios_rows]
+    poll = _get_poll(con, post_id, uid)
+
+    return jsonify({
+        "ok": True,
+        "post": {
+            "id":           p["id"],
+            "texto":        p["texto"] or "",
+            "media":        p["media"] or "",
+            "media_tipo":   p["media_tipo"] or "",
+            "fecha":        str(p["fecha"])[:10] if p["fecha"] else "",
+            "visibilidad":  p["visibilidad"],
+            "nombre":       p["nombre"],
+            "usuario":      p["usuario"],
+            "foto":         p["foto"] or "",
+            "usuario_id":   p["usuario_id"],
+            "liked":        bool(p["liked"]),
+            "bookmarked":   bool(p["bookmarked"]),
+            "total_likes":  int(p["total_likes"]),
+            "total_reposts":int(p["total_reposts"]),
+            "comentarios":  comentarios,
+            "poll":         poll,
+        }
+    })
+
 
 # ─── ENCUESTA: VOTAR ──────────────────────────────────────────────────────────
 @posts_bp.route("/votar_encuesta/<int:enc_id>/<int:opcion_id>", methods=["POST"])
