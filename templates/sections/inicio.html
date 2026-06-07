@@ -2325,6 +2325,16 @@ body.dark-mode .post-badge-privado { background: rgba(139,92,246,.2); color: #a7
 }
 .comments-section.open { display: block; }
 
+/* ── DESKTOP: inline comments ALWAYS hidden — modal takes over ── */
+@media (min-width: 701px) {
+  .comments-section,
+  .comments-section.open {
+    display: none !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+  }
+}
+
 .comment-row { display: flex; gap: 8px; margin-bottom: 10px; align-items: flex-start; }
 .comment-bubble {
   background: var(--bg2);
@@ -3435,7 +3445,8 @@ body.dark-mode .post-badge-privado { background: rgba(139,92,246,.2); color: #a7
   will-change: transform;
 }
 
-/* ── Fase 5.3 — Redesign comentarios ── */
+/* ── Fase 5.3 — Redesign comentarios (mobile only) ── */
+@media (max-width: 700px) {
 .comments-section {
   margin-top: 10px;
   padding-top: 10px;
@@ -3475,6 +3486,7 @@ body.dark-mode .post-badge-privado { background: rgba(139,92,246,.2); color: #a7
   color: var(--text3);
   margin-top: 3px;
   display: block;
+}
 }
 
 .cmt-ver-mas {
@@ -4096,11 +4108,29 @@ function updateBottomNav(el){
 
 /* ── COMENTARIOS ── */
 function abrirComentarios(id){
-  // Siempre abre el modal completo (mobile: bottom sheet / desktop: modal centrado)
-  abrirPost(id, true); // true = scroll + foco en comentarios
+  // REGLA ABSOLUTA: comentarios SIEMPRE en el modal completo
+  // Desktop: modal centrado tipo X/Threads
+  // Mobile: bottom sheet nativo
+  abrirPost(id, true); // true = enfocar input de comentario
 }
 
 async function enviarComentario(postId, input){
+  // On desktop, redirect to modal comment sender
+  if (window.innerWidth > 700) {
+    // If modal is open for this post, delegate to pvEnviarComentario
+    if (_pvPostId === postId) {
+      const pvInput = document.getElementById('pv-cinput');
+      if (pvInput && input && pvInput !== input) {
+        pvInput.value = input.value || '';
+      }
+      pvEnviarComentario(postId);
+      return;
+    }
+    // Modal not open → open it with focus on comment input
+    abrirPost(postId, true);
+    return;
+  }
+  // MOBILE: original inline behavior preserved
   const texto = input?.value?.trim();
   if(!texto) return;
   input.disabled = true;
@@ -4125,7 +4155,6 @@ async function enviarComentario(postId, input){
             <span class="comment-date">${new Date().toISOString().slice(0,10)}</span>
           </div>`;
         sec.insertBefore(row, form);
-        // Renderizar emotes en el comentario recién añadido
         if (window._emoteRenderer) {
           row.querySelectorAll('.comment-text').forEach(el => window._emoteRenderer.renderEmoteNode(el));
         }
@@ -5079,8 +5108,21 @@ function _initPostCardClick() {
 
   document.addEventListener('click', function(e) {
     if (window.innerWidth <= 700) return; // mobile: sin tocar
+
     const card = e.target.closest('.post-card');
     if (!card) return;
+
+    // CRÍTICO: Si el click fue dentro de .comments-section (inline),
+    // en desktop SIEMPRE abrimos el modal. El inline nunca debe actuar en desktop.
+    const inlineSection = e.target.closest('.comments-section');
+    if (inlineSection) {
+      e.preventDefault();
+      e.stopPropagation();
+      const postId = parseInt(card.id.replace('post-', ''), 10);
+      if (postId) abrirPost(postId, true);
+      return;
+    }
+
     // Si el click fue en un elemento excluido → no abrir modal
     if (e.target.closest(EXCLUIR)) return;
     // Obtener postId desde id="post-N"
