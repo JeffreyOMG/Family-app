@@ -196,8 +196,8 @@
         placeholder="Escribe un comentario..."
         id="cinput-{{ p.id }}"
         onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();enviarComentario({{ p.id }},this);}">
-      <button type="button" class="btn-emote-cmt" title="Emotes 7TV"
-        onclick="abrirEmotePicker(document.getElementById('cinput-{{ p.id }}'))">7TV</button>
+      <button type="button" class="btn-emote-cmt" title="Emotes"
+        onclick="abrirEmotePicker(document.getElementById('cinput-{{ p.id }}'))">⭐</button>
       <button type="button" class="btn-comment"
         onclick="enviarComentario({{ p.id }}, document.getElementById('cinput-{{ p.id }}'))">
         <span class="material-symbols-outlined">arrow_upward</span>
@@ -775,8 +775,8 @@
          <button class="mc-act-btn" title="Encuesta" id="btn-poll-toggle" onclick="togglePanel('poll')">
           <span class="material-symbols-outlined">poll</span>
         </button>
-        <button class="mc-act-btn" title="Emotes 7TV" id="btnEmotes" onclick="abrirEmotePicker(document.getElementById('mc-texto'))">
-          <span style="font-size:12px;font-weight:800;letter-spacing:-.5px;background:linear-gradient(135deg,#9147ff,#5e3bee);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">7TV</span>
+        <button class="mc-act-btn" title="Emotes" id="btnEmotes" onclick="abrirEmotePicker(document.getElementById('mc-texto'))">
+          <span style="font-size:16px;line-height:1;">⭐</span>
         </button>
       </div>
       {% if usuario.rol in ('miembro', 'admin') %}
@@ -3377,8 +3377,10 @@ img.inline-emote:hover {
   display: none;
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,.6);
-  z-index: 9999;
+  background: rgba(0,0,0,.65);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  z-index: 1000000;
   align-items: center;
   justify-content: center;
 }
@@ -3554,21 +3556,20 @@ img.inline-emote:hover {
 }
 .emote-error { color: #f87171; }
 
-/* Botón 7TV en comment-form */
+/* Botón ⭐ en comment-form */
 .btn-emote-cmt {
   background: none;
   border: none;
   cursor: pointer;
-  padding: 2px 6px;
+  padding: 2px 5px;
   border-radius: 5px;
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: -.5px;
+  font-size: 15px;
+  line-height: 1;
   color: var(--text3, #888);
-  transition: background .15s, color .15s;
+  transition: background .15s, transform .12s;
   flex-shrink: 0;
 }
-.btn-emote-cmt:hover { background: var(--bg2); color: #9147ff; }
+.btn-emote-cmt:hover { background: var(--bg2); transform: scale(1.2); }
 </style>
 
 <!-- ── POST OPTIONS BOTTOM SHEET ── -->
@@ -5079,8 +5080,8 @@ function _renderPostModal(p) {
           placeholder="Escribe un comentario…"
           onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();pvEnviarComentario(${p.id});}">
       </div>
-      <button type="button" class="btn-emote-cmt" title="Emotes 7TV"
-        onclick="abrirEmotePicker(document.getElementById('pv-cinput'))">7TV</button>
+      <button type="button" class="btn-emote-cmt" title="Emotes"
+        onclick="abrirEmotePicker(document.getElementById('pv-cinput'))">⭐</button>
       <button class="pv-comment-send" onclick="pvEnviarComentario(${p.id})" aria-label="Enviar">
         <span class="material-symbols-outlined">arrow_upward</span>
       </button>
@@ -5255,12 +5256,19 @@ window._emoteRenderer  = { renderEmoteNode, renderEmotesInModal };
 <script>
 /**
  * abrirEmotePicker(target)
- * Función global accesible desde cualquier botón del feed (incluyendo los
- * generados dinámicamente en las tarjetas de post y el modal de detalle).
+ * Portal pattern: mueve el modal al final del <body> antes de abrirlo
+ * para evitar cualquier conflicto de stacking context.
  */
 function abrirEmotePicker(target) {
   const modal = document.getElementById("emoteModal");
   if (!modal) return;
+
+  // Portal: garantiza que el modal esté fuera de cualquier stacking context
+  if (modal.parentElement !== document.body) {
+    document.body.appendChild(modal);
+  }
+  modal.style.zIndex = "1000000";
+
   if (window._emotePickerLib) window._emotePickerLib.setEmoteTarget(target);
   modal.classList.add("open");
   setTimeout(() => document.getElementById("emoteSearch")?.focus(), 50);
