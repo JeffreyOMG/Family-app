@@ -1446,37 +1446,69 @@ body.dark-mode .post-badge-privado { background: rgba(139,92,246,.2); color: #a7
 .pm-divider { height: 1px; background: var(--border); margin: 2px 0; }
 
 /* ── POST VIEW MODAL ── */
+/* ══ PARTE 6 — POST MODAL MODERNO (X / Threads style) ══ */
+
+/* Overlay con animación fade */
 #pv-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,.55);
+  background: rgba(0,0,0,0);
   z-index: 99994;
   display: none;
   align-items: center;
   justify-content: center;
-  backdrop-filter: blur(4px);
+  backdrop-filter: blur(0px);
+  transition: background .22s ease, backdrop-filter .22s ease;
 }
-#pv-overlay.visible { display: flex; }
+#pv-overlay.visible {
+  display: flex;
+  background: rgba(0,0,0,.6);
+  backdrop-filter: blur(6px);
+}
+#pv-overlay.pv-closing {
+  background: rgba(0,0,0,0) !important;
+  backdrop-filter: blur(0px) !important;
+}
+
+/* Modal box — scale-in */
 #pv-box {
   background: var(--card, #fff);
   border: 1px solid var(--border, #e5e5e5);
-  border-radius: 20px;
-  width: 95%;
-  max-width: 600px;
-  max-height: 90vh;
+  border-radius: 18px;
+  width: 96%;
+  max-width: 620px;
+  max-height: 92vh;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 20px 70px rgba(0,0,0,.25);
-  animation: modalIn .22s ease;
+  box-shadow: 0 24px 80px rgba(0,0,0,.28);
+  animation: pvScaleIn .24s cubic-bezier(.34,1.36,.64,1);
   overflow: hidden;
+  position: relative;
 }
+#pv-box.pv-closing {
+  animation: pvScaleOut .18s ease forwards;
+}
+@keyframes pvScaleIn {
+  from { opacity: 0; transform: scale(.93) translateY(10px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+@keyframes pvScaleOut {
+  from { opacity: 1; transform: scale(1); }
+  to   { opacity: 0; transform: scale(.95) translateY(8px); }
+}
+
+/* Header fijo — estilo X/Threads */
 .pv-header {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 14px 18px;
-  border-bottom: 1px solid var(--border, #e5e5e5);
+  gap: 14px;
+  padding: 13px 16px;
+  border-bottom: 1px solid var(--border, #e8e8e8);
   flex-shrink: 0;
+  background: var(--card, #fff);
+  position: sticky;
+  top: 0;
+  z-index: 2;
 }
 .pv-close {
   background: none;
@@ -1487,188 +1519,356 @@ body.dark-mode .post-badge-privado { background: rgba(139,92,246,.2); color: #a7
   width: 36px; height: 36px;
   display: flex; align-items: center; justify-content: center;
   transition: background .15s;
+  flex-shrink: 0;
 }
-.pv-close:hover { background: var(--bg2, rgba(0,0,0,.06)); }
-.pv-close .material-symbols-outlined { font-size: 20px; }
-.pv-title { font-size: 16px; font-weight: 700; color: var(--text, #111); }
+.pv-close:hover { background: var(--bg2, rgba(0,0,0,.07)); }
+.pv-close .material-symbols-outlined { font-size: 21px; }
+.pv-title { font-size: 16px; font-weight: 700; color: var(--text, #111); letter-spacing: -.01em; }
+
+/* Scroll area */
 #pv-content {
   overflow-y: auto;
   flex: 1;
   padding: 0;
+  overscroll-behavior: contain;
+  scroll-behavior: smooth;
 }
+#pv-content::-webkit-scrollbar { width: 4px; }
+#pv-content::-webkit-scrollbar-track { background: transparent; }
+#pv-content::-webkit-scrollbar-thumb { background: var(--border, #ddd); border-radius: 4px; }
+
+/* Loading spinner */
 .pv-loading {
   text-align: center;
   color: var(--text3, #999);
-  padding: 40px 20px;
+  padding: 52px 20px;
 }
 .pv-loading .material-symbols-outlined {
-  font-size: 32px; display: block;
+  font-size: 30px; display: block;
   margin-bottom: 10px;
   animation: vp-spin .8s linear infinite;
 }
-/* Post completo dentro del modal */
+
+/* ── POST ORIGINAL (highlighted) ── */
 .pv-post {
-  padding: 18px 18px 0;
+  padding: 20px 20px 0;
 }
 .pv-post-header {
   display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 12px;
+  align-items: flex-start;
+  gap: 11px;
+  margin-bottom: 14px;
 }
 .pv-av {
-  width: 40px; height: 40px; border-radius: 50%;
+  width: 44px; height: 44px; border-radius: 50%;
   object-fit: cover; flex-shrink: 0;
+  border: 2px solid var(--border, #eee);
 }
 .pv-av-placeholder {
-  width: 40px; height: 40px; border-radius: 50%;
-  background: var(--accent, #ff4d8d);
-  color: #fff; font-weight: 700; font-size: 16px;
+  width: 44px; height: 44px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent, #ff4d8d), #f97316);
+  color: #fff; font-weight: 800; font-size: 17px;
   display: flex; align-items: center; justify-content: center;
   flex-shrink: 0;
 }
-.pv-meta { display: flex; flex-direction: column; gap: 2px; }
-.pv-name { font-size: 14.5px; font-weight: 700; color: var(--text, #111); }
-.pv-handle { font-size: 12.5px; color: var(--text3, #999); }
-.pv-texto {
-  font-size: 15px; line-height: 1.7;
+.pv-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+.pv-name {
+  font-size: 15px; font-weight: 700;
   color: var(--text, #111);
-  white-space: pre-wrap; word-break: break-word;
-  margin-bottom: 14px;
+  line-height: 1.2;
 }
+.pv-handle {
+  font-size: 13px; color: var(--text3, #999);
+  display: flex; align-items: center; gap: 5px;
+  flex-wrap: wrap;
+}
+.pv-badge-privado {
+  font-size: 11px;
+  background: var(--bg2, rgba(0,0,0,.06));
+  border-radius: 8px;
+  padding: 1px 7px;
+  color: var(--text3, #888);
+}
+
+/* Texto del post — grande y legible */
+.pv-texto {
+  font-size: 16px;
+  line-height: 1.75;
+  color: var(--text, #111);
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin-bottom: 16px;
+}
+
+/* Media */
 .pv-media-img {
-  width: 100%; border-radius: 12px;
-  max-height: 400px; object-fit: cover;
+  width: 100%; border-radius: 14px;
+  max-height: 440px; object-fit: cover;
   margin-bottom: 14px; cursor: pointer;
+  transition: opacity .15s;
 }
+.pv-media-img:hover { opacity: .95; }
 .pv-media-video {
-  width: 100%; border-radius: 12px;
-  max-height: 400px;
+  width: 100%; border-radius: 14px;
+  max-height: 440px;
   margin-bottom: 14px;
 }
 .pv-media-multi {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
   gap: 6px;
   margin-bottom: 14px;
 }
 .pv-media-multi img {
-  width: 100%; height: 140px;
-  object-fit: cover; border-radius: 10px; cursor: pointer;
+  width: 100%; height: 148px;
+  object-fit: cover; border-radius: 11px; cursor: pointer;
+  transition: opacity .15s;
 }
+.pv-media-multi img:hover { opacity: .92; }
+
+/* Fecha */
 .pv-fecha-completa {
-  font-size: 12px; color: var(--text3, #999);
-  padding: 10px 0;
+  font-size: 13px; color: var(--text3, #999);
+  padding: 12px 0;
   border-top: 1px solid var(--border, #eee);
+  margin-bottom: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.pv-fecha-completa::before {
+  content: '';
+  display: inline-block;
+  width: 4px; height: 4px;
+  border-radius: 50%;
+  background: var(--text3, #bbb);
+}
+
+/* Contador de stats (entre fecha y acciones) */
+.pv-stats-row {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 10px 0;
   border-bottom: 1px solid var(--border, #eee);
-  margin-bottom: 4px;
+  font-size: 13.5px;
+  color: var(--text2, #555);
 }
-.pv-badge-privado {
-  font-size: 11px; color: var(--text3, #999);
-  margin-left: 8px;
-}
-/* Acciones en el modal */
-.pv-actions {
+.pv-stat-item {
   display: flex;
   align-items: center;
   gap: 4px;
-  padding: 8px 0;
+}
+.pv-stat-item strong {
+  font-weight: 700;
+  color: var(--text, #111);
+}
+
+/* Acciones */
+.pv-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 0 14px;
+  border-bottom: 1px solid var(--border, #eee);
 }
 .pv-action-btn {
   display: flex; align-items: center; gap: 5px;
   background: none; border: none; cursor: pointer;
-  color: var(--text2, #555);
-  font-size: 13px; padding: 7px 10px;
-  border-radius: 20px;
+  color: var(--text2, #666);
+  font-size: 13px; padding: 8px 10px;
+  border-radius: 999px;
   transition: background .15s, color .15s;
+  position: relative;
 }
 .pv-action-btn:hover { background: var(--bg2, rgba(0,0,0,.05)); }
-.pv-action-btn .material-symbols-outlined { font-size: 19px; }
+.pv-action-btn .material-symbols-outlined { font-size: 20px; }
+.pv-action-btn span:not(.material-symbols-outlined) { font-weight: 600; }
 .pv-action-btn.pv-liked { color: #ef4444; }
 .pv-action-btn.pv-liked .material-symbols-outlined { color: #ef4444; }
 .pv-action-btn.pv-saved { color: var(--accent, #ff4d8d); }
 .pv-action-btn.pv-saved .material-symbols-outlined { color: var(--accent, #ff4d8d); }
-/* Comentarios en el modal */
-.pv-comments-section {
-  padding: 0 18px 18px;
+
+/* Like animation */
+.pv-action-btn.pv-like-pop .material-symbols-outlined {
+  animation: pvLikePop .3s cubic-bezier(.34,1.56,.64,1);
 }
-.pv-comments-title {
-  font-size: 13px; font-weight: 700;
+@keyframes pvLikePop {
+  0%   { transform: scale(1); }
+  50%  { transform: scale(1.45); }
+  100% { transform: scale(1); }
+}
+
+/* ── DIVISOR VISUAL ── */
+.pv-divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 20px 8px;
+  font-size: 13px;
+  font-weight: 700;
   color: var(--text3, #888);
-  text-transform: uppercase; letter-spacing: .05em;
-  margin: 12px 0 10px;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+.pv-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border, #eee);
+}
+
+/* ── COMENTARIOS ── */
+.pv-comments-section {
+  padding: 0 20px 20px;
 }
 .pv-comment-row {
-  display: flex; gap: 8px;
-  margin-bottom: 10px; align-items: flex-start;
+  display: flex; gap: 10px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border, #f0f0f0);
+  align-items: flex-start;
+  animation: pvCommentIn .22s ease;
+}
+.pv-comment-row:last-child { border-bottom: none; }
+@keyframes pvCommentIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 .pv-comment-av {
-  width: 28px; height: 28px; border-radius: 50%;
+  width: 32px; height: 32px; border-radius: 50%;
   object-fit: cover; flex-shrink: 0;
 }
 .pv-comment-av-placeholder {
-  width: 28px; height: 28px; border-radius: 50%;
-  background: var(--accent, #ff4d8d); color: #fff;
-  font-size: 11px; font-weight: 700;
+  width: 32px; height: 32px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent, #ff4d8d), #8b5cf6);
+  color: #fff; font-size: 12px; font-weight: 800;
   display: flex; align-items: center; justify-content: center;
   flex-shrink: 0;
 }
-.pv-comment-bubble {
-  background: var(--bg2, rgba(0,0,0,.04));
-  border-radius: 12px; padding: 7px 11px;
-  flex: 1; min-width: 0;
+.pv-comment-body {
+  flex: 1;
+  min-width: 0;
+}
+.pv-comment-meta {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin-bottom: 3px;
+  flex-wrap: wrap;
 }
 .pv-comment-author {
-  font-size: 12.5px; font-weight: 700;
-  color: var(--text, #111); margin-right: 5px;
-}
-.pv-comment-text {
-  font-size: 13px; color: var(--text2, #444);
-  line-height: 1.45; word-break: break-word;
+  font-size: 13.5px; font-weight: 700;
+  color: var(--text, #111);
 }
 .pv-comment-date {
-  font-size: 10.5px; color: var(--text3, #999);
-  display: block; margin-top: 3px;
+  font-size: 11.5px; color: var(--text3, #aaa);
+}
+.pv-comment-text {
+  font-size: 14px; color: var(--text, #222);
+  line-height: 1.5; word-break: break-word;
 }
 .pv-no-comments {
   text-align: center; color: var(--text3, #bbb);
-  font-size: 13px; padding: 16px 0;
+  font-size: 14px;
+  padding: 28px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
 }
-/* Formulario de comentario dentro del modal */
+.pv-no-comments .material-symbols-outlined {
+  font-size: 36px;
+  opacity: .4;
+}
+
+/* ── INPUT STICKY (fijo abajo) ── */
 .pv-comment-form {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 12px 18px;
+  gap: 10px;
+  padding: 10px 16px 12px;
   border-top: 1px solid var(--border, #eee);
-  position: sticky; bottom: 0;
   background: var(--card, #fff);
   flex-shrink: 0;
+  position: relative;
+}
+.pv-comment-form::before {
+  content: '';
+  position: absolute;
+  top: -12px; left: 0; right: 0;
+  height: 12px;
+  background: linear-gradient(transparent, var(--card, #fff));
+  pointer-events: none;
+}
+.pv-cinput-wrap {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  background: var(--bg2, rgba(0,0,0,.05));
+  border: 1.5px solid var(--border, #e0e0e0);
+  border-radius: 24px;
+  padding: 0 14px;
+  transition: border-color .15s, box-shadow .15s;
+}
+.pv-cinput-wrap:focus-within {
+  border-color: var(--accent, #ff4d8d);
+  box-shadow: 0 0 0 3px rgba(255,77,141,.12);
 }
 .pv-comment-input {
   flex: 1;
-  border: 1px solid var(--border, #ddd);
-  border-radius: 20px;
-  padding: 8px 14px;
-  font-size: 13px;
-  background: var(--bg2, rgba(0,0,0,.04));
+  border: none;
+  background: transparent;
+  padding: 10px 0;
+  font-size: 14px;
   color: var(--text, #111);
   outline: none;
+  min-width: 0;
 }
-.pv-comment-input:focus { border-color: var(--accent, #ff4d8d); }
+.pv-comment-input::placeholder { color: var(--text3, #aaa); }
 .pv-comment-send {
   background: var(--accent, #ff4d8d);
   border: none; border-radius: 50%;
-  width: 34px; height: 34px;
+  width: 38px; height: 38px;
   display: flex; align-items: center; justify-content: center;
   cursor: pointer; color: #fff;
-  transition: opacity .15s;
+  transition: opacity .15s, transform .15s;
+  flex-shrink: 0;
 }
-.pv-comment-send:hover { opacity: .85; }
-.pv-comment-send .material-symbols-outlined { font-size: 17px; }
+.pv-comment-send:hover { opacity: .88; transform: scale(1.06); }
+.pv-comment-send:active { transform: scale(.95); }
+.pv-comment-send .material-symbols-outlined { font-size: 18px; }
+
+/* ── MOBILE FULL SCREEN ── */
 @media (max-width: 600px) {
-  #pv-box { border-radius: 16px 16px 0 0; max-height: 95vh; width: 100%; align-self: flex-end; }
-  #pv-overlay { align-items: flex-end; }
+  #pv-overlay {
+    align-items: flex-end;
+  }
+  #pv-box {
+    border-radius: 22px 22px 0 0;
+    max-height: 97vh;
+    width: 100%;
+    max-width: 100%;
+    animation: pvSlideUp .26s cubic-bezier(.34,1.1,.64,1);
+  }
+  #pv-box.pv-closing {
+    animation: pvSlideDown .18s ease forwards;
+  }
+  @keyframes pvSlideUp {
+    from { opacity: .5; transform: translateY(60px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes pvSlideDown {
+    from { opacity: 1; transform: translateY(0); }
+    to   { opacity: 0; transform: translateY(60px); }
+  }
+  .pv-texto { font-size: 15px; }
+  .pv-comment-form { padding: 10px 12px 14px; }
 }
 
 /* ── ACTIVITY MODAL ── */
@@ -3134,18 +3334,18 @@ body.dark-mode .post-badge-privado { background: rgba(139,92,246,.2); color: #a7
 </div>
 
 <!-- ── POST VIEW MODAL ── -->
-<div id="pv-overlay" onclick="if(event.target===this)cerrarPost()">
+<div id="pv-overlay" onclick="if(event.target===this)cerrarPostAnimado()">
   <div id="pv-box">
 
-    <!-- Header fijo -->
+    <!-- Header fijo estilo X/Threads -->
     <div class="pv-header">
-      <button class="pv-close" onclick="cerrarPost()" aria-label="Cerrar">
+      <button class="pv-close" onclick="cerrarPostAnimado()" aria-label="Cerrar">
         <span class="material-symbols-outlined">arrow_back</span>
       </button>
       <span class="pv-title">Publicación</span>
     </div>
 
-    <!-- Cuerpo con scroll -->
+    <!-- Cuerpo con scroll interno -->
     <div id="pv-content">
       <div class="pv-loading">
         <span class="material-symbols-outlined">progress_activity</span>
@@ -4487,12 +4687,25 @@ function cerrarPost() {
   _pvPostId = null;
 }
 
+function cerrarPostAnimado() {
+  const box     = document.getElementById('pv-box');
+  const overlay = document.getElementById('pv-overlay');
+  box.classList.add('pv-closing');
+  overlay.classList.add('pv-closing');
+  setTimeout(() => {
+    overlay.classList.remove('visible', 'pv-closing');
+    box.classList.remove('pv-closing');
+    document.body.style.overflow = '';
+    _pvPostId = null;
+  }, 190);
+}
+
 function _renderPostModal(p) {
   const content = document.getElementById('pv-content');
 
   // Avatar
   const avHtml = p.foto
-    ? `<img src="${escHTML(p.foto)}" class="pv-av" alt="${escHTML(p.nombre)}">`
+    ? `<img src="${escHTML(p.foto)}" class="pv-av" alt="${escHTML(p.nombre)}" loading="lazy">`
     : `<div class="pv-av-placeholder">${escHTML((p.nombre||'U')[0].toUpperCase())}</div>`;
 
   // Media
@@ -4502,10 +4715,10 @@ function _renderPostModal(p) {
       let imgs = [];
       try { imgs = JSON.parse(p.media); } catch(e) {}
       mediaHtml = `<div class="pv-media-multi">${imgs.map(src =>
-        `<img src="${escHTML(src)}" onclick="abrirMediaModal('${escHTML(src)}','imagen')" alt="imagen">`
+        `<img src="${escHTML(src)}" onclick="abrirMediaModal('${escHTML(src)}','imagen')" alt="imagen" loading="lazy">`
       ).join('')}</div>`;
     } else if (p.media_tipo === 'imagen') {
-      mediaHtml = `<img src="${escHTML(p.media)}" class="pv-media-img" onclick="abrirMediaModal('${escHTML(p.media)}','imagen')" alt="imagen">`;
+      mediaHtml = `<img src="${escHTML(p.media)}" class="pv-media-img" onclick="abrirMediaModal('${escHTML(p.media)}','imagen')" alt="imagen" loading="lazy">`;
     } else if (p.media_tipo === 'video') {
       mediaHtml = `<video controls class="pv-media-video"><source src="${escHTML(p.media)}"></video>`;
     }
@@ -4515,29 +4728,37 @@ function _renderPostModal(p) {
   const privBadge = p.visibilidad === 'privada'
     ? '<span class="pv-badge-privado">🔒 Solo miembros</span>' : '';
 
-  // Acciones
-  const likedClass   = p.liked     ? 'pv-liked'  : '';
-  const savedClass   = p.bookmarked ? 'pv-saved'  : '';
+  // Clases de estado
+  const likedClass = p.liked     ? 'pv-liked' : '';
+  const savedClass = p.bookmarked ? 'pv-saved' : '';
 
-  // Comentarios
+  // Comentarios — nuevo layout flat (sin bubble)
+  const numCmts = p.comentarios ? p.comentarios.length : 0;
   let cmtsHtml = '';
   if (p.comentarios && p.comentarios.length) {
     cmtsHtml = p.comentarios.map(c => {
       const cAv = c.foto
-        ? `<img src="${escHTML(c.foto)}" class="pv-comment-av" alt="${escHTML(c.nombre)}">`
+        ? `<img src="${escHTML(c.foto)}" class="pv-comment-av" alt="${escHTML(c.nombre)}" loading="lazy">`
         : `<div class="pv-comment-av-placeholder">${escHTML((c.nombre||'?')[0].toUpperCase())}</div>`;
+      const fechaCorta = (c.fecha||'').slice(0,10);
       return `
         <div class="pv-comment-row">
           ${cAv}
-          <div class="pv-comment-bubble">
-            <strong class="pv-comment-author">${escHTML(c.nombre)}</strong>
+          <div class="pv-comment-body">
+            <div class="pv-comment-meta">
+              <span class="pv-comment-author">${escHTML(c.nombre)}</span>
+              <span class="pv-comment-date">${fechaCorta}</span>
+            </div>
             <span class="pv-comment-text">${escHTML(c.texto)}</span>
-            <span class="pv-comment-date">${(c.fecha||'').slice(0,10)}</span>
           </div>
         </div>`;
     }).join('');
   } else {
-    cmtsHtml = '<p class="pv-no-comments">Sin comentarios aún. Sé el primero.</p>';
+    cmtsHtml = `
+      <p class="pv-no-comments">
+        <span class="material-symbols-outlined">chat_bubble</span>
+        Sin comentarios aún. Sé el primero.
+      </p>`;
   }
 
   content.innerHTML = `
@@ -4552,6 +4773,11 @@ function _renderPostModal(p) {
       ${p.texto ? `<p class="pv-texto">${escHTML(p.texto)}</p>` : ''}
       ${mediaHtml}
       <div class="pv-fecha-completa">${p.fecha || ''}</div>
+      <div class="pv-stats-row">
+        <span class="pv-stat-item"><strong id="pv-like-count-stat">${p.total_likes}</strong>&nbsp;Me gusta</span>
+        <span class="pv-stat-item"><strong id="pv-cmt-count-stat">${numCmts}</strong>&nbsp;Comentarios</span>
+        <span class="pv-stat-item"><strong>${p.total_reposts||0}</strong>&nbsp;Reposts</span>
+      </div>
       <div class="pv-actions" id="pv-actions-${p.id}">
         <button class="pv-action-btn ${likedClass}" id="pv-like-btn" onclick="pvLike(${p.id})">
           <span class="material-symbols-outlined">favorite</span>
@@ -4559,11 +4785,11 @@ function _renderPostModal(p) {
         </button>
         <button class="pv-action-btn" onclick="pvFocoComentario()">
           <span class="material-symbols-outlined">chat_bubble</span>
-          <span id="pv-cmt-count">${p.comentarios ? p.comentarios.length : 0}</span>
+          <span id="pv-cmt-count">${numCmts}</span>
         </button>
         <button class="pv-action-btn" onclick="pvRepost(${p.id})">
           <span class="material-symbols-outlined">repeat</span>
-          <span id="pv-repost-count">${p.total_reposts}</span>
+          <span id="pv-repost-count">${p.total_reposts||0}</span>
         </button>
         <button class="pv-action-btn" onclick="compartirPost(${p.id}, ${JSON.stringify((p.texto||'').slice(0,80))})">
           <span class="material-symbols-outlined">share</span>
@@ -4573,21 +4799,24 @@ function _renderPostModal(p) {
         </button>
       </div>
     </div>
+
+    <div class="pv-divider">Comentarios</div>
+
     <div class="pv-comments-section">
-      <p class="pv-comments-title">Comentarios</p>
       <div id="pv-comments-list">${cmtsHtml}</div>
     </div>`;
 
-  // Formulario de comentario (sticky al fondo del box)
-  // Limpiar formulario anterior si existe y agregar nuevo
+  // Input sticky — limpiar anterior
   const oldForm = document.getElementById('pv-comment-form');
   if (oldForm) oldForm.remove();
   document.getElementById('pv-box').insertAdjacentHTML('beforeend', `
     <div class="pv-comment-form" id="pv-comment-form">
-      <input type="text" class="pv-comment-input" id="pv-cinput"
-        placeholder="Escribe un comentario…"
-        onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();pvEnviarComentario(${p.id});}">
-      <button class="pv-comment-send" onclick="pvEnviarComentario(${p.id})">
+      <div class="pv-cinput-wrap">
+        <input type="text" class="pv-comment-input" id="pv-cinput"
+          placeholder="Escribe un comentario…"
+          onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();pvEnviarComentario(${p.id});}">
+      </div>
+      <button class="pv-comment-send" onclick="pvEnviarComentario(${p.id})" aria-label="Enviar">
         <span class="material-symbols-outlined">arrow_upward</span>
       </button>
     </div>`);
@@ -4605,8 +4834,16 @@ async function pvLike(postId) {
     if (data.ok) {
       const btn   = document.getElementById('pv-like-btn');
       const cnt   = document.getElementById('pv-like-count');
-      if (btn) btn.classList.toggle('pv-liked', data.liked);
+      const cntStat = document.getElementById('pv-like-count-stat');
+      if (btn) {
+        btn.classList.toggle('pv-liked', data.liked);
+        // Animación pop
+        btn.classList.remove('pv-like-pop');
+        void btn.offsetWidth; // reflow
+        if (data.liked) btn.classList.add('pv-like-pop');
+      }
       if (cnt) cnt.textContent = data.likes;
+      if (cntStat) cntStat.textContent = data.likes;
       // Sincronizar botón en el feed
       const feedBtn = document.querySelector(`#post-${postId} .like-btn`);
       if (feedBtn) {
@@ -4662,7 +4899,7 @@ async function pvEnviarComentario(postId) {
     const data = await res.json();
     if (data.ok) {
       input.value = '';
-      // Agregar comentario en el modal
+      // Agregar comentario en el modal con animación
       const list = document.getElementById('pv-comments-list');
       if (list) {
         const noMsg = list.querySelector('.pv-no-comments');
@@ -4671,16 +4908,28 @@ async function pvEnviarComentario(postId) {
         row.className = 'pv-comment-row';
         row.innerHTML = `
           <div class="pv-comment-av-placeholder">${escHTML(data.inicial)}</div>
-          <div class="pv-comment-bubble">
-            <strong class="pv-comment-author">${escHTML(data.nombre)}</strong>
+          <div class="pv-comment-body">
+            <div class="pv-comment-meta">
+              <span class="pv-comment-author">${escHTML(data.nombre)}</span>
+              <span class="pv-comment-date">${new Date().toISOString().slice(0,10)}</span>
+            </div>
             <span class="pv-comment-text">${escHTML(data.texto)}</span>
-            <span class="pv-comment-date">${new Date().toISOString().slice(0,10)}</span>
           </div>`;
         list.appendChild(row);
+        // Scroll suave al nuevo comentario
+        const pvContent = document.getElementById('pv-content');
+        if (pvContent) {
+          const isNearBottom = pvContent.scrollHeight - pvContent.scrollTop - pvContent.clientHeight < 120;
+          if (isNearBottom) {
+            setTimeout(() => row.scrollIntoView({ behavior: 'smooth', block: 'end' }), 60);
+          }
+        }
       }
-      // Incrementar contador en el modal
+      // Incrementar contadores
       const pvCnt = document.getElementById('pv-cmt-count');
       if (pvCnt) pvCnt.textContent = parseInt(pvCnt.textContent||0)+1;
+      const pvCntStat = document.getElementById('pv-cmt-count-stat');
+      if (pvCntStat) pvCntStat.textContent = parseInt(pvCntStat.textContent||0)+1;
       // Incrementar contador en el feed
       const feedCnt = document.getElementById('cmt-count-' + postId);
       if (feedCnt) feedCnt.textContent = parseInt(feedCnt.textContent||0)+1;
@@ -4693,7 +4942,7 @@ async function pvEnviarComentario(postId) {
 // Cerrar con Escape
 document.addEventListener('keydown', function(e) {
   if (e.key === 'Escape') {
-    cerrarPost();
+    cerrarPostAnimado();
     cerrarMenuPost();
     cerrarActividadModal({ target: document.getElementById('pm-activity-modal') });
   }
