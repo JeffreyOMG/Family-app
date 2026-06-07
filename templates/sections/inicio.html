@@ -45,7 +45,7 @@
       {% set imgs = p.media|fromjson %}
       <div class="post-carousel">
         <div class="pc-track">
-          {% for img in imgs %}<div class="pc-slide"><img src="{{ img }}" class="pc-img img-loading" loading="lazy" onclick="abrirMediaModal('{{ img }}','imagen')" onload="this.classList.remove('img-loading');this.classList.add('img-loaded')" onerror="this.classList.remove('img-loading');this.classList.add('img-loaded')"></div>{% endfor %}
+          {% for img in imgs %}<div class="pc-slide"><img src="{{ img }}" class="pc-img img-loading" loading="lazy" onclick="abrirMediaOPost({{ p.id }},'{{ img }}','imagen',event)" onload="this.classList.remove('img-loading');this.classList.add('img-loaded')" onerror="this.classList.remove('img-loading');this.classList.add('img-loaded')"></div>{% endfor %}
         </div>
         {% if imgs|length > 1 %}
         <button class="pc-btn pc-prev" onclick="pcMove(this,-1)">&#8249;</button>
@@ -54,7 +54,7 @@
         {% endif %}
       </div>
     {% elif p.media_tipo == 'imagen' %}
-      <img src="{{ p.media }}" class="post-media img-loading" loading="lazy" onclick="abrirMediaModal('{{ p.media }}','imagen')" onload="this.classList.remove('img-loading');this.classList.add('img-loaded')" onerror="this.classList.remove('img-loading');this.classList.add('img-loaded')">
+      <img src="{{ p.media }}" class="post-media img-loading" loading="lazy" onclick="abrirMediaOPost({{ p.id }},'{{ p.media }}','imagen',event)" onload="this.classList.remove('img-loading');this.classList.add('img-loaded')" onerror="this.classList.remove('img-loading');this.classList.add('img-loaded')">
     {% elif p.media_tipo == 'video' %}
       <video controls class="post-media"><source src="{{ p.media }}"></video>
     {% endif %}
@@ -4252,6 +4252,20 @@ function _syncGuardados(id, shouldBeSaved){
 }
 
 /* ── MEDIA MODAL ── */
+
+/**
+ * En desktop → abre el modal del post completo (tipo X/Threads)
+ * En mobile  → abre el lightbox de imagen (comportamiento nativo original)
+ */
+function abrirMediaOPost(postId, src, tipo, event) {
+  if (event) { event.stopPropagation(); }
+  if (window.innerWidth > 700) {
+    abrirPost(postId);
+  } else {
+    abrirMediaModal(src, tipo);
+  }
+}
+
 function abrirMediaModal(src, tipo){
   const m = document.getElementById('media-modal');
   document.getElementById('media-modal-content').innerHTML =
@@ -4939,7 +4953,37 @@ function pcMove(btn, dir){
 }
 
 // Mouse drag + touch swipe para carouseles en el feed
-document.addEventListener('DOMContentLoaded', ()=> initCarousels());
+document.addEventListener('DOMContentLoaded', ()=> {
+  initCarousels();
+  _initPostCardClick();
+});
+
+/**
+ * DESKTOP ONLY: click en área general del post-card abre el modal del post.
+ * Excluye: botones, avatar/nombre (ver-perfil), imágenes, inputs, enlaces,
+ * carousel controls, encuestas → cada uno tiene su handler propio.
+ */
+function _initPostCardClick() {
+  const EXCLUIR = [
+    'button', 'a', 'input', 'textarea', 'video',
+    '.post-action-btn', '.post-options-btn', '.pc-btn',
+    '[data-ver-perfil]', '.pv-trigger', '.post-text-more',
+    '.post-media', '.pc-img', '.poll-option', '.poll-change-btn',
+    '.comment-input', '.cinput-wrap', '.comment-text-more',
+  ].join(',');
+
+  document.addEventListener('click', function(e) {
+    if (window.innerWidth <= 700) return; // mobile: sin tocar
+    const card = e.target.closest('.post-card');
+    if (!card) return;
+    // Si el click fue en un elemento excluido → no abrir modal
+    if (e.target.closest(EXCLUIR)) return;
+    // Obtener postId desde id="post-N"
+    const postId = parseInt(card.id.replace('post-', ''), 10);
+    if (!postId) return;
+    abrirPost(postId);
+  });
+}
 function initCarousels(){
   document.querySelectorAll('.post-carousel').forEach(attachCarousel);
 }
