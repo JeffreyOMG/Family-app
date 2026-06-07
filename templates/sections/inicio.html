@@ -14,7 +14,7 @@
     {% endif %}
     <div class="post-meta-block">
       <span class="post-name" data-ver-perfil="{{ p.usuario }}" title="Ver perfil" style="cursor:pointer;">{{ p.nombre }}</span>
-      <span class="post-handle"><span data-ver-perfil="{{ p.usuario }}" style="cursor:pointer;">@{{ p.usuario }}</span> · {{ p.fecha[:10] }}{% if p.get('visibilidad','general')=='privada' %} <span class="post-badge-privado">🔒 Solo miembros</span>{% endif %}</span>
+      <span class="post-handle"><span data-ver-perfil="{{ p.usuario }}" style="cursor:pointer;">@{{ p.usuario }}</span> · {{ p.fecha[:10] }}{% if p.get('visibilidad','general')=='privada' %} <span class="post-badge-privado">Solo miembros</span>{% endif %}</span>
     </div>
     {% if p.usuario_id == usuario.id or usuario.rol == 'admin' %}
     <button type="button" class="post-options-btn" title="Opciones"
@@ -5072,7 +5072,7 @@ function _renderPostModal(p) {
 
   // Badges
   const privBadge = p.visibilidad === 'privada'
-    ? '<span class="pv-badge-privado">🔒 Solo miembros</span>' : '';
+    ? '<span class="pv-badge-privado">Solo miembros</span>' : '';
 
   // Clases de estado
   const likedClass = p.liked     ? 'pv-liked' : '';
