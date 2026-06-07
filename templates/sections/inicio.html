@@ -88,7 +88,7 @@
     {% endfor %}
     <div class="poll-meta">
       <span class="poll-total">{{ poll.total_votos }} voto{{ 's' if poll.total_votos != 1 else '' }}</span>
-      {% if poll.anonima %}<span class="poll-anon-badge">🔒 Anónima</span>{% else %}<span class="poll-anon-badge poll-pub-badge">👥 Pública</span>{% endif %}
+      {% if poll.anonima %}<span class="poll-anon-badge">Anónima</span>{% else %}<span class="poll-anon-badge poll-pub-badge">👥 Pública</span>{% endif %}
       {% if ya_voto and not poll.expirada %}<button class="poll-change-btn" onclick="cambiarVoto({{ poll.id }})">Editar voto</button>{% endif %}
       {% if poll.expirada %}<span class="poll-closed">Encuesta cerrada</span>{% endif %}
     </div>
