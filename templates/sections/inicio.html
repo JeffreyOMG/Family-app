@@ -1222,50 +1222,51 @@ body.dark-mode .post-badge-privado { background: rgba(139,92,246,.2); color: #a7
   inset: 0;
   width: 100vw;
   height: 100vh;
-  background: rgba(0,0,0,.55);
+  background: transparent;
   z-index: 99990;
   display: none;
-  align-items: center;
-  justify-content: center;
-  backdrop-filter: blur(3px);
-  -webkit-backdrop-filter: blur(3px);
-  animation: pmFadeIn .18s ease;
 }
-#post-menu-overlay.visible { display: flex; }
-@keyframes pmFadeIn { from { opacity:0; } to { opacity:1; } }
+#post-menu-overlay.visible { display: block; }
 
 #post-menu-sheet {
-  background: var(--card, #fff);
-  border: 1px solid var(--border, #e5e5e5);
-  border-radius: 18px;
-  width: 92%;
-  max-width: 340px;
-  padding: 8px 0 12px;
-  box-shadow: 0 8px 40px rgba(0,0,0,.22);
-  animation: pmPopIn .2s cubic-bezier(.32,1,.6,1);
+  position: fixed;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  width: 230px;
+  padding: 6px 0;
+  box-shadow: 0 8px 32px rgba(0,0,0,.32);
+  animation: pmPopIn .15s cubic-bezier(.32,1,.6,1);
+  z-index: 99991;
 }
 @keyframes pmPopIn {
-  from { opacity:0; transform: scale(.94) translateY(8px); }
+  from { opacity:0; transform: scale(.95) translateY(-6px); }
   to   { opacity:1; transform: scale(1)   translateY(0); }
 }
 
-/* En móvil: bottom sheet */
+/* Móvil: bottom sheet */
 @media (max-width: 600px) {
-  #post-menu-overlay { align-items: flex-end; }
+  #post-menu-overlay {
+    background: rgba(0,0,0,.55);
+    backdrop-filter: blur(3px);
+    -webkit-backdrop-filter: blur(3px);
+  }
+  #post-menu-overlay.visible { display: flex; align-items: flex-end; justify-content: center; }
   #post-menu-sheet {
+    position: static;
     width: 100%;
-    max-width: 100%;
     border-radius: 20px 20px 0 0;
     border-bottom: none;
     padding: 8px 0 calc(env(safe-area-inset-bottom, 0px) + 12px);
     animation: pmSlideUp .24s cubic-bezier(.32,1,.6,1);
+    box-shadow: 0 -8px 40px rgba(0,0,0,.22);
   }
 }
 @keyframes pmSlideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
 
 .pm-handle {
   width: 36px; height: 4px;
-  background: var(--border, #ddd);
+  background: var(--border);
   border-radius: 2px;
   margin: 6px auto 10px;
 }
@@ -1274,24 +1275,25 @@ body.dark-mode .post-badge-privado { background: rgba(139,92,246,.2); color: #a7
   display: flex;
   align-items: center;
   gap: 14px;
-  padding: 14px 22px;
-  font-size: 15px;
+  padding: 13px 20px;
+  font-size: 14.5px;
   font-family: var(--font, inherit);
   font-weight: 500;
-  color: var(--text, #111);
+  color: var(--text);
   background: transparent;
   border: none;
   width: 100%;
   text-align: left;
   cursor: pointer;
   transition: background .12s;
+  line-height: 1;
 }
-.pm-item:hover { background: var(--bg2, rgba(0,0,0,.04)); }
-.pm-item .material-symbols-outlined { font-size: 21px; color: var(--text2, #555); }
+.pm-item:hover { background: var(--bg2); }
+.pm-item .material-symbols-outlined { font-size: 20px; color: var(--text2); }
 .pm-item.pm-danger { color: #ef4444; }
 .pm-item.pm-danger .material-symbols-outlined { color: #ef4444; }
 .pm-item.pm-pin .material-symbols-outlined { transform: rotate(45deg); }
-.pm-divider { height: 1px; background: var(--border, #e5e5e5); margin: 4px 0; }
+.pm-divider { height: 1px; background: var(--border); margin: 2px 0; }
 
 /* ── ACTIVITY MODAL ── */
 #pm-activity-modal {
@@ -3513,16 +3515,39 @@ function abrirMenuPost(postId, esMio, fijado, event) {
   }
 
   const overlay = document.getElementById('post-menu-overlay');
+  const sheet   = document.getElementById('post-menu-sheet');
+
+  if (window.innerWidth > 600 && event) {
+    // Desktop: dropdown pegado al botón
+    const btn  = event.currentTarget || event.target.closest('.post-options-btn');
+    const rect = btn ? btn.getBoundingClientRect() : null;
+    if (rect) {
+      const W = 230;
+      let top  = rect.bottom + 6;
+      let left = rect.right - W;
+      if (top + 180 > window.innerHeight) top = rect.top - 180;
+      if (left < 8) left = 8;
+      if (left + W > window.innerWidth - 8) left = window.innerWidth - W - 8;
+      sheet.style.top    = top  + 'px';
+      sheet.style.left   = left + 'px';
+      sheet.style.bottom = 'auto';
+      sheet.style.right  = 'auto';
+    }
+  } else {
+    // Móvil: limpiar estilos inline para que el CSS maneje el bottom sheet
+    sheet.style.top = sheet.style.left = sheet.style.bottom = sheet.style.right = '';
+  }
+
   overlay.classList.add('visible');
-  setTimeout(() => { document.body.style.overflow = 'hidden'; }, 10);
+  document.body.style.overflow = 'hidden';
 }
 
-function cerrarMenuPost(forzar) {
+function cerrarMenuPost() {
   document.getElementById('post-menu-overlay').classList.remove('visible');
   document.body.style.overflow = '';
 }
 
-// Cerrar al click en el fondo del overlay
+// Cerrar al click en el fondo del overlay (desktop: área transparente fuera del sheet)
 document.getElementById('post-menu-overlay').addEventListener('click', function(e) {
   if (e.target === this) cerrarMenuPost();
 });
