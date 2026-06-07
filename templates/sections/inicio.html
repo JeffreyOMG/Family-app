@@ -1490,16 +1490,14 @@ body.dark-mode .post-badge-privado { background: rgba(139,92,246,.2); color: #a7
 /* Overlay con animación fade */
 #pv-overlay {
   position: fixed;
-  top: 0;
-  bottom: 0;
-  /* Desktop: excluir sidebar fijo (80px) para centrado real en el área de contenido */
-  left: 80px;
-  right: 0;
+  inset: 0;
   background: rgba(0,0,0,0);
   z-index: 99994;
   display: none;
   align-items: center;
+  /* Desktop: centrar el box dentro del área de contenido real (sidebar 80px) */
   justify-content: center;
+  padding-left: 80px;
   backdrop-filter: blur(0px);
   transition: background .22s ease, backdrop-filter .22s ease;
 }
@@ -1980,7 +1978,7 @@ body.dark-mode .post-badge-privado { background: rgba(139,92,246,.2); color: #a7
 
 /* ── MOBILE — bottom sheet, columna única ── */
 @media (max-width: 700px) {
-  #pv-overlay { align-items: flex-end; left: 0; right: 0; top: 0; bottom: 0; }
+  #pv-overlay { align-items: flex-end; padding-left: 0; }
   #pv-box {
     display: flex;
     flex-direction: column;
@@ -2009,20 +2007,18 @@ body.dark-mode .post-badge-privado { background: rgba(139,92,246,.2); color: #a7
 /* ── ACTIVITY MODAL ── */
 #pm-activity-modal {
   position: fixed;
-  top: 0;
-  bottom: 0;
-  left: 80px;
-  right: 0;
+  inset: 0;
   background: rgba(0,0,0,.55);
   z-index: 99995;
   display: none;
   align-items: center;
   justify-content: center;
+  padding-left: 80px;
   backdrop-filter: blur(4px);
 }
 #pm-activity-modal.visible { display: flex; }
 @media (max-width: 700px) {
-  #pm-activity-modal { left: 0; right: 0; top: 0; bottom: 0; }
+  #pm-activity-modal { padding-left: 0; }
 }
 #pm-activity-box {
   background: var(--card, #fff);
@@ -3985,6 +3981,12 @@ function updateBottomNav(el){
 
 /* ── COMENTARIOS ── */
 function abrirComentarios(id){
+  // DESKTOP: abrir modal del post y enfocar comentarios
+  if (window.innerWidth > 700) {
+    abrirPost(id, true); // true = foco en comentarios
+    return;
+  }
+  // MOBILE: comportamiento original (inline toggle)
   const sec = document.getElementById('comentarios-'+id);
   if(!sec) return;
   sec.classList.toggle('open');
@@ -5219,7 +5221,7 @@ function cerrarActividadModal(event) {
 
 let _pvPostId = null;
 
-async function abrirPost(postId) {
+async function abrirPost(postId, focoComentarios) {
   _pvPostId = postId;
   const overlay = document.getElementById('pv-overlay');
   const content = document.getElementById('pv-content');
@@ -5232,6 +5234,26 @@ async function abrirPost(postId) {
     const data = await res.json();
     if (!data.ok) { content.innerHTML = '<div class="pv-loading">No se pudo cargar.</div>'; return; }
     _renderPostModal(data.post);
+    // Si se abrió desde botón de comentarios → enfocar input + highlight suave
+    if (focoComentarios) {
+      setTimeout(() => {
+        const inp    = document.getElementById('pv-cinput');
+        const panel  = document.getElementById('pv-comments-panel');
+        const scroll = document.getElementById('pv-comments-scroll');
+        if (panel)  panel.style.display = 'flex';
+        if (scroll) scroll.scrollTop = scroll.scrollHeight;
+        if (inp) {
+          inp.focus();
+          // Highlight suave del panel de comentarios
+          const wrap = inp.closest('.pv-comment-form') || panel;
+          if (wrap) {
+            wrap.style.transition = 'box-shadow .15s ease';
+            wrap.style.boxShadow  = '0 0 0 2px var(--accent, #e040fb)';
+            setTimeout(() => { wrap.style.boxShadow = ''; }, 700);
+          }
+        }
+      }, 80);
+    }
   } catch(e) {
     content.innerHTML = '<div class="pv-loading">Error de red.</div>';
   }
