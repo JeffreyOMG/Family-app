@@ -3556,20 +3556,67 @@ img.inline-emote:hover {
 }
 .emote-error { color: #f87171; }
 
-/* Botón ⭐ en comment-form */
+/* =========================
+   ICONOS TOOLBAR (ROSAS)
+========================= */
+
+.toolbar .material-symbols-outlined,
+.icon-bar .material-symbols-outlined,
+.btn-emote-cmt .material-symbols-outlined {
+  color: #FF4D8D;
+  transition: color .15s ease, transform .12s ease;
+}
+
+/* =========================
+   BOTÓN EMOTE COMMENT
+========================= */
+
 .btn-emote-cmt {
   background: none;
   border: none;
   cursor: pointer;
-  padding: 2px 5px;
-  border-radius: 5px;
-  font-size: 15px;
-  line-height: 1;
-  color: var(--text3, #888);
-  transition: background .15s, transform .12s;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 6px;
+  border-radius: 8px;
+
   flex-shrink: 0;
+  transition: background .15s ease, transform .12s ease;
 }
-.btn-emote-cmt:hover { background: var(--bg2); transform: scale(1.2); }
+
+/* tamaño icono */
+.btn-emote-cmt .material-symbols-outlined {
+  font-size: 20px;
+  line-height: 1;
+}
+
+/* hover estilo app moderna */
+.btn-emote-cmt:hover {
+  background: var(--bg2);
+  transform: scale(1.15);
+}
+
+/* cambio de color en hover */
+.btn-emote-cmt:hover .material-symbols-outlined {
+  color: #ff6aa6;
+}
+
+/* click feedback */
+.btn-emote-cmt:active {
+  transform: scale(0.95);
+}
+
+/* =========================
+   ESTADO ACTIVO (OPCIONAL)
+========================= */
+
+.btn-emote-cmt.active .material-symbols-outlined {
+  color: #FF4D8D;
+  filter: drop-shadow(0 0 6px rgba(255, 77, 141, 0.4));
+}
 </style>
 
 <!-- ── POST OPTIONS BOTTOM SHEET ── -->
@@ -5081,7 +5128,7 @@ function _renderPostModal(p) {
           onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();pvEnviarComentario(${p.id});}">
       </div>
       <button type="button" class="btn-emote-cmt" title="Emotes"
-        onclick="abrirEmotePicker(document.getElementById('pv-cinput'))">⭐</button>
+       onclick="abrirEmotePicker(document.getElementById('pv-cinput'))"><span class="material-symbols-outlined">emoji_emotions</span></button>
       <button class="pv-comment-send" onclick="pvEnviarComentario(${p.id})" aria-label="Enviar">
         <span class="material-symbols-outlined">arrow_upward</span>
       </button>
