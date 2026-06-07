@@ -652,6 +652,9 @@
       </div>
     </div>
 
+    <!-- Preview live del post -->
+    <div id="mc-live-preview" class="mc-preview-wrap" style="display:none;"></div>
+
     <!-- Preview de media -->
     <div id="mc-media-preview" class="mc-media-preview" style="display:none;"></div>
 
@@ -1512,11 +1515,16 @@ body.dark-mode .post-badge-privado { background: rgba(139,92,246,.2); color: #a7
   border: 1px solid var(--border, #e5e5e5);
   border-radius: 18px;
   width: 96%;
-  max-width: 620px;
-  max-height: 92vh;
-  display: flex;
-  flex-direction: column;
-  box-shadow: 0 24px 80px rgba(0,0,0,.28);
+  max-width: 900px;
+  height: 85vh;
+  max-height: 85vh;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  grid-template-columns: 60% 40%;
+  grid-template-areas:
+    "header header"
+    "post   comments";
+  box-shadow: 0 24px 80px rgba(0,0,0,.3);
   animation: pvScaleIn .24s cubic-bezier(.34,1.36,.64,1);
   overflow: hidden;
   position: relative;
@@ -1535,16 +1543,15 @@ body.dark-mode .post-badge-privado { background: rgba(139,92,246,.2); color: #a7
 
 /* Header fijo — estilo X/Threads */
 .pv-header {
+  grid-area: header;
   display: flex;
   align-items: center;
   gap: 14px;
-  padding: 13px 16px;
+  padding: 13px 18px;
   border-bottom: 1px solid var(--border, #e8e8e8);
-  flex-shrink: 0;
   background: var(--card, #fff);
-  position: sticky;
-  top: 0;
   z-index: 2;
+  flex-shrink: 0;
 }
 .pv-close {
   background: none;
@@ -1561,23 +1568,110 @@ body.dark-mode .post-badge-privado { background: rgba(139,92,246,.2); color: #a7
 .pv-close .material-symbols-outlined { font-size: 21px; }
 .pv-title { font-size: 16px; font-weight: 700; color: var(--text, #111); letter-spacing: -.01em; }
 
-/* Scroll area */
+/* Zona izquierda — POST */
 #pv-content {
+  grid-area: post;
   overflow-y: auto;
-  flex: 1;
-  padding: 0;
+  border-right: 1px solid var(--border, #eee);
+  display: flex;
+  flex-direction: column;
   overscroll-behavior: contain;
-  scroll-behavior: smooth;
 }
 #pv-content::-webkit-scrollbar { width: 4px; }
 #pv-content::-webkit-scrollbar-track { background: transparent; }
 #pv-content::-webkit-scrollbar-thumb { background: var(--border, #ddd); border-radius: 4px; }
+
+/* Zona derecha — COMENTARIOS (scroll independiente) */
+#pv-comments-panel {
+  grid-area: comments;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--bg, #fafafa);
+}
+.pv-comments-panel-header {
+  padding: 14px 18px 10px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text3, #888);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  border-bottom: 1px solid var(--border, #eee);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.pv-comments-panel-header .material-symbols-outlined { font-size: 16px; }
+#pv-comments-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px 16px;
+  overscroll-behavior: contain;
+}
+#pv-comments-scroll::-webkit-scrollbar { width: 4px; }
+#pv-comments-scroll::-webkit-scrollbar-track { background: transparent; }
+#pv-comments-scroll::-webkit-scrollbar-thumb { background: var(--border, #ddd); border-radius: 4px; }
+
+/* Input sticky — dentro del panel derecho */
+.pv-comment-form {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px 12px;
+  border-top: 1px solid var(--border, #eee);
+  background: var(--bg, #fafafa);
+}
+.pv-cinput-wrap {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  background: var(--card, #fff);
+  border: 1.5px solid var(--border, #e0e0e0);
+  border-radius: 24px;
+  padding: 0 14px;
+  transition: border-color .15s, box-shadow .15s;
+}
+.pv-cinput-wrap:focus-within {
+  border-color: var(--accent, #ff4d8d);
+  box-shadow: 0 0 0 3px rgba(255,77,141,.12);
+}
+.pv-comment-input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  padding: 9px 0;
+  font-size: 13.5px;
+  color: var(--text, #111);
+  outline: none;
+  min-width: 0;
+}
+.pv-comment-input::placeholder { color: var(--text3, #aaa); }
+.pv-comment-send {
+  background: var(--accent, #ff4d8d);
+  border: none; border-radius: 50%;
+  width: 36px; height: 36px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; color: #fff;
+  transition: opacity .15s, transform .15s;
+  flex-shrink: 0;
+}
+.pv-comment-send:hover { opacity: .88; transform: scale(1.06); }
+.pv-comment-send:active { transform: scale(.95); }
+.pv-comment-send .material-symbols-outlined { font-size: 17px; }
 
 /* Loading spinner */
 .pv-loading {
   text-align: center;
   color: var(--text3, #999);
   padding: 52px 20px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
 }
 .pv-loading .material-symbols-outlined {
   font-size: 30px; display: block;
@@ -1880,21 +1974,20 @@ body.dark-mode .post-badge-privado { background: rgba(139,92,246,.2); color: #a7
 .pv-comment-send:active { transform: scale(.95); }
 .pv-comment-send .material-symbols-outlined { font-size: 18px; }
 
-/* ── MOBILE FULL SCREEN ── */
-@media (max-width: 600px) {
-  #pv-overlay {
-    align-items: flex-end;
-  }
+/* ── MOBILE — bottom sheet, columna única ── */
+@media (max-width: 700px) {
+  #pv-overlay { align-items: flex-end; }
   #pv-box {
+    display: flex;
+    flex-direction: column;
     border-radius: 22px 22px 0 0;
+    height: 97vh;
     max-height: 97vh;
     width: 100%;
     max-width: 100%;
     animation: pvSlideUp .26s cubic-bezier(.34,1.1,.64,1);
   }
-  #pv-box.pv-closing {
-    animation: pvSlideDown .18s ease forwards;
-  }
+  #pv-box.pv-closing { animation: pvSlideDown .18s ease forwards; }
   @keyframes pvSlideUp {
     from { opacity: .5; transform: translateY(60px); }
     to   { opacity: 1; transform: translateY(0); }
@@ -1903,8 +1996,10 @@ body.dark-mode .post-badge-privado { background: rgba(139,92,246,.2); color: #a7
     from { opacity: 1; transform: translateY(0); }
     to   { opacity: 0; transform: translateY(60px); }
   }
+  #pv-content { border-right: none; border-bottom: 1px solid var(--border, #eee); flex: 0 0 auto; max-height: 45vh; }
+  #pv-comments-panel { flex: 1; background: var(--card, #fff); }
   .pv-texto { font-size: 15px; }
-  .pv-comment-form { padding: 10px 12px 14px; }
+  .pv-comment-form { padding: 10px 12px 12px; }
 }
 
 /* ── ACTIVITY MODAL ── */
@@ -2487,6 +2582,46 @@ body.dark-mode .post-badge-privado { background: rgba(139,92,246,.2); color: #a7
   from { opacity:0; transform:translateY(-18px) scale(.98); }
   to   { opacity:1; transform:translateY(0) scale(1); }
 }
+@keyframes mcOut {
+  from { opacity:1; transform:scale(1); }
+  to   { opacity:0; transform:scale(.96) translateY(-10px); }
+}
+.mc-box.mc-closing { animation: mcOut .18s ease forwards; }
+
+/* ── COMPOSER PREVIEW LIVE ── */
+.mc-preview-wrap {
+  margin: 0 16px 12px;
+  border: 1px solid var(--border, #eee);
+  border-radius: 14px;
+  overflow: hidden;
+  animation: pvCommentIn .2s ease;
+}
+.mc-preview-label {
+  font-size: 11px; font-weight: 700;
+  color: var(--text3, #aaa);
+  text-transform: uppercase; letter-spacing: .06em;
+  padding: 8px 14px 0;
+  display: flex; align-items: center; gap: 5px;
+}
+.mc-preview-label::before {
+  content: ''; width: 6px; height: 6px; border-radius: 50%;
+  background: #22c55e; display: inline-block;
+  animation: mcPulse 1.5s ease infinite;
+}
+@keyframes mcPulse { 0%,100% { opacity:1; } 50% { opacity:.4; } }
+.mc-preview-post { padding: 10px 14px 14px; display: flex; gap: 10px; }
+.mc-preview-av { width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0; overflow: hidden; }
+.mc-preview-av img { width: 100%; height: 100%; object-fit: cover; }
+.mc-preview-av-ph {
+  width: 36px; height: 36px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent, #ff4d8d), #f97316);
+  color: #fff; font-weight: 800; font-size: 14px;
+  display: flex; align-items: center; justify-content: center;
+}
+.mc-preview-body { flex: 1; min-width: 0; }
+.mc-preview-name { font-size: 13.5px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+.mc-preview-text { font-size: 14px; line-height: 1.65; color: var(--text); white-space: pre-wrap; word-break: break-word; }
+
 
 .mc-header {
   display: flex;
@@ -3679,7 +3814,7 @@ img.inline-emote:hover {
 <div id="pv-overlay" onclick="if(event.target===this)cerrarPostAnimado()">
   <div id="pv-box">
 
-    <!-- Header fijo estilo X/Threads -->
+    <!-- Header — span ambas columnas -->
     <div class="pv-header">
       <button class="pv-close" onclick="cerrarPostAnimado()" aria-label="Cerrar">
         <span class="material-symbols-outlined">arrow_back</span>
@@ -3687,11 +3822,34 @@ img.inline-emote:hover {
       <span class="pv-title">Publicación</span>
     </div>
 
-    <!-- Cuerpo con scroll interno -->
+    <!-- Panel izquierdo: POST (scroll independiente) -->
     <div id="pv-content">
       <div class="pv-loading">
         <span class="material-symbols-outlined">progress_activity</span>
         Cargando…
+      </div>
+    </div>
+
+    <!-- Panel derecho: COMENTARIOS (desktop) -->
+    <div id="pv-comments-panel" style="display:none;">
+      <div class="pv-comments-panel-header">
+        <span class="material-symbols-outlined">chat_bubble</span>
+        Comentarios
+        <span id="pv-panel-cmt-count" style="margin-left:4px;"></span>
+      </div>
+      <div id="pv-comments-scroll"></div>
+      <div class="pv-comment-form" id="pv-comment-form-panel" style="display:none;">
+        <div class="pv-cinput-wrap">
+          <input type="text" class="pv-comment-input" id="pv-cinput"
+            placeholder="Escribe un comentario…">
+        </div>
+        <button type="button" class="btn-emote-cmt" title="Emotes"
+          onclick="abrirEmotePicker(document.getElementById('pv-cinput'))">
+          <span class="material-symbols-outlined">emoji_emotions</span>
+        </button>
+        <button class="pv-comment-send" id="pv-comment-send-btn" aria-label="Enviar">
+          <span class="material-symbols-outlined">arrow_upward</span>
+        </button>
       </div>
     </div>
 
@@ -4161,6 +4319,8 @@ function mcInsertAtCaret(text){
 
 function abrirComposer(modo){
   const overlay = document.getElementById('modal-composer');
+  const box     = overlay.querySelector('.mc-box');
+  if (box) box.classList.remove('mc-closing');
   overlay.style.display = 'flex';
 
   // Copiar avatar
@@ -4189,6 +4349,9 @@ function abrirComposer(modo){
   _menciones = [];
   _gifFile = null;
   _mediaFiles = [];
+  // Reset preview live
+  const lp = document.getElementById('mc-live-preview');
+  if (lp) { lp.style.display = 'none'; lp.innerHTML = ''; }
   actualizarPublicarBtn();
 
   setTimeout(()=>{
@@ -4241,8 +4404,19 @@ function abrirComposer(modo){
 }
 
 function cerrarComposer(){
-  document.getElementById('modal-composer').style.display = 'none';
-  setVisibilidad('general');
+  const overlay = document.getElementById('modal-composer');
+  const box     = overlay.querySelector('.mc-box');
+  if (box) {
+    box.classList.add('mc-closing');
+    setTimeout(() => {
+      overlay.style.display = 'none';
+      box.classList.remove('mc-closing');
+      setVisibilidad('general');
+    }, 190);
+  } else {
+    overlay.style.display = 'none';
+    setVisibilidad('general');
+  }
 }
 
 function onComposerInput(){
@@ -4255,6 +4429,29 @@ function onComposerInput(){
   actualizarPublicarBtn();
   const ta = document.getElementById('mc-texto');
   gestionarMenciones(ta);
+  _mcUpdatePreview();
+}
+
+function _mcUpdatePreview() {
+  const lp = document.getElementById('mc-live-preview');
+  if (!lp) return;
+  const texto = mcGetText().trim();
+  if (!texto) { lp.style.display = 'none'; return; }
+  const avOrig = document.querySelector('#mc-av-slot img');
+  const avHtml = avOrig
+    ? `<div class="mc-preview-av"><img src="${avOrig.src}" alt=""></div>`
+    : `<div class="mc-preview-av"><div class="mc-preview-av-ph">?</div></div>`;
+  const nombre = document.querySelector('.compose-nombre, .post-autor, .feed-user-name')?.textContent?.trim() || 'Tú';
+  lp.innerHTML = `
+    <div class="mc-preview-label">Vista previa en vivo</div>
+    <div class="mc-preview-post">
+      ${avHtml}
+      <div class="mc-preview-body">
+        <div class="mc-preview-name">${escHTML(nombre)}</div>
+        <div class="mc-preview-text">${escHTML(texto)}</div>
+      </div>
+    </div>`;
+  lp.style.display = '';
 }
 
 function actualizarPublicarBtn(){
@@ -4675,6 +4872,9 @@ async function submitComposer(){
     const data = await res.json();
     if(data.ok){
       _mediaFiles = []; _gifFile = null;
+      // Reset preview live
+      const lp = document.getElementById('mc-live-preview');
+      if (lp) { lp.style.display = 'none'; lp.innerHTML = ''; }
       cerrarComposer();
       const feed = document.getElementById('feed-posts');
       if(feed && data.html){
@@ -4682,15 +4882,17 @@ async function submitComposer(){
         div.innerHTML=data.html;
         const el = div.firstElementChild;
         el.style.opacity='0';
-        el.style.transform='translateY(-10px)';
+        el.style.transform='translateY(-16px) scale(.98)';
         feed.prepend(el);
         requestAnimationFrame(()=>{
-          el.style.transition='opacity .35s ease, transform .35s ease';
+          el.style.transition='opacity .38s ease, transform .38s cubic-bezier(.34,1.2,.64,1)';
           el.style.opacity='1';
-          el.style.transform='translateY(0)';
+          el.style.transform='translateY(0) scale(1)';
         });
         // Init carousel en el nuevo post
         el.querySelectorAll('.post-carousel').forEach(attachCarousel);
+        // Scroll suave al nuevo post
+        setTimeout(()=>{ el.scrollIntoView({ behavior:'smooth', block:'nearest' }); }, 260);
       }
       mostrarToast('✅ ¡Publicado!');
     } else { mostrarToast('Error al publicar','err'); }
@@ -5028,6 +5230,8 @@ async function abrirPost(postId) {
 }
 
 function cerrarPost() {
+  const panel = document.getElementById('pv-comments-panel');
+  if (panel) panel.style.display = 'none';
   document.getElementById('pv-overlay').classList.remove('visible');
   document.body.style.overflow = '';
   _pvPostId = null;
@@ -5041,6 +5245,8 @@ function cerrarPostAnimado() {
   setTimeout(() => {
     overlay.classList.remove('visible', 'pv-closing');
     box.classList.remove('pv-closing');
+    const panel = document.getElementById('pv-comments-panel');
+    if (panel) panel.style.display = 'none';
     document.body.style.overflow = '';
     _pvPostId = null;
   }, 190);
@@ -5049,12 +5255,10 @@ function cerrarPostAnimado() {
 function _renderPostModal(p) {
   const content = document.getElementById('pv-content');
 
-  // Avatar
   const avHtml = p.foto
     ? `<img src="${escHTML(p.foto)}" class="pv-av" alt="${escHTML(p.nombre)}" loading="lazy">`
     : `<div class="pv-av-placeholder">${escHTML((p.nombre||'U')[0].toUpperCase())}</div>`;
 
-  // Media
   let mediaHtml = '';
   if (p.media) {
     if (p.media_tipo === 'multi') {
@@ -5070,43 +5274,13 @@ function _renderPostModal(p) {
     }
   }
 
-  // Badges
   const privBadge = p.visibilidad === 'privada'
     ? '<span class="pv-badge-privado">Solo miembros</span>' : '';
-
-  // Clases de estado
-  const likedClass = p.liked     ? 'pv-liked' : '';
+  const likedClass = p.liked      ? 'pv-liked' : '';
   const savedClass = p.bookmarked ? 'pv-saved' : '';
+  const numCmts    = p.comentarios ? p.comentarios.length : 0;
 
-  // Comentarios — nuevo layout flat (sin bubble)
-  const numCmts = p.comentarios ? p.comentarios.length : 0;
-  let cmtsHtml = '';
-  if (p.comentarios && p.comentarios.length) {
-    cmtsHtml = p.comentarios.map(c => {
-      const cAv = c.foto
-        ? `<img src="${escHTML(c.foto)}" class="pv-comment-av" alt="${escHTML(c.nombre)}" loading="lazy">`
-        : `<div class="pv-comment-av-placeholder">${escHTML((c.nombre||'?')[0].toUpperCase())}</div>`;
-      const fechaCorta = (c.fecha||'').slice(0,10);
-      return `
-        <div class="pv-comment-row">
-          ${cAv}
-          <div class="pv-comment-body">
-            <div class="pv-comment-meta">
-              <span class="pv-comment-author">${escHTML(c.nombre)}</span>
-              <span class="pv-comment-date">${fechaCorta}</span>
-            </div>
-            <span class="pv-comment-text">${escHTML(c.texto)}</span>
-          </div>
-        </div>`;
-    }).join('');
-  } else {
-    cmtsHtml = `
-      <p class="pv-no-comments">
-        <span class="material-symbols-outlined">chat_bubble</span>
-        Sin comentarios aún. Sé el primero.
-      </p>`;
-  }
-
+  // ── Panel izquierdo: post ──
   content.innerHTML = `
     <div class="pv-post">
       <div class="pv-post-header">
@@ -5144,38 +5318,69 @@ function _renderPostModal(p) {
           <span class="material-symbols-outlined">bookmark</span>
         </button>
       </div>
-    </div>
-
-    <div class="pv-divider">Comentarios</div>
-
-    <div class="pv-comments-section">
-      <div id="pv-comments-list">${cmtsHtml}</div>
     </div>`;
 
-  // Input sticky — limpiar anterior
-  const oldForm = document.getElementById('pv-comment-form');
-  if (oldForm) oldForm.remove();
-  document.getElementById('pv-box').insertAdjacentHTML('beforeend', `
-    <div class="pv-comment-form" id="pv-comment-form">
-      <div class="pv-cinput-wrap">
-        <input type="text" class="pv-comment-input" id="pv-cinput"
-          placeholder="Escribe un comentario…"
-          onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();pvEnviarComentario(${p.id});}">
-      </div>
-      <button type="button" class="btn-emote-cmt" title="Emotes"
-       onclick="abrirEmotePicker(document.getElementById('pv-cinput'))"><span class="material-symbols-outlined">emoji_emotions</span></button>
-      <button class="pv-comment-send" onclick="pvEnviarComentario(${p.id})" aria-label="Enviar">
-        <span class="material-symbols-outlined">arrow_upward</span>
-      </button>
-    </div>`);
+  // ── Panel derecho: comentarios ──
+  _pvRenderComments(p.comentarios || [], p.id);
 
-  // Renderizar emotes en el modal recién pintado
+  // Mostrar panel
+  const panel = document.getElementById('pv-comments-panel');
+  if (panel) panel.style.display = 'flex';
+
+  const panelCnt = document.getElementById('pv-panel-cmt-count');
+  if (panelCnt) panelCnt.textContent = numCmts ? `(${numCmts})` : '';
+
+  // Renderizar emotes en el modal si existe el renderer
   if (window._emoteRenderer) window._emoteRenderer.renderEmotesInModal();
+}
+
+function _pvRenderComments(comentarios, postId) {
+  const scroll = document.getElementById('pv-comments-scroll');
+  if (!scroll) return;
+
+  let cmtsHtml = '';
+  if (comentarios.length) {
+    cmtsHtml = comentarios.map(c => {
+      const cAv = c.foto
+        ? `<img src="${escHTML(c.foto)}" class="pv-comment-av" alt="${escHTML(c.nombre)}" loading="lazy">`
+        : `<div class="pv-comment-av-placeholder">${escHTML((c.nombre||'?')[0].toUpperCase())}</div>`;
+      return `
+        <div class="pv-comment-row">
+          ${cAv}
+          <div class="pv-comment-body">
+            <div class="pv-comment-meta">
+              <span class="pv-comment-author">${escHTML(c.nombre)}</span>
+              <span class="pv-comment-date">${(c.fecha||'').slice(0,10)}</span>
+            </div>
+            <span class="pv-comment-text">${escHTML(c.texto)}</span>
+          </div>
+        </div>`;
+    }).join('');
+  } else {
+    cmtsHtml = `
+      <p class="pv-no-comments">
+        <span class="material-symbols-outlined">chat_bubble</span>
+        Sin comentarios aún.<br>Sé el primero.
+      </p>`;
+  }
+  scroll.innerHTML = cmtsHtml;
+
+  // Activar form y asignar handlers sin duplicar
+  const form    = document.getElementById('pv-comment-form-panel');
+  const sendBtn = document.getElementById('pv-comment-send-btn');
+  const input   = document.getElementById('pv-cinput');
+  if (form)    form.style.display = 'flex';
+  if (sendBtn) sendBtn.onclick = () => pvEnviarComentario(postId);
+  if (input) {
+    input.onkeydown = (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); pvEnviarComentario(postId); }
+    };
+  }
 }
 
 function pvFocoComentario() {
   const inp = document.getElementById('pv-cinput');
-  if (inp) inp.focus();
+  if (inp) { inp.focus(); inp.scrollIntoView({ behavior: 'smooth', block: 'end' }); }
 }
 
 async function pvLike(postId) {
@@ -5250,10 +5455,10 @@ async function pvEnviarComentario(postId) {
     const data = await res.json();
     if (data.ok) {
       input.value = '';
-      // Agregar comentario en el modal con animación
-      const list = document.getElementById('pv-comments-list');
-      if (list) {
-        const noMsg = list.querySelector('.pv-no-comments');
+      // Agregar al panel de comentarios (derecho / mobile)
+      const scroll = document.getElementById('pv-comments-scroll');
+      if (scroll) {
+        const noMsg = scroll.querySelector('.pv-no-comments');
         if (noMsg) noMsg.remove();
         const row = document.createElement('div');
         row.className = 'pv-comment-row';
@@ -5266,26 +5471,25 @@ async function pvEnviarComentario(postId) {
             </div>
             <span class="pv-comment-text">${escHTML(data.texto)}</span>
           </div>`;
-        list.appendChild(row);
-        // Renderizar emotes en el nuevo comentario del modal
+        scroll.appendChild(row);
+        // Renderizar emotes en el nuevo comentario
         if (window._emoteRenderer) {
           row.querySelectorAll('.pv-comment-text').forEach(el => window._emoteRenderer.renderEmoteNode(el));
         }
         // Scroll suave al nuevo comentario
-        const pvContent = document.getElementById('pv-content');
-        if (pvContent) {
-          const isNearBottom = pvContent.scrollHeight - pvContent.scrollTop - pvContent.clientHeight < 120;
-          if (isNearBottom) {
-            setTimeout(() => row.scrollIntoView({ behavior: 'smooth', block: 'end' }), 60);
-          }
-        }
+        setTimeout(() => row.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 60);
       }
       // Incrementar contadores
-      const pvCnt = document.getElementById('pv-cmt-count');
-      if (pvCnt) pvCnt.textContent = parseInt(pvCnt.textContent||0)+1;
-      const pvCntStat = document.getElementById('pv-cmt-count-stat');
-      if (pvCntStat) pvCntStat.textContent = parseInt(pvCntStat.textContent||0)+1;
-      // Incrementar contador en el feed
+      ['pv-cmt-count','pv-cmt-count-stat'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = parseInt(el.textContent||0)+1;
+      });
+      const panelCnt = document.getElementById('pv-panel-cmt-count');
+      if (panelCnt) {
+        const n = parseInt((panelCnt.textContent.replace(/\D/g,''))||0)+1;
+        panelCnt.textContent = `(${n})`;
+      }
+      // Sincronizar contador en el feed
       const feedCnt = document.getElementById('cmt-count-' + postId);
       if (feedCnt) feedCnt.textContent = parseInt(feedCnt.textContent||0)+1;
     } else { mostrarToast('Error al comentar','err'); }
@@ -5298,6 +5502,7 @@ async function pvEnviarComentario(postId) {
 document.addEventListener('keydown', function(e) {
   if (e.key === 'Escape') {
     cerrarPostAnimado();
+    cerrarComposer();
     cerrarMenuPost();
     cerrarActividadModal({ target: document.getElementById('pm-activity-modal') });
   }
