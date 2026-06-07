@@ -1,98 +1,157 @@
 /**
- * emote-api.js  — v3 (Parte 3: Production Ready)
- * Búsqueda 7TV con caché, sanitización y control de calidad.
+ * emote-api.js — v4 (7TV GraphQL + Fallback inteligente + Cache pro)
+ *
+ * CAMBIOS v4:
+ *  • Usa 7TV GraphQL (https://7tv.io/v3/gql) — API estable, sin CORS
+ *  • Cache de 10 min con TTL real
+ *  • Fallback silencioso: nunca lanza errores al caller
+ *  • AbortSignal.timeout() para timeouts automáticos
+ *  • resolveEmoteUrl también usa GQL
+ *  • searchEmotesGQL exportada para uso interno
  */
 
-const API_BASE      = "https://7tv.io/v3/emotes";
-const EMOTE_QUALITY = "2x";               // 1x=móvil lento | 2x=✅ PROD | 3x=desktop premium
+const GQL_URL       = "https://7tv.io/v3/gql";
+const CDN_BASE      = "https://cdn.7tv.app/emote";
+const EMOTE_QUALITY = "2x";
+const CACHE_TTL_MS  = 10 * 60 * 1000; // 10 minutos
 
-/** Caché de búsquedas (query → array de emotes) */
-const searchCache = new Map();
+// ─── Cache con TTL ────────────────────────────────────────────────────────────
 
-/** Caché global de URLs resueltas (nombre_lower → url | null) */
-export const globalEmoteCache = new Map();
+const _searchCache = new Map(); // query → { data, time }
 
-/** Set de nombres usados recientemente para prefetch */
+function _cacheGet(key) {
+  const entry = _searchCache.get(key);
+  if (!entry) return null;
+  if (Date.now() - entry.time > CACHE_TTL_MS) {
+    _searchCache.delete(key);
+    return null;
+  }
+  return entry.data;
+}
+
+function _cacheSet(key, data) {
+  _searchCache.set(key, { data, time: Date.now() });
+}
+
+// ─── Cache global de URLs por nombre (compartido con picker y renderer) ───────
+
+export const globalEmoteCache = new Map(); // name_lower → url | null
+
+// ─── Set de nombres populares (para prefetch) ─────────────────────────────────
+
 const popularEmotes = new Set();
 
-/** Construye la URL CDN de un emote dado su id */
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
 export function emoteUrl(id) {
-  return `https://cdn.7tv.app/emote/${id}/${EMOTE_QUALITY}.webp`;
+  return `${CDN_BASE}/${id}/${EMOTE_QUALITY}.webp`;
 }
 
-/**
- * Sanitiza el nombre de un emote: sólo alfanumérico + _ (sin XSS posible).
- */
 export function sanitizeEmoteName(name) {
-  return name.replace(/[^a-zA-Z0-9_\-]/g, "");
+  return String(name).replace(/[^a-zA-Z0-9_\-]/g, "").slice(0, 40);
 }
 
+// ─── GQL query ───────────────────────────────────────────────────────────────
+
+async function _gqlSearch(query, limit = 20, signal) {
+  const body = JSON.stringify({
+    query: `
+      query SearchEmotes($query: String!, $limit: Int!) {
+        emotes(query: $query, limit: $limit) {
+          items {
+            id
+            name
+            animated
+          }
+        }
+      }
+    `,
+    variables: { query, limit },
+  });
+
+  const res = await fetch(GQL_URL, {
+    method:  "POST",
+    headers: { "Content-Type": "application/json" },
+    body,
+    signal: signal ?? AbortSignal.timeout(6000),
+  });
+
+  if (!res.ok) throw new Error(`GQL HTTP ${res.status}`);
+
+  const json = await res.json();
+  return json?.data?.emotes?.items ?? [];
+}
+
+// ─── searchEmotes — principal export ─────────────────────────────────────────
+
 /**
- * Busca emotes en la API de 7TV con caché.
+ * Busca emotes en 7TV.
+ * NUNCA lanza error: si falla la API devuelve [] silenciosamente.
+ *
  * @param {string} query
- * @param {AbortSignal} signal
- * @returns {Promise<Array<{id,name,url,animated}>>}
+ * @param {AbortSignal} [signal]
+ * @returns {Promise<Array<{id, name, url, animated}>>}
  */
 export async function searchEmotes(query, signal) {
-  if (!query || query.length < 2) return [];
+  if (!query || query.trim().length < 2) return [];
 
   const key = query.toLowerCase().trim();
-  if (searchCache.has(key)) return searchCache.get(key);
+
+  // 1. Cache hit
+  const cached = _cacheGet(key);
+  if (cached) return cached;
 
   try {
-    const res = await fetch(
-      `${API_BASE}?query=${encodeURIComponent(key)}&limit=50`,
-      { signal }
-    );
-    if (!res.ok) throw new Error(`7TV API ${res.status}`);
+    const items = await _gqlSearch(key, 30, signal);
 
-    const data = await res.json();
-    const raw  = Array.isArray(data) ? data : (data.items || []);
-
-    const emotes = raw.slice(0, 50).map(e => ({
+    const emotes = items.map(e => ({
       id:       e.id,
       name:     e.name,
       url:      emoteUrl(e.id),
-      animated: e.animated || false,
+      animated: e.animated ?? false,
     }));
 
-    searchCache.set(key, emotes);
+    // Guardar en cache
+    _cacheSet(key, emotes);
 
-    // Registrar en caché global para que el renderer los encuentre sin re-fetch
+    // Warm-up globalEmoteCache
     emotes.forEach(e => globalEmoteCache.set(e.name.toLowerCase(), e.url));
 
     return emotes;
+
   } catch (err) {
-    if (err.name === "AbortError") return [];
-    console.warn("[7TV] searchEmotes error:", err.message);
-    throw err;
+    if (err?.name === "AbortError") return [];
+
+    // API caída: devolver cache expirado si existe, o []
+    console.warn("[7TV] searchEmotes falló, modo fallback silencioso:", err.message);
+    const stale = _searchCache.get(key);
+    return stale ? stale.data : [];
   }
 }
 
+// ─── resolveEmoteUrl — para el renderer ──────────────────────────────────────
+
 /**
  * Resuelve la URL de un emote por nombre exacto.
- * Primero revisa globalEmoteCache, luego consulta la API.
+ * Usa globalEmoteCache primero, luego GQL.
+ * Nunca lanza error.
+ *
+ * @param {string} rawName
  * @returns {Promise<string|null>}
  */
 export async function resolveEmoteUrl(rawName) {
   const name = sanitizeEmoteName(rawName);
   const key  = name.toLowerCase();
 
+  // Cache hit
   if (globalEmoteCache.has(key)) return globalEmoteCache.get(key);
 
   try {
-    const res = await fetch(
-      `${API_BASE}?query=${encodeURIComponent(name)}&limit=5`,
-      { signal: AbortSignal.timeout(5000) }
-    );
-    if (!res.ok) { globalEmoteCache.set(key, null); return null; }
-
-    const data = await res.json();
-    const raw  = Array.isArray(data) ? data : (data.items || []);
+    const items = await _gqlSearch(name, 5, AbortSignal.timeout(5000));
 
     // Coincidencia exacta primero
-    const exact = raw.find(e => e.name.toLowerCase() === key);
-    const hit   = exact || raw[0];
+    const exact = items.find(e => e.name.toLowerCase() === key);
+    const hit   = exact || items[0];
 
     const url = hit ? emoteUrl(hit.id) : null;
     globalEmoteCache.set(key, url);
@@ -105,34 +164,30 @@ export async function resolveEmoteUrl(rawName) {
   }
 }
 
-/**
- * Registra que un emote fue usado (para prefetch futuro).
- */
+// ─── Registro de uso ─────────────────────────────────────────────────────────
+
 export function registerEmoteUsage(name, url) {
   const key = sanitizeEmoteName(name).toLowerCase();
   if (url) globalEmoteCache.set(key, url);
   popularEmotes.add(name);
 }
 
-/**
- * Prefetch de los emotes más populares (warm-up de caché).
- * Llamar al cargar la página o cuando el usuario abre el picker.
- */
+// ─── Prefetch de populares ────────────────────────────────────────────────────
+
 export async function prefetchPopularEmotes() {
-  const list = Array.from(popularEmotes).slice(0, 30);
+  const list = Array.from(popularEmotes).slice(0, 20);
   for (const name of list) {
     const key = name.toLowerCase();
     if (globalEmoteCache.has(key)) continue;
-    // Fire-and-forget, no bloquear
     resolveEmoteUrl(name).catch(() => {});
-    // Pequeño yield para no saturar el browser
-    await new Promise(r => setTimeout(r, 80));
+    await new Promise(r => setTimeout(r, 100));
   }
 }
 
-/** Limpia ambas cachés (útil en tests o refresh manual). */
+// ─── Limpieza ─────────────────────────────────────────────────────────────────
+
 export function clearAllCaches() {
-  searchCache.clear();
+  _searchCache.clear();
   globalEmoteCache.clear();
   popularEmotes.clear();
 }
