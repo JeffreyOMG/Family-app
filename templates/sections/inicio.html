@@ -1619,12 +1619,81 @@ body.dark-mode .post-badge-privado { background: rgba(139,92,246,.2); color: #a7
 .pv-comment-form {
   flex-shrink: 0;
   display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 14px 12px;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 12px 12px;
   border-top: 1px solid var(--border, #eee);
   background: var(--bg, #fafafa);
 }
+
+/* Fila de iconos de acción */
+.pv-cmt-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 0 0;
+}
+
+/* Fila input + enviar */
+.pv-cinput-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Preview media adjunta */
+.pv-media-preview {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 4px 0;
+}
+.pv-media-preview img,
+.pv-media-preview video {
+  max-height: 80px;
+  max-width: 120px;
+  border-radius: 8px;
+  object-fit: cover;
+  border: 1px solid var(--border);
+}
+
+/* Paneles auxiliares (emoji / gif) dentro del modal */
+.pv-aux-panel {
+  flex-shrink: 0;
+  border-top: 1px solid var(--border, #eee);
+  background: var(--card, #fff);
+  max-height: 180px;
+  overflow-y: auto;
+  padding: 8px 12px;
+}
+.pv-emoji-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.pv-emoji-grid span {
+  font-size: 22px;
+  cursor: pointer;
+  padding: 3px 5px;
+  border-radius: 6px;
+  transition: background .1s;
+  line-height: 1;
+}
+.pv-emoji-grid span:hover { background: var(--bg2); }
+.pv-gif-panel { padding: 10px 12px; }
+.pv-gif-header {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 13px; font-weight: 600; color: var(--text2);
+  margin-bottom: 8px;
+}
+.pv-gif-label {
+  display: flex; align-items: center; gap: 8px;
+  border: 2px dashed var(--border); border-radius: 10px;
+  padding: 10px 14px; cursor: pointer; color: var(--text2);
+  font-size: 13px; transition: border-color .15s;
+}
+.pv-gif-label:hover { border-color: var(--accent); }
+
 .pv-cinput-wrap {
   flex: 1;
   display: flex;
@@ -1998,10 +2067,16 @@ body.dark-mode .post-badge-privado { background: rgba(139,92,246,.2); color: #a7
     from { opacity: 1; transform: translateY(0); }
     to   { opacity: 0; transform: translateY(60px); }
   }
-  #pv-content { border-right: none; border-bottom: 1px solid var(--border, #eee); flex: 0 0 auto; max-height: 45vh; }
-  #pv-comments-panel { flex: 1; background: var(--card, #fff); }
+  #pv-content { border-right: none; border-bottom: 1px solid var(--border, #eee); flex: 0 0 auto; max-height: 42vh; overflow-y: auto; }
+  #pv-comments-panel { flex: 1; background: var(--card, #fff); display: flex; flex-direction: column; min-height: 0; }
+  #pv-comments-scroll { flex: 1; overflow-y: auto; }
   .pv-texto { font-size: 15px; }
-  .pv-comment-form { padding: 10px 12px 12px; }
+  /* Botones de acción del comentario en mobile: scroll horizontal si hace falta */
+  .pv-cmt-actions { overflow-x: auto; gap: 0; }
+  .pv-comment-form { padding: 6px 8px 10px; gap: 4px; }
+  .pv-cinput-row { gap: 8px; }
+  /* Paneles aux en mobile: más compactos */
+  .pv-aux-panel { max-height: 140px; }
 }
 
 /* ── ACTIVITY MODAL ── */
@@ -3834,7 +3909,7 @@ img.inline-emote:hover {
       </div>
     </div>
 
-    <!-- Panel derecho: COMENTARIOS (desktop) -->
+    <!-- Panel derecho: COMENTARIOS (desktop) / área de comentarios (mobile) -->
     <div id="pv-comments-panel" style="display:none;">
       <div class="pv-comments-panel-header">
         <span class="material-symbols-outlined">chat_bubble</span>
@@ -3842,18 +3917,58 @@ img.inline-emote:hover {
         <span id="pv-panel-cmt-count" style="margin-left:4px;"></span>
       </div>
       <div id="pv-comments-scroll"></div>
-      <div class="pv-comment-form" id="pv-comment-form-panel" style="display:none;">
-        <div class="pv-cinput-wrap">
-          <input type="text" class="pv-comment-input" id="pv-cinput"
-            placeholder="Escribe un comentario…">
+
+      <!-- Paneles auxiliares: emoji y gif (ocultos por defecto) -->
+      <div id="pv-emoji-panel" class="pv-aux-panel" style="display:none;">
+        <div class="pv-emoji-grid" id="pv-emoji-grid"></div>
+      </div>
+      <div id="pv-gif-panel" class="pv-aux-panel pv-gif-panel" style="display:none;">
+        <div class="pv-gif-header">
+          <span class="material-symbols-outlined">gif_box</span>
+          <span>Subir GIF</span>
         </div>
-        <button type="button" class="btn-emote-cmt" title="Emotes"
-          onclick="abrirEmotePicker(document.getElementById('pv-cinput'))">
-          <span class="material-symbols-outlined">emoji_emotions</span>
-        </button>
-        <button class="pv-comment-send" id="pv-comment-send-btn" aria-label="Enviar">
-          <span class="material-symbols-outlined">arrow_upward</span>
-        </button>
+        <label class="pv-gif-label">
+          <span class="material-symbols-outlined">upload_file</span>
+          <span>Seleccionar GIF</span>
+          <input type="file" id="pv-gif-input" accept=".gif,image/gif" style="display:none" onchange="pvSubirGif(this)">
+        </label>
+      </div>
+
+      <div class="pv-comment-form" id="pv-comment-form-panel" style="display:none;">
+        <!-- Fila de acciones (mismos iconos que el composer) -->
+        <div class="pv-cmt-actions">
+          <label class="mc-act-btn" title="Foto o video">
+            <span class="material-symbols-outlined">photo_camera</span>
+            <input type="file" id="pv-file-input" accept="image/*,video/*" style="display:none" onchange="pvPreviewMedia(this)">
+          </label>
+          <button type="button" class="mc-act-btn" title="GIF" onclick="pvTogglePanel('gif')">
+            <span class="mc-gif-label-txt">GIF</span>
+          </button>
+          <button type="button" class="mc-act-btn" title="Emoji" onclick="pvTogglePanel('emoji')">
+            <span class="material-symbols-outlined">sentiment_satisfied</span>
+          </button>
+          <button type="button" class="mc-act-btn" title="Emotes estrella" id="pv-btn-emotes"
+            onclick="abrirEmotePicker(document.getElementById('pv-cinput'))">
+            <i class="fa-regular fa-star" style="font-size:14px;"></i>
+          </button>
+          <button type="button" class="mc-act-btn" title="Etiquetar miembro" onclick="pvInsertarArroba()">
+            <span class="material-symbols-outlined">alternate_email</span>
+          </button>
+        </div>
+
+        <!-- Preview de media adjunta -->
+        <div id="pv-media-preview" class="pv-media-preview" style="display:none;"></div>
+
+        <!-- Input + enviar -->
+        <div class="pv-cinput-row">
+          <div class="pv-cinput-wrap">
+            <input type="text" class="pv-comment-input" id="pv-cinput"
+              placeholder="Escribe un comentario…">
+          </div>
+          <button class="pv-comment-send" id="pv-comment-send-btn" aria-label="Enviar">
+            <span class="material-symbols-outlined">arrow_upward</span>
+          </button>
+        </div>
       </div>
     </div>
 
@@ -3981,18 +4096,8 @@ function updateBottomNav(el){
 
 /* ── COMENTARIOS ── */
 function abrirComentarios(id){
-  // DESKTOP: abrir modal del post y enfocar comentarios
-  if (window.innerWidth > 700) {
-    abrirPost(id, true); // true = foco en comentarios
-    return;
-  }
-  // MOBILE: comportamiento original (inline toggle)
-  const sec = document.getElementById('comentarios-'+id);
-  if(!sec) return;
-  sec.classList.toggle('open');
-  if(sec.classList.contains('open')){
-    setTimeout(()=>{ sec.querySelector('.comment-input')?.focus(); }, 50);
-  }
+  // Siempre abre el modal completo (mobile: bottom sheet / desktop: modal centrado)
+  abrirPost(id, true); // true = scroll + foco en comentarios
 }
 
 async function enviarComentario(postId, input){
@@ -5457,6 +5562,83 @@ function pvFocoComentario() {
   if (inp) { inp.focus(); inp.scrollIntoView({ behavior: 'smooth', block: 'end' }); }
 }
 
+/* ── Acciones del form de comentario en el modal ── */
+
+let _pvMediaAdjunta = null; // {file, tipo}
+
+function pvTogglePanel(tipo) {
+  const emojiP = document.getElementById('pv-emoji-panel');
+  const gifP   = document.getElementById('pv-gif-panel');
+  if (tipo === 'emoji') {
+    const open = emojiP.style.display !== 'none';
+    emojiP.style.display = open ? 'none' : 'block';
+    gifP.style.display = 'none';
+    if (!open) _pvInitEmojis();
+  } else if (tipo === 'gif') {
+    const open = gifP.style.display !== 'none';
+    gifP.style.display = open ? 'none' : 'block';
+    emojiP.style.display = 'none';
+  }
+}
+
+function _pvInitEmojis() {
+  const grid = document.getElementById('pv-emoji-grid');
+  if (!grid || grid.children.length) return;
+  const emojis = ['😀','😂','🥰','😍','🤩','😎','🥳','😅','🤣','😊','❤️','🔥','👏','🎉','💯','✨','😭','😤','🙌','💪','🎊','😋','🤔','👍','🙏'];
+  grid.innerHTML = emojis.map(e =>
+    `<span onclick="pvInsertEmoji('${e}')" title="${e}">${e}</span>`
+  ).join('');
+}
+
+function pvInsertEmoji(emoji) {
+  const inp = document.getElementById('pv-cinput');
+  if (!inp) return;
+  const s = inp.selectionStart, e = inp.selectionEnd;
+  inp.value = inp.value.slice(0, s) + emoji + inp.value.slice(e);
+  inp.selectionStart = inp.selectionEnd = s + emoji.length;
+  inp.focus();
+  document.getElementById('pv-emoji-panel').style.display = 'none';
+}
+
+function pvInsertarArroba() {
+  const inp = document.getElementById('pv-cinput');
+  if (!inp) return;
+  const s = inp.selectionStart;
+  inp.value = inp.value.slice(0, s) + '@' + inp.value.slice(s);
+  inp.selectionStart = inp.selectionEnd = s + 1;
+  inp.focus();
+}
+
+function pvPreviewMedia(fileInput) {
+  const file = fileInput?.files?.[0];
+  if (!file) return;
+  _pvMediaAdjunta = file;
+  const prev = document.getElementById('pv-media-preview');
+  if (!prev) return;
+  const url = URL.createObjectURL(file);
+  const isVideo = file.type.startsWith('video');
+  prev.innerHTML = isVideo
+    ? `<video src="${url}" style="max-height:80px;max-width:120px;border-radius:8px;"></video>
+       <button onclick="pvQuitarMedia()" style="background:rgba(0,0,0,.5);border:none;border-radius:50%;width:22px;height:22px;color:#fff;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;position:relative;top:-4px;left:-8px;">✕</button>`
+    : `<img src="${url}" style="max-height:80px;max-width:120px;border-radius:8px;object-fit:cover;">
+       <button onclick="pvQuitarMedia()" style="background:rgba(0,0,0,.5);border:none;border-radius:50%;width:22px;height:22px;color:#fff;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;position:relative;top:-4px;left:-8px;">✕</button>`;
+  prev.style.display = 'flex';
+  prev.style.alignItems = 'center';
+}
+
+function pvQuitarMedia() {
+  _pvMediaAdjunta = null;
+  const prev = document.getElementById('pv-media-preview');
+  if (prev) { prev.innerHTML = ''; prev.style.display = 'none'; }
+  const fi = document.getElementById('pv-file-input');
+  if (fi) fi.value = '';
+}
+
+function pvSubirGif(fileInput) {
+  pvPreviewMedia(fileInput);
+  document.getElementById('pv-gif-panel').style.display = 'none';
+}
+
 async function pvLike(postId) {
   try {
     const res  = await fetch('/like/' + postId, { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' } });
@@ -5570,6 +5752,12 @@ async function pvEnviarComentario(postId) {
   } catch(e) { mostrarToast('Error de red','err'); }
   input.disabled = false;
   input.focus();
+  // Limpiar media adjunta y paneles auxiliares
+  pvQuitarMedia();
+  ['pv-emoji-panel','pv-gif-panel'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = 'none';
+  });
 }
 
 // Cerrar con Escape
