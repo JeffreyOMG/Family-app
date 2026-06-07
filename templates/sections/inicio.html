@@ -1201,20 +1201,38 @@ body.dark-mode .post-badge-privado { background: rgba(139,92,246,.2); color: #a7
 
 /* 3-dot options button */
 .post-options-btn {
+  -webkit-appearance: none;
+  appearance: none;
   background: transparent;
   border: none;
+  outline: none;
   color: var(--text3);
   cursor: pointer;
-  padding: 5px;
+  padding: 6px;
   border-radius: 50%;
   display: flex;
   align-items: center;
+  justify-content: center;
   margin-left: auto;
   flex-shrink: 0;
+  width: 32px;
+  height: 32px;
   transition: background .15s, color .15s;
+  box-shadow: none;
 }
 .post-options-btn:hover { background: var(--bg2); color: var(--text); }
-.post-options-btn .material-symbols-outlined { font-size: 18px; }
+.post-options-btn:focus { outline: none; box-shadow: none; }
+.post-options-btn .material-symbols-outlined { font-size: 18px; line-height: 1; }
+
+/* Reset botones dentro del post para evitar estilos del browser */
+.post-card button, .post-header button {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  outline: none;
+}
 
 /* ── POST OPTIONS BOTTOM SHEET ── */
 #post-menu-overlay {
@@ -1224,9 +1242,14 @@ body.dark-mode .post-badge-privado { background: rgba(139,92,246,.2); color: #a7
   height: 100vh;
   background: transparent;
   z-index: 99990;
-  display: none;
+  display: block;
+  pointer-events: none;
+  visibility: hidden;
 }
-#post-menu-overlay.visible { display: block; }
+#post-menu-overlay.visible {
+  pointer-events: auto;
+  visibility: visible;
+}
 
 #post-menu-sheet {
   position: fixed;
@@ -1238,6 +1261,7 @@ body.dark-mode .post-badge-privado { background: rgba(139,92,246,.2); color: #a7
   box-shadow: 0 8px 32px rgba(0,0,0,.32);
   animation: pmPopIn .15s cubic-bezier(.32,1,.6,1);
   z-index: 99991;
+  pointer-events: auto;
 }
 @keyframes pmPopIn {
   from { opacity:0; transform: scale(.95) translateY(-6px); }
@@ -1250,8 +1274,16 @@ body.dark-mode .post-badge-privado { background: rgba(139,92,246,.2); color: #a7
     background: rgba(0,0,0,.55);
     backdrop-filter: blur(3px);
     -webkit-backdrop-filter: blur(3px);
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    visibility: hidden;
+    pointer-events: none;
   }
-  #post-menu-overlay.visible { display: flex; align-items: flex-end; justify-content: center; }
+  #post-menu-overlay.visible {
+    visibility: visible;
+    pointer-events: auto;
+  }
   #post-menu-sheet {
     position: static;
     width: 100%;
