@@ -1689,6 +1689,17 @@ textarea.form-input{
   display: block;
 }
 
+/* Desktop: imagen más compacta, no ocupa todo el ancho */
+@media (min-width: 701px) {
+  .post-media {
+    max-height: 340px;
+    max-width: 520px;
+    margin-left: auto;
+    margin-right: auto;
+    border-radius: 14px;
+  }
+}
+
 /* =========================
    POST ACTIONS
 ========================= */
