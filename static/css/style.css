@@ -767,7 +767,8 @@ textarea.form-input{
     justify-content:space-between;
     padding:0 24px;
     z-index:99;
-    transition:.3s;
+    transition: background .35s ease, backdrop-filter .35s ease,
+                border-color .35s ease, box-shadow .35s ease, left .3s;
 }
 
 .sidebar:hover ~ .navbar{
@@ -1879,9 +1880,11 @@ body.dark-mode .sidebar{
   border-color:var(--border);
 }
 
-body.dark-mode .navbar{
-  background:rgba(20,20,20,.85);
-  border-color:var(--border);
+@media (min-width: 769px) {
+  body.dark-mode .navbar{
+    background:rgba(20,20,20,.85);
+    border-color:var(--border);
+  }
 }
 
 /* INPUTS */
@@ -1935,15 +1938,7 @@ body.dark-mode .admin-btn-save:hover {
 }
 
 /* BOTTOM NAVIGATION */
-body.dark-mode .bottom-nav {
-  background: var(--card);
-  border-top-color: var(--border);
-}
-
-body.dark-mode .bottom-nav-item {
-  color: var(--text3);
-}
-
+/* bottom-nav is now a glass pill — no separate dark/light versions needed */
 body.dark-mode .bottom-nav-item.active {
   color: var(--accent);
 }
@@ -4357,21 +4352,79 @@ body.dark-mode .cruce-num {
 /* ── BOTTOM NAV MOBILE ── */
 .bottom-nav {
   display: none;
-  position: fixed; bottom: 0; left: 0; right: 0;
-  background: var(--card); border-top: 1px solid var(--border);
-  z-index: 500; padding: 6px 0 max(8px, env(safe-area-inset-bottom));
+  position: fixed;
+  /* Pill: centered, floating, away from edges */
+  bottom: max(18px, env(safe-area-inset-bottom, 18px));
+  left: 50%;
+  right: auto;
+  transform: translateX(-50%);
+  width: calc(100% - 44px);
+  max-width: 390px;
+  height: 64px;
+  /* Shape */
+  border-radius: 100px;
+  border: none;
+  border-top: none;
+  /* Liquid Glass */
+  background: rgba(16, 16, 22, 0.68);
+  backdrop-filter: saturate(180%) blur(32px);
+  -webkit-backdrop-filter: saturate(180%) blur(32px);
+  /* Glass border */
+  outline: 0.5px solid rgba(255,255,255,.18);
+  /* Depth shadow */
+  box-shadow:
+    0 12px 48px rgba(0,0,0,.42),
+    0 3px 10px rgba(0,0,0,.28),
+    inset 0 1px 0 rgba(255,255,255,.14);
+  z-index: 700;
+  padding: 0 10px;
   gap: 0;
+  overflow: visible;
 }
 .bottom-nav-item {
-  flex: 1; display: flex; flex-direction: column; align-items: center;
-  gap: 3px; padding: 6px 4px; cursor: pointer; border: none;
-  background: none; color: var(--text3); transition: color .2s;
-  font-size: .62rem; font-family: var(--font);
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  padding: 10px 4px;
+  cursor: pointer;
+  border: none;
+  background: none;
+  color: rgba(255,255,255,.42);
+  font-size: .62rem;
+  font-family: var(--font);
   -webkit-tap-highlight-color: transparent;
+  transition: color .2s cubic-bezier(.4,0,.2,1), transform .13s cubic-bezier(.4,0,.2,1);
+  position: relative;
 }
-.bottom-nav-item .material-symbols-outlined { font-size: 22px; }
-.bottom-nav-item.active { color: var(--accent); }
-.bottom-nav-item span:last-child { display: block; }
+.bottom-nav-item:active { transform: scale(.82); }
+.bottom-nav-item .material-symbols-outlined {
+  font-size: 27px;
+  font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
+  transition: all .2s cubic-bezier(.4,0,.2,1);
+}
+.bottom-nav-item.active { color: var(--accent, #ff4d8d); }
+.bottom-nav-item.active .material-symbols-outlined {
+  font-variation-settings: 'FILL' 1, 'wght' 500, 'GRAD' -25, 'opsz' 24;
+}
+/* Dot indicator */
+.bottom-nav-item.active::after {
+  content: '';
+  position: absolute;
+  bottom: 5px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--accent, #ff4d8d);
+  opacity: .6;
+}
+.bottom-nav-perfil.active::after { display: none; }
+.bottom-nav-item span:last-child { display: none !important; }
+.bnav-label { display: none !important; }
 
 @media (max-width: 768px) {
   .bottom-nav { display: flex; }
@@ -4878,450 +4931,141 @@ body.dark-mode .cruce-num {
   font-weight: 800;
 }
 
-/* ══════════════════════════════════════════════════════════════════════
-   PREMIUM MOBILE REDESIGN — HEADER + BOTTOM NAV
-   Inspiración: Instagram iOS, Threads, Apple Music, iOS 18
-   ══════════════════════════════════════════════════════════════════════ */
+/* ══════════════════════════════════════════════════════════════
+   LIQUID GLASS — MOBILE NATIVE EXPERIENCE
+   Header + Bottom Nav — iOS 18 / Instagram style
+   ══════════════════════════════════════════════════════════════ */
 
-/* ── Desktop: ocultar la capa mobile-ig ── */
-.navbar-mobile-ig { display: none; }
+/* ── Desktop: hide mobile layer ── */
+.navbar-mobile-ig  { display: none; }
 .navbar-desktop-only { display: flex; }
 
-/* ─────────────────────────────────────────
-   HEADER PREMIUM MOBILE
-───────────────────────────────────────── */
+/* ───────────────────────────────────────────────────────────
+   MOBILE ONLY  (≤768px)
+─────────────────────────────────────────────────────────── */
 @media (max-width: 768px) {
 
-  /* Base del navbar en móvil */
-  .navbar {
+  /* ── 1. RESET: strip every desktop / dark-mode background from navbar ── */
+  .navbar,
+  body.dark-mode .navbar,
+  body:not(.dark-mode) .navbar {
     left: 0 !important;
-    height: 60px;
-    padding: 0 18px;
-    /* Estado inicial: casi transparente, integrado con el contenido */
-    background: transparent;
-    border-bottom: none;
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
-    box-shadow: none;
+    height: 60px !important;
+    padding: 0 20px !important;
+    /* TRANSPARENT — content scrolls underneath */
+    background: transparent !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    border-bottom: none !important;
+    box-shadow: none !important;
+    z-index: 300 !important;
     transition:
-      background .35s cubic-bezier(.4,0,.2,1),
-      backdrop-filter .35s cubic-bezier(.4,0,.2,1),
-      border-color .35s cubic-bezier(.4,0,.2,1),
-      box-shadow .35s cubic-bezier(.4,0,.2,1);
-    will-change: background, backdrop-filter;
-    z-index: 200;
+      background .4s cubic-bezier(.4,0,.2,1),
+      backdrop-filter .4s cubic-bezier(.4,0,.2,1),
+      box-shadow .4s cubic-bezier(.4,0,.2,1) !important;
   }
 
-  /* Estado "scrolled" — glassmorphism activado via JS */
-  .navbar.scrolled {
-    background: rgba(var(--card-rgb, 15,15,20), 0.72);
-    backdrop-filter: saturate(180%) blur(20px);
-    -webkit-backdrop-filter: saturate(180%) blur(20px);
-    border-bottom: 0.5px solid rgba(255,255,255,.08);
-    box-shadow: 0 1px 24px rgba(0,0,0,.22);
+  /* ── 2. SCROLLED STATE — liquid glass activates ── */
+  .navbar.ig-scrolled,
+  body.dark-mode .navbar.ig-scrolled {
+    background: rgba(12, 12, 18, 0.76) !important;
+    backdrop-filter: saturate(200%) blur(24px) !important;
+    -webkit-backdrop-filter: saturate(200%) blur(24px) !important;
+    border-bottom: 0.5px solid rgba(255,255,255,.09) !important;
+    box-shadow: 0 2px 30px rgba(0,0,0,.24) !important;
   }
 
-  /* Ocultar todo el layout de escritorio */
+  /* ── 3. SHOW mobile IG layout, hide desktop layout ── */
   .navbar-desktop-only { display: none !important; }
-
-  /* Contenedor mobile Instagram */
   .navbar-mobile-ig {
-    display: flex;
+    display: flex !important;
     align-items: center;
     justify-content: space-between;
     width: 100%;
     height: 100%;
   }
 
-  .navbar-ig-left,
-  .navbar-ig-right {
-    display: flex;
-    align-items: center;
-  }
+  /* ── 4. BRAND — dominant, premium typography ── */
+  .navbar-ig-left  { display: flex; align-items: center; gap: 0; }
+  .navbar-ig-right { display: flex; align-items: center; gap: 2px; }
 
-  .navbar-ig-left { gap: 2px; }
-  .navbar-ig-right { gap: 0; }
-
-  /* ── BRAND LOGO premium ── */
   .navbar-ig-brand {
     font-family: 'Bebas Neue', sans-serif;
-    font-size: 1.75rem;
-    letter-spacing: 1.5px;
+    font-size: 1.9rem;
+    font-weight: 400; /* Bebas Neue is naturally bold */
+    letter-spacing: 2px;
     line-height: 1;
-    padding: 0 2px;
-    /* Sutil text-shadow para sensación de profundidad */
-    text-shadow: 0 1px 12px rgba(255,77,141,.25);
+    padding: 0 6px 0 2px;
+    user-select: none;
   }
-
   .brand-pink {
     color: var(--accent, #ff4d8d);
+    /* Subtle glow for premium feel */
+    text-shadow: 0 0 20px rgba(255,77,141,.35);
   }
   .brand-white {
-    color: var(--text, #ffffff);
-    opacity: .92;
+    color: rgba(255,255,255,.93);
   }
 
-  /* ── Botones icono navbar ── */
+  /* ── 5. ICON BUTTONS — 44px tap area, iOS standard ── */
   .navbar-ig-btn {
     background: none;
     border: none;
     cursor: pointer;
-    color: var(--text);
+    color: var(--text, #fff);
     width: 44px;
     height: 44px;
     display: flex;
     align-items: center;
     justify-content: center;
     border-radius: 50%;
-    transition: background .15s, transform .12s;
     -webkit-tap-highlight-color: transparent;
-    position: relative;
+    transition: opacity .15s, transform .12s;
   }
-
   .navbar-ig-btn:active {
-    background: rgba(255,255,255,.1);
-    transform: scale(.9);
+    opacity: .6;
+    transform: scale(.88);
   }
-
   .navbar-ig-btn .material-symbols-outlined {
-    font-size: 27px;
+    font-size: 26px;
     font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
   }
-}
 
-/* ─────────────────────────────────────────
-   BOTTOM NAV — PILL GLASSMORPHISM FLOTANTE
-───────────────────────────────────────── */
-
-/* Reset de la barra base */
-.bottom-nav {
-  /* Sobreescribir el display:none del bloque original */
-  display: none;
-  /* Layout */
-  position: fixed;
-  /* Flotante: separada de los bordes */
-  bottom: max(16px, env(safe-area-inset-bottom, 16px));
-  left: 50%;
-  transform: translateX(-50%);
-  right: auto;
-  /* Ancho de la cápsula */
-  width: calc(100% - 40px);
-  max-width: 380px;
-  /* Altura */
-  height: 62px;
-  /* Forma de cápsula */
-  border-radius: 100px;
-  /* Glassmorphism iOS */
-  background: rgba(18, 18, 24, 0.72);
-  backdrop-filter: saturate(200%) blur(28px);
-  -webkit-backdrop-filter: saturate(200%) blur(28px);
-  /* Borde cristal */
-  border: 0.5px solid rgba(255,255,255,.14);
-  /* Sombra suave y profundidad */
-  box-shadow:
-    0 8px 32px rgba(0,0,0,.38),
-    0 2px 8px rgba(0,0,0,.22),
-    inset 0 0.5px 0 rgba(255,255,255,.1);
-  /* Z-index sobre todo */
-  z-index: 600;
-  /* Padding lateral */
-  padding: 0 8px;
-  /* Sin border-top */
-  border-top: none;
-  /* Transición de aparición */
-  transition: opacity .3s, transform .3s cubic-bezier(.4,0,.2,1);
-  will-change: transform;
-  gap: 0;
-  /* No overflow */
-  overflow: hidden;
-}
-
-@media (max-width: 768px) {
-  .bottom-nav { display: flex; }
-
-  /* Ajuste del main-content para la pill flotante */
+  /* ── 6. MAIN CONTENT padding for pill ── */
   .main-content {
-    padding-bottom: calc(100px + env(safe-area-inset-bottom, 0px)) !important;
-  }
-}
-
-/* ── Items del menú ── */
-.bottom-nav-item {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 0;
-  color: rgba(255,255,255,.5);
-  text-decoration: none;
-  cursor: pointer;
-  border: none;
-  background: none;
-  padding: 10px 6px;
-  border-radius: 100px;
-  /* Transición fluida */
-  transition: color .22s cubic-bezier(.4,0,.2,1), transform .14s cubic-bezier(.4,0,.2,1);
-  -webkit-tap-highlight-color: transparent;
-  position: relative;
-}
-
-/* Área táctil cómoda */
-.bottom-nav-item:active {
-  transform: scale(.85);
-}
-
-/* Ocultar labels — solo iconos */
-.bnav-label { display: none !important; }
-.bottom-nav-item span:last-child { display: none !important; }
-
-/* ── Iconos ── */
-.bottom-nav-item .material-symbols-outlined {
-  font-size: 27px;
-  font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
-  transition:
-    color .22s cubic-bezier(.4,0,.2,1),
-    font-variation-settings .22s cubic-bezier(.4,0,.2,1);
-}
-
-/* ── Estado ACTIVO ── */
-.bottom-nav-item.active {
-  color: var(--accent, #ff4d8d);
-}
-
-.bottom-nav-item.active .material-symbols-outlined {
-  color: var(--accent, #ff4d8d);
-  font-variation-settings: 'FILL' 1, 'wght' 500, 'GRAD' 0, 'opsz' 24;
-}
-
-/* Punto indicador activo sutil */
-.bottom-nav-item.active::after {
-  content: '';
-  position: absolute;
-  bottom: 6px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
-  background: var(--accent, #ff4d8d);
-  opacity: .7;
-}
-
-/* El ítem de perfil tiene avatar, no icono */
-.bottom-nav-perfil::after { display: none; }
-
-/* ── Avatar de perfil en bottom nav ── */
-.bnav-avatar-img {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  object-fit: cover;
-  border: 2px solid rgba(255,255,255,.25);
-  transition: border-color .22s;
-}
-
-.bnav-avatar-letter {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  background: var(--accent-gradient, linear-gradient(135deg,#ff6b9d,#ff4d8d,#c9236a));
-  color: #fff;
-  font-size: 13px;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 2px solid rgba(255,255,255,.2);
-  transition: border-color .22s;
-}
-
-.bnav-avatar-active {
-  border-color: var(--accent, #ff4d8d) !important;
-  box-shadow: 0 0 0 2px rgba(255,77,141,.35);
-}
-
-.bottom-nav-perfil {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-/* Dark mode glassmorphism */
-body.dark-mode .bottom-nav {
-  background: rgba(10, 10, 16, 0.78);
-  border-color: rgba(255,255,255,.1);
-}
-
-body.dark-mode .navbar.scrolled {
-  background: rgba(8, 8, 12, 0.78);
-}
-
-
-/* ══════════════════════════════════════════════════════════
-   CORRECCIONES CRÍTICAS — PREMIUM MOBILE v2
-   ══════════════════════════════════════════════════════════ */
-
-/* FIX 1: dark-mode .navbar overrides our transparent — force transparent on mobile */
-@media (max-width: 768px) {
-  body.dark-mode .navbar,
-  .navbar {
-    background: transparent !important;
-    border-bottom: none !important;
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
-    box-shadow: none !important;
+    margin-top: 60px !important;
+    padding-bottom: calc(max(18px, env(safe-area-inset-bottom, 18px)) + 64px + 22px) !important;
   }
 
-  /* Only add glass when .scrolled is present */
-  body.dark-mode .navbar.scrolled,
-  .navbar.scrolled {
-    background: rgba(10, 10, 16, 0.78) !important;
-    backdrop-filter: saturate(200%) blur(22px) !important;
-    -webkit-backdrop-filter: saturate(200%) blur(22px) !important;
-    border-bottom: 0.5px solid rgba(255,255,255,.08) !important;
-    box-shadow: 0 1px 28px rgba(0,0,0,.28) !important;
-  }
-}
-
-/* FIX 2: Bottom nav — pill flotante con máxima especificidad */
-@media (max-width: 768px) {
-  nav.bottom-nav,
-  .bottom-nav {
-    /* Reset posición fija a los bordes */
-    left: 50% !important;
-    right: auto !important;
-    bottom: max(18px, env(safe-area-inset-bottom, 18px)) !important;
-    transform: translateX(-50%) !important;
-    /* Tamaño cápsula */
-    width: calc(100% - 44px) !important;
-    max-width: 390px !important;
-    height: 64px !important;
-    /* Forma pill */
-    border-radius: 100px !important;
-    border-top: none !important;
-    /* Glassmorphism */
-    background: rgba(14, 14, 20, 0.80) !important;
-    backdrop-filter: saturate(200%) blur(30px) !important;
-    -webkit-backdrop-filter: saturate(200%) blur(30px) !important;
-    /* Borde cristal */
-    border: 0.5px solid rgba(255,255,255,.16) !important;
-    /* Sombra profundidad */
-    box-shadow:
-      0 10px 40px rgba(0,0,0,.45),
-      0 2px 8px rgba(0,0,0,.25),
-      inset 0 0.5px 0 rgba(255,255,255,.12) !important;
-    /* Z alto */
-    z-index: 700 !important;
-    padding: 0 10px !important;
-    overflow: visible !important;
-    display: flex !important;
-  }
-}
-
-/* FIX 3: FAB sube para no chocar con la pill */
-@media (max-width: 768px) {
+  /* ── 7. FAB repositioned above pill ── */
   .compose-fab {
-    bottom: calc(max(18px, env(safe-area-inset-bottom, 18px)) + 64px + 14px) !important;
-    right: 18px !important;
-  }
-}
-
-/* FIX 4: Padding inferior del main-content para pill flotante */
-@media (max-width: 768px) {
-  .main-content {
-    padding-bottom: calc(max(18px, env(safe-area-inset-bottom, 18px)) + 64px + 20px) !important;
-  }
-}
-
-/* FIX 5: Items de la pill — alineación y tamaño */
-@media (max-width: 768px) {
-  .bottom-nav .bottom-nav-item {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 10px 4px;
-    gap: 0;
-    color: rgba(255,255,255,.45);
-    border: none;
-    background: none;
-    cursor: pointer;
-    border-radius: 50px;
-    -webkit-tap-highlight-color: transparent;
-    transition: color .2s cubic-bezier(.4,0,.2,1), transform .12s;
+    bottom: calc(max(18px, env(safe-area-inset-bottom, 18px)) + 64px + 16px) !important;
+    right: 20px !important;
   }
 
-  .bottom-nav .bottom-nav-item:active {
-    transform: scale(.82);
-  }
-
-  .bottom-nav .bottom-nav-item .material-symbols-outlined {
-    font-size: 28px;
-    font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
-    transition: all .2s cubic-bezier(.4,0,.2,1);
-  }
-
-  .bottom-nav .bottom-nav-item.active {
-    color: var(--accent, #ff4d8d);
-  }
-
-  .bottom-nav .bottom-nav-item.active .material-symbols-outlined {
-    font-variation-settings: 'FILL' 1, 'wght' 500, 'GRAD' -25, 'opsz' 24;
-  }
-
-  .bottom-nav .bnav-label,
-  .bottom-nav .bottom-nav-item > span:last-child {
-    display: none !important;
-  }
-
-  /* Dot indicador activo */
-  .bottom-nav .bottom-nav-item.active::after {
-    content: '';
-    position: absolute;
-    bottom: 5px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 4px;
-    height: 4px;
-    border-radius: 50%;
-    background: var(--accent, #ff4d8d);
-    opacity: .65;
-  }
-  .bottom-nav .bottom-nav-perfil.active::after {
-    display: none;
-  }
-}
-
-/* FIX 6: Avatar perfil en pill */
-@media (max-width: 768px) {
-  .bottom-nav .bnav-avatar-img {
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    object-fit: cover;
-    border: 2px solid rgba(255,255,255,.22);
+  /* ── 8. BOTTOM NAV avatar profile items ── */
+  .bnav-avatar-img {
+    width: 28px; height: 28px;
+    border-radius: 50%; object-fit: cover;
+    border: 2px solid rgba(255,255,255,.25);
+    transition: border-color .2s;
     display: block;
   }
-
-  .bottom-nav .bnav-avatar-letter {
-    width: 28px;
-    height: 28px;
+  .bnav-avatar-letter {
+    width: 28px; height: 28px;
     border-radius: 50%;
     background: var(--accent-gradient, linear-gradient(135deg,#ff6b9d,#ff4d8d,#c9236a));
-    color: #fff;
-    font-size: 12px;
-    font-weight: 700;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: 2px solid rgba(255,255,255,.18);
+    color: #fff; font-size: 12px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    border: 2px solid rgba(255,255,255,.2);
+    transition: border-color .2s;
   }
-
-  .bottom-nav .bnav-avatar-active {
+  .bnav-avatar-active {
     border-color: var(--accent, #ff4d8d) !important;
     box-shadow: 0 0 0 2px rgba(255,77,141,.4);
+  }
+  .bottom-nav-perfil {
+    display: flex; align-items: center; justify-content: center;
   }
 }
 

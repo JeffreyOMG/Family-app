@@ -490,9 +490,9 @@
 .compose-fab {
   display: none;
   position: fixed;
-  bottom: 74px;
+  bottom: 74px; /* desktop fallback */
   right: 18px;
-  z-index: 600;
+  z-index: 750;
   width: 56px !important;
   height: 56px !important;
   min-width: 56px !important;
@@ -524,7 +524,13 @@
 .compose-fab:active { transform: scale(.93); }
 
 @media (max-width: 768px) {
-  .compose-fab { display: flex; }
+  .compose-fab {
+    display: flex;
+    /* Float above the pill nav: pill bottom(18px) + pill height(64px) + gap(16px) */
+    bottom: calc(max(18px, env(safe-area-inset-bottom, 18px)) + 64px + 16px) !important;
+    right: 20px !important;
+    z-index: 750 !important;
+  }
 }
 </style>
 
@@ -2710,28 +2716,8 @@ body.dark-mode .post-badge-privado { background: rgba(139,92,246,.2); color: #a7
 .noticia-titulo { font-size: 13px; font-weight: 600; color: var(--text); line-height: 1.4; margin-bottom: 2px; }
 .noticia-meta { font-size: 11px; color: var(--text3); }
 
-/* ── BOTTOM NAV — sobreescritura local ── */
-/* Las reglas globales del style.css ya manejan el diseño pill.
-   Aquí solo ajustamos lo específico de esta sección. */
-.bottom-nav {
-  display: none;
-  /* El global style.css pone: position fixed, pill shape, glassmorphism */
-}
-.bottom-nav-item {
-  color: rgba(255,255,255,.48);
-  text-decoration: none;
-  cursor: pointer;
-  transition: color .22s cubic-bezier(.4,0,.2,1), transform .14s;
-}
-.bottom-nav-item .material-symbols-outlined {
-  font-size: 27px;
-  font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
-}
+/* ── BOTTOM NAV — no local overrides; global style.css handles the pill ── */
 .bnav-label { display: none !important; }
-.bottom-nav-item.active { color: var(--accent, #ff4d8d); }
-.bottom-nav-item.active .material-symbols-outlined {
-  font-variation-settings: 'FILL' 1, 'wght' 500, 'GRAD' 0, 'opsz' 24;
-}
 
 
 /* ════════════════════════════════════════

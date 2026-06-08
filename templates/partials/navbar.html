@@ -1,11 +1,11 @@
 <nav class="navbar" id="main-navbar">
-  <!-- MÓVIL: estilo Instagram Premium -->
+
+  <!-- ── MÓVIL: Liquid Glass Instagram style ── -->
   <div class="navbar-mobile-ig">
     <div class="navbar-ig-left">
-      <button class="navbar-ig-btn" onclick="abrirCompositor()" title="Nueva publicación" aria-label="Publicar">
-        <span class="material-symbols-outlined">add_box</span>
-      </button>
-      <span class="navbar-ig-brand"><span class="brand-pink">familly</span><span class="brand-white">app</span></span>
+      <span class="navbar-ig-brand">
+        <span class="brand-pink">FAMILLY</span><span class="brand-white">APP</span>
+      </span>
     </div>
     <div class="navbar-ig-right">
       <button class="navbar-ig-btn" title="Notificaciones" aria-label="Notificaciones">
@@ -17,7 +17,7 @@
     </div>
   </div>
 
-  <!-- ESCRITORIO: layout original -->
+  <!-- ── ESCRITORIO: layout original ── -->
   <div class="navbar-left navbar-desktop-only">
     <button id="menu-toggle" onclick="toggleSidebar()" class="hamburger-btn" aria-label="Menú">
       <span></span><span></span><span></span>
@@ -29,67 +29,66 @@
       <span class="material-symbols-outlined">search</span>
     </button>
     <span class="navbar-date">{{ ahora }}</span>
-      <img src="{{ usuario.foto or '' }}" class="user-avatar-img navbar-av-img" style="cursor:pointer;{{ '' if usuario.foto else 'display:none;' }}" onclick="irSeccion('perfil')" alt="perfil">
-      <div class="user-avatar navbar-av-letter" style="cursor:pointer;{{ 'display:none;' if usuario.foto else '' }}" onclick="irSeccion('perfil')">{{ usuario.nombre[0]|upper }}</div>
+    <img src="{{ usuario.foto or '' }}" class="user-avatar-img navbar-av-img"
+         style="cursor:pointer;{{ '' if usuario.foto else 'display:none;' }}"
+         onclick="irSeccion('perfil')" alt="perfil">
+    <div class="user-avatar navbar-av-letter"
+         style="cursor:pointer;{{ 'display:none;' if usuario.foto else '' }}"
+         onclick="irSeccion('perfil')">{{ usuario.nombre[0]|upper }}</div>
   </div>
 </nav>
 
-<!-- SCROLL GLASS EFFECT — Solo móvil -->
 <script>
-(function() {
-  function initScrollGlass() {
-    var navbar = document.getElementById('main-navbar');
+/* Liquid Glass scroll effect — mobile only */
+(function () {
+  var THRESHOLD = 20;
+  var navbar    = null;
+  var cleanups  = [];
+
+  function handler() {
     if (!navbar) return;
-    if (window.innerWidth > 768) return;
-
-    var threshold = 20;
-    var ticking = false;
-
-    function applyScrollClass(scrollTop) {
-      if (scrollTop > threshold) {
-        navbar.classList.add('scrolled');
-      } else {
-        navbar.classList.remove('scrolled');
-      }
-    }
-
-    function onScroll() {
-      if (!ticking) {
-        requestAnimationFrame(function() {
-          // Try multiple scroll sources
-          var mainContent = document.querySelector('.main-content');
-          var scrollTop = 0;
-          if (mainContent && mainContent.scrollTop > 0) {
-            scrollTop = mainContent.scrollTop;
-          } else {
-            scrollTop = window.scrollY || document.documentElement.scrollTop;
-          }
-          applyScrollClass(scrollTop);
-          ticking = false;
-        });
-        ticking = true;
-      }
-    }
-
-    // Listen on both possible scrollers
-    var mainContent = document.querySelector('.main-content');
-    if (mainContent) {
-      mainContent.addEventListener('scroll', onScroll, { passive: true });
-    }
-    window.addEventListener('scroll', onScroll, { passive: true });
-    document.addEventListener('scroll', onScroll, { passive: true });
-
-    // Initial state
-    onScroll();
+    var mc  = document.querySelector('.main-content');
+    var top = (mc && mc.scrollTop > 0) ? mc.scrollTop : (window.scrollY || 0);
+    navbar.classList.toggle('ig-scrolled', top > THRESHOLD);
   }
 
-  // Run after DOM is ready
+  function attach() {
+    navbar = document.getElementById('main-navbar');
+    if (!navbar || window.innerWidth > 768) return;
+
+    var mc = document.querySelector('.main-content');
+    var opts = { passive: true };
+
+    if (mc)     { mc.addEventListener('scroll', handler, opts);     cleanups.push(function(){ mc.removeEventListener('scroll', handler, opts); }); }
+    window.addEventListener('scroll',   handler, opts);
+    document.addEventListener('scroll', handler, opts);
+    cleanups.push(function(){ window.removeEventListener('scroll', handler, opts); });
+    cleanups.push(function(){ document.removeEventListener('scroll', handler, opts); });
+
+    handler(); /* initial state */
+  }
+
+  function detach() {
+    cleanups.forEach(function(fn){ fn(); });
+    cleanups = [];
+    if (navbar) navbar.classList.remove('ig-scrolled');
+  }
+
+  function onResize() {
+    detach();
+    if (window.innerWidth <= 768) attach();
+  }
+
+  window.addEventListener('resize', onResize, { passive: true });
+
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initScrollGlass);
+    document.addEventListener('DOMContentLoaded', function() {
+      attach();
+      setTimeout(attach, 250); /* re-attach after main-content mounts */
+    });
   } else {
-    initScrollGlass();
+    attach();
+    setTimeout(attach, 250);
   }
-  // Also run after a delay to catch late-mounted containers
-  setTimeout(initScrollGlass, 300);
 })();
 </script>
