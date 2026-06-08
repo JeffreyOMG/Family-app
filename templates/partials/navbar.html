@@ -1,11 +1,30 @@
 <nav class="navbar">
-  <div class="navbar-left">
+  <!-- MÓVIL: estilo Instagram -->
+  <div class="navbar-mobile-ig">
+    <div class="navbar-ig-left">
+      <button class="navbar-ig-btn" onclick="abrirCompositor()" title="Nueva publicación" aria-label="Publicar">
+        <span class="material-symbols-outlined">add_box</span>
+      </button>
+      <span class="navbar-ig-brand"><span class="brand-pink">familly</span><span class="brand-white">app</span></span>
+    </div>
+    <div class="navbar-ig-right">
+      <button class="navbar-ig-btn" onclick="irSeccion('notificaciones_ig')" title="Notificaciones" aria-label="Notificaciones">
+        <span class="material-symbols-outlined">favorite</span>
+      </button>
+      <button class="navbar-ig-btn" onclick="irSeccion('buscador')" title="Buscar" aria-label="Buscar">
+        <span class="material-symbols-outlined">search</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- ESCRITORIO: layout original -->
+  <div class="navbar-left navbar-desktop-only">
     <button id="menu-toggle" onclick="toggleSidebar()" class="hamburger-btn" aria-label="Menú">
       <span></span><span></span><span></span>
     </button>
     <span class="navbar-title" id="nav-title">Inicio</span>
   </div>
-  <div class="navbar-right">
+  <div class="navbar-right navbar-desktop-only">
     <button class="nav-icon-btn" onclick="irSeccion('buscador')" title="Buscar">
       <span class="material-symbols-outlined">search</span>
     </button>

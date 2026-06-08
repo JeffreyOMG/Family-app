@@ -878,37 +878,48 @@
 
 <!-- BOTTOM NAV MÓVIL -->
 <nav class="bottom-nav" id="bottom-nav">
-  {# Secciones visibles para TODOS #}
-  {% set nav_publico = [
-    ('inicio','home','Inicio'),
-    ('mundial','sports_soccer','Mundial'),
-    ('buscador','search','Buscar'),
-    ('perfil','person','Perfil'),
-  ] %}
-  {% for sec,icon,label in nav_publico %}
-  <a class="bottom-nav-item {% if seccion_activa==sec %}active{% endif %}"
-     data-sec="{{ sec }}" href="#{{ sec }}"
-     onclick="irSeccion('{{ sec }}');updateBottomNav(this);return false;">
-    <span class="material-symbols-outlined">{{ icon }}</span>
-    <span class="bnav-label">{{ label }}</span>
+  {# Inicio #}
+  <a class="bottom-nav-item {% if seccion_activa=='inicio' %}active{% endif %}"
+     data-sec="inicio" href="#inicio"
+     onclick="irSeccion('inicio');updateBottomNav(this);return false;">
+    <span class="material-symbols-outlined">home</span>
   </a>
-  {% endfor %}
 
-  {# Secciones SOLO para miembro / admin #}
-  {% if usuario.rol in ('miembro', 'admin') %}
-  {% set nav_miembro = [
-    ('recaudacion','savings','Recaud.'),
-    ('noticias','calendar_month','Noticias'),
-  ] %}
-  {% for sec,icon,label in nav_miembro %}
-  <a class="bottom-nav-item {% if seccion_activa==sec %}active{% endif %}"
-     data-sec="{{ sec }}" href="#{{ sec }}"
-     onclick="irSeccion('{{ sec }}');updateBottomNav(this);return false;">
-    <span class="material-symbols-outlined">{{ icon }}</span>
-    <span class="bnav-label">{{ label }}</span>
+  {# Mundial #}
+  <a class="bottom-nav-item {% if seccion_activa=='mundial' %}active{% endif %}"
+     data-sec="mundial" href="#mundial"
+     onclick="irSeccion('mundial');updateBottomNav(this);return false;">
+    <span class="material-symbols-outlined">sports_soccer</span>
   </a>
-  {% endfor %}
+
+  {# Recaudación - solo miembro/admin #}
+  {% if usuario.rol in ('miembro', 'admin') %}
+  <a class="bottom-nav-item {% if seccion_activa=='recaudacion' %}active{% endif %}"
+     data-sec="recaudacion" href="#recaudacion"
+     onclick="irSeccion('recaudacion');updateBottomNav(this);return false;">
+    <span class="material-symbols-outlined">savings</span>
+  </a>
   {% endif %}
+
+  {# Noticias - solo miembro/admin #}
+  {% if usuario.rol in ('miembro', 'admin') %}
+  <a class="bottom-nav-item {% if seccion_activa=='noticias' %}active{% endif %}"
+     data-sec="noticias" href="#noticias"
+     onclick="irSeccion('noticias');updateBottomNav(this);return false;">
+    <span class="material-symbols-outlined">calendar_month</span>
+  </a>
+  {% endif %}
+
+  {# Perfil - foto de perfil estilo Instagram #}
+  <a class="bottom-nav-item bottom-nav-perfil {% if seccion_activa=='perfil' %}active{% endif %}"
+     data-sec="perfil" href="#perfil"
+     onclick="irSeccion('perfil');updateBottomNav(this);return false;">
+    {% if usuario.foto %}
+      <img src="{{ usuario.foto }}" class="bnav-avatar-img {% if seccion_activa=='perfil' %}bnav-avatar-active{% endif %}" alt="perfil">
+    {% else %}
+      <div class="bnav-avatar-letter {% if seccion_activa=='perfil' %}bnav-avatar-active{% endif %}">{{ usuario.nombre[0]|upper }}</div>
+    {% endif %}
+  </a>
 </nav>
 
 <!-- DATA MIEMBROS para JS -->
@@ -2724,9 +2735,12 @@ body.dark-mode .post-badge-privado { background: rgba(139,92,246,.2); color: #a7
   cursor: pointer;
   transition: color .18s;
 }
-.bottom-nav-item .material-symbols-outlined { font-size: 22px; }
-.bnav-label { font-size: 10px; font-weight: 500; }
-.bottom-nav-item.active { color: var(--text); }
+.bottom-nav-item .material-symbols-outlined { font-size: 26px; }
+.bnav-label { display: none !important; }
+.bottom-nav-item.active { color: var(--accent, #ff4d8d); }
+.bottom-nav-item.active .material-symbols-outlined {
+  font-variation-settings: 'FILL' 1, 'wght' 500, 'GRAD' 0, 'opsz' 24;
+}
 
 /* ════════════════════════════════════════
    MODAL COMPOSITOR

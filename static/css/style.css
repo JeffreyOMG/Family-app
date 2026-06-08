@@ -4877,3 +4877,140 @@ body.dark-mode .cruce-num {
   color: #ffffff !important;
   font-weight: 800;
 }
+
+/* ══════════════════════════════════════════════════════════
+   NAVBAR INSTAGRAM STYLE — SOLO MÓVIL
+   ══════════════════════════════════════════════════════════ */
+
+/* Ocultar la parte de Instagram en escritorio */
+.navbar-mobile-ig {
+  display: none;
+}
+
+/* Ocultar parte de escritorio en móvil */
+@media (max-width: 768px) {
+  .navbar-desktop-only {
+    display: none !important;
+  }
+
+  .navbar-mobile-ig {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 0 4px;
+  }
+
+  .navbar-ig-left,
+  .navbar-ig-right {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  /* Nombre de la app: "familly" en rosa + "app" en blanco/texto */
+  .navbar-ig-brand {
+    font-family: 'Bebas Neue', 'DM Sans', sans-serif;
+    font-size: 1.55rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    line-height: 1;
+    padding: 0 4px;
+  }
+
+  .brand-pink {
+    color: var(--accent, #ff4d8d);
+  }
+
+  .brand-white {
+    color: var(--text, #fff);
+  }
+
+  /* Botones icono del navbar Instagram */
+  .navbar-ig-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text);
+    padding: 6px 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+    transition: background .15s;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .navbar-ig-btn:active {
+    background: var(--bg2, rgba(255,255,255,.08));
+  }
+
+  .navbar-ig-btn .material-symbols-outlined {
+    font-size: 26px;
+  }
+}
+
+/* ══════════════════════════════════════════════════════════
+   BOTTOM NAV — SIN TEXTO, AVATAR PERFIL
+   ══════════════════════════════════════════════════════════ */
+
+/* Ocultar el bnav-label */
+.bnav-label {
+  display: none !important;
+}
+
+/* El bottom-nav ya tiene display:none y se activa con media query */
+.bottom-nav-item {
+  gap: 0;
+  padding: 10px 4px;
+}
+
+/* Active en rosa (accent) */
+.bottom-nav-item.active .material-symbols-outlined {
+  color: var(--accent, #ff4d8d);
+  font-variation-settings: 'FILL' 1, 'wght' 500, 'GRAD' 0, 'opsz' 24;
+}
+
+/* Ícono normal (no activo): filled=0 */
+.bottom-nav-item .material-symbols-outlined {
+  font-size: 26px;
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  transition: color .18s;
+}
+
+/* Avatar de perfil en bottom nav */
+.bnav-avatar-img {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid transparent;
+  transition: border-color .18s;
+}
+
+.bnav-avatar-letter {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--accent-gradient, linear-gradient(135deg,#ff6b9d,#ff4d8d,#c9236a));
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid transparent;
+  transition: border-color .18s;
+}
+
+/* Borde rosa cuando el perfil está activo */
+.bnav-avatar-active {
+  border-color: var(--accent, #ff4d8d) !important;
+}
+
+/* Perfil item alineación */
+.bottom-nav-perfil {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
