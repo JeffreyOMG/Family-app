@@ -4103,29 +4103,24 @@ document.querySelectorAll('.feed-tab').forEach(tab => {
     const target = document.getElementById(_feeds[feedKey] || 'feed-posts');
     if(!target) return;
 
-    // Hide all feeds
+    // Hide all feeds instantly
     Object.values(_feeds).forEach(id => {
       const el = document.getElementById(id);
-      if(el) el.style.display = 'none';
+      if(el) { el.style.display = 'none'; el.style.opacity = ''; }
     });
 
-    // Show skeleton briefly, then fade in target (Parte 5 UX)
+    // Hide skeleton (don't show it on tab switch — only on initial load)
     const skeleton = document.getElementById('feed-skeleton');
-    if(skeleton){
-      skeleton.style.display = 'block';
-      setTimeout(() => {
-        skeleton.style.display = 'none';
-        target.style.opacity = '0';
-        target.style.display = 'block';
-        requestAnimationFrame(() => {
-          target.style.transition = 'opacity .25s';
-          target.style.opacity   = '1';
-          setTimeout(() => { target.style.transition = ''; }, 280);
-        });
-      }, 300);
-    } else {
-      target.style.display = 'block';
-    }
+    if(skeleton) skeleton.style.display = 'none';
+
+    // Fade in target without delay to prevent layout jump
+    target.style.opacity = '0';
+    target.style.display = 'block';
+    requestAnimationFrame(() => {
+      target.style.transition = 'opacity .2s';
+      target.style.opacity   = '1';
+      setTimeout(() => { target.style.transition = ''; }, 220);
+    });
   });
 });
 

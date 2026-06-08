@@ -816,26 +816,32 @@ textarea.form-input{
 
 .main-content{
     flex:1;
-    margin-left:250px;
+    margin-left:80px;
     margin-top:65px;
     padding:16px 20px;
 
     display:flex;
     flex-direction:column;
     align-items:center;
-    margin-right:250px;
 }
 
 .main-content > *:not(.rec-modal-overlay) {
     max-width: 1060px;
+    width: 100%;
 }
 
 #sec-inicio{
     max-width:1060px;
+    width:100%;
 }
 
 .sidebar:hover ~ .navbar ~ .main-content{
     margin-left:260px;
+}
+
+/* smooth transition when sidebar expands */
+.main-content {
+    transition: margin-left .3s;
 }
 
 .section{
