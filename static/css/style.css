@@ -4364,9 +4364,9 @@ body.dark-mode .cruce-num {
   border: none;
   border-top: none;
   /* Liquid Glass base */
-  background: rgba(10, 10, 16, 0.42);
-  backdrop-filter: saturate(190%) blur(36px) brightness(1.06);
-  -webkit-backdrop-filter: saturate(190%) blur(36px) brightness(1.06);
+  background: rgba(30, 30, 40, 0.72);
+  backdrop-filter: saturate(160%) blur(28px);
+  -webkit-backdrop-filter: saturate(160%) blur(28px);
   outline: none;
   box-shadow:
     0 16px 56px rgba(0,0,0,0.48),
@@ -4390,7 +4390,7 @@ body.dark-mode .cruce-num {
   cursor: pointer;
   border: none;
   background: none;
-  color: rgba(255,255,255,.42);
+  color: rgba(255,255,255,.78);
   font-size: .62rem;
   font-family: var(--font);
   -webkit-tap-highlight-color: transparent;
@@ -4400,12 +4400,14 @@ body.dark-mode .cruce-num {
 .bottom-nav-item:active { transform: scale(.82); }
 .bottom-nav-item .material-symbols-outlined {
   font-size: 27px;
-  font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
   transition: all .2s cubic-bezier(.4,0,.2,1);
+  filter: drop-shadow(0 1px 3px rgba(0,0,0,.7));
 }
 .bottom-nav-item.active { color: var(--accent, #ff4d8d); }
 .bottom-nav-item.active .material-symbols-outlined {
-  font-variation-settings: 'FILL' 1, 'wght' 500, 'GRAD' -25, 'opsz' 24;
+  font-variation-settings: 'FILL' 1, 'wght' 600, 'GRAD' -25, 'opsz' 24;
+  filter: drop-shadow(0 0 6px rgba(255,77,141,.6)) drop-shadow(0 1px 3px rgba(0,0,0,.6));
 }
 /* Dot indicator */
 .bottom-nav-item.active::after {
@@ -5074,9 +5076,9 @@ body.dark-mode .cruce-num {
     height: 58px !important;
     border-radius: 100px !important;
     /* Glass — transparent enough to see content through */
-    background: rgba(14, 14, 20, 0.52) !important;
-    backdrop-filter: saturate(180%) blur(32px) !important;
-    -webkit-backdrop-filter: saturate(180%) blur(32px) !important;
+    background: rgba(30, 30, 40, 0.72) !important;
+    backdrop-filter: saturate(160%) blur(28px) !important;
+    -webkit-backdrop-filter: saturate(160%) blur(28px) !important;
     border: none !important;
     border-top: none !important;
     outline: none !important;
@@ -5105,7 +5107,7 @@ body.dark-mode .cruce-num {
     cursor: pointer;
     border: none;
     background: none;
-    color: rgba(255,255,255,0.36);
+    color: rgba(255,255,255,0.72);
     -webkit-tap-highlight-color: transparent;
     transition: color 0.18s ease, transform 0.13s ease;
     position: relative;
@@ -5117,15 +5119,18 @@ body.dark-mode .cruce-num {
   }
   .bottom-nav-item .material-symbols-outlined {
     font-size: 26px;
-    font-variation-settings: 'FILL' 0, 'wght' 250, 'GRAD' 0, 'opsz' 24;
+    font-variation-settings: 'FILL' 0, 'wght' 350, 'GRAD' 0, 'opsz' 24;
     transition: font-variation-settings 0.18s ease;
     display: block;
+    /* Subtle text-shadow for legibility over any background */
+    filter: drop-shadow(0 1px 3px rgba(0,0,0,0.6));
   }
   .bottom-nav-item.active {
     color: var(--accent, #ff4d8d);
   }
   .bottom-nav-item.active .material-symbols-outlined {
-    font-variation-settings: 'FILL' 1, 'wght' 500, 'GRAD' -25, 'opsz' 24;
+    font-variation-settings: 'FILL' 1, 'wght' 600, 'GRAD' -25, 'opsz' 24;
+    filter: drop-shadow(0 0 5px rgba(255,77,141,0.55)) drop-shadow(0 1px 3px rgba(0,0,0,0.5));
   }
   /* Dot indicator */
   .bottom-nav-item.active::after {
