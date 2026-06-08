@@ -311,8 +311,9 @@ def comentar_ajax():
     usuario = con.execute("SELECT nombre, foto FROM usuarios WHERE id=%s", (uid,)).fetchone()
     nombre  = usuario["nombre"] if usuario else "?"
     inicial = nombre[0].upper() if nombre else "?"
+    foto    = (usuario["foto"] or "") if usuario else ""
     cmt_id  = con.execute("SELECT lastval()").fetchone()[0]
-    return jsonify({"ok": True, "nombre": nombre, "texto": texto, "inicial": inicial, "id": cmt_id, "usuario_id": uid})
+    return jsonify({"ok": True, "nombre": nombre, "foto": foto, "texto": texto, "inicial": inicial, "id": cmt_id, "usuario_id": uid})
 
 @posts_bp.route("/eliminar_post/<int:post_id>", methods=["POST"])
 def eliminar_post(post_id):
@@ -459,7 +460,7 @@ def api_ver_post(post_id):
         return jsonify({"ok": False, "error": "No autorizado"}), 403
 
     comentarios_rows = con.execute("""
-        SELECT c.id, c.texto, c.fecha, c.usuario_id, u.nombre, u.usuario, u.foto
+        SELECT c.id, c.texto, c.fecha, c.usuario_id, c.parent_id, u.nombre, u.usuario, u.foto
         FROM comentarios c JOIN usuarios u ON u.id=c.usuario_id
         WHERE c.post_id=%s ORDER BY c.fecha ASC
     """, (post_id,)).fetchall()
@@ -660,7 +661,7 @@ def responder_comentario():
         "ok":     True,
         "nombre": nombre,
         "usuario": usuario["usuario"] if usuario else "",
-        "foto":   usuario["foto"] or "" if usuario else "",
+        "foto":   (usuario["foto"] or "") if usuario else "",
         "texto":  texto,
         "inicial": nombre[0].upper() if nombre else "?",
         "id":     con.execute("SELECT lastval()").fetchone()[0],
