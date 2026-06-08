@@ -2963,6 +2963,14 @@ input[type="checkbox"]:checked::after {
   gap: 16px;
 }
 
+/* ===== PC: grid 2-3 cols con más espacio ===== */
+@media (min-width: 901px) {
+  .grupos-grid {
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 24px;
+  }
+}
+
 /* ===== GRUPO CARD ===== */
 .grupo-card {
   background: var(--card);
@@ -3046,6 +3054,13 @@ input[type="checkbox"]:checked::after {
 
 .eq-flag {
   font-size: 1.6rem;
+}
+
+/* ===== PC: bandera más grande en tabla de grupos ===== */
+@media (min-width: 901px) {
+  .eq-flag {
+    font-size: 2rem;
+  }
 }
 
 .eq-nombre {
@@ -3207,6 +3222,22 @@ input[type="checkbox"]:checked::after {
 .main-content-v2 > * {
   width: 100% !important;
   max-width: 100% !important;
+}
+
+/* ===== PC: margen lateral para secciones ===== */
+@media (min-width: 901px) {
+  /* Mundial y Recaudacion tienen main-content-v2 */
+  #sec-mundial,
+  #sec-recaudacion {
+    padding: 28px 36px !important;
+  }
+
+  /* Noticias/Calendario y Perfil: margen más suave */
+  #sec-noticias,
+  #sec-perfil,
+  #sec-ver-perfil {
+    padding: 20px 28px !important;
+  }
 }
 
 @media (max-width: 900px) {
