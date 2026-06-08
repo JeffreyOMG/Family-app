@@ -1803,14 +1803,16 @@ body.dark-mode .post-badge-privado { background: rgba(139,92,246,.2); color: #a7
 /* Media */
 .pv-media-img {
   width: 100%; border-radius: 14px;
-  max-height: 440px; object-fit: cover;
+  max-height: 560px; object-fit: contain;
+  background: var(--bg2, #f0f0f0);
   margin-bottom: 14px; cursor: pointer;
   transition: opacity .15s;
+  display: block;
 }
 .pv-media-img:hover { opacity: .95; }
 .pv-media-video {
   width: 100%; border-radius: 14px;
-  max-height: 440px;
+  max-height: 560px;
   margin-bottom: 14px;
 }
 .pv-media-multi {
@@ -2090,14 +2092,12 @@ body.dark-mode .post-badge-privado { background: rgba(139,92,246,.2); color: #a7
     border-bottom: 1px solid var(--border, #eee);
   }
 
-  /* Zona post: scroll propio, altura dinámica (no fija) */
+  /* Zona post: ocupa TODO el espacio disponible en móvil (no hay panel de comentarios) */
   #pv-content {
     border-right: none;
-    border-bottom: 1px solid var(--border, #eee);
-    flex: 0 0 auto;
-    /* Máximo 40% pero se adapta si el contenido es corto */
-    max-height: 40vh;
-    max-height: 40dvh;
+    border-bottom: none;
+    flex: 1;
+    min-height: 0;
     overflow-y: auto;
     /* Fix scroll iOS/WebKit */
     -webkit-overflow-scrolling: touch;
@@ -2105,14 +2105,13 @@ body.dark-mode .post-badge-privado { background: rgba(139,92,246,.2); color: #a7
     touch-action: pan-y;
   }
 
-  /* Panel comentarios: el resto del espacio disponible */
+  /* Panel comentarios: completamente fuera del flujo en móvil */
   #pv-comments-panel {
-    flex: 1;
-    min-height: 0;
-    background: var(--card, #fff);
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
+    display: none !important;
+    flex: 0 !important;
+    min-height: 0 !important;
+    height: 0 !important;
+    overflow: hidden !important;
   }
 
   /* Scroll de comentarios: fill and scroll correctamente */
