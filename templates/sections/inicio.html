@@ -4367,11 +4367,6 @@ async function enviarComentario(postId, input){
           row.querySelectorAll('.comment-text').forEach(el => window._emoteRenderer.renderEmoteNode(el));
         }
       }
-        sec.insertBefore(row, form);
-        if (window._emoteRenderer) {
-          row.querySelectorAll('.comment-text').forEach(el => window._emoteRenderer.renderEmoteNode(el));
-        }
-      }
       const cnt = document.getElementById('cmt-count-'+postId);
       if(cnt) cnt.textContent = parseInt(cnt.textContent||0)+1;
     } else { mostrarToast('Error al comentar','err'); }
