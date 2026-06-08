@@ -144,7 +144,7 @@ export async function resolveEmoteUrl(rawName) {
   if (globalEmoteCache.has(key)) return globalEmoteCache.get(key);
 
   try {
-    const items = await _gqlSearch(name, 10, AbortSignal.timeout(5000));
+    const items = await _gqlSearch(name, 25, AbortSignal.timeout(5000));
     // Solo aceptar coincidencia EXACTA (case-insensitive) para no mezclar emotes
     const exact = items.find(e => e.name.toLowerCase() === key);
     const url   = exact ? emoteUrl(exact.id) : null;

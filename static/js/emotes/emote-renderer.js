@@ -204,16 +204,20 @@ export function watchContainer(container) {
 
 export function initEmoteRenderer() {
   const io = _getIO();
-  document.querySelectorAll(TEXT_SELECTORS.join(", ")).forEach(el => {
-    // Si el elemento o algún ancestro está oculto (display:none),
-    // el IntersectionObserver nunca lo disparará → renderizar directamente
-    // cuando el elemento se haga visible (lo maneja quien lo muestra).
-    // Para los visibles, usar el observer.
-    if (el.offsetParent !== null) {
-      io.observe(el);
+
+  // Detecta si el elemento está dentro de un display:none (ej: cmt-hidden)
+  function _isHiddenByAncestor(el) {
+    let node = el;
+    while (node && node !== document.body) {
+      if (node.style && node.style.display === 'none') return true;
+      node = node.parentElement;
     }
-    // Los ocultos se renderizan cuando se hace visible su contenedor
-    // (ver verMasComentarios y _pvRenderComments)
+    return false;
+  }
+
+  document.querySelectorAll(TEXT_SELECTORS.join(", ")).forEach(el => {
+    if (_isHiddenByAncestor(el)) return; // los ocultos los maneja verMasComentarios
+    io.observe(el);
   });
 
   const feed =
