@@ -39,131 +39,164 @@
         ('eventos','Eventos','event'),
         ('noticias','Noticias','newspaper')
       ] %}
-      <label class="bus-chip {% if (filtro_tipo or 'todo')==val %}active{% endif %}">
+      <label class="bus-chip {% if (filtro_tipo or 'todo')==val %}active{% endif %}" id="chip-{{ val }}">
         <input type="radio" name="tipo" value="{{ val }}"
           {% if (filtro_tipo or 'todo')==val %}checked{% endif %}
-          onchange="this.form.submit()" style="display:none;">
+          onchange="mostrarResultados(); this.form.submit()" style="display:none;">
         <span class="material-symbols-outlined">{{ icon }}</span>
         {{ label }}
       </label>
       {% endfor %}
+      <!-- TAB GALERÍA -->
+      <button type="button" class="bus-chip" id="bus-chip-galeria" onclick="toggleGaleriaTab()">
+        <span class="material-symbols-outlined">photo_library</span>
+        Galería
+      </button>
     </div>
   </form>
 
-  <!-- RESULTADOS -->
-  {% if resultados is not none %}
-
-    {% if busqueda %}
-    <div class="bus-results-meta">
-      <span class="bus-count">{{ resultados|length }}</span>
-      resultado{{ 's' if resultados|length != 1 else '' }} para
-      <strong>"{{ busqueda }}"</strong>
+  <!-- PANEL GALERÍA (estilo Instagram) -->
+  <div id="bus-galeria-panel" style="display:none;">
+    {% if usuario.rol in ('miembro', 'admin') %}
+    <div class="bus-galeria-subir">
+      <form method="POST" action="/subir_archivo" enctype="multipart/form-data" class="bus-galeria-form">
+        <label class="bus-galeria-upload-btn">
+          <span class="material-symbols-outlined">add_photo_alternate</span>
+          <span>Subir foto / video</span>
+          <input type="file" name="archivo" accept="image/*,video/*" style="display:none"
+            onchange="document.getElementById('bus-fn').textContent=this.files[0]?.name||''; this.form.submit();" required>
+        </label>
+        <span id="bus-fn" style="font-size:.78rem;opacity:.5;"></span>
+      </form>
     </div>
     {% endif %}
 
-    {% if resultados %}
-      {% set tipo_config = {
-        'Usuario':     ('group',   'bus-icon-blue',   'blue'),
-        'Publicación': ('article', 'bus-icon-purple', 'purple'),
-        'Evento':      ('event',   'bus-icon-green',  'green'),
-        'Noticia':     ('newspaper','bus-icon-orange','orange')
-      } %}
-      {% for tipo_grp in ['Usuario','Publicación','Evento','Noticia'] %}
-        {% set items = resultados|selectattr('tipo','equalto',tipo_grp)|list %}
-        {% if items %}
-        <div class="bus-group">
-          <div class="bus-group-header">
-            {% set cfg = tipo_config[tipo_grp] %}
-            <span class="material-symbols-outlined bus-group-icon {{ cfg[1] }}">{{ cfg[0] }}</span>
-            <span class="bus-group-label">{{ tipo_grp }}s</span>
-            <span class="bus-group-count">{{ items|length }}</span>
-          </div>
+    {% if archivos %}
+    <div class="bus-ig-grid">
+      {% for a in archivos %}
+      <div class="bus-ig-item" onclick="abrirGaleriaModal('{{ a.ruta }}','{{ a.tipo }}')">
+        {% if a.tipo == 'imagen' %}
+          <img src="{{ a.ruta }}" alt="" loading="lazy">
+        {% else %}
+          <video src="{{ a.ruta }}" muted preload="none"></video>
+          <div class="bus-ig-play"><span class="material-symbols-outlined">play_arrow</span></div>
+        {% endif %}
+        {% if a.tipo == 'video' %}
+        <div class="bus-ig-video-badge"><span class="material-symbols-outlined">videocam</span></div>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="bus-galeria-empty">
+      <span class="material-symbols-outlined">photo_library</span>
+      <p>Aún no hay fotos ni videos. ¡Sube el primero! 📷</p>
+    </div>
+    {% endif %}
+  </div>
 
-          <div class="bus-group-items">
-            {% for r in items %}
-            <div class="bus-result-item{% if r.tipo == 'Usuario' %} bus-result-usuario{% endif %}"
-              {% if r.tipo == 'Usuario' and r.get('usuario') %}data-ver-perfil="{{ r.usuario }}" title="Ver perfil de {{ r.titulo }}" style="cursor:pointer;"{% endif %}>
+  <!-- PANEL RESULTADOS -->
+  <div id="bus-resultados-panel">
+    {% if resultados is not none %}
 
-              <!-- Icono/Avatar -->
-              {% if r.tipo == 'Usuario' %}
-                {% if r.foto %}
-                  <img src="{{ r.foto }}" class="bus-avatar-img" alt="{{ r.titulo }}">
+      {% if busqueda %}
+      <div class="bus-results-meta">
+        <span class="bus-count">{{ resultados|length }}</span>
+        resultado{{ 's' if resultados|length != 1 else '' }} para
+        <strong>"{{ busqueda }}"</strong>
+      </div>
+      {% endif %}
+
+      {% if resultados %}
+        {% set tipo_config = {
+          'Usuario':     ('group',   'bus-icon-blue',   'blue'),
+          'Publicación': ('article', 'bus-icon-purple', 'purple'),
+          'Evento':      ('event',   'bus-icon-green',  'green'),
+          'Noticia':     ('newspaper','bus-icon-orange','orange')
+        } %}
+        {% for tipo_grp in ['Usuario','Publicación','Evento','Noticia'] %}
+          {% set items = resultados|selectattr('tipo','equalto',tipo_grp)|list %}
+          {% if items %}
+          <div class="bus-group">
+            <div class="bus-group-header">
+              {% set cfg = tipo_config[tipo_grp] %}
+              <span class="material-symbols-outlined bus-group-icon {{ cfg[1] }}">{{ cfg[0] }}</span>
+              <span class="bus-group-label">{{ tipo_grp }}s</span>
+              <span class="bus-group-count">{{ items|length }}</span>
+            </div>
+
+            <div class="bus-group-items">
+              {% for r in items %}
+              <div class="bus-result-item{% if r.tipo == 'Usuario' %} bus-result-usuario{% endif %}"
+                {% if r.tipo == 'Usuario' and r.get('usuario') %}data-ver-perfil="{{ r.usuario }}" title="Ver perfil de {{ r.titulo }}" style="cursor:pointer;"{% endif %}>
+
+                <!-- Icono/Avatar -->
+                {% if r.tipo == 'Usuario' %}
+                  {% if r.foto %}
+                    <img src="{{ r.foto }}" class="bus-avatar-img" alt="{{ r.titulo }}">
+                  {% else %}
+                    <div class="bus-avatar-letter {{ cfg[1] }}">{{ r.titulo[0]|upper }}</div>
+                  {% endif %}
                 {% else %}
-                  <div class="bus-avatar-letter {{ cfg[1] }}">{{ r.titulo[0]|upper }}</div>
-                {% endif %}
-              {% else %}
-                <div class="bus-tipo-icon {{ cfg[1] }}">
-                  <span class="material-symbols-outlined">{{ cfg[0] }}</span>
-                </div>
-              {% endif %}
-
-              <!-- Contenido -->
-              <div class="bus-item-info">
-                <div class="bus-item-title">{{ r.titulo }}</div>
-                <div class="bus-item-desc">{{ r.descripcion }}</div>
-                {% if r.get('fecha') %}
-                  <div class="bus-item-meta">
-                    <span class="material-symbols-outlined">schedule</span>
-                    {{ r.fecha }}
-                    {% if r.get('autor') %}· {{ r.autor }}{% endif %}
+                  <div class="bus-tipo-icon {{ cfg[1] }}">
+                    <span class="material-symbols-outlined">{{ cfg[0] }}</span>
                   </div>
                 {% endif %}
+
+                <!-- Contenido -->
+                <div class="bus-item-info">
+                  <div class="bus-item-title">{{ r.titulo }}</div>
+                  <div class="bus-item-desc">{{ r.descripcion }}</div>
+                  {% if r.get('fecha') %}
+                    <div class="bus-item-meta">
+                      <span class="material-symbols-outlined">schedule</span>
+                      {{ r.fecha }}
+                      {% if r.get('autor') %}· {{ r.autor }}{% endif %}
+                    </div>
+                  {% endif %}
+                </div>
+
+                <!-- Badge tipo -->
+                <span class="bus-badge bus-badge-{{ tipo_grp|lower|replace('ó','o')|replace('ú','u')|replace('é','e') }}">{{ r.tipo }}</span>
+
               </div>
-
-              <!-- Badge tipo -->
-              <span class="bus-badge bus-badge-{{ tipo_grp|lower|replace('ó','o')|replace('ú','u')|replace('é','e') }}">{{ r.tipo }}</span>
-
+              {% endfor %}
             </div>
-            {% endfor %}
           </div>
+          {% endif %}
+        {% endfor %}
+
+      {% elif busqueda %}
+      <!-- SIN RESULTADOS -->
+      <div class="bus-empty">
+        <div class="bus-empty-icon">
+          <span class="material-symbols-outlined">search_off</span>
         </div>
-        {% endif %}
-      {% endfor %}
+        <h3>Sin resultados</h3>
+        <p>No encontramos nada para <strong>"{{ busqueda }}"</strong></p>
+        <div class="bus-sugerencias">
+          <p>Sugerencias:</p>
+          <ul>
+            <li>Revisa que no haya errores ortográficos</li>
+            <li>Prueba con términos más generales</li>
+            <li>Cambia el filtro de categoría</li>
+          </ul>
+        </div>
+      </div>
+      {% endif %}
 
-    {% elif busqueda %}
-    <!-- SIN RESULTADOS -->
-    <div class="bus-empty">
-      <div class="bus-empty-icon">
-        <span class="material-symbols-outlined">search_off</span>
-      </div>
-      <h3>Sin resultados</h3>
-      <p>No encontramos nada para <strong>"{{ busqueda }}"</strong></p>
-      <div class="bus-sugerencias">
-        <p>Sugerencias:</p>
-        <ul>
-          <li>Revisa que no haya errores ortográficos</li>
-          <li>Prueba con términos más generales</li>
-          <li>Cambia el filtro de categoría</li>
-        </ul>
-      </div>
-    </div>
     {% endif %}
-
-  {% else %}
-  <!-- ESTADO INICIAL -->
-  <div class="bus-inicio">
-    <div class="bus-inicio-icon">
-      <span class="material-symbols-outlined">travel_explore</span>
-    </div>
-    <h3>Explora la app</h3>
-    <p>Busca personas, publicaciones, eventos o noticias usando la barra de arriba</p>
-    <div class="bus-categorias-grid">
-      {% for val, label, icon, col in [
-        ('usuarios','Usuarios','group','blue'),
-        ('publicaciones','Publicaciones','article','purple'),
-        ('eventos','Eventos','event','green'),
-        ('noticias','Noticias','newspaper','orange')
-      ] %}
-      <button class="bus-cat-card bus-icon-{{ col }}" onclick="buscarCategoria('{{ val }}')">
-        <span class="material-symbols-outlined">{{ icon }}</span>
-        <span>{{ label }}</span>
-      </button>
-      {% endfor %}
-    </div>
   </div>
-  {% endif %}
 
 </section>
+
+<!-- MODAL VISOR GALERÍA -->
+<div id="bus-galeria-modal" onclick="this.style.display='none'"
+  style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:9999;justify-content:center;align-items:center;cursor:zoom-out;">
+  <div id="bus-galeria-modal-content" style="max-width:92vw;max-height:92vh;" onclick="event.stopPropagation()"></div>
+  <button onclick="document.getElementById('bus-galeria-modal').style.display='none'"
+    style="position:absolute;top:16px;right:20px;background:rgba(255,255,255,.15);border:none;color:#fff;width:38px;height:38px;border-radius:50%;cursor:pointer;font-size:20px;display:flex;align-items:center;justify-content:center;">✕</button>
+</div>
 
 <style>
 /* ---- HEADER ---- */
@@ -232,6 +265,7 @@
   background: var(--card, #fff);
   color: var(--text2, #666);
   transition: all .15s; user-select: none;
+  font-family: inherit;
 }
 .bus-chip .material-symbols-outlined { font-size: 15px; }
 .bus-chip:hover {
@@ -248,135 +282,87 @@
 /* ---- META RESULTADOS ---- */
 .bus-results-meta {
   font-size: .88rem; color: var(--text2, #666);
-  margin-bottom: 16px; padding-bottom: 14px;
-  border-bottom: 1px solid var(--border, #dbdbdb);
+  margin-bottom: 16px; display: flex; align-items: center; gap: 5px;
 }
 .bus-count {
-  font-size: 1rem; font-weight: 700;
-  color: var(--text, #111); margin-right: 4px;
+  font-weight: 700; color: var(--text);
+  background: var(--card2, #f5f5f5); border: 1px solid var(--border);
+  border-radius: 20px; padding: 1px 10px; font-size: .8rem;
 }
 
-/* ---- GRUPOS ---- */
+/* ---- GRUPOS RESULTADO ---- */
 .bus-group { margin-bottom: 24px; }
 .bus-group-header {
   display: flex; align-items: center; gap: 8px;
-  margin-bottom: 10px;
+  margin-bottom: 10px; padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
 }
-.bus-group-icon {
-  font-size: 17px;
-  font-variation-settings: 'FILL' 1;
-}
-.bus-group-label {
-  font-size: .78rem; font-weight: 700;
-  text-transform: uppercase; letter-spacing: .06em;
-  color: var(--text2, #666);
-}
+.bus-group-icon { font-size: 18px; }
+.bus-group-label { font-weight: 700; font-size: .9rem; flex: 1; }
 .bus-group-count {
-  font-size: .72rem; font-weight: 700;
-  background: var(--bg2, #f5f5f5);
-  border: 1px solid var(--border);
-  color: var(--text2);
-  padding: 1px 7px; border-radius: 20px;
-  margin-left: 2px;
+  font-size: .75rem; font-weight: 600; color: var(--text2);
+  background: var(--card2); border: 1px solid var(--border);
+  border-radius: 12px; padding: 1px 8px;
 }
 .bus-group-items {
-  background: var(--card, #fff);
-  border: 1px solid var(--border, #dbdbdb);
-  border-radius: 12px;
-  overflow: hidden;
+  background: var(--card, #fff); border: 1px solid var(--border);
+  border-radius: 12px; overflow: hidden;
 }
-
-/* ---- ITEMS ---- */
 .bus-result-item {
   display: flex; align-items: center; gap: 12px;
-  padding: 12px 16px;
-  border-bottom: 1px solid var(--border, #dbdbdb);
+  padding: 12px 16px; border-bottom: 1px solid var(--border);
   transition: background .12s;
-  cursor: default;
 }
 .bus-result-item:last-child { border-bottom: none; }
-.bus-result-item:hover { background: var(--bg2, #f5f5f5); }
-
+.bus-result-item:hover { background: var(--bg2, #f9f9f9); }
 .bus-avatar-img {
-  width: 42px; height: 42px;
-  border-radius: 50%; object-fit: cover;
-  border: 2px solid var(--border);
-  flex-shrink: 0;
+  width: 40px; height: 40px; border-radius: 50%;
+  object-fit: cover; border: 1.5px solid var(--border); flex-shrink: 0;
 }
 .bus-avatar-letter {
-  width: 42px; height: 42px;
-  border-radius: 50%;
+  width: 40px; height: 40px; border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
-  font-size: .95rem; font-weight: 700; color: #fff;
-  flex-shrink: 0;
+  font-weight: 700; font-size: .9rem; flex-shrink: 0; color: #fff;
 }
 .bus-tipo-icon {
-  width: 42px; height: 42px;
-  border-radius: 12px;
+  width: 40px; height: 40px; border-radius: 12px;
   display: flex; align-items: center; justify-content: center;
   flex-shrink: 0;
 }
-.bus-tipo-icon .material-symbols-outlined {
-  font-size: 20px;
-  font-variation-settings: 'FILL' 1;
-}
-
-/* Color variants */
-.bus-icon-blue   { background: rgba(0,149,246,.15);  color: #0095f6; }
-.bus-icon-purple { background: rgba(156,39,176,.15); color: #9c27b0; }
-.bus-icon-green  { background: rgba(76,175,80,.15);  color: #4caf50; }
-.bus-icon-orange { background: rgba(255,152,0,.15);  color: #ff9800; }
-
+.bus-tipo-icon .material-symbols-outlined { font-size: 20px; font-variation-settings: 'FILL' 1; }
+.bus-icon-blue   { background: rgba(0,149,246,.14); color: #0095f6; }
+.bus-icon-purple { background: rgba(156,39,176,.13); color: #9c27b0; }
+.bus-icon-green  { background: rgba(0,166,80,.13);  color: #00a650; }
+.bus-icon-orange { background: rgba(255,152,0,.13); color: #ff9800; }
 .bus-item-info { flex: 1; min-width: 0; }
-.bus-item-title {
-  font-weight: 600; font-size: .9rem;
-  color: var(--text, #111);
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-.bus-item-desc {
-  font-size: .82rem; color: var(--text2, #666);
-  margin-top: 2px;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-.bus-item-meta {
-  display: flex; align-items: center; gap: 3px;
-  font-size: .75rem; color: var(--text3, #999);
-  margin-top: 4px;
-}
+.bus-item-title { font-size: .9rem; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bus-item-desc  { font-size: .78rem; color: var(--text2); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bus-item-meta  { display: flex; align-items: center; gap: 4px; font-size: .73rem; color: var(--text3); margin-top: 3px; }
 .bus-item-meta .material-symbols-outlined { font-size: 13px; }
-
-/* ---- BADGES ---- */
 .bus-badge {
-  font-size: .7rem; font-weight: 700;
-  padding: 2px 8px; border-radius: 20px;
-  flex-shrink: 0; white-space: nowrap;
+  flex-shrink: 0; font-size: .7rem; font-weight: 700; padding: 2px 8px;
+  border-radius: 10px;
 }
-.bus-badge-usuario     { background: rgba(0,149,246,.12);  color: #0095f6; }
+.bus-badge-usuario     { background: rgba(0,149,246,.12); color: #0095f6; }
 .bus-badge-publicacion { background: rgba(156,39,176,.12); color: #9c27b0; }
-.bus-badge-evento      { background: rgba(76,175,80,.12);  color: #4caf50; }
-.bus-badge-noticia     { background: rgba(255,152,0,.12);  color: #ff9800; }
+.bus-badge-evento      { background: rgba(0,166,80,.12); color: #00a650; }
+.bus-badge-noticia     { background: rgba(255,152,0,.12); color: #ff9800; }
 
-/* ---- VACÍO ---- */
+/* ---- SIN RESULTADOS ---- */
 .bus-empty {
-  text-align: center; padding: 48px 20px;
-  background: var(--card, #fff);
-  border: 1px solid var(--border);
-  border-radius: 14px;
+  text-align: center; padding: 40px 20px;
+  background: var(--card); border: 1px solid var(--border); border-radius: 14px;
 }
 .bus-empty-icon {
-  width: 72px; height: 72px;
-  border-radius: 20px;
-  background: var(--bg2, #f5f5f5);
+  width: 64px; height: 64px; border-radius: 18px;
+  background: var(--bg2); border: 1px solid var(--border);
   display: flex; align-items: center; justify-content: center;
-  margin: 0 auto 16px;
+  margin: 0 auto 14px;
 }
-.bus-empty-icon .material-symbols-outlined { font-size: 36px; color: var(--text3); }
-.bus-empty h3 { font-size: 1.1rem; margin-bottom: 6px; }
-.bus-empty p { font-size: .88rem; color: var(--text2); }
+.bus-empty-icon .material-symbols-outlined { font-size: 30px; color: var(--text2); }
+.bus-empty h3 { font-size: 1rem; margin-bottom: 6px; }
+.bus-empty > p { font-size: .88rem; color: var(--text2); margin-bottom: 16px; }
 .bus-sugerencias {
-  text-align: left;
-  display: inline-block;
-  margin-top: 20px;
   background: var(--bg2, #f5f5f5);
   border: 1px solid var(--border);
   border-radius: 10px;
@@ -386,71 +372,100 @@
 .bus-sugerencias p { font-weight: 600; margin-bottom: 8px; color: var(--text); }
 .bus-sugerencias ul { padding-left: 18px; line-height: 2; }
 
-/* ---- ESTADO INICIAL ---- */
-.bus-inicio {
-  text-align: center; padding: 48px 20px 36px;
-  background: var(--card, #fff);
-  border: 1px solid var(--border);
-  border-radius: 14px;
+/* ---- GALERÍA INSTAGRAM STYLE ---- */
+.bus-galeria-subir {
+  margin-bottom: 14px;
 }
-.bus-inicio-icon {
-  width: 80px; height: 80px;
-  border-radius: 22px;
-  background: linear-gradient(135deg, rgba(0,149,246,.15), rgba(156,39,176,.12));
+.bus-galeria-form {
+  display: flex; align-items: center; gap: 10px;
+}
+.bus-galeria-upload-btn {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 9px 16px;
+  background: var(--card); border: 1.5px dashed var(--border);
+  border-radius: 10px; cursor: pointer; font-size: .85rem;
+  font-weight: 600; color: var(--text2); font-family: inherit;
+  transition: border-color .15s, color .15s;
+}
+.bus-galeria-upload-btn:hover {
+  border-color: var(--accent); color: var(--accent);
+}
+.bus-galeria-upload-btn .material-symbols-outlined { font-size: 20px; }
+
+/* GRID INSTAGRAM */
+.bus-ig-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 3px;
+}
+@media (min-width: 600px) {
+  .bus-ig-grid { grid-template-columns: repeat(4, 1fr); gap: 4px; }
+}
+@media (min-width: 900px) {
+  .bus-ig-grid { grid-template-columns: repeat(5, 1fr); gap: 4px; }
+}
+.bus-ig-item {
+  position: relative; aspect-ratio: 1;
+  overflow: hidden; cursor: pointer; background: var(--card2);
+}
+.bus-ig-item img,
+.bus-ig-item video {
+  width: 100%; height: 100%; object-fit: cover;
+  display: block; transition: transform .22s ease;
+}
+.bus-ig-item:hover img,
+.bus-ig-item:hover video { transform: scale(1.04); }
+.bus-ig-play {
+  position: absolute; inset: 0;
   display: flex; align-items: center; justify-content: center;
-  margin: 0 auto 18px;
+  background: rgba(0,0,0,.25); opacity: 0;
+  transition: opacity .18s;
 }
-.bus-inicio-icon .material-symbols-outlined {
-  font-size: 40px; color: var(--accent, #0095f6);
+.bus-ig-item:hover .bus-ig-play { opacity: 1; }
+.bus-ig-play .material-symbols-outlined {
+  font-size: 42px; color: #fff;
+  filter: drop-shadow(0 2px 8px rgba(0,0,0,.5));
   font-variation-settings: 'FILL' 1;
 }
-.bus-inicio h3 { font-size: 1.15rem; margin-bottom: 6px; }
-.bus-inicio > p { font-size: .88rem; color: var(--text2); margin-bottom: 24px; }
-.bus-categorias-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 10px;
-  max-width: 340px;
-  margin: 0 auto;
+.bus-ig-video-badge {
+  position: absolute; top: 6px; right: 6px;
+  background: rgba(0,0,0,.55); border-radius: 6px;
+  padding: 2px 6px; display: flex; align-items: center;
 }
-.bus-cat-card {
-  display: flex; align-items: center; justify-content: center; gap: 8px;
-  padding: 14px 12px;
-  border-radius: 12px;
-  border: 1px solid var(--border);
-  background: var(--bg2, #f5f5f5);
-  cursor: pointer; font-size: .88rem; font-weight: 600;
-  font-family: inherit;
-  transition: transform .12s, box-shadow .12s;
+.bus-ig-video-badge .material-symbols-outlined {
+  font-size: 14px; color: #fff;
 }
-.bus-cat-card:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(0,0,0,.08); }
-.bus-cat-card .material-symbols-outlined { font-size: 20px; font-variation-settings: 'FILL' 1; }
+.bus-galeria-empty {
+  text-align: center; padding: 60px 20px;
+  color: var(--text2);
+}
+.bus-galeria-empty .material-symbols-outlined { font-size: 52px; opacity: .3; display: block; margin-bottom: 10px; }
+.bus-galeria-empty p { font-size: .9rem; opacity: .6; }
 
 /* ---- DARK MODE ---- */
 body.dark-mode .bus-search-wrap {
   background: var(--card); border-color: var(--border);
 }
 body.dark-mode .bus-search-input { color: var(--text); }
-body.dark-mode .bus-submit-btn { background: var(--accent-gradient, linear-gradient(135deg,#ff6b9d,#ff4d8d,#c9236a)); color: #fff;  box-shadow:0 4px 14px rgba(255,77,141,.35); }
+body.dark-mode .bus-submit-btn { background: var(--accent-gradient, linear-gradient(135deg,#ff6b9d,#ff4d8d,#c9236a)); color: #fff; }
 body.dark-mode .bus-chip {
   background: var(--card); border-color: var(--border); color: var(--text2);
 }
 body.dark-mode .bus-chip.active {
   background: var(--accent-gradient, linear-gradient(135deg,#ff6b9d,#ff4d8d,#c9236a)); border-color: var(--accent); color: #fff;
-  box-shadow: 0 2px 10px rgba(255,77,141,.35);
 }
 body.dark-mode .bus-group-items { background: var(--card); border-color: var(--border); }
 body.dark-mode .bus-result-item { border-bottom-color: var(--border); }
 body.dark-mode .bus-result-item:hover { background: var(--card2); }
 body.dark-mode .bus-item-title { color: var(--text); }
 body.dark-mode .bus-group-count { background: var(--card2); border-color: var(--border); }
-body.dark-mode .bus-empty,
-body.dark-mode .bus-inicio { background: var(--card); border-color: var(--border); }
+body.dark-mode .bus-empty { background: var(--card); border-color: var(--border); }
 body.dark-mode .bus-empty-icon,
-body.dark-mode .bus-sugerencias,
-body.dark-mode .bus-cat-card { background: var(--card2); border-color: var(--border); }
+body.dark-mode .bus-sugerencias { background: var(--card2); border-color: var(--border); }
 body.dark-mode .bus-avatar-img { border-color: var(--border); }
 body.dark-mode .bus-clear-btn:hover { background: var(--card2); }
+body.dark-mode .bus-galeria-upload-btn { background: var(--card); border-color: var(--border); color: var(--text2); }
+body.dark-mode .bus-galeria-empty { color: var(--text2); }
 </style>
 
 <script>
@@ -459,18 +474,57 @@ function limpiarBusqueda() {
   document.getElementById('form-buscar').submit();
 }
 
+function mostrarResultados() {
+  // Al activar un filtro normal, ocultar galería
+  document.getElementById('bus-galeria-panel').style.display = 'none';
+  document.getElementById('bus-resultados-panel').style.display = '';
+  document.getElementById('bus-chip-galeria').classList.remove('active');
+}
+
+function toggleGaleriaTab() {
+  const panel = document.getElementById('bus-galeria-panel');
+  const resPanel = document.getElementById('bus-resultados-panel');
+  const chipGal = document.getElementById('bus-chip-galeria');
+  const isOpen = panel.style.display !== 'none';
+
+  if (isOpen) {
+    // Cerrar galería, volver a resultados
+    panel.style.display = 'none';
+    resPanel.style.display = '';
+    chipGal.classList.remove('active');
+    // Reactivar chip "Todo"
+    document.querySelectorAll('.bus-chip').forEach(c => c.classList.remove('active'));
+    document.getElementById('chip-todo').classList.add('active');
+  } else {
+    // Abrir galería
+    panel.style.display = 'block';
+    resPanel.style.display = 'none';
+    chipGal.classList.add('active');
+    // Desactivar otros chips
+    document.querySelectorAll('.bus-chip:not(#bus-chip-galeria)').forEach(c => c.classList.remove('active'));
+  }
+}
+
+function abrirGaleriaModal(src, tipo) {
+  const modal = document.getElementById('bus-galeria-modal');
+  const content = document.getElementById('bus-galeria-modal-content');
+  content.innerHTML = tipo === 'imagen'
+    ? `<img src="${src}" style="max-width:92vw;max-height:90vh;border-radius:12px;display:block;">`
+    : `<video src="${src}" controls autoplay style="max-width:92vw;max-height:90vh;border-radius:12px;"></video>`;
+  modal.style.display = 'flex';
+}
+
 function buscarCategoria(tipo) {
   const form = document.getElementById('form-buscar');
-  // activar radio del tipo
   const radio = form.querySelector(`input[name="tipo"][value="${tipo}"]`);
   if (radio) radio.checked = true;
   form.submit();
 }
 
-// Enviar con Enter
 document.getElementById('input-bq')?.addEventListener('keydown', function(e) {
   if (e.key === 'Enter') {
     e.preventDefault();
+    mostrarResultados();
     document.getElementById('form-buscar').submit();
   }
 });

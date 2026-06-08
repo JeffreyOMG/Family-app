@@ -16,7 +16,6 @@
       ('mundial',   'sports_soccer', 'Mundial'),
       ('buscador',  'search',        'Buscador'),
       ('perfil',    'person',        'Perfil'),
-      ('ajustes',   'settings',      'Ajustes'),
     ] %}
     {% for sec, icon, label in nav_publico %}
     <a class="nav-item {% if seccion_activa==sec %}active{% endif %}" data-sec="{{ sec }}" href="#{{ sec }}">
@@ -30,7 +29,6 @@
     {% set nav_miembro = [
       ('recaudacion','savings',      'Recaudación'),
       ('noticias',  'calendar_month','Noticias'),
-      ('galeria',   'photo_library', 'Galería'),
     ] %}
     {% for sec, icon, label in nav_miembro %}
     <a class="nav-item {% if seccion_activa==sec %}active{% endif %}" data-sec="{{ sec }}" href="#{{ sec }}">
