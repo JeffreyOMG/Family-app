@@ -490,12 +490,17 @@
 .compose-fab {
   display: none;
   position: fixed;
-  bottom: 80px;
+  bottom: 74px;
   right: 18px;
-  z-index: 500;
-  width: 52px;
-  height: 52px;
-  border-radius: 50%;
+  z-index: 600;
+  width: 56px !important;
+  height: 56px !important;
+  min-width: 56px !important;
+  max-width: 56px !important;
+  min-height: 56px !important;
+  max-height: 56px !important;
+  padding: 0 !important;
+  border-radius: 50% !important;
   background: var(--accent, #ff4d8d);
   color: #fff;
   border: none;
@@ -506,12 +511,19 @@
   transition: transform .2s, box-shadow .2s;
   -webkit-appearance: none;
   appearance: none;
+  flex-shrink: 0;
+  flex-grow: 0;
+  line-height: 1;
 }
-.compose-fab .material-symbols-outlined { font-size: 26px; }
+.compose-fab .material-symbols-outlined {
+  font-size: 26px;
+  line-height: 1;
+  display: block;
+}
 .compose-fab:hover { transform: scale(1.08); box-shadow: 0 6px 24px rgba(255,77,141,.55); }
 .compose-fab:active { transform: scale(.93); }
 
-@media (max-width: 640px) {
+@media (max-width: 768px) {
   .compose-fab { display: flex; }
 }
 </style>
