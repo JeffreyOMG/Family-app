@@ -5321,6 +5321,8 @@ function _initPostCardClick() {
     '[data-ver-perfil]', '.pv-trigger', '.post-text-more',
     '.post-media', '.pc-img', '.poll-option', '.poll-change-btn',
     '.comment-input', '.cinput-wrap', '.comment-text-more',
+    '.cmt-dots-btn', '.cmt-action-btn', '.cmt-dropdown-menu',
+    '.cmt-reply-form', '.cmt-menu-wrap',
   ].join(',');
 
   document.addEventListener('click', function(e) {
@@ -5333,6 +5335,8 @@ function _initPostCardClick() {
     // en desktop SIEMPRE abrimos el modal. El inline nunca debe actuar en desktop.
     const inlineSection = e.target.closest('.comments-section');
     if (inlineSection) {
+      // No abrir modal si fue en un botón de acción de comentario
+      if (e.target.closest('button, input, textarea, .cmt-menu-wrap, .cmt-dots-btn, .cmt-action-btn, .cmt-reply-form, .cmt-dropdown-menu')) return;
       e.preventDefault();
       e.stopPropagation();
       const postId = parseInt(card.id.replace('post-', ''), 10);
