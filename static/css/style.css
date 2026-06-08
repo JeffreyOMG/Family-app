@@ -4362,16 +4362,15 @@ body.dark-mode .cruce-num {
   border-radius: 100px;
   border: none;
   border-top: none;
-  /* Dark pill — works on both light and dark backgrounds */
-  background: rgba(22, 22, 28, 0.88);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  /* Glass pill — translucent, works on any background */
+  background: rgba(20, 20, 26, 0.75);
+  backdrop-filter: blur(24px) saturate(160%);
+  -webkit-backdrop-filter: blur(24px) saturate(160%);
   outline: none;
   box-shadow:
-    0 8px 32px rgba(0,0,0,0.28),
-    0 2px 8px rgba(0,0,0,0.18),
-    inset 0 1px 0 rgba(255,255,255,0.1),
-    0 0 0 0.5px rgba(255,255,255,0.08);
+    0 8px 32px rgba(0,0,0,0.25),
+    inset 0 1px 0 rgba(255,255,255,0.12),
+    0 0 0 0.5px rgba(255,255,255,0.09);
   z-index: 700;
   padding: 0 8px;
   gap: 0;
@@ -4388,7 +4387,7 @@ body.dark-mode .cruce-num {
   cursor: pointer;
   border: none;
   background: none;
-  color: rgba(255,255,255,.65);
+  color: rgba(255,255,255,.6) !important;
   font-size: .62rem;
   font-family: var(--font);
   -webkit-tap-highlight-color: transparent;
@@ -4396,12 +4395,13 @@ body.dark-mode .cruce-num {
   position: relative;
 }
 .bottom-nav-item:active { transform: scale(.82); }
+.bottom-nav-item:hover  { color: rgba(255,255,255,.85) !important; }
 .bottom-nav-item .material-symbols-outlined {
   font-size: 26px;
   font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
   transition: all .2s cubic-bezier(.4,0,.2,1);
 }
-.bottom-nav-item.active { color: #ffffff; }
+.bottom-nav-item.active            { color: #ffffff !important; }
 .bottom-nav-item.active .material-symbols-outlined {
   font-variation-settings: 'FILL' 1, 'wght' 600, 'GRAD' -25, 'opsz' 24;
 }
@@ -4419,7 +4419,6 @@ body.dark-mode .cruce-num {
   opacity: .6;
 }
 .bottom-nav-perfil.active::after { display: none; }
-.bottom-nav-item span:last-child { display: none !important; }
 .bnav-label { display: none !important; }
 
 @media (max-width: 768px) {
@@ -5072,9 +5071,9 @@ body.dark-mode .cruce-num {
     height: 58px !important;
     border-radius: 100px !important;
     /* Glass — transparent enough to see content through */
-    background: rgba(22, 22, 28, 0.88) !important;
-    backdrop-filter: blur(20px) !important;
-    -webkit-backdrop-filter: blur(20px) !important;
+    background: rgba(20, 20, 26, 0.75) !important;
+    backdrop-filter: blur(24px) saturate(160%) !important;
+    -webkit-backdrop-filter: blur(24px) saturate(160%) !important;
     border: none !important;
     border-top: none !important;
     outline: none !important;
@@ -5103,7 +5102,7 @@ body.dark-mode .cruce-num {
     cursor: pointer;
     border: none;
     background: none;
-    color: rgba(255,255,255,0.65);
+    color: rgba(255,255,255,0.65) !important;
     -webkit-tap-highlight-color: transparent;
     transition: color 0.18s ease, transform 0.13s ease;
     position: relative;
@@ -5118,12 +5117,14 @@ body.dark-mode .cruce-num {
     font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
     transition: font-variation-settings 0.18s ease;
     display: block;
+    color: rgba(255,255,255,0.65) !important;
   }
   .bottom-nav-item.active {
-    color: #ffffff;
+    color: #ffffff !important;
   }
   .bottom-nav-item.active .material-symbols-outlined {
     font-variation-settings: 'FILL' 1, 'wght' 600, 'GRAD' -25, 'opsz' 24;
+    color: #ffffff !important;
   }
   /* Dot indicator */
   .bottom-nav-item.active::after {
@@ -5139,7 +5140,6 @@ body.dark-mode .cruce-num {
     opacity: 0.65;
   }
   .bottom-nav-perfil.active::after { display: none; }
-  .bottom-nav-item span:last-child { display: none !important; }
   .bnav-label { display: none !important; }
 
   /* ── 10. PROFILE AVATAR ── */
