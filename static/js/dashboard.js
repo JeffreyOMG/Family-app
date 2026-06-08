@@ -499,6 +499,7 @@ document.addEventListener('DOMContentLoaded', function() {
     '.as-modal-overlay',
     '#pv-overlay',          // Post viewer modal
     '#pm-activity-modal',   // Activity modal
+    '#mob-cmt-overlay',     // Mobile fullscreen comments modal
   ];
   modalSelectors.forEach(function(sel) {
     document.querySelectorAll(sel).forEach(function(modal) {

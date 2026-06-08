@@ -4618,7 +4618,7 @@ function renderPoll(pollEl, poll){
     if(!poll.anonima && mostrar && op.votantes){
       let vEl = row.querySelector('.poll-voters');
       if(!vEl){ vEl=document.createElement('div'); vEl.className='poll-voters'; body.appendChild(vEl); }
-      vEl.innerHTML = op.votantes.map(v=>'<span class="poll-voter-chip" title="'+v.nombre+'">'+(v.foto?'<img src="'+v.foto+'" class="poll-voter-av">':`<span class="poll-voter-init">${v.nombre[0].toUpperCase()}</span>`)+'</span>').join('')+(op.votos>op.votantes.length?'<span class="poll-voter-more">+'+(op.votos-op.votantes.length)+'</span>':'');
+      vEl.innerHTML = op.votantes.map(v => `<span class="poll-voter-chip" title="${escHTML(v.nombre)}">${v.foto ? `<img src="${escHTML(v.foto)}" class="poll-voter-av">` : `<span class="poll-voter-init">${escHTML((v.nombre||'?')[0]).toUpperCase()}</span>`}</span>`).join('') + (op.votos > op.votantes.length ? `<span class="poll-voter-more">+${op.votos - op.votantes.length}</span>` : '');
     }
   });
   const meta = pollEl.querySelector('.poll-meta');
@@ -6135,7 +6135,7 @@ function _renderPostModal(p) {
           <span class="material-symbols-outlined">favorite</span>
           <span id="pv-like-count">${p.total_likes}</span>
         </button>
-        <button class="pv-action-btn" onclick="${window.innerWidth <= 700 ? `abrirMobComments(${p.id})` : 'pvFocoComentario()'}">
+        <button class="pv-action-btn" onclick="abrirComentariosAdaptativo(${p.id})">
           <span class="material-symbols-outlined">chat_bubble</span>
           <span id="pv-cmt-count">${numCmts}</span>
         </button>
@@ -6839,6 +6839,12 @@ let _mobCmtPostId = null;
  * Abre el modal de comentarios fullscreen en móvil.
  * En desktop nunca se llama (CSS oculta el botón).
  */
+// Helper: decide en tiempo de click si usar modal móvil o desktop
+function abrirComentariosAdaptativo(id) {
+  if (window.innerWidth <= 700) abrirMobComments(id);
+  else pvFocoComentario();
+}
+
 async function abrirMobComments(postId) {
   if (window.innerWidth > 700) {
     // En desktop redirigir al flujo normal
