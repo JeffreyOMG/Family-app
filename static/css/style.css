@@ -4930,24 +4930,23 @@ body.dark-mode .cruce-num {
 }
 
 
+
 /* ══════════════════════════════════════════════════════════════
-   LIQUID GLASS v3 — TRUE iOS NATIVE EXPERIENCE
-   Header + Bottom Nav — Instagram iOS / iOS 18 Liquid Glass
-   SVG Distortion + Backdrop Blur + Real glassmorphism
+   GLASSMORPHISM NAV — Instagram iOS style
+   Pure backdrop-filter. No SVG filters. No infinite animations.
+   Performance-first. Subtle. Native feel.
    ══════════════════════════════════════════════════════════════ */
 
 /* ── Desktop: hide mobile layer ── */
 .navbar-mobile-ig  { display: none; }
 .navbar-desktop-only { display: flex; }
 
-/* ───────────────────────────────────────────────────────────────
-   MOBILE ONLY  (≤768px)
-─────────────────────────────────────────────────────────────── */
+/* ─────────────────────────────────────────────
+   MOBILE ONLY (≤768px)
+───────────────────────────────────────────── */
 @media (max-width: 768px) {
 
-  /* ═══════════════════════════════════════
-     1. NAVBAR BASE — strip all desktop chrome
-  ═══════════════════════════════════════ */
+  /* ── 1. NAVBAR — fully transparent at rest ── */
   .navbar,
   body.dark-mode .navbar,
   body:not(.dark-mode) .navbar {
@@ -4958,74 +4957,31 @@ body.dark-mode .cruce-num {
     width: 100% !important;
     height: calc(env(safe-area-inset-top, 0px) + 56px) !important;
     padding: calc(env(safe-area-inset-top, 0px) + 8px) 20px 8px !important;
-    /* Fully transparent — content passes underneath */
     background: transparent !important;
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
     border-bottom: none !important;
     box-shadow: none !important;
     z-index: 900 !important;
-    will-change: background, backdrop-filter;
+    /* Only transition the properties that change on scroll */
     transition:
-      background 0.35s cubic-bezier(0.4,0,0.2,1),
-      backdrop-filter 0.35s cubic-bezier(0.4,0,0.2,1),
-      -webkit-backdrop-filter 0.35s cubic-bezier(0.4,0,0.2,1),
-      box-shadow 0.35s cubic-bezier(0.4,0,0.2,1) !important;
+      background 0.3s ease,
+      backdrop-filter 0.3s ease,
+      box-shadow 0.3s ease !important;
   }
 
-  /* ═══════════════════════════════════════
-     2. SCROLLED STATE — Liquid Glass activates
-     Content feels like it passes behind glass
-  ═══════════════════════════════════════ */
+  /* ── 2. SCROLLED — glass activates (Instagram iOS style) ── */
   .navbar.ig-scrolled,
   body.dark-mode .navbar.ig-scrolled,
   body:not(.dark-mode) .navbar.ig-scrolled {
-    background: rgba(8, 8, 12, 0.55) !important;
-    backdrop-filter: saturate(210%) blur(28px) brightness(1.04) !important;
-    -webkit-backdrop-filter: saturate(210%) blur(28px) brightness(1.04) !important;
-    border-bottom: 0.5px solid rgba(255,255,255,0.08) !important;
-    box-shadow:
-      0 1px 0 rgba(255,255,255,0.06),
-      0 4px 32px rgba(0,0,0,0.22) !important;
+    background: rgba(10, 10, 14, 0.6) !important;
+    backdrop-filter: saturate(180%) blur(24px) !important;
+    -webkit-backdrop-filter: saturate(180%) blur(24px) !important;
+    border-bottom: 0.5px solid rgba(255,255,255,0.07) !important;
+    box-shadow: 0 0.5px 0 rgba(255,255,255,0.05), 0 2px 20px rgba(0,0,0,0.18) !important;
   }
 
-  /* SVG distortion layer on scrolled navbar — creates glass depth */
-  .navbar.ig-scrolled::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    z-index: -1;
-    border-radius: 0;
-    filter: url(#lg-distort-header);
-    -webkit-filter: url(#lg-distort-header);
-    pointer-events: none;
-    opacity: 0.35;
-    transition: opacity 0.35s ease;
-  }
-
-  /* Glass specular highlight — top edge shimmer */
-  .navbar.ig-scrolled::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 1px;
-    background: linear-gradient(
-      90deg,
-      transparent 0%,
-      rgba(255,255,255,0.18) 30%,
-      rgba(255,255,255,0.28) 50%,
-      rgba(255,255,255,0.18) 70%,
-      transparent 100%
-    );
-    pointer-events: none;
-    z-index: 1;
-  }
-
-  /* ═══════════════════════════════════════
-     3. MOBILE IG LAYOUT — show/hide
-  ═══════════════════════════════════════ */
+  /* ── 3. SHOW MOBILE LAYOUT ── */
   .navbar-desktop-only { display: none !important; }
   .navbar-mobile-ig {
     display: flex !important;
@@ -5033,49 +4989,37 @@ body.dark-mode .cruce-num {
     justify-content: space-between;
     width: 100%;
     height: 100%;
-    position: relative;
-    z-index: 2;
   }
 
   .navbar-ig-left  { display: flex; align-items: center; }
   .navbar-ig-right { display: flex; align-items: center; gap: 4px; }
 
-  /* ═══════════════════════════════════════
-     4. BRAND — Dominant, full logo visible
-  ═══════════════════════════════════════ */
+  /* ── 4. BRAND — full logo, no clipping ── */
   .navbar-ig-brand {
     font-family: 'Bebas Neue', sans-serif;
-    font-size: 2rem;
-    font-weight: 400;
-    letter-spacing: 2.5px;
+    font-size: 1.95rem;
+    letter-spacing: 2px;
     line-height: 1;
-    padding: 0 4px 0 0;
+    padding: 0;
     user-select: none;
     white-space: nowrap;
     overflow: visible;
     display: inline-flex;
     align-items: baseline;
-    gap: 0;
   }
   .brand-pink {
     color: var(--accent, #ff4d8d);
-    text-shadow:
-      0 0 16px rgba(255,77,141,0.5),
-      0 0 32px rgba(255,77,141,0.2);
   }
   .brand-white {
-    color: rgba(255,255,255,0.95);
-    text-shadow: 0 1px 8px rgba(0,0,0,0.3);
+    color: rgba(255,255,255,0.92);
   }
 
-  /* ═══════════════════════════════════════
-     5. ICON BUTTONS — iOS 44px tap areas
-  ═══════════════════════════════════════ */
+  /* ── 5. ICON BUTTONS — standard 44px tap targets ── */
   .navbar-ig-btn {
     background: none;
     border: none;
     cursor: pointer;
-    color: rgba(255,255,255,0.88);
+    color: rgba(255,255,255,0.85);
     width: 44px;
     height: 44px;
     display: flex;
@@ -5084,226 +5028,127 @@ body.dark-mode .cruce-num {
     border-radius: 50%;
     -webkit-tap-highlight-color: transparent;
     transition: opacity 0.15s, transform 0.12s;
-    position: relative;
   }
   .navbar-ig-btn:active {
-    opacity: 0.5;
-    transform: scale(0.86);
+    opacity: 0.45;
+    transform: scale(0.88);
   }
   .navbar-ig-btn .material-symbols-outlined {
-    font-size: 26px;
+    font-size: 25px;
     font-variation-settings: 'FILL' 0, 'wght' 250, 'GRAD' 0, 'opsz' 24;
   }
 
-  /* ═══════════════════════════════════════
-     6. MAIN CONTENT — safe spacing
-  ═══════════════════════════════════════ */
+  /* ── 6. CONTENT SPACING ── */
   .main-content {
     margin-top: calc(env(safe-area-inset-top, 0px) + 56px) !important;
     padding-bottom: calc(
-      max(20px, env(safe-area-inset-bottom, 20px)) + 58px + 28px
+      max(20px, env(safe-area-inset-bottom, 20px)) + 58px + 24px
     ) !important;
   }
 
-  /* ═══════════════════════════════════════
-     7. FAB — floating above pill, glass-integrated
-  ═══════════════════════════════════════ */
+  /* ── 7. FAB — above pill, clean shadow ── */
   .compose-fab {
     bottom: calc(
-      max(20px, env(safe-area-inset-bottom, 20px)) + 58px + 18px
+      max(20px, env(safe-area-inset-bottom, 20px)) + 58px + 16px
     ) !important;
-    right: 22px !important;
+    right: 20px !important;
     z-index: 800 !important;
-    /* Enhanced glow for glass system */
     box-shadow:
-      0 4px 20px rgba(255,77,141,0.5),
-      0 0 0 1px rgba(255,77,141,0.2),
-      0 2px 8px rgba(0,0,0,0.3) !important;
-    transition: transform 0.2s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.2s !important;
+      0 4px 16px rgba(255,77,141,0.45),
+      0 2px 6px rgba(0,0,0,0.25) !important;
   }
   .compose-fab:active {
-    transform: scale(0.9) !important;
-    box-shadow:
-      0 2px 10px rgba(255,77,141,0.4),
-      0 0 0 1px rgba(255,77,141,0.15) !important;
+    transform: scale(0.92) !important;
   }
 
-  /* ═══════════════════════════════════════
-     8. BOTTOM NAV — Liquid Glass Capsule
-     True floating glass pill à la Instagram iOS
-  ═══════════════════════════════════════ */
+  /* ── 8. BOTTOM NAV — floating glass pill ── */
   .bottom-nav {
-    display: none; /* shown below */
+    display: none; /* overridden below */
     position: fixed !important;
     bottom: max(20px, env(safe-area-inset-bottom, 20px)) !important;
     left: 50% !important;
     right: auto !important;
     transform: translateX(-50%) !important;
     width: calc(100% - 48px) !important;
-    max-width: 380px !important;
+    max-width: 376px !important;
     height: 58px !important;
     border-radius: 100px !important;
-
-    /* ─ True Liquid Glass ─ */
-    /* Layer 1: Transparent base — content shows through */
-    background: rgba(10, 10, 16, 0.42) !important;
-    backdrop-filter: saturate(190%) blur(36px) brightness(1.06) !important;
-    -webkit-backdrop-filter: saturate(190%) blur(36px) brightness(1.06) !important;
-
-    /* Layer 2: Glass border — ultra-thin crystal edge */
+    /* Glass — transparent enough to see content through */
+    background: rgba(14, 14, 20, 0.52) !important;
+    backdrop-filter: saturate(180%) blur(32px) !important;
+    -webkit-backdrop-filter: saturate(180%) blur(32px) !important;
     border: none !important;
     border-top: none !important;
     outline: none !important;
-    /* Using box-shadow for crystal edges (more control than border) */
+    /* Depth: outer shadow + inner top highlight + outer ring */
     box-shadow:
-      /* Outer glow — depth */
-      0 16px 56px rgba(0,0,0,0.48),
-      0 4px 16px rgba(0,0,0,0.32),
-      /* Crystal border — top specular */
-      inset 0 1px 0 rgba(255,255,255,0.22),
-      /* Crystal border — bottom rim */
-      inset 0 -0.5px 0 rgba(255,255,255,0.06),
-      /* Crystal border — outer ring */
-      0 0 0 0.5px rgba(255,255,255,0.12) !important;
-
+      0 8px 32px rgba(0,0,0,0.38),
+      0 2px 8px rgba(0,0,0,0.22),
+      inset 0 1px 0 rgba(255,255,255,0.14),
+      0 0 0 0.5px rgba(255,255,255,0.1) !important;
     z-index: 700 !important;
     padding: 0 8px !important;
-    gap: 0 !important;
     overflow: visible !important;
-    isolation: isolate;
-    will-change: transform;
-    /* Subtle glass tint breathing animation */
-    animation: glass-breathe 8s ease-in-out infinite;
   }
 
-  /* Glass breathing — very subtle, feels alive like iOS */
-  @keyframes glass-breathe {
-    0%, 100% { box-shadow:
-      0 16px 56px rgba(0,0,0,0.48),
-      0 4px 16px rgba(0,0,0,0.32),
-      inset 0 1px 0 rgba(255,255,255,0.22),
-      inset 0 -0.5px 0 rgba(255,255,255,0.06),
-      0 0 0 0.5px rgba(255,255,255,0.12); }
-    50% { box-shadow:
-      0 18px 60px rgba(0,0,0,0.44),
-      0 4px 18px rgba(0,0,0,0.28),
-      inset 0 1px 0 rgba(255,255,255,0.28),
-      inset 0 -0.5px 0 rgba(255,255,255,0.08),
-      0 0 0 0.5px rgba(255,255,255,0.16); }
-  }
+  /* Show on mobile */
+  .bottom-nav { display: flex; }
 
-  /* SVG distortion layer — the secret ingredient */
-  .bottom-nav::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    border-radius: 100px;
-    filter: url(#lg-distort-nav);
-    -webkit-filter: url(#lg-distort-nav);
-    pointer-events: none;
-    z-index: -1;
-    opacity: 0.4;
-  }
-
-  /* Top specular highlight — glass shimmer */
-  .bottom-nav::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 12%;
-    right: 12%;
-    height: 1px;
-    border-radius: 100px;
-    background: linear-gradient(
-      90deg,
-      transparent,
-      rgba(255,255,255,0.35) 30%,
-      rgba(255,255,255,0.45) 50%,
-      rgba(255,255,255,0.35) 70%,
-      transparent
-    );
-    pointer-events: none;
-    z-index: 10;
-  }
-
-  /* ═══════════════════════════════════════
-     9. BOTTOM NAV ITEMS
-  ═══════════════════════════════════════ */
+  /* ── 9. NAV ITEMS ── */
   .bottom-nav-item {
     flex: 1;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 0;
     padding: 8px 4px;
     cursor: pointer;
     border: none;
     background: none;
-    color: rgba(255,255,255,0.38);
-    font-size: 0;
-    font-family: var(--font);
+    color: rgba(255,255,255,0.36);
     -webkit-tap-highlight-color: transparent;
-    transition:
-      color 0.2s cubic-bezier(0.4,0,0.2,1),
-      transform 0.15s cubic-bezier(0.34,1.56,0.64,1);
+    transition: color 0.18s ease, transform 0.13s ease;
     position: relative;
     min-height: 44px;
     min-width: 44px;
   }
-
   .bottom-nav-item:active {
-    transform: scale(0.78);
-    color: rgba(255,255,255,0.7);
+    transform: scale(0.8);
   }
-
   .bottom-nav-item .material-symbols-outlined {
     font-size: 26px;
     font-variation-settings: 'FILL' 0, 'wght' 250, 'GRAD' 0, 'opsz' 24;
-    transition:
-      font-variation-settings 0.2s cubic-bezier(0.4,0,0.2,1),
-      transform 0.2s cubic-bezier(0.34,1.56,0.64,1);
+    transition: font-variation-settings 0.18s ease;
     display: block;
   }
-
-  /* Active state — accent color + fill */
   .bottom-nav-item.active {
     color: var(--accent, #ff4d8d);
   }
   .bottom-nav-item.active .material-symbols-outlined {
-    font-variation-settings: 'FILL' 1, 'wght' 600, 'GRAD' -25, 'opsz' 24;
-    filter: drop-shadow(0 0 6px rgba(255,77,141,0.45));
+    font-variation-settings: 'FILL' 1, 'wght' 500, 'GRAD' -25, 'opsz' 24;
   }
-
-  /* Active indicator dot */
+  /* Dot indicator */
   .bottom-nav-item.active::after {
     content: '';
     position: absolute;
-    bottom: 4px;
+    bottom: 5px;
     left: 50%;
     transform: translateX(-50%);
     width: 3px;
     height: 3px;
     border-radius: 50%;
     background: var(--accent, #ff4d8d);
-    opacity: 0.7;
-    box-shadow: 0 0 4px rgba(255,77,141,0.6);
+    opacity: 0.65;
   }
   .bottom-nav-perfil.active::after { display: none; }
   .bottom-nav-item span:last-child { display: none !important; }
   .bnav-label { display: none !important; }
 
-  /* Show bottom nav on mobile */
-  .bottom-nav { display: flex; }
-
-  /* ═══════════════════════════════════════
-     10. PROFILE AVATAR in bottom nav
-  ═══════════════════════════════════════ */
+  /* ── 10. PROFILE AVATAR ── */
   .bnav-avatar-img {
     width: 27px; height: 27px;
     border-radius: 50%; object-fit: cover;
-    border: 1.5px solid rgba(255,255,255,0.22);
-    transition: border-color 0.2s, box-shadow 0.2s;
+    border: 1.5px solid rgba(255,255,255,0.2);
     display: block;
   }
   .bnav-avatar-letter {
@@ -5312,12 +5157,11 @@ body.dark-mode .cruce-num {
     background: var(--accent-gradient, linear-gradient(135deg,#ff6b9d,#ff4d8d,#c9236a));
     color: #fff; font-size: 11px; font-weight: 700;
     display: flex; align-items: center; justify-content: center;
-    border: 1.5px solid rgba(255,255,255,0.18);
-    transition: border-color 0.2s, box-shadow 0.2s;
+    border: 1.5px solid rgba(255,255,255,0.15);
   }
   .bnav-avatar-active {
     border-color: var(--accent, #ff4d8d) !important;
-    box-shadow: 0 0 0 2px rgba(255,77,141,0.35), 0 0 8px rgba(255,77,141,0.3);
+    box-shadow: 0 0 0 1.5px rgba(255,77,141,0.3);
   }
   .bottom-nav-perfil {
     display: flex; align-items: center; justify-content: center;
