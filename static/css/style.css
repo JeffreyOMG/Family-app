@@ -5157,3 +5157,171 @@ body.dark-mode .navbar.scrolled {
   background: rgba(8, 8, 12, 0.78);
 }
 
+
+/* ══════════════════════════════════════════════════════════
+   CORRECCIONES CRÍTICAS — PREMIUM MOBILE v2
+   ══════════════════════════════════════════════════════════ */
+
+/* FIX 1: dark-mode .navbar overrides our transparent — force transparent on mobile */
+@media (max-width: 768px) {
+  body.dark-mode .navbar,
+  .navbar {
+    background: transparent !important;
+    border-bottom: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    box-shadow: none !important;
+  }
+
+  /* Only add glass when .scrolled is present */
+  body.dark-mode .navbar.scrolled,
+  .navbar.scrolled {
+    background: rgba(10, 10, 16, 0.78) !important;
+    backdrop-filter: saturate(200%) blur(22px) !important;
+    -webkit-backdrop-filter: saturate(200%) blur(22px) !important;
+    border-bottom: 0.5px solid rgba(255,255,255,.08) !important;
+    box-shadow: 0 1px 28px rgba(0,0,0,.28) !important;
+  }
+}
+
+/* FIX 2: Bottom nav — pill flotante con máxima especificidad */
+@media (max-width: 768px) {
+  nav.bottom-nav,
+  .bottom-nav {
+    /* Reset posición fija a los bordes */
+    left: 50% !important;
+    right: auto !important;
+    bottom: max(18px, env(safe-area-inset-bottom, 18px)) !important;
+    transform: translateX(-50%) !important;
+    /* Tamaño cápsula */
+    width: calc(100% - 44px) !important;
+    max-width: 390px !important;
+    height: 64px !important;
+    /* Forma pill */
+    border-radius: 100px !important;
+    border-top: none !important;
+    /* Glassmorphism */
+    background: rgba(14, 14, 20, 0.80) !important;
+    backdrop-filter: saturate(200%) blur(30px) !important;
+    -webkit-backdrop-filter: saturate(200%) blur(30px) !important;
+    /* Borde cristal */
+    border: 0.5px solid rgba(255,255,255,.16) !important;
+    /* Sombra profundidad */
+    box-shadow:
+      0 10px 40px rgba(0,0,0,.45),
+      0 2px 8px rgba(0,0,0,.25),
+      inset 0 0.5px 0 rgba(255,255,255,.12) !important;
+    /* Z alto */
+    z-index: 700 !important;
+    padding: 0 10px !important;
+    overflow: visible !important;
+    display: flex !important;
+  }
+}
+
+/* FIX 3: FAB sube para no chocar con la pill */
+@media (max-width: 768px) {
+  .compose-fab {
+    bottom: calc(max(18px, env(safe-area-inset-bottom, 18px)) + 64px + 14px) !important;
+    right: 18px !important;
+  }
+}
+
+/* FIX 4: Padding inferior del main-content para pill flotante */
+@media (max-width: 768px) {
+  .main-content {
+    padding-bottom: calc(max(18px, env(safe-area-inset-bottom, 18px)) + 64px + 20px) !important;
+  }
+}
+
+/* FIX 5: Items de la pill — alineación y tamaño */
+@media (max-width: 768px) {
+  .bottom-nav .bottom-nav-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 4px;
+    gap: 0;
+    color: rgba(255,255,255,.45);
+    border: none;
+    background: none;
+    cursor: pointer;
+    border-radius: 50px;
+    -webkit-tap-highlight-color: transparent;
+    transition: color .2s cubic-bezier(.4,0,.2,1), transform .12s;
+  }
+
+  .bottom-nav .bottom-nav-item:active {
+    transform: scale(.82);
+  }
+
+  .bottom-nav .bottom-nav-item .material-symbols-outlined {
+    font-size: 28px;
+    font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
+    transition: all .2s cubic-bezier(.4,0,.2,1);
+  }
+
+  .bottom-nav .bottom-nav-item.active {
+    color: var(--accent, #ff4d8d);
+  }
+
+  .bottom-nav .bottom-nav-item.active .material-symbols-outlined {
+    font-variation-settings: 'FILL' 1, 'wght' 500, 'GRAD' -25, 'opsz' 24;
+  }
+
+  .bottom-nav .bnav-label,
+  .bottom-nav .bottom-nav-item > span:last-child {
+    display: none !important;
+  }
+
+  /* Dot indicador activo */
+  .bottom-nav .bottom-nav-item.active::after {
+    content: '';
+    position: absolute;
+    bottom: 5px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: var(--accent, #ff4d8d);
+    opacity: .65;
+  }
+  .bottom-nav .bottom-nav-perfil.active::after {
+    display: none;
+  }
+}
+
+/* FIX 6: Avatar perfil en pill */
+@media (max-width: 768px) {
+  .bottom-nav .bnav-avatar-img {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid rgba(255,255,255,.22);
+    display: block;
+  }
+
+  .bottom-nav .bnav-avatar-letter {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--accent-gradient, linear-gradient(135deg,#ff6b9d,#ff4d8d,#c9236a));
+    color: #fff;
+    font-size: 12px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid rgba(255,255,255,.18);
+  }
+
+  .bottom-nav .bnav-avatar-active {
+    border-color: var(--accent, #ff4d8d) !important;
+    box-shadow: 0 0 0 2px rgba(255,77,141,.4);
+  }
+}
+

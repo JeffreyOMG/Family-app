@@ -40,15 +40,12 @@
   function initScrollGlass() {
     var navbar = document.getElementById('main-navbar');
     if (!navbar) return;
+    if (window.innerWidth > 768) return;
 
-    // El scroll container en móvil puede ser .main-content o window
-    var scroller = document.querySelector('.main-content') || window;
-    var threshold = 24; // px de scroll antes de activar el glass
+    var threshold = 20;
+    var ticking = false;
 
-    function onScroll() {
-      var scrollTop = scroller === window
-        ? window.scrollY
-        : scroller.scrollTop;
+    function applyScrollClass(scrollTop) {
       if (scrollTop > threshold) {
         navbar.classList.add('scrolled');
       } else {
@@ -56,29 +53,43 @@
       }
     }
 
-    // Solo en móvil
-    if (window.innerWidth <= 768) {
-      scroller.addEventListener('scroll', onScroll, { passive: true });
-      onScroll(); // estado inicial
+    function onScroll() {
+      if (!ticking) {
+        requestAnimationFrame(function() {
+          // Try multiple scroll sources
+          var mainContent = document.querySelector('.main-content');
+          var scrollTop = 0;
+          if (mainContent && mainContent.scrollTop > 0) {
+            scrollTop = mainContent.scrollTop;
+          } else {
+            scrollTop = window.scrollY || document.documentElement.scrollTop;
+          }
+          applyScrollClass(scrollTop);
+          ticking = false;
+        });
+        ticking = true;
+      }
     }
 
-    // Re-init si cambia tamaño
-    window.addEventListener('resize', function() {
-      if (window.innerWidth <= 768) {
-        scroller.addEventListener('scroll', onScroll, { passive: true });
-      } else {
-        navbar.classList.remove('scrolled');
-        scroller.removeEventListener('scroll', onScroll);
-      }
-    });
+    // Listen on both possible scrollers
+    var mainContent = document.querySelector('.main-content');
+    if (mainContent) {
+      mainContent.addEventListener('scroll', onScroll, { passive: true });
+    }
+    window.addEventListener('scroll', onScroll, { passive: true });
+    document.addEventListener('scroll', onScroll, { passive: true });
+
+    // Initial state
+    onScroll();
   }
 
+  // Run after DOM is ready
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initScrollGlass);
   } else {
     initScrollGlass();
-    // re-try after a tick in case main-content isn't mounted yet
-    setTimeout(initScrollGlass, 120);
   }
+  // Also run after a delay to catch late-mounted containers
+  setTimeout(initScrollGlass, 300);
 })();
 </script>
