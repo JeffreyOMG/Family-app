@@ -4963,7 +4963,6 @@ body.dark-mode .cruce-num {
   .navbar.ig-scrolled,
   body.dark-mode .navbar.ig-scrolled,
   body:not(.dark-mode) .navbar.ig-scrolled {
-    background: rgba(10, 10, 14, 0.6) !important;
     backdrop-filter: saturate(180%) blur(24px) !important;
     -webkit-backdrop-filter: saturate(180%) blur(24px) !important;
     border-bottom: 0.5px solid rgba(255,255,255,0.07) !important;
@@ -5006,30 +5005,55 @@ body.dark-mode .cruce-num {
   }
 
   /* ── 5. ICON BUTTONS — standard 44px tap targets ── */
-  .navbar-ig-btn {
-    background: none;
-    border: none;
-    cursor: pointer;
-    color: rgba(0, 0, 0, 0.85);
-    width: 44px;
-    height: 44px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 50%;
-    -webkit-tap-highlight-color: transparent;
-    transition: opacity 0.15s, transform 0.12s;
-  }
-  .navbar-ig-btn:active {
-    opacity: 0.45;
-    transform: scale(0.88);
-    color: rgba(255,255,255,0.85);
-  }
-  .navbar-ig-btn .material-symbols-outlined {
-    font-size: 25px;
-    font-variation-settings: 'FILL' 0, 'wght' 250, 'GRAD' 0, 'opsz' 24;
+
+  .navbar-ig-btn{
+    background:none;
+    border:none;
+    cursor:pointer;
+    color:rgba(0,0,0,.85);
+    width:44px;
+    height:44px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    border-radius:50%;
+    -webkit-tap-highlight-color:transparent;
+    transition:opacity .15s, transform .12s;
   }
 
+  /* Icono */
+  .navbar-ig-btn .material-symbols-outlined{
+    font-size:25px;
+    color:inherit !important;
+    font-variation-settings:
+      'FILL' 0,
+      'wght' 250,
+      'GRAD' 0,
+      'opsz' 24;
+  }
+
+  /* 🌙 DARK MODE */
+  body.dark-mode .navbar-ig-btn{
+    color:#fff !important;
+  }
+
+  body.dark-mode .navbar-ig-btn .material-symbols-outlined{
+    color:#fff !important;
+  }
+
+  /* ☀️ LIGHT MODE */
+  body:not(.dark-mode) .navbar-ig-btn{
+    color:rgba(0,0,0,.85) !important;
+  }
+
+  body:not(.dark-mode) .navbar-ig-btn .material-symbols-outlined{
+    color:rgba(0,0,0,.85) !important;
+  }
+
+  .navbar-ig-btn:active{
+    opacity:.45;
+    transform:scale(.88);
+  }
   /* ── 6. CONTENT SPACING ── */
   .main-content {
     margin-top: calc(env(safe-area-inset-top, 0px) + 56px) !important;
