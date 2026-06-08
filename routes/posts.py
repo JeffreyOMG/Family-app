@@ -311,7 +311,8 @@ def comentar_ajax():
     usuario = con.execute("SELECT nombre, foto FROM usuarios WHERE id=%s", (uid,)).fetchone()
     nombre  = usuario["nombre"] if usuario else "?"
     inicial = nombre[0].upper() if nombre else "?"
-    return jsonify({"ok": True, "nombre": nombre, "texto": texto, "inicial": inicial})
+    cmt_id  = con.execute("SELECT lastval()").fetchone()[0]
+    return jsonify({"ok": True, "nombre": nombre, "texto": texto, "inicial": inicial, "id": cmt_id, "usuario_id": uid})
 
 @posts_bp.route("/eliminar_post/<int:post_id>", methods=["POST"])
 def eliminar_post(post_id):
@@ -458,7 +459,7 @@ def api_ver_post(post_id):
         return jsonify({"ok": False, "error": "No autorizado"}), 403
 
     comentarios_rows = con.execute("""
-        SELECT c.texto, c.fecha, u.nombre, u.usuario, u.foto
+        SELECT c.id, c.texto, c.fecha, c.usuario_id, u.nombre, u.usuario, u.foto
         FROM comentarios c JOIN usuarios u ON u.id=c.usuario_id
         WHERE c.post_id=%s ORDER BY c.fecha ASC
     """, (post_id,)).fetchall()
@@ -568,3 +569,99 @@ def poll_resultados(enc_id):
         return jsonify({"ok": False}), 404
     poll = _get_poll(con, post["post_id"], uid)
     return jsonify({"ok": True, "poll": poll})
+
+
+# ─── EDITAR COMENTARIO ───────────────────────────────────────────────────────
+@posts_bp.route("/editar_comentario/<int:cmt_id>", methods=["POST"])
+def editar_comentario(cmt_id):
+    if "uid" not in session:
+        return jsonify({"ok": False}), 401
+    uid  = session["uid"]
+    texto = request.form.get("texto", "").strip()
+    if not texto:
+        return jsonify({"ok": False, "error": "Texto vacío"}), 400
+    con  = get_db()
+    cmt  = con.execute("SELECT usuario_id FROM comentarios WHERE id=%s", (cmt_id,)).fetchone()
+    if not cmt:
+        return jsonify({"ok": False, "error": "No encontrado"}), 404
+    if cmt["usuario_id"] != uid and session.get("rol") != "admin":
+        return jsonify({"ok": False, "error": "No autorizado"}), 403
+    con.execute("UPDATE comentarios SET texto=%s WHERE id=%s", (texto, cmt_id))
+    con.commit()
+    return jsonify({"ok": True, "texto": texto})
+
+
+# ─── ELIMINAR COMENTARIO ─────────────────────────────────────────────────────
+@posts_bp.route("/eliminar_comentario/<int:cmt_id>", methods=["POST"])
+def eliminar_comentario(cmt_id):
+    if "uid" not in session:
+        return jsonify({"ok": False}), 401
+    uid = session["uid"]
+    con = get_db()
+    cmt = con.execute("SELECT usuario_id, post_id FROM comentarios WHERE id=%s", (cmt_id,)).fetchone()
+    if not cmt:
+        return jsonify({"ok": False, "error": "No encontrado"}), 404
+    if cmt["usuario_id"] != uid and session.get("rol") != "admin":
+        return jsonify({"ok": False, "error": "No autorizado"}), 403
+    post_id = cmt["post_id"]
+    con.execute("DELETE FROM comentarios WHERE id=%s OR parent_id=%s", (cmt_id, cmt_id))
+    con.commit()
+    total = con.execute("SELECT COUNT(*) FROM comentarios WHERE post_id=%s", (post_id,)).fetchone()[0]
+    return jsonify({"ok": True, "total": int(total)})
+
+
+# ─── LIKE A COMENTARIO ───────────────────────────────────────────────────────
+@posts_bp.route("/like_comentario/<int:cmt_id>", methods=["POST"])
+def like_comentario(cmt_id):
+    if "uid" not in session:
+        return jsonify({"ok": False}), 401
+    uid = session["uid"]
+    con = get_db()
+    # Ensure table exists (lazy migration)
+    con.execute("""CREATE TABLE IF NOT EXISTS comentario_likes (
+        usuario_id INTEGER NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+        comentario_id INTEGER NOT NULL REFERENCES comentarios(id) ON DELETE CASCADE,
+        PRIMARY KEY (usuario_id, comentario_id))""")
+    con.commit()
+    exist = con.execute(
+        "SELECT 1 FROM comentario_likes WHERE usuario_id=%s AND comentario_id=%s", (uid, cmt_id)
+    ).fetchone()
+    if exist:
+        con.execute("DELETE FROM comentario_likes WHERE usuario_id=%s AND comentario_id=%s", (uid, cmt_id))
+        liked = False
+    else:
+        con.execute("INSERT INTO comentario_likes(usuario_id, comentario_id) VALUES(%s,%s) ON CONFLICT DO NOTHING", (uid, cmt_id))
+        liked = True
+    con.commit()
+    total = con.execute("SELECT COUNT(*) FROM comentario_likes WHERE comentario_id=%s", (cmt_id,)).fetchone()[0]
+    return jsonify({"ok": True, "liked": liked, "total": int(total)})
+
+
+# ─── RESPONDER COMENTARIO (ajax) ─────────────────────────────────────────────
+@posts_bp.route("/responder_comentario", methods=["POST"])
+def responder_comentario():
+    if "uid" not in session:
+        return jsonify({"ok": False}), 401
+    uid       = session["uid"]
+    post_id   = request.form.get("post_id")
+    parent_id = request.form.get("parent_id")
+    texto     = request.form.get("comentario", "").strip()
+    if not texto or not post_id or not parent_id:
+        return jsonify({"ok": False}), 400
+    con = get_db()
+    con.execute(
+        "INSERT INTO comentarios(post_id, usuario_id, texto, parent_id) VALUES(%s,%s,%s,%s)",
+        (post_id, uid, texto, parent_id)
+    )
+    con.commit()
+    usuario = con.execute("SELECT nombre, usuario, foto FROM usuarios WHERE id=%s", (uid,)).fetchone()
+    nombre  = usuario["nombre"] if usuario else "?"
+    return jsonify({
+        "ok":     True,
+        "nombre": nombre,
+        "usuario": usuario["usuario"] if usuario else "",
+        "foto":   usuario["foto"] or "" if usuario else "",
+        "texto":  texto,
+        "inicial": nombre[0].upper() if nombre else "?",
+        "id":     con.execute("SELECT lastval()").fetchone()[0],
+    })

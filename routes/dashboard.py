@@ -131,7 +131,7 @@ def get_ctx(uid, con, extra=None):
         _p['poll'] = _get_poll_for_post(con, _p['id'], uid)
 
     comentarios_rows = con.execute("""
-        SELECT c.id, c.post_id, c.texto, c.parent_id, c.fecha, u.nombre, u.foto
+        SELECT c.id, c.post_id, c.texto, c.parent_id, c.fecha, c.usuario_id, u.nombre, u.usuario, u.foto
         FROM comentarios c JOIN usuarios u ON u.id=c.usuario_id ORDER BY c.fecha ASC
     """).fetchall()
     comentarios_por_post = {}

@@ -130,7 +130,7 @@
 
     {# ── Comentarios visibles inicialmente ── #}
     {% for c in todos[:VISIBLE] %}
-    <div class="comment-row">
+    <div class="comment-row" data-cmt-id="{{ c.id }}" data-post-id="{{ p.id }}">
       {% if c.foto %}
         <img src="{{ c.foto }}" class="user-avatar-img" style="width:28px;height:28px;flex-shrink:0;" data-ver-perfil="{{ c.usuario }}" title="Ver perfil" style="cursor:pointer;">
       {% else %}
@@ -139,16 +139,38 @@
       <div class="comment-bubble">
         <strong class="comment-author" data-ver-perfil="{{ c.usuario }}" style="cursor:pointer;">{{ c.nombre }}</strong>
         {% if c.texto|length <= CLIMIT %}
-          <span class="comment-text">{{ c.texto }}</span>
+          <span class="comment-text" data-cmt-text="{{ c.id }}">{{ c.texto }}</span>
         {% else %}
           {% set ctexto = c.texto[:CLIMIT] %}
           {% if c.texto[CLIMIT] not in (' ', '\n', '\r') %}
             {% set clast = [ctexto.rfind(' '), ctexto.rfind('\n')] | max %}
             {% if clast > 100 %}{% set ctexto = ctexto[:clast] %}{% endif %}
           {% endif %}
-          <span class="comment-text comment-text-collapsed">{{ ctexto }}<span class="comment-text-more" onclick="expandirComentario(this)">… más</span><span class="comment-text-full" style="display:none;">{{ c.texto[ctexto|length:] }}</span></span>
+          <span class="comment-text comment-text-collapsed" data-cmt-text="{{ c.id }}">{{ ctexto }}<span class="comment-text-more" onclick="expandirComentario(this)">… más</span><span class="comment-text-full" style="display:none;">{{ c.texto[ctexto|length:] }}</span></span>
         {% endif %}
-        <span class="comment-date">{{ c.fecha[:10] }}</span>
+        <div class="comment-actions-row">
+          <button class="cmt-action-btn cmt-like-btn" onclick="likearComentario({{ c.id }},this)" title="Me gusta">
+            <span class="material-symbols-outlined" style="font-size:14px;">favorite</span>
+            <span class="cmt-like-count">0</span>
+          </button>
+          <button class="cmt-action-btn" onclick="mostrarRespuestaForm({{ c.id }},{{ p.id }},this)" title="Responder">
+            <span class="material-symbols-outlined" style="font-size:14px;">reply</span>
+            <span>Responder</span>
+          </button>
+          <span class="comment-date">{{ c.fecha[:10] }}</span>
+        </div>
+        <div class="cmt-reply-form" id="reply-form-{{ c.id }}" style="display:none;">
+          <input type="text" class="comment-input cmt-reply-input" placeholder="Responder a {{ c.nombre }}…" id="reply-input-{{ c.id }}">
+          <button type="button" class="btn-comment" onclick="enviarRespuesta({{ c.id }},{{ p.id }},document.getElementById('reply-input-{{ c.id }}'))">
+            <span class="material-symbols-outlined">arrow_upward</span>
+          </button>
+        </div>
+        <div class="cmt-replies-container" id="replies-{{ c.id }}"></div>
+      </div>
+      <div class="cmt-menu-wrap">
+        <button class="cmt-dots-btn" onclick="toggleCmtMenu({{ c.id }},{{ p.id }},this,{{ c.usuario_id if c.usuario_id is defined else 0 }})" title="Opciones">
+          <span class="material-symbols-outlined" style="font-size:18px;">more_horiz</span>
+        </button>
       </div>
     </div>
     {% endfor %}
@@ -157,7 +179,7 @@
     {% if todos|length > VISIBLE %}
     <div class="cmt-hidden" id="cmt-hidden-{{ p.id }}" style="display:none;">
       {% for c in todos[VISIBLE:] %}
-      <div class="comment-row">
+      <div class="comment-row" data-cmt-id="{{ c.id }}" data-post-id="{{ p.id }}">
         {% if c.foto %}
           <img src="{{ c.foto }}" class="user-avatar-img" style="width:28px;height:28px;flex-shrink:0;" data-ver-perfil="{{ c.usuario }}" title="Ver perfil" style="cursor:pointer;">
         {% else %}
@@ -166,16 +188,38 @@
         <div class="comment-bubble">
           <strong class="comment-author" data-ver-perfil="{{ c.usuario }}" style="cursor:pointer;">{{ c.nombre }}</strong>
           {% if c.texto|length <= CLIMIT %}
-            <span class="comment-text">{{ c.texto }}</span>
+            <span class="comment-text" data-cmt-text="{{ c.id }}">{{ c.texto }}</span>
           {% else %}
             {% set ctexto = c.texto[:CLIMIT] %}
             {% if c.texto[CLIMIT] not in (' ', '\n', '\r') %}
               {% set clast = [ctexto.rfind(' '), ctexto.rfind('\n')] | max %}
               {% if clast > 100 %}{% set ctexto = ctexto[:clast] %}{% endif %}
             {% endif %}
-            <span class="comment-text comment-text-collapsed">{{ ctexto }}<span class="comment-text-more" onclick="expandirComentario(this)">… más</span><span class="comment-text-full" style="display:none;">{{ c.texto[ctexto|length:] }}</span></span>
+            <span class="comment-text comment-text-collapsed" data-cmt-text="{{ c.id }}">{{ ctexto }}<span class="comment-text-more" onclick="expandirComentario(this)">… más</span><span class="comment-text-full" style="display:none;">{{ c.texto[ctexto|length:] }}</span></span>
           {% endif %}
-          <span class="comment-date">{{ c.fecha[:10] }}</span>
+          <div class="comment-actions-row">
+            <button class="cmt-action-btn cmt-like-btn" onclick="likearComentario({{ c.id }},this)" title="Me gusta">
+              <span class="material-symbols-outlined" style="font-size:14px;">favorite</span>
+              <span class="cmt-like-count">0</span>
+            </button>
+            <button class="cmt-action-btn" onclick="mostrarRespuestaForm({{ c.id }},{{ p.id }},this)" title="Responder">
+              <span class="material-symbols-outlined" style="font-size:14px;">reply</span>
+              <span>Responder</span>
+            </button>
+            <span class="comment-date">{{ c.fecha[:10] }}</span>
+          </div>
+          <div class="cmt-reply-form" id="reply-form-{{ c.id }}" style="display:none;">
+            <input type="text" class="comment-input cmt-reply-input" placeholder="Responder a {{ c.nombre }}…" id="reply-input-{{ c.id }}">
+            <button type="button" class="btn-comment" onclick="enviarRespuesta({{ c.id }},{{ p.id }},document.getElementById('reply-input-{{ c.id }}'))">
+              <span class="material-symbols-outlined">arrow_upward</span>
+            </button>
+          </div>
+          <div class="cmt-replies-container" id="replies-{{ c.id }}"></div>
+        </div>
+        <div class="cmt-menu-wrap">
+          <button class="cmt-dots-btn" onclick="toggleCmtMenu({{ c.id }},{{ p.id }},this,{{ c.usuario_id if c.usuario_id is defined else 0 }})" title="Opciones">
+            <span class="material-symbols-outlined" style="font-size:18px;">more_horiz</span>
+          </button>
         </div>
       </div>
       {% endfor %}
@@ -208,6 +252,8 @@
 {% endmacro %}
 
 <section class="section" id="sec-inicio">
+{# UID oculto para que JS verifique propiedad de comentarios #}
+<span id="_cmt-session-uid" data-uid="{{ usuario.id if usuario is defined else 0 }}" style="display:none;"></span>
   <div class="inicio-layout">
 
     <!-- ─── FEED CENTRAL ─── -->
@@ -2460,6 +2506,61 @@ body.dark-mode .post-badge-privado { background: rgba(139,92,246,.2); color: #a7
 .comment-text { font-size: 13px; color: var(--text2); line-height: 1.45; word-break: break-word; }
 .comment-date { display: block; font-size: 10.5px; color: var(--text3); margin-top: 3px; }
 
+/* ── Comment action row (like, reply, date) ── */
+.comment-actions-row {
+  display: flex; align-items: center; gap: 10px; margin-top: 4px; flex-wrap: wrap;
+}
+.cmt-action-btn {
+  background: none; border: none; cursor: pointer;
+  display: flex; align-items: center; gap: 3px;
+  color: var(--text3, #999); font-size: 11.5px;
+  padding: 2px 4px; border-radius: 6px;
+  transition: color .15s, background .15s;
+}
+.cmt-action-btn:hover { color: var(--accent, #e91e63); background: var(--hover, rgba(0,0,0,.05)); }
+.cmt-action-btn.cmt-liked .material-symbols-outlined { color: var(--accent, #e91e63); }
+.cmt-like-count { font-size: 11px; }
+
+/* ── 3-dot button per comment ── */
+.cmt-menu-wrap { flex-shrink: 0; align-self: flex-start; margin-top: 2px; position: relative; }
+.cmt-dots-btn {
+  background: none; border: none; cursor: pointer;
+  color: var(--text3, #bbb); padding: 2px 4px; border-radius: 6px;
+  display: flex; align-items: center;
+  transition: color .15s, background .15s;
+  opacity: 0; pointer-events: none;
+}
+.comment-row:hover .cmt-dots-btn,
+.pv-comment-row:hover .cmt-dots-btn { opacity: 1; pointer-events: auto; }
+.cmt-dots-btn:hover { color: var(--text, #333); background: var(--hover, rgba(0,0,0,.07)); }
+
+/* ── Dropdown menu ── */
+.cmt-dropdown-menu {
+  position: absolute; right: 0; top: 100%; z-index: 999;
+  background: var(--card, #fff); border: 1px solid var(--border, #eee);
+  border-radius: 10px; box-shadow: 0 4px 20px rgba(0,0,0,.13);
+  min-width: 140px; overflow: hidden;
+  animation: cmtMenuIn .12s ease;
+}
+@keyframes cmtMenuIn { from { opacity:0; transform: scale(.95) translateY(-4px); } to { opacity:1; transform: none; } }
+.cmt-dropdown-item {
+  display: flex; align-items: center; gap: 8px;
+  width: 100%; background: none; border: none; cursor: pointer;
+  padding: 10px 14px; font-size: 13.5px; color: var(--text, #222);
+  text-align: left; transition: background .12s;
+}
+.cmt-dropdown-item:hover { background: var(--hover, rgba(0,0,0,.05)); }
+.cmt-dropdown-item--danger { color: #e53935; }
+.cmt-dropdown-item .material-symbols-outlined { font-size: 17px; }
+
+/* ── Reply form ── */
+.cmt-reply-form { display: flex; align-items: center; gap: 6px; margin-top: 5px; }
+.cmt-reply-input { font-size: 12.5px !important; }
+
+/* ── Nested replies ── */
+.comment-reply-row { margin-left: 28px; padding-left: 8px; border-left: 2px solid var(--border, #eee); }
+.pv-comment-row { position: relative; }
+
 .comment-form { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
 .comment-av { width: 28px !important; height: 28px !important; font-size: 11px !important; flex-shrink: 0; }
 .cmt-ver-mas {
@@ -4230,13 +4331,42 @@ async function enviarComentario(postId, input){
       if(form && sec){
         const row = document.createElement('div');
         row.className = 'comment-row comment-new';
+        row.dataset.cmtId  = data.id || '';
+        row.dataset.postId = postId;
         row.innerHTML = `
-          <div class="user-avatar" style="width:28px;height:28px;font-size:11px;flex-shrink:0;">${data.inicial}</div>
+          <div class="user-avatar" style="width:28px;height:28px;font-size:11px;flex-shrink:0;">${escHTML(data.inicial)}</div>
           <div class="comment-bubble">
             <strong class="comment-author">${escHTML(data.nombre)}</strong>
-            <span class="comment-text">${escHTML(data.texto)}</span>
-            <span class="comment-date">${new Date().toISOString().slice(0,10)}</span>
+            <span class="comment-text" data-cmt-text="${data.id||''}">${escHTML(data.texto)}</span>
+            <div class="comment-actions-row">
+              <button class="cmt-action-btn cmt-like-btn" onclick="likearComentario(${data.id||0},this)" title="Me gusta">
+                <span class="material-symbols-outlined" style="font-size:14px;">favorite</span>
+                <span class="cmt-like-count"></span>
+              </button>
+              <button class="cmt-action-btn" onclick="mostrarRespuestaForm(${data.id||0},${postId},this)" title="Responder">
+                <span class="material-symbols-outlined" style="font-size:14px;">reply</span>
+                <span>Responder</span>
+              </button>
+              <span class="comment-date">${new Date().toISOString().slice(0,10)}</span>
+            </div>
+            <div class="cmt-reply-form" id="reply-form-${data.id}" style="display:none;">
+              <input type="text" class="comment-input cmt-reply-input" placeholder="Responder…" id="reply-input-${data.id}">
+              <button type="button" class="btn-comment" onclick="enviarRespuesta(${data.id||0},${postId},document.getElementById('reply-input-${data.id}'))">
+                <span class="material-symbols-outlined">arrow_upward</span>
+              </button>
+            </div>
+            <div class="cmt-replies-container" id="replies-${data.id}"></div>
+          </div>
+          <div class="cmt-menu-wrap">
+            <button class="cmt-dots-btn" onclick="toggleCmtMenu(${data.id||0},${postId},this,${data.usuario_id||_CMT_UID})" title="Opciones">
+              <span class="material-symbols-outlined" style="font-size:18px;">more_horiz</span>
+            </button>
           </div>`;
+        sec.insertBefore(row, form);
+        if (window._emoteRenderer) {
+          row.querySelectorAll('.comment-text').forEach(el => window._emoteRenderer.renderEmoteNode(el));
+        }
+      }
         sec.insertBefore(row, form);
         if (window._emoteRenderer) {
           row.querySelectorAll('.comment-text').forEach(el => window._emoteRenderer.renderEmoteNode(el));
@@ -5391,6 +5521,229 @@ document.getElementById('post-menu-overlay').addEventListener('click', function(
   if (e.target === this) cerrarMenuPost();
 });
 
+/* ══════════════════════════════════════════════════════
+   SISTEMA DE ACCIONES EN COMENTARIOS
+   - Menú 3 puntos (editar / eliminar)
+   - Like a comentario
+   - Responder comentario
+══════════════════════════════════════════════════════ */
+
+let _cmtMenuEl   = null; // dropdown actual
+let _cmtMenuOpen = null; // id del comentario con menú abierto
+
+function _cerrarCmtMenu() {
+  if (_cmtMenuEl) { _cmtMenuEl.remove(); _cmtMenuEl = null; }
+  _cmtMenuOpen = null;
+}
+
+document.addEventListener('click', function(e) {
+  if (_cmtMenuEl && !_cmtMenuEl.contains(e.target) && !e.target.closest('.cmt-dots-btn')) {
+    _cerrarCmtMenu();
+  }
+});
+
+// CMT_SESSION_UID se inyecta en el HTML para que JS sepa el uid actual
+const _CMT_UID = (function() {
+  const el = document.getElementById('_cmt-session-uid');
+  return el ? parseInt(el.dataset.uid || '0') : 0;
+})();
+
+function toggleCmtMenu(cmtId, postId, btn, ownerUid) {
+  if (_cmtMenuOpen === cmtId) { _cerrarCmtMenu(); return; }
+  _cerrarCmtMenu();
+  _cmtMenuOpen = cmtId;
+
+  const isOwner  = (_CMT_UID && _CMT_UID === ownerUid);
+  const isAdmin  = document.body.dataset.rol === 'admin';
+  const canEdit  = isOwner;
+  const canDel   = isOwner || isAdmin;
+
+  if (!canEdit && !canDel) return; // nada que mostrar
+
+  const menu = document.createElement('div');
+  menu.className = 'cmt-dropdown-menu';
+  menu.innerHTML = `
+    ${canEdit ? `<button class="cmt-dropdown-item" onclick="_cmtAccion('editar',${cmtId},${postId})">
+      <span class="material-symbols-outlined">edit</span> Editar
+    </button>` : ''}
+    ${canDel  ? `<button class="cmt-dropdown-item cmt-dropdown-item--danger" onclick="_cmtAccion('eliminar',${cmtId},${postId})">
+      <span class="material-symbols-outlined">delete</span> Eliminar
+    </button>` : ''}
+  `;
+  _cmtMenuEl = menu;
+  btn.parentElement.style.position = 'relative';
+  btn.parentElement.appendChild(menu);
+}
+
+async function _cmtAccion(accion, cmtId, postId) {
+  _cerrarCmtMenu();
+  if (accion === 'eliminar') {
+    if (!confirm('¿Eliminar este comentario?')) return;
+    try {
+      const res  = await fetch('/eliminar_comentario/' + cmtId, { method: 'POST' });
+      const data = await res.json();
+      if (data.ok) {
+        // Quitar la fila del DOM (feed y modal)
+        document.querySelectorAll(`[data-cmt-id="${cmtId}"]`).forEach(el => el.remove());
+        // Actualizar contadores
+        const cnt = document.getElementById('cmt-count-' + postId);
+        if (cnt) cnt.textContent = Math.max(0, parseInt(cnt.textContent||0) - 1);
+        ['pv-cmt-count','pv-cmt-count-stat'].forEach(id => {
+          const el = document.getElementById(id);
+          if (el) el.textContent = Math.max(0, parseInt(el.textContent||0) - 1);
+        });
+        mostrarToast('Comentario eliminado');
+      } else { mostrarToast(data.error || 'Error','err'); }
+    } catch(e) { mostrarToast('Error de red','err'); }
+  } else if (accion === 'editar') {
+    // Buscar el span del texto en feed o modal
+    const spans = document.querySelectorAll(`[data-cmt-text="${cmtId}"]`);
+    if (!spans.length) return;
+    const span = spans[0];
+    const textoActual = span.textContent.trim();
+    const nuevo = prompt('Editar comentario:', textoActual);
+    if (!nuevo || nuevo.trim() === textoActual) return;
+    try {
+      const fd = new FormData();
+      fd.append('texto', nuevo.trim());
+      const res  = await fetch('/editar_comentario/' + cmtId, { method: 'POST', body: fd });
+      const data = await res.json();
+      if (data.ok) {
+        document.querySelectorAll(`[data-cmt-text="${cmtId}"]`).forEach(el => {
+          el.textContent = data.texto;
+        });
+        mostrarToast('Comentario editado ✓');
+      } else { mostrarToast(data.error || 'Error','err'); }
+    } catch(e) { mostrarToast('Error de red','err'); }
+  }
+}
+
+async function likearComentario(cmtId, btn) {
+  try {
+    const res  = await fetch('/like_comentario/' + cmtId, { method: 'POST' });
+    const data = await res.json();
+    if (data.ok) {
+      const icon  = btn.querySelector('.material-symbols-outlined');
+      const count = btn.querySelector('.cmt-like-count');
+      if (data.liked) {
+        btn.classList.add('cmt-liked');
+        if (icon) icon.style.color = 'var(--accent,#e91e63)';
+      } else {
+        btn.classList.remove('cmt-liked');
+        if (icon) icon.style.color = '';
+      }
+      if (count) count.textContent = data.total > 0 ? data.total : '';
+    }
+  } catch(e) { /* silencioso */ }
+}
+
+function mostrarRespuestaForm(cmtId, postId, btn) {
+  const form = document.getElementById('reply-form-' + cmtId);
+  if (!form) return;
+  const visible = form.style.display !== 'none';
+  // Cerrar otros forms abiertos en este post
+  document.querySelectorAll('.cmt-reply-form').forEach(f => f.style.display = 'none');
+  if (!visible) {
+    form.style.display = 'flex';
+    const input = document.getElementById('reply-input-' + cmtId);
+    if (input) input.focus();
+  }
+}
+
+function mostrarRespuestaFormModal(cmtId, postId, btn) {
+  const form = document.getElementById('pv-reply-form-' + cmtId);
+  if (!form) return;
+  const visible = form.style.display !== 'none';
+  document.querySelectorAll('.cmt-reply-form').forEach(f => f.style.display = 'none');
+  if (!visible) {
+    form.style.display = 'flex';
+    const input = document.getElementById('pv-reply-input-' + cmtId);
+    if (input) input.focus();
+  }
+}
+
+async function enviarRespuesta(parentId, postId, input) {
+  const texto = input?.value?.trim();
+  if (!texto) return;
+  input.disabled = true;
+  try {
+    const fd = new FormData();
+    fd.append('post_id', postId);
+    fd.append('parent_id', parentId);
+    fd.append('comentario', texto);
+    const res  = await fetch('/responder_comentario', { method: 'POST', body: fd });
+    const data = await res.json();
+    if (data.ok) {
+      input.value = '';
+      input.closest('.cmt-reply-form').style.display = 'none';
+      const container = document.getElementById('replies-' + parentId);
+      if (container) {
+        const row = document.createElement('div');
+        row.className = 'comment-row comment-reply-row comment-new';
+        row.dataset.cmtId = data.id;
+        row.innerHTML = `
+          <div class="user-avatar" style="width:24px;height:24px;font-size:10px;flex-shrink:0;">${escHTML(data.inicial)}</div>
+          <div class="comment-bubble">
+            <strong class="comment-author">${escHTML(data.nombre)}</strong>
+            <span class="comment-text">${escHTML(data.texto)}</span>
+            <span class="comment-date">${new Date().toISOString().slice(0,10)}</span>
+          </div>`;
+        container.appendChild(row);
+        if (window._emoteRenderer) row.querySelectorAll('.comment-text').forEach(el => window._emoteRenderer.renderEmoteNode(el));
+      }
+      const cnt = document.getElementById('cmt-count-' + postId);
+      if (cnt) cnt.textContent = parseInt(cnt.textContent||0) + 1;
+    } else { mostrarToast('Error al responder','err'); }
+  } catch(e) { mostrarToast('Error de red','err'); }
+  input.disabled = false;
+  input.focus();
+}
+
+async function enviarRespuestaModal(parentId, postId, input) {
+  const texto = input?.value?.trim();
+  if (!texto) return;
+  input.disabled = true;
+  try {
+    const fd = new FormData();
+    fd.append('post_id', postId);
+    fd.append('parent_id', parentId);
+    fd.append('comentario', texto);
+    const res  = await fetch('/responder_comentario', { method: 'POST', body: fd });
+    const data = await res.json();
+    if (data.ok) {
+      input.value = '';
+      input.closest('.cmt-reply-form').style.display = 'none';
+      const container = document.getElementById('pv-replies-' + parentId);
+      if (container) {
+        const row = document.createElement('div');
+        row.className = 'pv-comment-row comment-reply-row comment-new';
+        row.dataset.cmtId = data.id;
+        row.innerHTML = `
+          <div class="pv-comment-av-placeholder" style="width:22px;height:22px;font-size:10px;">${escHTML(data.inicial)}</div>
+          <div class="pv-comment-body">
+            <div class="pv-comment-meta">
+              <span class="pv-comment-author">${escHTML(data.nombre)}</span>
+              <span class="pv-comment-date">${new Date().toISOString().slice(0,10)}</span>
+            </div>
+            <span class="pv-comment-text">${escHTML(data.texto)}</span>
+          </div>`;
+        container.appendChild(row);
+        if (window._emoteRenderer) row.querySelectorAll('.pv-comment-text').forEach(el => window._emoteRenderer.renderEmoteNode(el));
+        setTimeout(() => row.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 60);
+      }
+      ['pv-cmt-count','pv-cmt-count-stat'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = parseInt(el.textContent||0) + 1;
+      });
+      const feedCnt = document.getElementById('cmt-count-' + postId);
+      if (feedCnt) feedCnt.textContent = parseInt(feedCnt.textContent||0) + 1;
+    } else { mostrarToast('Error al responder','err'); }
+  } catch(e) { mostrarToast('Error de red','err'); }
+  input.disabled = false;
+  input.focus();
+}
+/* ── fin acciones comentarios ── */
+
 async function pmAccion(accion) {
   cerrarMenuPost();
 
@@ -5653,14 +6006,36 @@ function _pvRenderComments(comentarios, postId) {
         ? `<img src="${escHTML(c.foto)}" class="pv-comment-av" alt="${escHTML(c.nombre)}" loading="lazy">`
         : `<div class="pv-comment-av-placeholder">${escHTML((c.nombre||'?')[0].toUpperCase())}</div>`;
       return `
-        <div class="pv-comment-row">
+        <div class="pv-comment-row" data-cmt-id="${c.id||''}" data-post-id="${postId}">
           ${cAv}
           <div class="pv-comment-body">
             <div class="pv-comment-meta">
               <span class="pv-comment-author">${escHTML(c.nombre)}</span>
               <span class="pv-comment-date">${(c.fecha||'').slice(0,10)}</span>
             </div>
-            <span class="pv-comment-text">${escHTML(c.texto)}</span>
+            <span class="pv-comment-text" data-cmt-text="${c.id||''}">${escHTML(c.texto)}</span>
+            <div class="comment-actions-row" style="margin-top:4px;">
+              <button class="cmt-action-btn cmt-like-btn" onclick="likearComentario(${c.id||0},this)" title="Me gusta">
+                <span class="material-symbols-outlined" style="font-size:13px;">favorite</span>
+                <span class="cmt-like-count">0</span>
+              </button>
+              <button class="cmt-action-btn" onclick="mostrarRespuestaFormModal(${c.id||0},${postId},this)" title="Responder">
+                <span class="material-symbols-outlined" style="font-size:13px;">reply</span>
+                <span>Responder</span>
+              </button>
+            </div>
+            <div class="cmt-reply-form" id="pv-reply-form-${c.id}" style="display:none;margin-top:6px;">
+              <input type="text" class="comment-input cmt-reply-input" placeholder="Responder a ${escHTML(c.nombre)}…" id="pv-reply-input-${c.id}" style="font-size:13px;">
+              <button type="button" class="btn-comment" onclick="enviarRespuestaModal(${c.id||0},${postId},document.getElementById('pv-reply-input-${c.id}'))">
+                <span class="material-symbols-outlined">arrow_upward</span>
+              </button>
+            </div>
+            <div class="cmt-replies-container" id="pv-replies-${c.id}"></div>
+          </div>
+          <div class="cmt-menu-wrap">
+            <button class="cmt-dots-btn" onclick="toggleCmtMenu(${c.id||0},${postId},this,${c.usuario_id||0})" title="Opciones">
+              <span class="material-symbols-outlined" style="font-size:16px;">more_horiz</span>
+            </button>
           </div>
         </div>`;
     }).join('');
@@ -5855,6 +6230,8 @@ async function pvEnviarComentario(postId) {
         if (noMsg) noMsg.remove();
         const row = document.createElement('div');
         row.className = 'pv-comment-row';
+        row.dataset.cmtId = '';
+        row.dataset.postId = postId;
         row.innerHTML = `
           <div class="pv-comment-av-placeholder">${escHTML(data.inicial)}</div>
           <div class="pv-comment-body">
@@ -5863,6 +6240,21 @@ async function pvEnviarComentario(postId) {
               <span class="pv-comment-date">${new Date().toISOString().slice(0,10)}</span>
             </div>
             <span class="pv-comment-text">${escHTML(data.texto)}</span>
+            <div class="comment-actions-row" style="margin-top:4px;">
+              <button class="cmt-action-btn cmt-like-btn" title="Me gusta" disabled>
+                <span class="material-symbols-outlined" style="font-size:13px;">favorite</span>
+                <span class="cmt-like-count"></span>
+              </button>
+              <button class="cmt-action-btn" title="Responder" disabled>
+                <span class="material-symbols-outlined" style="font-size:13px;">reply</span>
+                <span>Responder</span>
+              </button>
+            </div>
+          </div>
+          <div class="cmt-menu-wrap">
+            <button class="cmt-dots-btn" title="Opciones" onclick="toggleCmtMenu(0,${postId},this,${_CMT_UID})">
+              <span class="material-symbols-outlined" style="font-size:16px;">more_horiz</span>
+            </button>
           </div>`;
         scroll.appendChild(row);
         // Renderizar emotes en el nuevo comentario
