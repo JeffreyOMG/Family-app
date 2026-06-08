@@ -1938,9 +1938,8 @@ body.dark-mode .admin-btn-save:hover {
 }
 
 /* BOTTOM NAVIGATION */
-/* bottom-nav is now a glass pill — no separate dark/light versions needed */
 body.dark-mode .bottom-nav-item.active {
-  color: var(--accent);
+  color: #ffffff;
 }
 
 /* PROGRESS */
@@ -4363,17 +4362,16 @@ body.dark-mode .cruce-num {
   border-radius: 100px;
   border: none;
   border-top: none;
-  /* Liquid Glass base */
-  background: rgba(30, 30, 40, 0.72);
-  backdrop-filter: saturate(160%) blur(28px);
-  -webkit-backdrop-filter: saturate(160%) blur(28px);
+  /* Dark pill — works on both light and dark backgrounds */
+  background: rgba(22, 22, 28, 0.88);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   outline: none;
   box-shadow:
-    0 16px 56px rgba(0,0,0,0.48),
-    0 4px 16px rgba(0,0,0,0.32),
-    inset 0 1px 0 rgba(255,255,255,0.22),
-    inset 0 -0.5px 0 rgba(255,255,255,0.06),
-    0 0 0 0.5px rgba(255,255,255,0.12);
+    0 8px 32px rgba(0,0,0,0.28),
+    0 2px 8px rgba(0,0,0,0.18),
+    inset 0 1px 0 rgba(255,255,255,0.1),
+    0 0 0 0.5px rgba(255,255,255,0.08);
   z-index: 700;
   padding: 0 8px;
   gap: 0;
@@ -4390,7 +4388,7 @@ body.dark-mode .cruce-num {
   cursor: pointer;
   border: none;
   background: none;
-  color: rgba(255,255,255,.78);
+  color: rgba(255,255,255,.65);
   font-size: .62rem;
   font-family: var(--font);
   -webkit-tap-highlight-color: transparent;
@@ -4399,15 +4397,13 @@ body.dark-mode .cruce-num {
 }
 .bottom-nav-item:active { transform: scale(.82); }
 .bottom-nav-item .material-symbols-outlined {
-  font-size: 27px;
-  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  font-size: 26px;
+  font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
   transition: all .2s cubic-bezier(.4,0,.2,1);
-  filter: drop-shadow(0 1px 3px rgba(0,0,0,.7));
 }
-.bottom-nav-item.active { color: var(--accent, #ff4d8d); }
+.bottom-nav-item.active { color: #ffffff; }
 .bottom-nav-item.active .material-symbols-outlined {
   font-variation-settings: 'FILL' 1, 'wght' 600, 'GRAD' -25, 'opsz' 24;
-  filter: drop-shadow(0 0 6px rgba(255,77,141,.6)) drop-shadow(0 1px 3px rgba(0,0,0,.6));
 }
 /* Dot indicator */
 .bottom-nav-item.active::after {
@@ -5076,9 +5072,9 @@ body.dark-mode .cruce-num {
     height: 58px !important;
     border-radius: 100px !important;
     /* Glass — transparent enough to see content through */
-    background: rgba(30, 30, 40, 0.72) !important;
-    backdrop-filter: saturate(160%) blur(28px) !important;
-    -webkit-backdrop-filter: saturate(160%) blur(28px) !important;
+    background: rgba(22, 22, 28, 0.88) !important;
+    backdrop-filter: blur(20px) !important;
+    -webkit-backdrop-filter: blur(20px) !important;
     border: none !important;
     border-top: none !important;
     outline: none !important;
@@ -5107,7 +5103,7 @@ body.dark-mode .cruce-num {
     cursor: pointer;
     border: none;
     background: none;
-    color: rgba(255,255,255,0.72);
+    color: rgba(255,255,255,0.65);
     -webkit-tap-highlight-color: transparent;
     transition: color 0.18s ease, transform 0.13s ease;
     position: relative;
@@ -5119,18 +5115,15 @@ body.dark-mode .cruce-num {
   }
   .bottom-nav-item .material-symbols-outlined {
     font-size: 26px;
-    font-variation-settings: 'FILL' 0, 'wght' 350, 'GRAD' 0, 'opsz' 24;
+    font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
     transition: font-variation-settings 0.18s ease;
     display: block;
-    /* Subtle text-shadow for legibility over any background */
-    filter: drop-shadow(0 1px 3px rgba(0,0,0,0.6));
   }
   .bottom-nav-item.active {
-    color: var(--accent, #ff4d8d);
+    color: #ffffff;
   }
   .bottom-nav-item.active .material-symbols-outlined {
     font-variation-settings: 'FILL' 1, 'wght' 600, 'GRAD' -25, 'opsz' 24;
-    filter: drop-shadow(0 0 5px rgba(255,77,141,0.55)) drop-shadow(0 1px 3px rgba(0,0,0,0.5));
   }
   /* Dot indicator */
   .bottom-nav-item.active::after {
