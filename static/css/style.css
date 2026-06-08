@@ -4878,119 +4878,252 @@ body.dark-mode .cruce-num {
   font-weight: 800;
 }
 
-/* ══════════════════════════════════════════════════════════
-   NAVBAR INSTAGRAM STYLE — SOLO MÓVIL
-   ══════════════════════════════════════════════════════════ */
+/* ══════════════════════════════════════════════════════════════════════
+   PREMIUM MOBILE REDESIGN — HEADER + BOTTOM NAV
+   Inspiración: Instagram iOS, Threads, Apple Music, iOS 18
+   ══════════════════════════════════════════════════════════════════════ */
 
-/* Ocultar la parte de Instagram en escritorio */
-.navbar-mobile-ig {
-  display: none;
-}
+/* ── Desktop: ocultar la capa mobile-ig ── */
+.navbar-mobile-ig { display: none; }
+.navbar-desktop-only { display: flex; }
 
-/* Ocultar parte de escritorio en móvil */
+/* ─────────────────────────────────────────
+   HEADER PREMIUM MOBILE
+───────────────────────────────────────── */
 @media (max-width: 768px) {
-  .navbar-desktop-only {
-    display: none !important;
+
+  /* Base del navbar en móvil */
+  .navbar {
+    left: 0 !important;
+    height: 60px;
+    padding: 0 18px;
+    /* Estado inicial: casi transparente, integrado con el contenido */
+    background: transparent;
+    border-bottom: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    box-shadow: none;
+    transition:
+      background .35s cubic-bezier(.4,0,.2,1),
+      backdrop-filter .35s cubic-bezier(.4,0,.2,1),
+      border-color .35s cubic-bezier(.4,0,.2,1),
+      box-shadow .35s cubic-bezier(.4,0,.2,1);
+    will-change: background, backdrop-filter;
+    z-index: 200;
   }
 
+  /* Estado "scrolled" — glassmorphism activado via JS */
+  .navbar.scrolled {
+    background: rgba(var(--card-rgb, 15,15,20), 0.72);
+    backdrop-filter: saturate(180%) blur(20px);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+    border-bottom: 0.5px solid rgba(255,255,255,.08);
+    box-shadow: 0 1px 24px rgba(0,0,0,.22);
+  }
+
+  /* Ocultar todo el layout de escritorio */
+  .navbar-desktop-only { display: none !important; }
+
+  /* Contenedor mobile Instagram */
   .navbar-mobile-ig {
     display: flex;
     align-items: center;
     justify-content: space-between;
     width: 100%;
-    padding: 0 4px;
+    height: 100%;
   }
 
   .navbar-ig-left,
   .navbar-ig-right {
     display: flex;
     align-items: center;
-    gap: 4px;
   }
 
-  /* Nombre de la app: "familly" en rosa + "app" en blanco/texto */
+  .navbar-ig-left { gap: 2px; }
+  .navbar-ig-right { gap: 0; }
+
+  /* ── BRAND LOGO premium ── */
   .navbar-ig-brand {
-    font-family: 'Bebas Neue', 'DM Sans', sans-serif;
-    font-size: 1.55rem;
-    font-weight: 700;
-    letter-spacing: 0.5px;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.75rem;
+    letter-spacing: 1.5px;
     line-height: 1;
-    padding: 0 4px;
+    padding: 0 2px;
+    /* Sutil text-shadow para sensación de profundidad */
+    text-shadow: 0 1px 12px rgba(255,77,141,.25);
   }
 
   .brand-pink {
     color: var(--accent, #ff4d8d);
   }
-
   .brand-white {
-    color: var(--text, #fff);
+    color: var(--text, #ffffff);
+    opacity: .92;
   }
 
-  /* Botones icono del navbar Instagram */
+  /* ── Botones icono navbar ── */
   .navbar-ig-btn {
     background: none;
     border: none;
     cursor: pointer;
     color: var(--text);
-    padding: 6px 8px;
+    width: 44px;
+    height: 44px;
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 10px;
-    transition: background .15s;
+    border-radius: 50%;
+    transition: background .15s, transform .12s;
     -webkit-tap-highlight-color: transparent;
+    position: relative;
   }
 
   .navbar-ig-btn:active {
-    background: var(--bg2, rgba(255,255,255,.08));
+    background: rgba(255,255,255,.1);
+    transform: scale(.9);
   }
 
   .navbar-ig-btn .material-symbols-outlined {
-    font-size: 26px;
+    font-size: 27px;
+    font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
   }
 }
 
-/* ══════════════════════════════════════════════════════════
-   BOTTOM NAV — SIN TEXTO, AVATAR PERFIL
-   ══════════════════════════════════════════════════════════ */
+/* ─────────────────────────────────────────
+   BOTTOM NAV — PILL GLASSMORPHISM FLOTANTE
+───────────────────────────────────────── */
 
-/* Ocultar el bnav-label */
-.bnav-label {
-  display: none !important;
-}
-
-/* El bottom-nav ya tiene display:none y se activa con media query */
-.bottom-nav-item {
+/* Reset de la barra base */
+.bottom-nav {
+  /* Sobreescribir el display:none del bloque original */
+  display: none;
+  /* Layout */
+  position: fixed;
+  /* Flotante: separada de los bordes */
+  bottom: max(16px, env(safe-area-inset-bottom, 16px));
+  left: 50%;
+  transform: translateX(-50%);
+  right: auto;
+  /* Ancho de la cápsula */
+  width: calc(100% - 40px);
+  max-width: 380px;
+  /* Altura */
+  height: 62px;
+  /* Forma de cápsula */
+  border-radius: 100px;
+  /* Glassmorphism iOS */
+  background: rgba(18, 18, 24, 0.72);
+  backdrop-filter: saturate(200%) blur(28px);
+  -webkit-backdrop-filter: saturate(200%) blur(28px);
+  /* Borde cristal */
+  border: 0.5px solid rgba(255,255,255,.14);
+  /* Sombra suave y profundidad */
+  box-shadow:
+    0 8px 32px rgba(0,0,0,.38),
+    0 2px 8px rgba(0,0,0,.22),
+    inset 0 0.5px 0 rgba(255,255,255,.1);
+  /* Z-index sobre todo */
+  z-index: 600;
+  /* Padding lateral */
+  padding: 0 8px;
+  /* Sin border-top */
+  border-top: none;
+  /* Transición de aparición */
+  transition: opacity .3s, transform .3s cubic-bezier(.4,0,.2,1);
+  will-change: transform;
   gap: 0;
-  padding: 10px 4px;
+  /* No overflow */
+  overflow: hidden;
 }
 
-/* Active en rosa (accent) */
+@media (max-width: 768px) {
+  .bottom-nav { display: flex; }
+
+  /* Ajuste del main-content para la pill flotante */
+  .main-content {
+    padding-bottom: calc(100px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+}
+
+/* ── Items del menú ── */
+.bottom-nav-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  color: rgba(255,255,255,.5);
+  text-decoration: none;
+  cursor: pointer;
+  border: none;
+  background: none;
+  padding: 10px 6px;
+  border-radius: 100px;
+  /* Transición fluida */
+  transition: color .22s cubic-bezier(.4,0,.2,1), transform .14s cubic-bezier(.4,0,.2,1);
+  -webkit-tap-highlight-color: transparent;
+  position: relative;
+}
+
+/* Área táctil cómoda */
+.bottom-nav-item:active {
+  transform: scale(.85);
+}
+
+/* Ocultar labels — solo iconos */
+.bnav-label { display: none !important; }
+.bottom-nav-item span:last-child { display: none !important; }
+
+/* ── Iconos ── */
+.bottom-nav-item .material-symbols-outlined {
+  font-size: 27px;
+  font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
+  transition:
+    color .22s cubic-bezier(.4,0,.2,1),
+    font-variation-settings .22s cubic-bezier(.4,0,.2,1);
+}
+
+/* ── Estado ACTIVO ── */
+.bottom-nav-item.active {
+  color: var(--accent, #ff4d8d);
+}
+
 .bottom-nav-item.active .material-symbols-outlined {
   color: var(--accent, #ff4d8d);
   font-variation-settings: 'FILL' 1, 'wght' 500, 'GRAD' 0, 'opsz' 24;
 }
 
-/* Ícono normal (no activo): filled=0 */
-.bottom-nav-item .material-symbols-outlined {
-  font-size: 26px;
-  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
-  transition: color .18s;
+/* Punto indicador activo sutil */
+.bottom-nav-item.active::after {
+  content: '';
+  position: absolute;
+  bottom: 6px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--accent, #ff4d8d);
+  opacity: .7;
 }
 
-/* Avatar de perfil en bottom nav */
+/* El ítem de perfil tiene avatar, no icono */
+.bottom-nav-perfil::after { display: none; }
+
+/* ── Avatar de perfil en bottom nav ── */
 .bnav-avatar-img {
-  width: 26px;
-  height: 26px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   object-fit: cover;
-  border: 2px solid transparent;
-  transition: border-color .18s;
+  border: 2px solid rgba(255,255,255,.25);
+  transition: border-color .22s;
 }
 
 .bnav-avatar-letter {
-  width: 26px;
-  height: 26px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   background: var(--accent-gradient, linear-gradient(135deg,#ff6b9d,#ff4d8d,#c9236a));
   color: #fff;
@@ -4999,18 +5132,28 @@ body.dark-mode .cruce-num {
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 2px solid transparent;
-  transition: border-color .18s;
+  border: 2px solid rgba(255,255,255,.2);
+  transition: border-color .22s;
 }
 
-/* Borde rosa cuando el perfil está activo */
 .bnav-avatar-active {
   border-color: var(--accent, #ff4d8d) !important;
+  box-shadow: 0 0 0 2px rgba(255,77,141,.35);
 }
 
-/* Perfil item alineación */
 .bottom-nav-perfil {
   display: flex;
   align-items: center;
   justify-content: center;
 }
+
+/* Dark mode glassmorphism */
+body.dark-mode .bottom-nav {
+  background: rgba(10, 10, 16, 0.78);
+  border-color: rgba(255,255,255,.1);
+}
+
+body.dark-mode .navbar.scrolled {
+  background: rgba(8, 8, 12, 0.78);
+}
+
