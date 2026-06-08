@@ -5010,7 +5010,7 @@ body.dark-mode .cruce-num {
     background: none;
     border: none;
     cursor: pointer;
-    color: rgba(255,255,255,0.85);
+    color: rgba(0, 0, 0, 0.85);
     width: 44px;
     height: 44px;
     display: flex;
@@ -5023,6 +5023,7 @@ body.dark-mode .cruce-num {
   .navbar-ig-btn:active {
     opacity: 0.45;
     transform: scale(0.88);
+    color: rgba(255,255,255,0.85);
   }
   .navbar-ig-btn .material-symbols-outlined {
     font-size: 25px;
