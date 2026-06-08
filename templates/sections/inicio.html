@@ -123,112 +123,14 @@
     </button>
   </div>
 
-  <div id="comentarios-{{ p.id }}" class="comments-section">
-    {% set todos = comentarios_por_post.get(p.id, []) %}
-    {% set VISIBLE = 3 %}
-    {% set CLIMIT  = 160 %}
+  {# ── Datos de comentarios como JSON para renderizado jerárquico en JS ── #}
+  {% set todos = comentarios_por_post.get(p.id, []) %}
+  <script type="application/json" id="cmts-data-{{ p.id }}">{{ todos | tojson }}</script>
 
-    {# ── Comentarios visibles inicialmente ── #}
-    {% for c in todos[:VISIBLE] %}
-    <div class="comment-row" data-cmt-id="{{ c.id }}" data-post-id="{{ p.id }}">
-      {% if c.foto %}
-        <img src="{{ c.foto }}" class="user-avatar-img" style="width:28px;height:28px;flex-shrink:0;" data-ver-perfil="{{ c.usuario }}" title="Ver perfil" style="cursor:pointer;">
-      {% else %}
-        <div class="user-avatar" style="width:28px;height:28px;font-size:11px;flex-shrink:0;cursor:pointer;" data-ver-perfil="{{ c.usuario }}">{{ c.nombre[0]|upper }}</div>
-      {% endif %}
-      <div class="comment-bubble">
-        <strong class="comment-author" data-ver-perfil="{{ c.usuario }}" style="cursor:pointer;">{{ c.nombre }}</strong>
-        {% if c.texto|length <= CLIMIT %}
-          <span class="comment-text" data-cmt-text="{{ c.id }}">{{ c.texto }}</span>
-        {% else %}
-          {% set ctexto = c.texto[:CLIMIT] %}
-          {% if c.texto[CLIMIT] not in (' ', '\n', '\r') %}
-            {% set clast = [ctexto.rfind(' '), ctexto.rfind('\n')] | max %}
-            {% if clast > 100 %}{% set ctexto = ctexto[:clast] %}{% endif %}
-          {% endif %}
-          <span class="comment-text comment-text-collapsed" data-cmt-text="{{ c.id }}">{{ ctexto }}<span class="comment-text-more" onclick="expandirComentario(this)">… más</span><span class="comment-text-full" style="display:none;">{{ c.texto[ctexto|length:] }}</span></span>
-        {% endif %}
-        <div class="comment-actions-row">
-          <button class="cmt-action-btn cmt-like-btn" onclick="likearComentario({{ c.id }},this)" title="Me gusta">
-            <span class="material-symbols-outlined" style="font-size:14px;">favorite</span>
-            <span class="cmt-like-count">0</span>
-          </button>
-          <button class="cmt-action-btn" onclick="mostrarRespuestaForm({{ c.id }},{{ p.id }},this)" title="Responder">
-            <span class="material-symbols-outlined" style="font-size:14px;">reply</span>
-            <span>Responder</span>
-          </button>
-          <span class="comment-date">{{ c.fecha[:10] }}</span>
-        </div>
-        <div class="cmt-reply-form" id="reply-form-{{ c.id }}" style="display:none;">
-          <input type="text" class="comment-input cmt-reply-input" placeholder="Responder a {{ c.nombre }}…" id="reply-input-{{ c.id }}">
-          <button type="button" class="btn-comment" onclick="enviarRespuesta({{ c.id }},{{ p.id }},document.getElementById('reply-input-{{ c.id }}'))">
-            <span class="material-symbols-outlined">arrow_upward</span>
-          </button>
-        </div>
-        <div class="cmt-replies-container" id="replies-{{ c.id }}"></div>
-      </div>
-      <div class="cmt-menu-wrap">
-        <button class="cmt-dots-btn" onclick="toggleCmtMenu({{ c.id }},{{ p.id }},this,{{ c.usuario_id if c.usuario_id is defined else 0 }})" title="Opciones">
-          <span class="material-symbols-outlined" style="font-size:18px;">more_horiz</span>
-        </button>
-      </div>
-    </div>
-    {% endfor %}
-
-    {# ── Comentarios ocultos ── #}
-    {% if todos|length > VISIBLE %}
-    <div class="cmt-hidden" id="cmt-hidden-{{ p.id }}" style="display:none;">
-      {% for c in todos[VISIBLE:] %}
-      <div class="comment-row" data-cmt-id="{{ c.id }}" data-post-id="{{ p.id }}">
-        {% if c.foto %}
-          <img src="{{ c.foto }}" class="user-avatar-img" style="width:28px;height:28px;flex-shrink:0;" data-ver-perfil="{{ c.usuario }}" title="Ver perfil" style="cursor:pointer;">
-        {% else %}
-          <div class="user-avatar" style="width:28px;height:28px;font-size:11px;flex-shrink:0;cursor:pointer;" data-ver-perfil="{{ c.usuario }}">{{ c.nombre[0]|upper }}</div>
-        {% endif %}
-        <div class="comment-bubble">
-          <strong class="comment-author" data-ver-perfil="{{ c.usuario }}" style="cursor:pointer;">{{ c.nombre }}</strong>
-          {% if c.texto|length <= CLIMIT %}
-            <span class="comment-text" data-cmt-text="{{ c.id }}">{{ c.texto }}</span>
-          {% else %}
-            {% set ctexto = c.texto[:CLIMIT] %}
-            {% if c.texto[CLIMIT] not in (' ', '\n', '\r') %}
-              {% set clast = [ctexto.rfind(' '), ctexto.rfind('\n')] | max %}
-              {% if clast > 100 %}{% set ctexto = ctexto[:clast] %}{% endif %}
-            {% endif %}
-            <span class="comment-text comment-text-collapsed" data-cmt-text="{{ c.id }}">{{ ctexto }}<span class="comment-text-more" onclick="expandirComentario(this)">… más</span><span class="comment-text-full" style="display:none;">{{ c.texto[ctexto|length:] }}</span></span>
-          {% endif %}
-          <div class="comment-actions-row">
-            <button class="cmt-action-btn cmt-like-btn" onclick="likearComentario({{ c.id }},this)" title="Me gusta">
-              <span class="material-symbols-outlined" style="font-size:14px;">favorite</span>
-              <span class="cmt-like-count">0</span>
-            </button>
-            <button class="cmt-action-btn" onclick="mostrarRespuestaForm({{ c.id }},{{ p.id }},this)" title="Responder">
-              <span class="material-symbols-outlined" style="font-size:14px;">reply</span>
-              <span>Responder</span>
-            </button>
-            <span class="comment-date">{{ c.fecha[:10] }}</span>
-          </div>
-          <div class="cmt-reply-form" id="reply-form-{{ c.id }}" style="display:none;">
-            <input type="text" class="comment-input cmt-reply-input" placeholder="Responder a {{ c.nombre }}…" id="reply-input-{{ c.id }}">
-            <button type="button" class="btn-comment" onclick="enviarRespuesta({{ c.id }},{{ p.id }},document.getElementById('reply-input-{{ c.id }}'))">
-              <span class="material-symbols-outlined">arrow_upward</span>
-            </button>
-          </div>
-          <div class="cmt-replies-container" id="replies-{{ c.id }}"></div>
-        </div>
-        <div class="cmt-menu-wrap">
-          <button class="cmt-dots-btn" onclick="toggleCmtMenu({{ c.id }},{{ p.id }},this,{{ c.usuario_id if c.usuario_id is defined else 0 }})" title="Opciones">
-            <span class="material-symbols-outlined" style="font-size:18px;">more_horiz</span>
-          </button>
-        </div>
-      </div>
-      {% endfor %}
-    </div>
-    <button class="cmt-ver-mas" id="cmt-btn-{{ p.id }}"
-      onclick="verMasComentarios({{ p.id }}, {{ todos|length - VISIBLE }})">
-      Ver {{ todos|length - VISIBLE }} comentario{{ 's' if todos|length - VISIBLE != 1 else '' }} más
-    </button>
-    {% endif %}
+  <div id="comentarios-{{ p.id }}" class="comments-section"
+       data-post-id="{{ p.id }}" data-cmts-loaded="0">
+    {# JS renderizará aquí el árbol jerárquico — ver feedRenderComments() #}
+    <div class="feed-cmt-tree" id="feed-cmt-tree-{{ p.id }}"></div>
 
     <div class="comment-form">
       {% if usuario.foto %}
@@ -4206,7 +4108,245 @@ img.inline-emote:hover {
   </div>
 </div>
 
-<script>
+<!-- ═══════════════════════════════════════════════════
+     MODAL COMENTARIOS FULLSCREEN — SOLO MÓVIL
+     Se abre al pulsar ícono de comentarios en el modal del post.
+     En desktop: este modal nunca se muestra (display:none via media query).
+════════════════════════════════════════════════════ -->
+<div id="mob-cmt-overlay" aria-modal="true" role="dialog" aria-label="Comentarios">
+  <div id="mob-cmt-box">
+    <div id="mob-cmt-header">
+      <button id="mob-cmt-back" onclick="cerrarMobComments()" aria-label="Volver al post">
+        <span class="material-symbols-outlined">arrow_back</span>
+      </button>
+      <span id="mob-cmt-title">Comentarios</span>
+      <span id="mob-cmt-count-badge"></span>
+    </div>
+    <div id="mob-cmt-scroll"></div>
+    <!-- Paneles aux emoji/gif -->
+    <div id="mob-emoji-panel" class="pv-aux-panel" style="display:none;">
+      <div class="pv-emoji-grid" id="mob-emoji-grid"></div>
+    </div>
+    <!-- Input fijo abajo -->
+    <div id="mob-cmt-form">
+      <div class="pv-cinput-row">
+        <div class="pv-cinput-wrap">
+          <input type="text" class="pv-comment-input" id="mob-cinput"
+            placeholder="Escribe un comentario…"
+            onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();mobEnviarComentario();}">
+        </div>
+        <button class="pv-comment-send" id="mob-cmt-send" onclick="mobEnviarComentario()" aria-label="Enviar">
+          <span class="material-symbols-outlined">arrow_upward</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+/* ═══════════════════════════════════════════════════
+   MODAL COMENTARIOS MÓVIL — FULLSCREEN
+════════════════════════════════════════════════════ */
+#mob-cmt-overlay {
+  display: none; /* oculto en desktop */
+}
+
+@media (max-width: 700px) {
+  #mob-cmt-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 100000;
+    background: var(--card, #fff);
+    display: none; /* se muestra vía JS con .mob-open */
+    flex-direction: column;
+    overscroll-behavior: contain;
+  }
+  #mob-cmt-overlay.mob-open {
+    display: flex !important;
+    animation: mobCmtSlideIn .24s cubic-bezier(.34,1.1,.64,1);
+  }
+  #mob-cmt-overlay.mob-closing {
+    animation: mobCmtSlideOut .18s ease forwards !important;
+  }
+  @keyframes mobCmtSlideIn {
+    from { opacity: .5; transform: translateX(100%); }
+    to   { opacity: 1; transform: translateX(0); }
+  }
+  @keyframes mobCmtSlideOut {
+    from { opacity: 1; transform: translateX(0); }
+    to   { opacity: 0; transform: translateX(100%); }
+  }
+
+  #mob-cmt-box {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    height: 100dvh;
+    overflow: hidden;
+    background: var(--card, #fff);
+  }
+
+  /* Header */
+  #mob-cmt-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 13px 16px;
+    padding-top: calc(13px + env(safe-area-inset-top, 0px));
+    border-bottom: 1px solid var(--border, #eee);
+    background: var(--card, #fff);
+    flex-shrink: 0;
+    position: sticky;
+    top: 0;
+    z-index: 5;
+  }
+  #mob-cmt-back {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text, #111);
+    border-radius: 50%;
+    width: 36px; height: 36px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    transition: background .15s;
+  }
+  #mob-cmt-back:hover { background: var(--bg2, rgba(0,0,0,.07)); }
+  #mob-cmt-back .material-symbols-outlined { font-size: 21px; }
+  #mob-cmt-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text, #111);
+    flex: 1;
+    letter-spacing: -.01em;
+  }
+  #mob-cmt-count-badge {
+    font-size: 13px;
+    color: var(--text3, #aaa);
+    font-weight: 500;
+  }
+
+  /* Área de scroll de comentarios */
+  #mob-cmt-scroll {
+    flex: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
+    touch-action: pan-y;
+    padding: 8px 12px 12px;
+  }
+
+  /* Formulario fijo abajo */
+  #mob-cmt-form {
+    flex-shrink: 0;
+    border-top: 1px solid var(--border, #eee);
+    padding: 8px 12px;
+    padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+    background: var(--card, #fff);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  /* Botón de comentarios en el modal del post (móvil) — muestra badge */
+  #pv-mob-cmt-trigger {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    width: 100%;
+    padding: 10px 14px;
+    background: var(--bg2, rgba(0,0,0,.05));
+    border: 1px solid var(--border, #eee);
+    border-radius: 12px;
+    color: var(--text2, #666);
+    font-family: var(--font);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background .15s, border-color .15s;
+    margin: 10px 20px 14px;
+    flex-shrink: 0;
+  }
+  #pv-mob-cmt-trigger:hover {
+    background: var(--ac-soft);
+    border-color: var(--ac);
+    color: var(--ac);
+  }
+  #pv-mob-cmt-trigger .material-symbols-outlined { font-size: 18px; }
+
+  /* Ocultar panel de comentarios normal en móvil dentro del post modal */
+  #pv-comments-panel {
+    display: none !important;
+  }
+}
+
+/* En desktop: el mob modal nunca existe visualmente */
+@media (min-width: 701px) {
+  #mob-cmt-overlay {
+    display: none !important;
+  }
+  #pv-mob-cmt-trigger {
+    display: none !important;
+  }
+}
+
+/* ═══════════════════════════════════════
+   FEED: árbol jerárquico de comentarios
+════════════════════════════════════════ */
+.feed-cmt-node {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+  align-items: flex-start;
+}
+.feed-cmt-node .comment-bubble {
+  flex: 1;
+  min-width: 0;
+}
+.feed-cmt-children {
+  display: none;
+  margin-left: 36px;
+  padding-left: 8px;
+  border-left: 2px solid var(--border, #eee);
+  margin-top: 4px;
+}
+.feed-cmt-children.open { display: block; }
+.feed-cmt-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text3, #888);
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 3px 5px;
+  border-radius: 6px;
+  margin-top: 3px;
+  transition: color .15s, background .15s;
+}
+.feed-cmt-toggle:hover {
+  color: var(--ac, #e91e8c);
+  background: var(--ac-soft, rgba(233,30,140,.07));
+}
+.feed-cmt-toggle .material-symbols-outlined { font-size: 13px; }
+.feed-cmt-ver-mas {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text3, #999);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 3px 0 6px;
+  display: block;
+  width: 100%;
+  text-align: left;
+  transition: color .15s;
+}
+.feed-cmt-ver-mas:hover { color: var(--ac, #ff4d8d); }
+</style>
 /* ── TABS ── */
 const _feeds = {
   'posts':      'feed-posts',
@@ -4304,10 +4444,21 @@ function updateBottomNav(el){
 
 /* ── COMENTARIOS ── */
 function abrirComentarios(id){
-  // REGLA ABSOLUTA: comentarios SIEMPRE en el modal completo
-  // Desktop: modal centrado tipo X/Threads
-  // Mobile: bottom sheet nativo
-  abrirPost(id, true); // true = enfocar input de comentario
+  if (window.innerWidth <= 700) {
+    // Mobile: primero abrir el post modal, luego el modal de comentarios
+    // Si el post ya está abierto en el modal, ir directo a comentarios
+    if (_pvPostId === id) {
+      abrirMobComments(id);
+    } else {
+      // Abrir post y luego comentarios
+      abrirPost(id).then(() => {
+        setTimeout(() => abrirMobComments(id), 100);
+      });
+    }
+    return;
+  }
+  // Desktop: modal centrado tipo X/Threads con foco en comentarios
+  abrirPost(id, true);
 }
 
 async function enviarComentario(postId, input){
@@ -5952,6 +6103,14 @@ function _renderPostModal(p) {
   const savedClass = p.bookmarked ? 'pv-saved' : '';
   const numCmts    = p.comentarios ? p.comentarios.length : 0;
 
+  // ── Botón "Ver comentarios" para móvil (solo se muestra en ≤700px via CSS) ──
+  const mobCmtBtn = `
+    <button id="pv-mob-cmt-trigger" onclick="abrirMobComments(${p.id})">
+      <span class="material-symbols-outlined">chat_bubble</span>
+      Ver ${numCmts} comentario${numCmts !== 1 ? 's' : ''}
+      <span class="material-symbols-outlined" style="font-size:16px;margin-left:auto;opacity:.6;">chevron_right</span>
+    </button>`;
+
   // ── Panel izquierdo: post ──
   content.innerHTML = `
     <div class="pv-post">
@@ -5975,7 +6134,7 @@ function _renderPostModal(p) {
           <span class="material-symbols-outlined">favorite</span>
           <span id="pv-like-count">${p.total_likes}</span>
         </button>
-        <button class="pv-action-btn" onclick="pvFocoComentario()">
+        <button class="pv-action-btn" onclick="${window.innerWidth <= 700 ? `abrirMobComments(${p.id})` : 'pvFocoComentario()'}">
           <span class="material-symbols-outlined">chat_bubble</span>
           <span id="pv-cmt-count">${numCmts}</span>
         </button>
@@ -5990,17 +6149,17 @@ function _renderPostModal(p) {
           <span class="material-symbols-outlined">bookmark</span>
         </button>
       </div>
+      ${mobCmtBtn}
     </div>`;
 
-  // ── Panel derecho: comentarios ──
-  _pvRenderComments(p.comentarios || [], p.id);
-
-  // Mostrar panel
-  const panel = document.getElementById('pv-comments-panel');
-  if (panel) panel.style.display = 'flex';
-
-  const panelCnt = document.getElementById('pv-panel-cmt-count');
-  if (panelCnt) panelCnt.textContent = numCmts ? `(${numCmts})` : '';
+  // ── Panel derecho: comentarios (SOLO DESKTOP) ──
+  if (window.innerWidth > 700) {
+    _pvRenderComments(p.comentarios || [], p.id);
+    const panel = document.getElementById('pv-comments-panel');
+    if (panel) panel.style.display = 'flex';
+    const panelCnt = document.getElementById('pv-panel-cmt-count');
+    if (panelCnt) panelCnt.textContent = numCmts ? `(${numCmts})` : '';
+  }
 
   // Renderizar emotes en el modal si existe el renderer
   if (window._emoteRenderer) window._emoteRenderer.renderEmotesInModal();
@@ -6499,7 +6658,375 @@ async function pvEnviarComentario(postId) {
   });
 }
 
-// Cerrar con Escape
+// ══════════════════════════════════════════════════════════
+//  SISTEMA JERÁRQUICO DE COMENTARIOS EN EL FEED
+//  Reutiliza _buildCommentTree y _renderCmtNode del modal
+//  pero con estilos del feed (comment-bubble, etc.)
+// ══════════════════════════════════════════════════════════
+
+/**
+ * Renderiza el árbol de comentarios para un post del feed.
+ * Llama a esta función cuando la comments-section se abre
+ * (o en DOMContentLoaded para las secciones ya abiertas).
+ */
+function feedRenderComments(postId) {
+  const sec = document.getElementById('comentarios-' + postId);
+  if (!sec || sec.dataset.cmtsLoaded === '1') return;
+  sec.dataset.cmtsLoaded = '1';
+
+  const treeEl = document.getElementById('feed-cmt-tree-' + postId);
+  if (!treeEl) return;
+
+  // Leer JSON embebido en el HTML
+  let todos = [];
+  try {
+    const jsonEl = document.getElementById('cmts-data-' + postId);
+    if (jsonEl) todos = JSON.parse(jsonEl.textContent || '[]');
+  } catch(e) { todos = []; }
+
+  if (!todos.length) return;
+
+  // Construir árbol jerárquico
+  const tree = _buildCommentTree(todos);
+  const VISIBLE_ROOTS = 3;
+
+  const renderFeedNode = (c, depth) => {
+    const avHtml = c.foto
+      ? `<img src="${escHTML(c.foto)}" class="user-avatar-img" style="width:28px;height:28px;flex-shrink:0;" data-ver-perfil="${escHTML(c.usuario)}" loading="lazy">`
+      : `<div class="user-avatar" style="width:28px;height:28px;font-size:11px;flex-shrink:0;cursor:pointer;" data-ver-perfil="${escHTML(c.usuario)}">${escHTML((c.nombre||'?')[0].toUpperCase())}</div>`;
+
+    const CLIMIT = 160;
+    let textoHtml;
+    if (c.texto.length <= CLIMIT) {
+      textoHtml = `<span class="comment-text" data-cmt-text="${c.id}">${escHTML(c.texto)}</span>`;
+    } else {
+      const corto = escHTML(c.texto.slice(0, CLIMIT));
+      const resto = escHTML(c.texto.slice(CLIMIT));
+      textoHtml = `<span class="comment-text comment-text-collapsed" data-cmt-text="${c.id}">${corto}<span class="comment-text-more" onclick="expandirComentario(this)">… más</span><span class="comment-text-full" style="display:none;">${resto}</span></span>`;
+    }
+
+    const childrenHtml = (c.children || []).map(ch => renderFeedNode(ch, depth + 1)).join('');
+    const hasChildren  = c.children && c.children.length > 0;
+    const countReplies = c.children ? c.children.length : 0;
+
+    return `
+      <div class="feed-cmt-node comment-row" data-cmt-id="${c.id}" data-post-id="${postId}">
+        ${avHtml}
+        <div class="comment-bubble" style="flex:1;min-width:0;">
+          <strong class="comment-author" data-ver-perfil="${escHTML(c.usuario)}" style="cursor:pointer;">${escHTML(c.nombre)}</strong>
+          ${textoHtml}
+          <div class="comment-actions-row">
+            <button class="cmt-action-btn cmt-like-btn" onclick="likearComentario(${c.id},this)" title="Me gusta">
+              <span class="material-symbols-outlined" style="font-size:14px;">favorite</span>
+              <span class="cmt-like-count"></span>
+            </button>
+            <button class="cmt-action-btn" onclick="feedToggleReplyForm(${c.id},${postId},this)" title="Responder">
+              <span class="material-symbols-outlined" style="font-size:14px;">reply</span>
+              <span>Responder</span>
+            </button>
+            <span class="comment-date">${(c.fecha||'').slice(0,10)}</span>
+          </div>
+          <div class="cmt-reply-form" id="feed-reply-form-${c.id}" style="display:none;">
+            <input type="text" class="comment-input cmt-reply-input"
+              placeholder="Responder a ${escHTML(c.nombre)}…"
+              id="feed-reply-input-${c.id}"
+              onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();enviarRespuesta(${c.id},${postId},this);}">
+            <button type="button" class="btn-comment" onclick="enviarRespuesta(${c.id},${postId},document.getElementById('feed-reply-input-${c.id}'))">
+              <span class="material-symbols-outlined">arrow_upward</span>
+            </button>
+          </div>
+          ${hasChildren ? `
+          <button class="feed-cmt-toggle" id="feed-toggle-${c.id}" onclick="feedToggleReplies(${c.id})">
+            <span class="material-symbols-outlined">subdirectory_arrow_right</span>
+            Ver ${countReplies} respuesta${countReplies !== 1 ? 's' : ''}
+          </button>` : ''}
+          <div class="feed-cmt-children" id="feed-children-${c.id}">
+            ${childrenHtml}
+          </div>
+        </div>
+        <div class="cmt-menu-wrap">
+          <button class="cmt-dots-btn" onclick="toggleCmtMenu(${c.id},${postId},this,${c.usuario_id||0})" title="Opciones">
+            <span class="material-symbols-outlined" style="font-size:18px;">more_horiz</span>
+          </button>
+        </div>
+      </div>`;
+  };
+
+  // Mostrar primeros VISIBLE_ROOTS comentarios raíz
+  const visibleRoots = tree.slice(0, VISIBLE_ROOTS);
+  const hiddenRoots  = tree.slice(VISIBLE_ROOTS);
+
+  treeEl.innerHTML = visibleRoots.map(c => renderFeedNode(c, 0)).join('');
+
+  if (hiddenRoots.length) {
+    const hiddenWrap = document.createElement('div');
+    hiddenWrap.id = 'feed-cmt-hidden-' + postId;
+    hiddenWrap.style.display = 'none';
+    hiddenWrap.innerHTML = hiddenRoots.map(c => renderFeedNode(c, 0)).join('');
+    treeEl.appendChild(hiddenWrap);
+
+    const verMasBtn = document.createElement('button');
+    verMasBtn.className = 'feed-cmt-ver-mas';
+    verMasBtn.id = 'feed-cmt-btn-' + postId;
+    verMasBtn.textContent = `Ver ${hiddenRoots.length} comentario${hiddenRoots.length !== 1 ? 's' : ''} más`;
+    verMasBtn.onclick = () => {
+      hiddenWrap.style.display = 'block';
+      verMasBtn.style.display = 'none';
+      if (window._emoteRenderer) {
+        hiddenWrap.querySelectorAll('.comment-text').forEach(el => window._emoteRenderer.renderEmoteNode(el));
+      }
+    };
+    treeEl.appendChild(verMasBtn);
+  }
+
+  if (window._emoteRenderer) {
+    treeEl.querySelectorAll('.comment-text').forEach(el => window._emoteRenderer.renderEmoteNode(el));
+  }
+}
+
+function feedToggleReplies(cmtId) {
+  const wrap = document.getElementById('feed-children-' + cmtId);
+  const btn  = document.getElementById('feed-toggle-' + cmtId);
+  if (!wrap) return;
+  const isOpen = wrap.classList.contains('open');
+  wrap.classList.toggle('open', !isOpen);
+  if (btn) {
+    if (isOpen) {
+      const count = wrap.querySelectorAll(':scope > .feed-cmt-node').length;
+      btn.innerHTML = `<span class="material-symbols-outlined">subdirectory_arrow_right</span> Ver ${count} respuesta${count !== 1 ? 's' : ''}`;
+    } else {
+      btn.innerHTML = `<span class="material-symbols-outlined">expand_less</span> Ocultar respuestas`;
+    }
+  }
+}
+
+function feedToggleReplyForm(cmtId, postId, btn) {
+  document.querySelectorAll('.cmt-reply-form').forEach(f => {
+    if (f.id !== 'feed-reply-form-' + cmtId) f.style.display = 'none';
+  });
+  const form = document.getElementById('feed-reply-form-' + cmtId);
+  if (!form) return;
+  const visible = form.style.display !== 'none';
+  form.style.display = visible ? 'none' : 'flex';
+  if (!visible) {
+    const inp = document.getElementById('feed-reply-input-' + cmtId);
+    if (inp) inp.focus();
+  }
+}
+
+// Inicializar árbol de comentarios cuando se abre una comments-section
+// (en mobile, abrirComentarios abre el modal, no esta sección)
+const _feedCmtObserver = new MutationObserver((mutations) => {
+  mutations.forEach(m => {
+    m.target.querySelectorAll('.comments-section.open[data-cmts-loaded="0"]').forEach(sec => {
+      const postId = parseInt(sec.dataset.postId || '0');
+      if (postId) feedRenderComments(postId);
+    });
+  });
+});
+document.addEventListener('DOMContentLoaded', () => {
+  _feedCmtObserver.observe(document.body, { subtree: true, attributes: true, attributeFilter: ['class'] });
+});
+
+// ══════════════════════════════════════════════════════════
+//  MODAL COMENTARIOS FULLSCREEN — MÓVIL
+// ══════════════════════════════════════════════════════════
+
+let _mobCmtPostId = null;
+
+/**
+ * Abre el modal de comentarios fullscreen en móvil.
+ * En desktop nunca se llama (CSS oculta el botón).
+ */
+async function abrirMobComments(postId) {
+  if (window.innerWidth > 700) {
+    // En desktop redirigir al flujo normal
+    pvFocoComentario();
+    return;
+  }
+  _mobCmtPostId = postId;
+  const overlay = document.getElementById('mob-cmt-overlay');
+  const scroll  = document.getElementById('mob-cmt-scroll');
+  const badge   = document.getElementById('mob-cmt-count-badge');
+
+  overlay.classList.remove('mob-closing');
+  overlay.classList.add('mob-open');
+  document.body.style.overflow = 'hidden';
+
+  // Loading spinner
+  scroll.innerHTML = `<div class="pv-loading" style="flex:1;display:flex;align-items:center;justify-content:center;padding:40px 20px;">
+    <span class="material-symbols-outlined" style="font-size:30px;display:block;margin-bottom:10px;animation:vp-spin .8s linear infinite;">progress_activity</span>
+    Cargando…
+  </div>`;
+
+  try {
+    // Intentar usar comentarios ya cargados del modal del post si está abierto
+    let comentarios = null;
+    const jsonEl = document.getElementById('cmts-data-' + postId);
+    if (jsonEl) {
+      try { comentarios = JSON.parse(jsonEl.textContent || '[]'); } catch(e) {}
+    }
+
+    // Si no hay comentarios locales, pedir al servidor
+    if (!comentarios) {
+      const res  = await fetch('/api/post/' + postId, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+      const data = await res.json();
+      if (data.ok) comentarios = data.post.comentarios || [];
+    }
+
+    if (badge) badge.textContent = comentarios && comentarios.length ? `(${comentarios.length})` : '';
+    _mobRenderComments(comentarios || [], postId);
+  } catch(e) {
+    scroll.innerHTML = '<p style="color:var(--text3);text-align:center;padding:32px;">Error al cargar comentarios.</p>';
+  }
+
+  // Activar input
+  const input = document.getElementById('mob-cinput');
+  if (input) {
+    input.value = '';
+    setTimeout(() => input.focus(), 280);
+  }
+}
+
+function cerrarMobComments() {
+  const overlay = document.getElementById('mob-cmt-overlay');
+  overlay.classList.add('mob-closing');
+  setTimeout(() => {
+    overlay.classList.remove('mob-open', 'mob-closing');
+    document.body.style.overflow = '';
+    _mobCmtPostId = null;
+  }, 190);
+}
+
+function _mobRenderComments(comentarios, postId) {
+  const scroll = document.getElementById('mob-cmt-scroll');
+  if (!scroll) return;
+
+  if (!comentarios || !comentarios.length) {
+    scroll.innerHTML = `<p class="pv-no-comments">
+      <span class="material-symbols-outlined">chat_bubble</span>
+      Sin comentarios aún.<br>Sé el primero.
+    </p>`;
+    return;
+  }
+
+  const tree = _buildCommentTree(comentarios);
+  scroll.innerHTML = tree.map(c => _renderCmtNode(c, postId, 0)).join('');
+
+  // Ajustar IDs para que no colisionen con el modal de escritorio
+  // (los ids ya son únicos por comentario, pero el input del form de respuesta
+  // usa pv-reply-input-N → aquí también funciona pues es el mismo DOM)
+
+  // Activar form
+  const sendBtn = document.getElementById('mob-cmt-send');
+  if (sendBtn) sendBtn.onclick = () => mobEnviarComentario();
+
+  if (window._emoteRenderer) {
+    scroll.querySelectorAll('.pv-comment-text').forEach(el => window._emoteRenderer.renderEmoteNode(el));
+  }
+}
+
+async function mobEnviarComentario() {
+  if (!_mobCmtPostId) return;
+  const input = document.getElementById('mob-cinput');
+  const texto = input?.value?.trim();
+  if (!texto) return;
+  if (input.dataset.sending === '1') return;
+  input.dataset.sending = '1';
+  input.disabled = true;
+
+  try {
+    const fd = new FormData();
+    fd.append('post_id', _mobCmtPostId);
+    fd.append('comentario', texto);
+    const res  = await fetch('/comentar_ajax', { method: 'POST', body: fd });
+    const data = await res.json();
+    if (data.ok) {
+      input.value = '';
+      const scroll = document.getElementById('mob-cmt-scroll');
+      if (scroll) {
+        const noMsg = scroll.querySelector('.pv-no-comments');
+        if (noMsg) noMsg.remove();
+
+        const row = document.createElement('div');
+        row.className = 'pv-comment-row comment-new';
+        row.dataset.cmtId  = data.id || '';
+        row.dataset.postId = _mobCmtPostId;
+        const av = data.foto
+          ? `<img src="${escHTML(data.foto)}" class="pv-comment-av" alt="${escHTML(data.nombre)}" loading="lazy">`
+          : `<div class="pv-comment-av-placeholder">${escHTML(data.inicial)}</div>`;
+        row.innerHTML = `
+          ${av}
+          <div class="pv-comment-body" style="flex:1;min-width:0;">
+            <div class="pv-comment-meta">
+              <span class="pv-comment-author">${escHTML(data.nombre)}</span>
+              <span class="pv-comment-date">${new Date().toISOString().slice(0,10)}</span>
+            </div>
+            <span class="pv-comment-text" data-cmt-text="${data.id||''}">${escHTML(data.texto)}</span>
+            <div class="comment-actions-row" style="margin-top:4px;">
+              <button class="cmt-action-btn cmt-like-btn" onclick="likearComentario(${data.id||0},this)" title="Me gusta">
+                <span class="material-symbols-outlined" style="font-size:13px;">favorite</span>
+                <span class="cmt-like-count"></span>
+              </button>
+              <button class="cmt-action-btn" onclick="pvToggleReplyForm(${data.id||0},${_mobCmtPostId},this)" title="Responder">
+                <span class="material-symbols-outlined" style="font-size:13px;">reply</span>
+                <span>Responder</span>
+              </button>
+            </div>
+            <div class="cmt-reply-form" id="pv-reply-form-${data.id}" style="display:none;margin-top:6px;">
+              <input type="text" class="comment-input cmt-reply-input"
+                placeholder="Responder…" id="pv-reply-input-${data.id}" style="font-size:13px;"
+                onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();pvEnviarRespuesta(${data.id||0},${_mobCmtPostId},this);}">
+              <button type="button" class="btn-comment"
+                onclick="pvEnviarRespuesta(${data.id||0},${_mobCmtPostId},document.getElementById('pv-reply-input-${data.id}'))">
+                <span class="material-symbols-outlined">arrow_upward</span>
+              </button>
+            </div>
+            <div class="pv-children-wrap" id="pv-children-${data.id}" style="display:none;"></div>
+          </div>
+          <div class="cmt-menu-wrap">
+            <button class="cmt-dots-btn" onclick="toggleCmtMenu(${data.id||0},${_mobCmtPostId},this,${_CMT_UID})" title="Opciones">
+              <span class="material-symbols-outlined" style="font-size:16px;">more_horiz</span>
+            </button>
+          </div>`;
+        scroll.appendChild(row);
+        if (window._emoteRenderer) row.querySelectorAll('.pv-comment-text').forEach(el => window._emoteRenderer.renderEmoteNode(el));
+        setTimeout(() => row.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 60);
+      }
+
+      // Actualizar contadores
+      const badge = document.getElementById('mob-cmt-count-badge');
+      if (badge) {
+        const n = parseInt((badge.textContent.replace(/\D/g,''))||0) + 1;
+        badge.textContent = `(${n})`;
+      }
+      const feedCnt = document.getElementById('cmt-count-' + _mobCmtPostId);
+      if (feedCnt) feedCnt.textContent = parseInt(feedCnt.textContent||0) + 1;
+      // Actualizar botón trigger en el modal del post
+      const trigger = document.getElementById('pv-mob-cmt-trigger');
+      if (trigger) {
+        const n = parseInt(feedCnt?.textContent || '1');
+        trigger.innerHTML = `<span class="material-symbols-outlined">chat_bubble</span>
+          Ver ${n} comentario${n !== 1 ? 's' : ''}
+          <span class="material-symbols-outlined" style="font-size:16px;margin-left:auto;opacity:.6;">chevron_right</span>`;
+      }
+      ['pv-cmt-count','pv-cmt-count-stat'].forEach(id => {
+        const el = document.getElementById(id); if (el) el.textContent = parseInt(el.textContent||0)+1;
+      });
+    } else { mostrarToast('Error al comentar','err'); }
+  } catch(e) { mostrarToast('Error de red','err'); }
+
+  input.disabled = false;
+  input.dataset.sending = '';
+  input.focus();
+}
+
+// Cerrar mob modal con Escape
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape' && _mobCmtPostId) cerrarMobComments();
+});
+
+// Cerrar todos los modales con Escape
 document.addEventListener('keydown', function(e) {
   if (e.key === 'Escape') {
     cerrarPostAnimado();
