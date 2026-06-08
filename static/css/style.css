@@ -5000,8 +5000,14 @@ body.dark-mode .cruce-num {
   .brand-pink {
     color: var(--accent, #ff4d8d);
   }
-  .brand-white {
-    color: rgba(255,255,255,0.92);
+  /* ☀️ Modo claro */
+  .brand-white{
+    color: rgba(0,0,0,.92);
+  }
+
+  /* 🌙 Modo oscuro */
+  body.dark-mode .brand-white{
+    color: rgba(255,255,255,.92);
   }
 
   /* ── 5. ICON BUTTONS — standard 44px tap targets ── */
