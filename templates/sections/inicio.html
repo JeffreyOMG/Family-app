@@ -4256,6 +4256,10 @@ function verMasComentarios(postId, cuantos) {
   if (!hidden) return;
   hidden.style.display = 'block';
   if (btn) btn.style.display = 'none';
+  // Renderizar emotes en los comentarios que acaban de hacerse visibles
+  if (window._emoteRenderer) {
+    hidden.querySelectorAll('.comment-text').forEach(el => window._emoteRenderer.renderEmoteNode(el));
+  }
 }
 
 function expandirComentario(spanMas) {
@@ -5668,6 +5672,11 @@ function _pvRenderComments(comentarios, postId) {
       </p>`;
   }
   scroll.innerHTML = cmtsHtml;
+
+  // Renderizar emotes en los comentarios recién cargados
+  if (window._emoteRenderer) {
+    scroll.querySelectorAll('.pv-comment-text').forEach(el => window._emoteRenderer.renderEmoteNode(el));
+  }
 
   // Activar form y asignar handlers sin duplicar
   const form    = document.getElementById('pv-comment-form-panel');

@@ -1,11 +1,11 @@
 /**
- * emote-api.js — v5 (Paginación + GQL estable + Cache TTL)
+ * emote-api.js — v6 (Exact match + localStorage persistence)
  *
- * NUEVO en v5:
- *  • fetchRaw(query, limit) → devuelve TODO el array desde la API (hasta 100)
- *  • searchEmotes solo trae 20 por defecto; el picker maneja páginas
- *  • Paginación vive en el estado del picker (no en la API)
- *  • Cache TTL 10 min sin cambios
+ * CAMBIOS v6:
+ *  • resolveEmoteUrl solo usa exact match (nunca items[0]) → el emote siempre es el correcto
+ *  • globalEmoteCache se persiste en localStorage (clave "emote_url_cache")
+ *    para que las URLs sobrevivan recargas y no cambien entre sesiones
+ *  • fetchAllEmotes registra todas las URLs en el cache persistente
  */
 
 const GQL_URL       = "https://7tv.io/v3/gql";
@@ -27,9 +27,33 @@ function _cacheSet(key, data) {
   _searchCache.set(key, { data, time: Date.now() });
 }
 
-// ─── Cache global de URLs (compartido con renderer) ───────────────────────────
+// ─── Cache global de URLs — persistente en localStorage ───────────────────────
+// Clave: nombre en minúsculas  Valor: URL del emote (string)
+// Se carga al arrancar y se sincroniza en cada escritura.
 
-export const globalEmoteCache = new Map();
+const _STORAGE_KEY = "emote_url_cache";
+const _MAX_STORED  = 500;   // máximo de entradas guardadas
+
+function _loadStoredCache() {
+  try {
+    const raw = localStorage.getItem(_STORAGE_KEY);
+    return raw ? new Map(Object.entries(JSON.parse(raw))) : new Map();
+  } catch { return new Map(); }
+}
+
+function _persistCache(map) {
+  try {
+    // Guardar solo las primeras _MAX_STORED entradas
+    const obj = {};
+    let n = 0;
+    for (const [k, v] of map) {
+      if (v && n < _MAX_STORED) { obj[k] = v; n++; }
+    }
+    localStorage.setItem(_STORAGE_KEY, JSON.stringify(obj));
+  } catch {}
+}
+
+export const globalEmoteCache = _loadStoredCache();
 
 const popularEmotes = new Set();
 
@@ -89,7 +113,10 @@ export async function fetchAllEmotes(query, signal, limit = 80) {
     const emotes = items.map(_toEmote);
 
     _cacheSet(key, emotes);
-    emotes.forEach(e => globalEmoteCache.set(e.name.toLowerCase(), e.url));
+    emotes.forEach(e => {
+      globalEmoteCache.set(e.name.toLowerCase(), e.url);
+    });
+    _persistCache(globalEmoteCache);
 
     return emotes;
   } catch (err) {
@@ -113,15 +140,19 @@ export async function resolveEmoteUrl(rawName) {
   const name = sanitizeEmoteName(rawName);
   const key  = name.toLowerCase();
 
+  // 1. Cache en memoria (ya tiene lo persistido desde localStorage al arrancar)
   if (globalEmoteCache.has(key)) return globalEmoteCache.get(key);
 
   try {
-    const items = await _gqlSearch(name, 5, AbortSignal.timeout(5000));
+    const items = await _gqlSearch(name, 10, AbortSignal.timeout(5000));
+    // Solo aceptar coincidencia EXACTA (case-insensitive) para no mezclar emotes
     const exact = items.find(e => e.name.toLowerCase() === key);
-    const hit   = exact || items[0];
-    const url   = hit ? emoteUrl(hit.id) : null;
+    const url   = exact ? emoteUrl(exact.id) : null;
     globalEmoteCache.set(key, url);
-    if (url) popularEmotes.add(name);
+    if (url) {
+      popularEmotes.add(name);
+      _persistCache(globalEmoteCache);
+    }
     return url;
   } catch {
     globalEmoteCache.set(key, null);
@@ -133,7 +164,10 @@ export async function resolveEmoteUrl(rawName) {
 
 export function registerEmoteUsage(name, url) {
   const key = sanitizeEmoteName(name).toLowerCase();
-  if (url) globalEmoteCache.set(key, url);
+  if (url) {
+    globalEmoteCache.set(key, url);
+    _persistCache(globalEmoteCache);
+  }
   popularEmotes.add(name);
 }
 
@@ -151,4 +185,5 @@ export function clearAllCaches() {
   _searchCache.clear();
   globalEmoteCache.clear();
   popularEmotes.clear();
+  try { localStorage.removeItem(_STORAGE_KEY); } catch {}
 }
