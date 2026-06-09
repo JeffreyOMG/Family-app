@@ -61,7 +61,7 @@
     {% elif p.media_tipo == 'imagen' %}
       <img src="{{ p.media }}" class="post-media img-loading" loading="lazy" onclick="abrirMediaOPost({{ p.id }},'{{ p.media }}','imagen',event)" onload="this.classList.remove('img-loading');this.classList.add('img-loaded')" onerror="this.classList.remove('img-loading');this.classList.add('img-loaded')">
     {% elif p.media_tipo == 'video' %}
-      <video controls class="post-media"><source src="{{ p.media }}"></video>
+      <video class="post-media" preload="metadata" playsinline><source src="{{ p.media }}"></video>
     {% endif %}
   {% endif %}
 
@@ -6129,7 +6129,7 @@ function _renderPostModal(p) {
     } else if (p.media_tipo === 'imagen') {
       mediaHtml = `<img src="${escHTML(p.media)}" class="pv-media-img" onclick="abrirMediaModal('${escHTML(p.media)}','imagen',event)" alt="imagen" loading="lazy" style="cursor:zoom-in;">`;
     } else if (p.media_tipo === 'video') {
-      mediaHtml = `<video controls class="pv-media-video"><source src="${escHTML(p.media)}"></video>`;
+      mediaHtml = `<video class="pv-media-video post-media" preload="metadata" playsinline><source src="${escHTML(p.media)}"></video>`;
     }
   }
 
