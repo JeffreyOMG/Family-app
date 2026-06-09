@@ -1678,6 +1678,17 @@ body.dark-mode .post-badge-privado { background: rgba(139,92,246,.2); color: #a7
   line-height: 1;
 }
 .pv-emoji-grid span:hover { background: var(--bg2); }
+.pv-emoji-btn {
+  font-size: 22px;
+  cursor: pointer;
+  padding: 3px 5px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  transition: background .1s;
+  line-height: 1;
+}
+.pv-emoji-btn:hover { background: var(--bg2); }
 .pv-gif-panel { padding: 10px 12px; }
 .pv-gif-header {
   display: flex; align-items: center; gap: 6px;
@@ -6601,7 +6612,7 @@ async function pvBookmark(postId) {
 async function pvEnviarComentario(postId) {
   const input = document.getElementById('pv-cinput');
   const texto = input?.value?.trim();
-  const gifUrl = _gifState?.pv?.url;
+  const gifUrl = window._gifState?.pv?.url;
   if (!texto && !gifUrl) return;
   // Guard: evitar doble envío si ya hay una petición en vuelo
   if (input.dataset.sending === '1') return;
@@ -6967,7 +6978,7 @@ async function mobEnviarComentario() {
   if (!_mobCmtPostId) return;
   const input = document.getElementById('mob-cinput');
   const texto = input?.value?.trim();
-  const gifUrl = _gifState?.mob?.url;
+  const gifUrl = window._gifState?.mob?.url;
   if (!texto && !gifUrl) return;
   if (input.dataset.sending === '1') return;
   input.dataset.sending = '1';
@@ -7132,16 +7143,34 @@ function abrirEmotePicker(target) {
 <!-- ═══════════════════════════════════════════════════
      INTEGRACIÓN GIPHY — generado automáticamente
 ════════════════════════════════════════════════════ -->
+<!-- Paso 1: cargar giphy.js como módulo y exponer funciones en window -->
 <script type="module">
 import { initGiphy, abrirGiphy, cerrarGiphy } from '/static/js/giphy.js';
-
 initGiphy();
+window._giphyLib = { abrirGiphy, cerrarGiphy };
+window.dispatchEvent(new CustomEvent('giphyReady'));
+</script>
 
-const _gifState = {
+<!-- Paso 2: lógica de integración en script normal (accede a window._gifState globalmente) -->
+<script>
+// Estado global de GIFs (accesible desde cualquier función, incluida mobEnviarComentario)
+window._gifState = {
   composer: { url: null },
   pv:       { url: null },
   mob:      { url: null },
 };
+
+// Helper: llamar abrirGiphy cuando esté lista la lib
+function _abrirGiphyWhenReady(cb, ctx) {
+  if (window._giphyLib) {
+    window._giphyLib.abrirGiphy(cb, ctx);
+  } else {
+    window.addEventListener('giphyReady', function once() {
+      window.removeEventListener('giphyReady', once);
+      window._giphyLib.abrirGiphy(cb, ctx);
+    });
+  }
+}
 
 // ── 1. COMPOSER ──────────────────────────────────────────────────────────────
 const _originalTogglePanel = window.togglePanel;
@@ -7152,8 +7181,8 @@ window.togglePanel = function(tipo) {
       if (el) el.style.display = 'none';
     });
     document.getElementById('btn-poll-toggle')?.classList.remove('active');
-    abrirGiphy((gifUrl) => {
-      _gifState.composer.url = gifUrl;
+    _abrirGiphyWhenReady((gifUrl) => {
+      window._gifState.composer.url = gifUrl;
       _mostrarGifPreviewComposer(gifUrl);
       document.getElementById('btn-gif-toggle')?.classList.add('giphy-active');
     }, 'post');
@@ -7183,7 +7212,7 @@ function _mostrarGifPreviewComposer(url) {
 }
 
 window.quitarGifComposer = function() {
-  _gifState.composer.url = null;
+  window._gifState.composer.url = null;
   _quitarGifPreviewComposer();
   document.getElementById('btn-gif-toggle')?.classList.remove('giphy-active');
   if (window.actualizarPublicarBtn) window.actualizarPublicarBtn();
@@ -7200,7 +7229,7 @@ function _quitarGifPreviewComposer() {
 // ── 2. INTERCEPT submitComposer ───────────────────────────────────────────────
 const _originalSubmitComposer = window.submitComposer;
 window.submitComposer = async function() {
-  const gifUrl = _gifState.composer.url;
+  const gifUrl = window._gifState.composer.url;
   if (gifUrl) {
     const _origFetch = window.fetch;
     window.fetch = async function(url, opts) {
@@ -7212,7 +7241,7 @@ window.submitComposer = async function() {
     };
   }
   const result = await _originalSubmitComposer.call(this);
-  _gifState.composer.url = null;
+  window._gifState.composer.url = null;
   document.getElementById('btn-gif-toggle')?.classList.remove('giphy-active');
   return result;
 };
@@ -7221,8 +7250,8 @@ window.submitComposer = async function() {
 const _originalPvTogglePanel = window.pvTogglePanel;
 window.pvTogglePanel = function(tipo) {
   if (tipo === 'gif') {
-    abrirGiphy((gifUrl) => {
-      _gifState.pv.url = gifUrl;
+    _abrirGiphyWhenReady((gifUrl) => {
+      window._gifState.pv.url = gifUrl;
       _mostrarGifPreviewPv(gifUrl);
     }, 'comment');
     return;
@@ -7254,14 +7283,14 @@ function _mostrarGifPreviewPv(url) {
 }
 
 window.quitarGifPv = function() {
-  _gifState.pv.url = null;
+  window._gifState.pv.url = null;
   const prev = document.getElementById('pv-giphy-preview');
   if (prev) prev.style.display = 'none';
 };
 
 const _originalPvEnviarComentario = window.pvEnviarComentario;
 window.pvEnviarComentario = async function(postId) {
-  const gifUrl = _gifState.pv.url;
+  const gifUrl = window._gifState.pv.url;
   if (gifUrl) {
     const _origFetch = window.fetch;
     window.fetch = async function(url, opts) {
@@ -7273,15 +7302,15 @@ window.pvEnviarComentario = async function(postId) {
     };
   }
   await _originalPvEnviarComentario.call(this, postId);
-  _gifState.pv.url = null;
+  window._gifState.pv.url = null;
   window.quitarGifPv();
 };
 
 // ── 4. COMENTARIOS MÓVIL ─────────────────────────────────────────────────────
 window.abrirGiphyParaComentario = function(ctx) {
-  abrirGiphy((gifUrl) => {
-    if (!_gifState[ctx]) _gifState[ctx] = { url: null };
-    _gifState[ctx].url = gifUrl;
+  _abrirGiphyWhenReady((gifUrl) => {
+    if (!window._gifState[ctx]) window._gifState[ctx] = { url: null };
+    window._gifState[ctx].url = gifUrl;
     _mostrarGifPreviewMob(gifUrl, ctx);
   }, 'comment');
 };
@@ -7313,12 +7342,15 @@ window.quitarGifMob = function(ctx) {
   const previewId = ctx === 'mob' ? 'mob-gif-preview' : 'pv-gif-preview-inline';
   const prev = document.getElementById(previewId);
   if (prev) prev.style.display = 'none';
-  if (_gifState[ctx]) _gifState[ctx].url = null;
+  if (window._gifState[ctx]) window._gifState[ctx].url = null;
 };
 
+// Override de mobEnviarComentario para inyectar el GIF
+// NOTA: mobEnviarComentario ya está definida antes en el HTML,
+// este override la envuelve para añadir soporte de GIF.
 const _originalMobEnviarComentario = window.mobEnviarComentario;
 window.mobEnviarComentario = async function() {
-  const gifUrl = _gifState.mob?.url;
+  const gifUrl = window._gifState.mob?.url;
   if (gifUrl) {
     const _origFetch = window.fetch;
     window.fetch = async function(url, opts) {
@@ -7330,31 +7362,120 @@ window.mobEnviarComentario = async function() {
     };
   }
   await _originalMobEnviarComentario.call(this);
-  _gifState.mob.url = null;
+  if (window._gifState.mob) window._gifState.mob.url = null;
   window.quitarGifMob('mob');
 };
 
-// ── 5. INJECT BOTÓN GIF EN COMENTARIOS MÓVIL ─────────────────────────────────
-document.addEventListener('DOMContentLoaded', () => {
+// ── 5. INJECT BOTONES EN COMENTARIOS MÓVIL ───────────────────────────────────
+// GIF + Emote + Emoji + Cámara + Ubicación + Encuesta (en ese orden)
+function _inyectarBotonesMobCmt() {
   const mobForm = document.getElementById('mob-cmt-form');
-  if (mobForm && !document.getElementById('mob-gif-btn-injected')) {
-    const actionsRow = document.createElement('div');
-    actionsRow.className = 'pv-cmt-actions';
-    actionsRow.id = 'mob-gif-btn-injected';
-    actionsRow.innerHTML = `
-      <button type="button" class="mc-act-btn" title="GIF" onclick="window.abrirGiphyParaComentario('mob')">
-        <span class="mc-gif-label-txt">GIF</span>
-      </button>`;
-    const cinputRow = mobForm.querySelector('.pv-cinput-row');
-    if (cinputRow) mobForm.insertBefore(actionsRow, cinputRow);
-    else mobForm.appendChild(actionsRow);
-  }
+  if (!mobForm || document.getElementById('mob-cmt-actions-injected')) return;
 
-  // Wire up GIF button in post-view comment panel (desktop)
+  const actionsRow = document.createElement('div');
+  actionsRow.className = 'pv-cmt-actions';
+  actionsRow.id = 'mob-cmt-actions-injected';
+  actionsRow.innerHTML = `
+    <label class="mc-act-btn" title="Foto o video">
+      <span class="material-symbols-outlined">photo_camera</span>
+      <input type="file" id="mob-cmt-file-input" accept="image/*,video/*" style="display:none" onchange="mobCmtPreviewMedia(this)">
+    </label>
+    <button type="button" class="mc-act-btn" title="GIF" onclick="window.abrirGiphyParaComentario('mob')">
+      <span class="mc-gif-label-txt">GIF</span>
+    </button>
+    <button type="button" class="mc-act-btn" title="Emotes estrella" onclick="abrirEmotePicker(document.getElementById('mob-cinput'))">
+      <i class="fa-regular fa-star" style="font-size:14px;"></i>
+    </button>
+    <button type="button" class="mc-act-btn" title="Emoji" onclick="mobToggleEmojiPanel()">
+      <span class="material-symbols-outlined">sentiment_satisfied</span>
+    </button>
+    <button type="button" class="mc-act-btn" title="Ubicación" onclick="mobCmtToggleUbicacion()">
+      <span class="material-symbols-outlined">location_on</span>
+    </button>
+    <button type="button" class="mc-act-btn" title="Encuesta" onclick="mobCmtToggleEncuesta()">
+      <span class="material-symbols-outlined">poll</span>
+    </button>
+  `;
+
+  const cinputRow = mobForm.querySelector('.pv-cinput-row');
+  if (cinputRow) mobForm.insertBefore(actionsRow, cinputRow);
+  else mobForm.appendChild(actionsRow);
+}
+
+// Funciones stub para ubicación y encuesta en comentario móvil
+// (si ya existen globalmente las llaman, si no muestran toast)
+window.mobCmtToggleUbicacion = function() {
+  if (window.toggleUbicacion) window.toggleUbicacion();
+  else if (window.mostrarToast) window.mostrarToast('Ubicación no disponible en comentarios','info');
+};
+window.mobCmtToggleEncuesta = function() {
+  if (window.mostrarToast) window.mostrarToast('Encuestas no disponibles en comentarios','info');
+};
+window.mobCmtPreviewMedia = function(input) {
+  if (!input.files || !input.files[0]) return;
+  const file = input.files[0];
+  const url = URL.createObjectURL(file);
+  let prev = document.getElementById('mob-cmt-media-preview');
+  const form = document.getElementById('mob-cmt-form');
+  if (!prev && form) {
+    prev = document.createElement('div');
+    prev.id = 'mob-cmt-media-preview';
+    prev.style.cssText = 'padding:4px 0;display:flex;align-items:center;gap:6px;';
+    form.insertBefore(prev, form.firstChild);
+  }
+  if (prev) {
+    prev.innerHTML = `
+      <div class="composer-gif-preview" style="display:inline-block;position:relative;">
+        <img src="${url}" alt="preview" style="max-height:80px;max-width:120px;border-radius:8px;object-fit:cover;">
+        <button class="composer-gif-remove" onclick="mobCmtQuitarMedia()" title="Quitar">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </div>`;
+    prev.style.display = 'flex';
+    window._mobCmtMediaFile = file;
+  }
+};
+window.mobCmtQuitarMedia = function() {
+  const prev = document.getElementById('mob-cmt-media-preview');
+  if (prev) prev.remove();
+  window._mobCmtMediaFile = null;
+  const inp = document.getElementById('mob-cmt-file-input');
+  if (inp) inp.value = '';
+};
+
+// Toggle emoji panel para móvil
+window.mobToggleEmojiPanel = function() {
+  const panel = document.getElementById('mob-emoji-panel');
+  if (!panel) return;
+  const isVisible = panel.style.display !== 'none';
+  panel.style.display = isVisible ? 'none' : 'block';
+  if (!isVisible) {
+    const grid = document.getElementById('mob-emoji-grid');
+    if (grid && !grid.dataset.loaded) {
+      const emojis = ['😀','😂','😍','🥰','😎','😭','😅','🤔','😊','👍','❤️','🎉','🔥','👏','🙏','😢','😡','🤣','😘','😏'];
+      grid.innerHTML = emojis.map(e => `<button class="pv-emoji-btn" onclick="mobInsertarEmoji('${e}')">${e}</button>`).join('');
+      grid.dataset.loaded = '1';
+    }
+  }
+};
+window.mobInsertarEmoji = function(emoji) {
+  const inp = document.getElementById('mob-cinput');
+  if (!inp) return;
+  const pos = inp.selectionStart || inp.value.length;
+  inp.value = inp.value.slice(0, pos) + emoji + inp.value.slice(pos);
+  inp.focus();
+  inp.selectionStart = inp.selectionEnd = pos + emoji.length;
+  const panel = document.getElementById('mob-emoji-panel');
+  if (panel) panel.style.display = 'none';
+};
+
+// Wire up GIF button in post-view comment panel (desktop)
+document.addEventListener('DOMContentLoaded', () => {
+  _inyectarBotonesMobCmt();
   document.querySelectorAll('#pv-comment-form-panel .mc-act-btn[title="GIF"]').forEach(btn => {
     btn.onclick = () => window.pvTogglePanel('gif');
   });
 });
 
-window._giphyLib = { abrirGiphy, cerrarGiphy };
+window._giphyLib = window._giphyLib || {};
 </script>
