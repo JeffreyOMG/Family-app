@@ -531,12 +531,15 @@ async function pfCargarPosts() {
           mediaHtml = `<video controls class="pf-post-img" preload="none"><source src="${p.media}"></video>`;
         }
       }
+      const gifHtml = p.gif_url
+        ? `<img src="${p.gif_url}" class="post-gif-img" loading="lazy">`
+        : '';
       const texto = p.texto ? `<p class="pf-post-texto">${_pfEscape(p.texto)}</p>` : '';
       return `<div class="pf-post-card">
         <div class="pf-post-meta">
           <span class="pf-post-fecha">${p.fecha}</span>
         </div>
-        ${texto}${mediaHtml}
+        ${texto}${gifHtml}${mediaHtml}
         <div class="pf-post-acciones">
           <span class="pf-post-accion"><span class="material-symbols-outlined">favorite</span>${p.total_likes}</span>
           <span class="pf-post-accion"><span class="material-symbols-outlined">chat_bubble</span>${p.total_comentarios}</span>

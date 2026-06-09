@@ -1142,12 +1142,15 @@ async function vpCargarPosts(uid) {
           mediaHtml = `<video controls class="vp-post-img" preload="none"><source src="${p.media}"></video>`;
         }
       }
+      const gifHtml = p.gif_url
+        ? `<img src="${p.gif_url}" class="post-gif-img" loading="lazy">`
+        : '';
       const texto = p.texto ? `<p class="vp-post-texto">${_vpEscape(p.texto)}</p>` : '';
       const pinBanner = p.fijado ? `<div class="vp-post-pin"><span class="material-symbols-outlined">push_pin</span><span>Fijado</span></div>` : '';
       return `<div class="vp-post-card${p.fijado ? ' vp-post-pinned' : ''}">
         ${pinBanner}
         <span class="vp-post-fecha">${p.fecha}</span>
-        ${texto}${mediaHtml}
+        ${texto}${gifHtml}${mediaHtml}
         <div class="vp-post-acciones">
           <span class="vp-post-accion"><span class="material-symbols-outlined">favorite</span>${p.total_likes}</span>
           <span class="vp-post-accion"><span class="material-symbols-outlined">chat_bubble</span>${p.total_comentarios}</span>

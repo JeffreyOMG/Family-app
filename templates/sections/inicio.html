@@ -40,6 +40,11 @@
   {% endif %}
   {% endif %}
 
+  {% if p.get('gif_url') %}
+  <img src="{{ p.gif_url }}" alt="GIF" class="post-gif-img" loading="lazy"
+       onclick="abrirMediaModal('{{ p.gif_url }}','imagen')">
+  {% endif %}
+
   {% if p.media %}
     {% if p.media_tipo == 'multi' %}
       {% set imgs = p.media|fromjson %}
@@ -4899,6 +4904,8 @@ function abrirComposer(modo){
   _menciones = [];
   _gifFile = null;
   _mediaFiles = [];
+  // Reset GIPHY state on every open
+  if (window.quitarGifComposer) window.quitarGifComposer();
   // Reset preview live
   const lp = document.getElementById('mc-live-preview');
   if (lp) { lp.style.display = 'none'; lp.innerHTML = ''; }
@@ -4950,7 +4957,7 @@ function abrirComposer(modo){
     observer.observe(ta, {childList:true, subtree:true});
   }, 120);
   if(modo==='foto') setTimeout(()=>document.getElementById('mc-file-input')?.click(), 200);
-  if(modo==='gif')  setTimeout(()=>document.getElementById('mc-gif-input')?.click(), 200);
+  if(modo==='gif')  setTimeout(()=>{ if(window.togglePanel) window.togglePanel('gif'); }, 200);
 }
 
 function cerrarComposer(){
@@ -5006,7 +5013,8 @@ function _mcUpdatePreview() {
 
 function actualizarPublicarBtn(){
   const texto = mcGetText().trim();
-  const hasMedia = _mediaFiles.length > 0 || !!_gifFile;
+  const hasGiphy = !!document.getElementById('mc-giphy-preview');
+  const hasMedia = _mediaFiles.length > 0 || !!_gifFile || hasGiphy;
   const hasImg = document.getElementById('mc-texto')?.querySelector('img') !== null;
   const hasPoll = !!getPollData();
   const btn   = document.getElementById('btn-publicar-modal');
@@ -5382,7 +5390,8 @@ function quitarMedia(){
 async function submitComposer(){
   const texto = mcGetText().trim();
   const loc   = document.getElementById('mc-location-input')?.value.trim();
-  const hasMedia = _mediaFiles.length > 0 || !!_gifFile;
+  const hasGiphyGif = !!document.getElementById('mc-giphy-preview');
+  const hasMedia = _mediaFiles.length > 0 || !!_gifFile || hasGiphyGif;
   const hasPoll  = !!getPollData();
   if(!texto && !hasMedia && !hasPoll){ mostrarToast('Escribe algo o adjunta media','err'); return; }
   if(texto.length > 800){ mostrarToast('El texto supera los 800 caracteres','err'); return; }
@@ -6139,6 +6148,7 @@ function _renderPostModal(p) {
         </div>
       </div>
       ${p.texto ? `<p class="pv-texto">${escHTML(p.texto)}</p>` : ''}
+      ${p.gif_url ? `<img src="${escHTML(p.gif_url)}" alt="GIF" class="post-gif-img" loading="lazy" onclick="abrirMediaModal('${escHTML(p.gif_url)}','imagen')">` : ''}
       ${mediaHtml}
       <div class="pv-fecha-completa">${p.fecha || ''}</div>
       <div class="pv-stats-row">
@@ -6227,6 +6237,7 @@ function _renderCmtNode(c, postId, depth) {
           <span class="pv-comment-date">${(c.fecha||'').slice(0,10)}</span>
         </div>
         <span class="pv-comment-text" data-cmt-text="${c.id}">${escHTML(c.texto)}</span>
+        ${c.gif_url ? `<img src="${escHTML(c.gif_url)}" alt="GIF" class="comment-gif-img" loading="lazy" onclick="if(window.abrirMediaModal)abrirMediaModal('${escHTML(c.gif_url)}','imagen')">` : ''}
         <div class="comment-actions-row" style="margin-top:4px;">
           <button class="cmt-action-btn cmt-like-btn" onclick="likearComentario(${c.id},this)" title="Me gusta">
             <span class="material-symbols-outlined" style="font-size:13px;">favorite</span>
@@ -6590,7 +6601,8 @@ async function pvBookmark(postId) {
 async function pvEnviarComentario(postId) {
   const input = document.getElementById('pv-cinput');
   const texto = input?.value?.trim();
-  if (!texto) return;
+  const gifUrl = _gifState?.pv?.url;
+  if (!texto && !gifUrl) return;
   // Guard: evitar doble envío si ya hay una petición en vuelo
   if (input.dataset.sending === '1') return;
   input.dataset.sending = '1';
@@ -6622,6 +6634,7 @@ async function pvEnviarComentario(postId) {
               <span class="pv-comment-date">${new Date().toISOString().slice(0,10)}</span>
             </div>
             <span class="pv-comment-text" data-cmt-text="${data.id||''}">${escHTML(data.texto)}</span>
+            ${data.gif_url ? `<img src="${escHTML(data.gif_url)}" alt="GIF" class="comment-gif-img" loading="lazy" onclick="if(window.abrirMediaModal)abrirMediaModal('${escHTML(data.gif_url)}','imagen')">` : ''}
             <div class="comment-actions-row" style="margin-top:4px;">
               <button class="cmt-action-btn cmt-like-btn" onclick="likearComentario(${data.id||0},this)" title="Me gusta">
                 <span class="material-symbols-outlined" style="font-size:13px;">favorite</span>
@@ -6732,6 +6745,7 @@ function feedRenderComments(postId) {
         <div class="comment-bubble" style="flex:1;min-width:0;">
           <strong class="comment-author" data-ver-perfil="${escHTML(c.usuario)}" style="cursor:pointer;">${escHTML(c.nombre)}</strong>
           ${textoHtml}
+          ${c.gif_url ? `<img src="${escHTML(c.gif_url)}" alt="GIF" class="comment-gif-img" loading="lazy" onclick="if(window.abrirMediaModal)abrirMediaModal('${escHTML(c.gif_url)}','imagen')">` : ''}
           <div class="comment-actions-row">
             <button class="cmt-action-btn cmt-like-btn" onclick="likearComentario(${c.id},this)" title="Me gusta">
               <span class="material-symbols-outlined" style="font-size:14px;">favorite</span>
@@ -6953,7 +6967,8 @@ async function mobEnviarComentario() {
   if (!_mobCmtPostId) return;
   const input = document.getElementById('mob-cinput');
   const texto = input?.value?.trim();
-  if (!texto) return;
+  const gifUrl = _gifState?.mob?.url;
+  if (!texto && !gifUrl) return;
   if (input.dataset.sending === '1') return;
   input.dataset.sending = '1';
   input.disabled = true;
@@ -6986,6 +7001,7 @@ async function mobEnviarComentario() {
               <span class="pv-comment-date">${new Date().toISOString().slice(0,10)}</span>
             </div>
             <span class="pv-comment-text" data-cmt-text="${data.id||''}">${escHTML(data.texto)}</span>
+            ${data.gif_url ? `<img src="${escHTML(data.gif_url)}" alt="GIF" class="comment-gif-img" loading="lazy" onclick="if(window.abrirMediaModal)abrirMediaModal('${escHTML(data.gif_url)}','imagen')">` : ''}
             <div class="comment-actions-row" style="margin-top:4px;">
               <button class="cmt-action-btn cmt-like-btn" onclick="likearComentario(${data.id||0},this)" title="Me gusta">
                 <span class="material-symbols-outlined" style="font-size:13px;">favorite</span>
@@ -7111,4 +7127,234 @@ function abrirEmotePicker(target) {
   modal.classList.add("open");
   setTimeout(() => document.getElementById("emoteSearch")?.focus(), 50);
 }
+</script>
+
+<!-- ═══════════════════════════════════════════════════
+     INTEGRACIÓN GIPHY — generado automáticamente
+════════════════════════════════════════════════════ -->
+<script type="module">
+import { initGiphy, abrirGiphy, cerrarGiphy } from '/static/js/giphy.js';
+
+initGiphy();
+
+const _gifState = {
+  composer: { url: null },
+  pv:       { url: null },
+  mob:      { url: null },
+};
+
+// ── 1. COMPOSER ──────────────────────────────────────────────────────────────
+const _originalTogglePanel = window.togglePanel;
+window.togglePanel = function(tipo) {
+  if (tipo === 'gif') {
+    ['emoji','poll'].forEach(t => {
+      const el = document.getElementById('mc-' + t + '-panel');
+      if (el) el.style.display = 'none';
+    });
+    document.getElementById('btn-poll-toggle')?.classList.remove('active');
+    abrirGiphy((gifUrl) => {
+      _gifState.composer.url = gifUrl;
+      _mostrarGifPreviewComposer(gifUrl);
+      document.getElementById('btn-gif-toggle')?.classList.add('giphy-active');
+    }, 'post');
+    return;
+  }
+  if (_originalTogglePanel) _originalTogglePanel(tipo);
+};
+
+function _mostrarGifPreviewComposer(url) {
+  _quitarGifPreviewComposer();
+  const mediaPreview = document.getElementById('mc-media-preview');
+  if (!mediaPreview) return;
+  const wrap = document.createElement('div');
+  wrap.className = 'composer-gif-preview';
+  wrap.id = 'mc-giphy-preview';
+  wrap.innerHTML = `
+    <img src="${url}" alt="GIF seleccionado" loading="lazy">
+    <button class="composer-gif-remove" onclick="window.quitarGifComposer()" title="Quitar GIF">
+      <span class="material-symbols-outlined">close</span>
+    </button>`;
+  mediaPreview.innerHTML = '';
+  mediaPreview.appendChild(wrap);
+  mediaPreview.style.display = 'block';
+  if (window._mediaFiles) window._mediaFiles = [];
+  if (window._gifFile)    window._gifFile = null;
+  if (window.actualizarPublicarBtn) window.actualizarPublicarBtn();
+}
+
+window.quitarGifComposer = function() {
+  _gifState.composer.url = null;
+  _quitarGifPreviewComposer();
+  document.getElementById('btn-gif-toggle')?.classList.remove('giphy-active');
+  if (window.actualizarPublicarBtn) window.actualizarPublicarBtn();
+};
+
+function _quitarGifPreviewComposer() {
+  document.getElementById('mc-giphy-preview')?.remove();
+  const wrap = document.getElementById('mc-media-preview');
+  if (wrap && !wrap.querySelector('.mc-media-grid') && !wrap.querySelector('.mc-media-thumb')) {
+    wrap.style.display = 'none';
+  }
+}
+
+// ── 2. INTERCEPT submitComposer ───────────────────────────────────────────────
+const _originalSubmitComposer = window.submitComposer;
+window.submitComposer = async function() {
+  const gifUrl = _gifState.composer.url;
+  if (gifUrl) {
+    const _origFetch = window.fetch;
+    window.fetch = async function(url, opts) {
+      window.fetch = _origFetch;
+      if (url === '/publicar_ajax' && opts?.body instanceof FormData) {
+        opts.body.set('gif_url', gifUrl);
+      }
+      return _origFetch.call(this, url, opts);
+    };
+  }
+  const result = await _originalSubmitComposer.call(this);
+  _gifState.composer.url = null;
+  document.getElementById('btn-gif-toggle')?.classList.remove('giphy-active');
+  return result;
+};
+
+// ── 3. POST-VIEW (desktop) ────────────────────────────────────────────────────
+const _originalPvTogglePanel = window.pvTogglePanel;
+window.pvTogglePanel = function(tipo) {
+  if (tipo === 'gif') {
+    abrirGiphy((gifUrl) => {
+      _gifState.pv.url = gifUrl;
+      _mostrarGifPreviewPv(gifUrl);
+    }, 'comment');
+    return;
+  }
+  if (_originalPvTogglePanel) _originalPvTogglePanel(tipo);
+};
+
+function _mostrarGifPreviewPv(url) {
+  let prev = document.getElementById('pv-giphy-preview');
+  if (!prev) {
+    const mediaDiv = document.getElementById('pv-media-preview');
+    if (!mediaDiv) return;
+    prev = document.createElement('div');
+    prev.id = 'pv-giphy-preview';
+    prev.style.cssText = 'padding:4px 0 6px;display:flex;align-items:center;gap:6px;';
+    prev.innerHTML = `
+      <div class="composer-gif-preview" style="display:inline-block;">
+        <img src="${url}" alt="GIF" style="max-height:80px;max-width:120px;border-radius:8px;object-fit:cover;">
+        <button class="composer-gif-remove" onclick="window.quitarGifPv()" title="Quitar GIF">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </div>`;
+    mediaDiv.parentElement.insertBefore(prev, mediaDiv);
+    mediaDiv.style.display = 'none';
+  } else {
+    prev.querySelector('img').src = url;
+  }
+  prev.style.display = 'flex';
+}
+
+window.quitarGifPv = function() {
+  _gifState.pv.url = null;
+  const prev = document.getElementById('pv-giphy-preview');
+  if (prev) prev.style.display = 'none';
+};
+
+const _originalPvEnviarComentario = window.pvEnviarComentario;
+window.pvEnviarComentario = async function(postId) {
+  const gifUrl = _gifState.pv.url;
+  if (gifUrl) {
+    const _origFetch = window.fetch;
+    window.fetch = async function(url, opts) {
+      window.fetch = _origFetch;
+      if (url === '/comentar_ajax' && opts?.body instanceof FormData) {
+        opts.body.set('gif_url', gifUrl);
+      }
+      return _origFetch.call(this, url, opts);
+    };
+  }
+  await _originalPvEnviarComentario.call(this, postId);
+  _gifState.pv.url = null;
+  window.quitarGifPv();
+};
+
+// ── 4. COMENTARIOS MÓVIL ─────────────────────────────────────────────────────
+window.abrirGiphyParaComentario = function(ctx) {
+  abrirGiphy((gifUrl) => {
+    if (!_gifState[ctx]) _gifState[ctx] = { url: null };
+    _gifState[ctx].url = gifUrl;
+    _mostrarGifPreviewMob(gifUrl, ctx);
+  }, 'comment');
+};
+
+function _mostrarGifPreviewMob(url, ctx) {
+  const previewId = ctx === 'mob' ? 'mob-gif-preview' : 'pv-gif-preview-inline';
+  let prev = document.getElementById(previewId);
+  if (!prev) {
+    const form = document.getElementById('mob-cmt-form');
+    if (!form) return;
+    prev = document.createElement('div');
+    prev.id = previewId;
+    prev.style.cssText = 'padding:4px 0 4px;';
+    prev.innerHTML = `
+      <div class="composer-gif-preview" style="display:inline-block;">
+        <img src="${url}" alt="GIF" style="max-height:80px;max-width:120px;border-radius:8px;object-fit:cover;">
+        <button class="composer-gif-remove" onclick="window.quitarGifMob('${ctx}')" title="Quitar GIF">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </div>`;
+    form.insertBefore(prev, form.firstChild);
+  } else {
+    prev.querySelector('img').src = url;
+    prev.style.display = 'block';
+  }
+}
+
+window.quitarGifMob = function(ctx) {
+  const previewId = ctx === 'mob' ? 'mob-gif-preview' : 'pv-gif-preview-inline';
+  const prev = document.getElementById(previewId);
+  if (prev) prev.style.display = 'none';
+  if (_gifState[ctx]) _gifState[ctx].url = null;
+};
+
+const _originalMobEnviarComentario = window.mobEnviarComentario;
+window.mobEnviarComentario = async function() {
+  const gifUrl = _gifState.mob?.url;
+  if (gifUrl) {
+    const _origFetch = window.fetch;
+    window.fetch = async function(url, opts) {
+      window.fetch = _origFetch;
+      if (url === '/comentar_ajax' && opts?.body instanceof FormData) {
+        opts.body.set('gif_url', gifUrl);
+      }
+      return _origFetch.call(this, url, opts);
+    };
+  }
+  await _originalMobEnviarComentario.call(this);
+  _gifState.mob.url = null;
+  window.quitarGifMob('mob');
+};
+
+// ── 5. INJECT BOTÓN GIF EN COMENTARIOS MÓVIL ─────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  const mobForm = document.getElementById('mob-cmt-form');
+  if (mobForm && !document.getElementById('mob-gif-btn-injected')) {
+    const actionsRow = document.createElement('div');
+    actionsRow.className = 'pv-cmt-actions';
+    actionsRow.id = 'mob-gif-btn-injected';
+    actionsRow.innerHTML = `
+      <button type="button" class="mc-act-btn" title="GIF" onclick="window.abrirGiphyParaComentario('mob')">
+        <span class="mc-gif-label-txt">GIF</span>
+      </button>`;
+    const cinputRow = mobForm.querySelector('.pv-cinput-row');
+    if (cinputRow) mobForm.insertBefore(actionsRow, cinputRow);
+    else mobForm.appendChild(actionsRow);
+  }
+
+  // Wire up GIF button in post-view comment panel (desktop)
+  document.querySelectorAll('#pv-comment-form-panel .mc-act-btn[title="GIF"]').forEach(btn => {
+    btn.onclick = () => window.pvTogglePanel('gif');
+  });
+});
+
+window._giphyLib = { abrirGiphy, cerrarGiphy };
 </script>

@@ -65,6 +65,7 @@ def api_perfil_posts(uid):
     con = get_db()
     rows = con.execute(
         """SELECT p.id, p.texto, p.media, p.media_tipo, p.fecha, p.fijado,
+                  COALESCE(p.gif_url,'') AS gif_url,
                   u.nombre, u.usuario, u.foto,
                   (SELECT COUNT(*) FROM likes l WHERE l.post_id=p.id) AS total_likes,
                   (SELECT COUNT(*) FROM comentarios c WHERE c.post_id=p.id) AS total_comentarios
@@ -81,6 +82,7 @@ def api_perfil_posts(uid):
             "media_tipo": r["media_tipo"] or "",
             "fecha": str(r["fecha"])[:10] if r["fecha"] else "",
             "fijado": bool(r["fijado"]),
+            "gif_url": r["gif_url"] or "",
             "nombre": r["nombre"],
             "usuario": r["usuario"],
             "foto": r["foto"] or "",

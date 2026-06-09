@@ -91,6 +91,10 @@ POST_TMPL = """
     </form>
   </div>
   {% if p.texto %}<p class="post-text">{{ p.texto }}</p>{% endif %}
+  {% if p.get('gif_url') %}
+    <img src="{{ p.gif_url }}" alt="GIF" class="post-gif-img" loading="lazy"
+         onclick="abrirMediaModal('{{ p.gif_url }}','imagen')">
+  {% endif %}
   {% if p.media %}
     {% if p.media_tipo=='multi' %}
       {% set imgs = p.media|fromjson %}
@@ -165,7 +169,7 @@ def publicar_ajax():
     uid = session["uid"]
     con = get_db()
     p = con.execute("""
-        SELECT p.id,p.texto,p.media,p.media_tipo,p.fecha,u.nombre,u.usuario,u.foto
+        SELECT p.id,p.texto,p.media,p.media_tipo,p.fecha,p.gif_url,u.nombre,u.usuario,u.foto
         FROM publicaciones p JOIN usuarios u ON u.id=p.usuario_id
         WHERE p.id=%s
     """, (post_id,)).fetchone()
@@ -211,7 +215,9 @@ def _guardar_post():
             poll_opts = []
     has_poll = len(poll_opts) >= 2
 
-    if not texto and not media and not has_poll:
+    gif_url = request.form.get('gif_url', '').strip()
+
+    if not texto and not media and not has_poll and not gif_url:
         return None
 
     if texto and len(texto) > 800:
@@ -224,8 +230,8 @@ def _guardar_post():
         visibilidad = 'general'
 
     cur = con.execute(
-        "INSERT INTO publicaciones(usuario_id, texto, media, media_tipo, visibilidad) VALUES(%s, %s, %s, %s, %s) RETURNING id",
-        (uid, texto, media, media_tipo, visibilidad)
+        "INSERT INTO publicaciones(usuario_id, texto, media, media_tipo, visibilidad, gif_url) VALUES(%s, %s, %s, %s, %s, %s) RETURNING id",
+        (uid, texto, media, media_tipo, visibilidad, gif_url)
     )
     con.commit()
     post_id = cur.fetchone()[0]
@@ -300,20 +306,22 @@ def comentar_ajax():
     post_id   = request.form.get("post_id")
     texto     = request.form.get("comentario", "").strip()
     parent_id = request.form.get("parent_id") or None
-    if not texto or not post_id:
+    gif_url   = request.form.get("gif_url", "").strip()
+    if not (texto or gif_url) or not post_id:
         return jsonify({"ok": False}), 400
     con = get_db()
     con.execute(
-        "INSERT INTO comentarios(post_id, usuario_id, texto, parent_id) VALUES(%s, %s, %s, %s) ON CONFLICT DO NOTHING",
-        (post_id, uid, texto, parent_id)
+        "INSERT INTO comentarios(post_id, usuario_id, texto, parent_id, gif_url) VALUES(%s, %s, %s, %s, %s) ON CONFLICT DO NOTHING",
+        (post_id, uid, texto, parent_id, gif_url)
     )
     con.commit()
-    usuario = con.execute("SELECT nombre, foto FROM usuarios WHERE id=%s", (uid,)).fetchone()
+    usuario = con.execute("SELECT nombre, foto, usuario FROM usuarios WHERE id=%s", (uid,)).fetchone()
     nombre  = usuario["nombre"] if usuario else "?"
     inicial = nombre[0].upper() if nombre else "?"
     foto    = (usuario["foto"] or "") if usuario else ""
+    uname   = (usuario["usuario"] or "") if usuario else ""
     cmt_id  = con.execute("SELECT lastval()").fetchone()[0]
-    return jsonify({"ok": True, "nombre": nombre, "foto": foto, "texto": texto, "inicial": inicial, "id": cmt_id, "usuario_id": uid})
+    return jsonify({"ok": True, "nombre": nombre, "foto": foto, "texto": texto, "inicial": inicial, "id": cmt_id, "usuario_id": uid, "usuario": uname, "gif_url": gif_url})
 
 @posts_bp.route("/eliminar_post/<int:post_id>", methods=["POST"])
 def eliminar_post(post_id):
@@ -442,6 +450,7 @@ def api_ver_post(post_id):
     p = con.execute("""
         SELECT p.id, p.texto, p.media, p.media_tipo, p.fecha,
                COALESCE(p.visibilidad,'general') AS visibilidad,
+               COALESCE(p.gif_url,'') AS gif_url,
                u.nombre, u.usuario, u.foto, u.id AS usuario_id,
                EXISTS(SELECT 1 FROM likes l WHERE l.usuario_id=%s AND l.post_id=p.id) AS liked,
                (SELECT COUNT(*) FROM likes l2 WHERE l2.post_id=p.id) AS total_likes,
@@ -460,7 +469,9 @@ def api_ver_post(post_id):
         return jsonify({"ok": False, "error": "No autorizado"}), 403
 
     comentarios_rows = con.execute("""
-        SELECT c.id, c.texto, c.fecha, c.usuario_id, c.parent_id, u.nombre, u.usuario, u.foto
+        SELECT c.id, c.texto, c.fecha, c.usuario_id, c.parent_id,
+               COALESCE(c.gif_url,'') AS gif_url,
+               u.nombre, u.usuario, u.foto
         FROM comentarios c JOIN usuarios u ON u.id=c.usuario_id
         WHERE c.post_id=%s ORDER BY c.fecha ASC
     """, (post_id,)).fetchall()
@@ -475,6 +486,7 @@ def api_ver_post(post_id):
             "texto":        p["texto"] or "",
             "media":        p["media"] or "",
             "media_tipo":   p["media_tipo"] or "",
+            "gif_url":      p["gif_url"] or "",
             "fecha":        str(p["fecha"])[:10] if p["fecha"] else "",
             "visibilidad":  p["visibilidad"],
             "nombre":       p["nombre"],

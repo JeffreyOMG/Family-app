@@ -84,6 +84,7 @@ def get_ctx(uid, con, extra=None):
     publicaciones = [dict(p, liked=bool(p["liked"]), bookmarked=bool(p["bookmarked"])) for p in con.execute(f"""
         SELECT p.id, p.texto, p.media, p.media_tipo, p.fecha,
                COALESCE(p.visibilidad,'general') AS visibilidad,
+               COALESCE(p.gif_url,'') AS gif_url,
                u.nombre, u.usuario, u.foto, u.id AS usuario_id,
                EXISTS(SELECT 1 FROM likes l WHERE l.usuario_id=%s AND l.post_id=p.id) AS liked,
                (SELECT COUNT(*) FROM likes l2 WHERE l2.post_id=p.id) AS total_likes,
@@ -99,6 +100,7 @@ def get_ctx(uid, con, extra=None):
     tendencias = [dict(p, liked=bool(p["liked"]), bookmarked=bool(p["bookmarked"])) for p in con.execute(f"""
         SELECT p.id, p.texto, p.media, p.media_tipo, p.fecha,
                COALESCE(p.visibilidad,'general') AS visibilidad,
+               COALESCE(p.gif_url,'') AS gif_url,
                u.nombre, u.usuario, u.foto, u.id AS usuario_id,
                EXISTS(SELECT 1 FROM likes l WHERE l.usuario_id=%s AND l.post_id=p.id) AS liked,
                (SELECT COUNT(*) FROM likes l2 WHERE l2.post_id=p.id) AS total_likes,
@@ -114,6 +116,7 @@ def get_ctx(uid, con, extra=None):
     guardados = [dict(p, liked=bool(p["liked"]), bookmarked=True) for p in con.execute(f"""
         SELECT p.id, p.texto, p.media, p.media_tipo, p.fecha,
                COALESCE(p.visibilidad,'general') AS visibilidad,
+               COALESCE(p.gif_url,'') AS gif_url,
                u.nombre, u.usuario, u.foto, u.id AS usuario_id,
                EXISTS(SELECT 1 FROM likes l WHERE l.usuario_id=%s AND l.post_id=p.id) AS liked,
                (SELECT COUNT(*) FROM likes l2 WHERE l2.post_id=p.id) AS total_likes,
@@ -131,7 +134,9 @@ def get_ctx(uid, con, extra=None):
         _p['poll'] = _get_poll_for_post(con, _p['id'], uid)
 
     comentarios_rows = con.execute("""
-        SELECT c.id, c.post_id, c.texto, c.parent_id, c.fecha, c.usuario_id, u.nombre, u.usuario, u.foto
+        SELECT c.id, c.post_id, c.texto, c.parent_id, c.fecha, c.usuario_id,
+               COALESCE(c.gif_url,'') AS gif_url,
+               u.nombre, u.usuario, u.foto
         FROM comentarios c JOIN usuarios u ON u.id=c.usuario_id ORDER BY c.fecha ASC
     """).fetchall()
     comentarios_por_post = {}
