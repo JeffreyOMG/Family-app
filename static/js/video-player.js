@@ -307,14 +307,21 @@
       }, { once: true });
     }
 
-    /* ─── wrap ─── */
+    /* ─── wrap: reemplaza el video en el DOM ─── */
     const wrap = document.createElement('div');
     wrap.className = 'fvp-wrap fvp-paused';
+
+    // Insertar wrap donde estaba el video, luego mover el video dentro
+    if (videoEl.parentNode) {
+      videoEl.parentNode.insertBefore(wrap, videoEl);
+    }
+
     wrap.innerHTML = buildHTML();
 
     videoEl.className = 'fvp-video';
     videoEl.removeAttribute('controls');
     videoEl.playsInline = true;
+    // Mover el video como primer hijo del wrap (antes de los controles)
     wrap.insertBefore(videoEl, wrap.firstChild);
 
     /* ─── references ─── */
@@ -802,10 +809,6 @@
   function initAll(root) {
     const container = root || document;
     container.querySelectorAll('video.post-media:not([data-fvp-init])').forEach(v => {
-      const parent = v.parentNode;
-      const wrapDiv = document.createElement('div');
-      parent.insertBefore(wrapDiv, v);
-      wrapDiv.appendChild(v);
       v.classList.remove('post-media');
       initPlayer(v);
     });
@@ -884,13 +887,7 @@
     bootstrap();
   }
 
-  // Hook al post viewer modal para inicializar videos dentro de él
-  document.addEventListener('click', (e) => {
-    // Cualquier apertura de post viewer tendrá .pv-content con videos → initAll se encarga
-    const pvContent = document.getElementById('pv-content');
-    if (pvContent) {
-      setTimeout(() => initAll(pvContent), 100);
-    }
-  });
+  // No se necesita listener global de click - el MutationObserver del feed
+  // y los patches en _renderPostModal/abrirMediaModal cubren todos los casos.
 
 })();
