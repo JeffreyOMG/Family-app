@@ -50,6 +50,14 @@ function irSeccion(sec) {
     $('overlay')?.classList.remove('active');
   }
 
+  // Al cambiar de sección, pausar todos los videos del feed
+  // El IntersectionObserver del player se encargará del mini player si aplica
+  if (window.familiaVideoPlayer) {
+    document.querySelectorAll('video[data-fvp-init]:not([data-fvp-init=""])').forEach(v => {
+      if (!v.paused) v.pause();
+    });
+  }
+
   // FAB solo visible en inicio (mobile)
   _syncFab(sec);
 }
