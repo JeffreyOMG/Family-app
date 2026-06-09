@@ -6250,9 +6250,9 @@ function _renderCmtNode(c, postId, depth) {
         <span class="pv-comment-text" data-cmt-text="${c.id}">${escHTML(c.texto)}</span>
         ${c.gif_url ? `<img src="${escHTML(c.gif_url)}" alt="GIF" class="comment-gif-img" loading="lazy" onclick="if(window.abrirMediaModal)abrirMediaModal('${escHTML(c.gif_url)}','imagen')">` : ''}
         <div class="comment-actions-row" style="margin-top:4px;">
-          <button class="cmt-action-btn cmt-like-btn" onclick="likearComentario(${c.id},this)" title="Me gusta">
-            <span class="material-symbols-outlined" style="font-size:13px;">favorite</span>
-            <span class="cmt-like-count"></span>
+          <button class="cmt-action-btn cmt-like-btn${c.liked_by_me ? ' cmt-liked' : ''}" onclick="likearComentario(${c.id},this)" title="Me gusta">
+            <span class="material-symbols-outlined" style="font-size:13px;${c.liked_by_me ? 'color:var(--accent,#e91e63)' : ''}">favorite</span>
+            <span class="cmt-like-count">${c.total_likes > 0 ? c.total_likes : ''}</span>
           </button>
           <button class="cmt-action-btn" onclick="pvToggleReplyForm(${c.id},${postId},this)" title="Responder">
             <span class="material-symbols-outlined" style="font-size:13px;">reply</span>
@@ -6758,9 +6758,9 @@ function feedRenderComments(postId) {
           ${textoHtml}
           ${c.gif_url ? `<img src="${escHTML(c.gif_url)}" alt="GIF" class="comment-gif-img" loading="lazy" onclick="if(window.abrirMediaModal)abrirMediaModal('${escHTML(c.gif_url)}','imagen')">` : ''}
           <div class="comment-actions-row">
-            <button class="cmt-action-btn cmt-like-btn" onclick="likearComentario(${c.id},this)" title="Me gusta">
-              <span class="material-symbols-outlined" style="font-size:14px;">favorite</span>
-              <span class="cmt-like-count"></span>
+            <button class="cmt-action-btn cmt-like-btn${c.liked_by_me ? ' cmt-liked' : ''}" onclick="likearComentario(${c.id},this)" title="Me gusta">
+              <span class="material-symbols-outlined" style="font-size:14px;${c.liked_by_me ? 'color:var(--accent,#e91e63)' : ''}">favorite</span>
+              <span class="cmt-like-count">${c.total_likes > 0 ? c.total_likes : ''}</span>
             </button>
             <button class="cmt-action-btn" onclick="feedToggleReplyForm(${c.id},${postId},this)" title="Responder">
               <span class="material-symbols-outlined" style="font-size:14px;">reply</span>

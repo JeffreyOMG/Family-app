@@ -468,15 +468,28 @@ def api_ver_post(post_id):
     if rol not in ("miembro", "admin") and p["visibilidad"] == "privada":
         return jsonify({"ok": False, "error": "No autorizado"}), 403
 
+    # Ensure likes table exists before querying
+    con.execute("""CREATE TABLE IF NOT EXISTS comentario_likes (
+        usuario_id INTEGER NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+        comentario_id INTEGER NOT NULL REFERENCES comentarios(id) ON DELETE CASCADE,
+        PRIMARY KEY (usuario_id, comentario_id))""")
+
     comentarios_rows = con.execute("""
         SELECT c.id, c.texto, c.fecha, c.usuario_id, c.parent_id,
                COALESCE(c.gif_url,'') AS gif_url,
-               u.nombre, u.usuario, u.foto
+               u.nombre, u.usuario, u.foto,
+               (SELECT COUNT(*) FROM comentario_likes cl WHERE cl.comentario_id=c.id) AS total_likes,
+               EXISTS(SELECT 1 FROM comentario_likes cl2 WHERE cl2.comentario_id=c.id AND cl2.usuario_id=%s) AS liked_by_me
         FROM comentarios c JOIN usuarios u ON u.id=c.usuario_id
         WHERE c.post_id=%s ORDER BY c.fecha ASC
-    """, (post_id,)).fetchall()
+    """, (uid, post_id,)).fetchall()
 
-    comentarios = [dict(c) for c in comentarios_rows]
+    comentarios = []
+    for c in comentarios_rows:
+        row = dict(c)
+        row['total_likes'] = int(row.get('total_likes') or 0)
+        row['liked_by_me'] = bool(row.get('liked_by_me'))
+        comentarios.append(row)
     poll = _get_poll(con, post_id, uid)
 
     return jsonify({
