@@ -831,7 +831,7 @@
 
 <!-- MODAL MEDIA (zoom) -->
 <div id="media-modal" onclick="this.style.display='none'"
-  style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.93);z-index:10100;justify-content:center;align-items:center;cursor:zoom-out;">
+  style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.93);z-index:999999;justify-content:center;align-items:center;cursor:zoom-out;">
   <div id="media-modal-content" style="max-width:92vw;max-height:92vh;"></div>
 </div>
 
@@ -4796,23 +4796,22 @@ function _syncGuardados(id, shouldBeSaved){
 /* ── MEDIA MODAL ── */
 
 /**
- * En desktop → abre el modal del post completo (tipo X/Threads)
- * En mobile  → abre el lightbox de imagen (comportamiento nativo original)
+ * Click en imagen/media de un post en el feed:
+ * - PC y Mobile → abre el modal del post completo.
+ *   Dentro del modal, hacer click en la imagen llama abrirMediaModal
+ *   que abre el lightbox encima del modal (z-index:999999).
  */
 function abrirMediaOPost(postId, src, tipo, event) {
   if (event) { event.stopPropagation(); }
-  if (window.innerWidth > 700) {
-    abrirPost(postId);
-  } else {
-    abrirMediaModal(src, tipo);
-  }
+  abrirPost(postId);
 }
 
-function abrirMediaModal(src, tipo){
+function abrirMediaModal(src, tipo, event){
+  if (event) { event.stopPropagation(); }
   const m = document.getElementById('media-modal');
   document.getElementById('media-modal-content').innerHTML =
     tipo==='imagen'
-      ? `<img src="${src}" style="max-width:92vw;max-height:92vh;border-radius:12px;">`
+      ? `<img src="${src}" style="max-width:92vw;max-height:92vh;border-radius:12px;cursor:zoom-out;" onclick="event.stopPropagation()">`
       : `<video src="${src}" controls autoplay style="max-width:92vw;max-height:92vh;border-radius:12px;"></video>`;
   m.style.display='flex';
 }
@@ -6125,10 +6124,10 @@ function _renderPostModal(p) {
       let imgs = [];
       try { imgs = JSON.parse(p.media); } catch(e) {}
       mediaHtml = `<div class="pv-media-multi">${imgs.map(src =>
-        `<img src="${escHTML(src)}" onclick="abrirMediaModal('${escHTML(src)}','imagen')" alt="imagen" loading="lazy">`
+        `<img src="${escHTML(src)}" onclick="abrirMediaModal('${escHTML(src)}','imagen',event)" alt="imagen" loading="lazy" style="cursor:zoom-in;">`
       ).join('')}</div>`;
     } else if (p.media_tipo === 'imagen') {
-      mediaHtml = `<img src="${escHTML(p.media)}" class="pv-media-img" onclick="abrirMediaModal('${escHTML(p.media)}','imagen')" alt="imagen" loading="lazy">`;
+      mediaHtml = `<img src="${escHTML(p.media)}" class="pv-media-img" onclick="abrirMediaModal('${escHTML(p.media)}','imagen',event)" alt="imagen" loading="lazy" style="cursor:zoom-in;">`;
     } else if (p.media_tipo === 'video') {
       mediaHtml = `<video controls class="pv-media-video"><source src="${escHTML(p.media)}"></video>`;
     }
@@ -6159,7 +6158,7 @@ function _renderPostModal(p) {
         </div>
       </div>
       ${p.texto ? `<p class="pv-texto">${escHTML(p.texto)}</p>` : ''}
-      ${p.gif_url ? `<img src="${escHTML(p.gif_url)}" alt="GIF" class="post-gif-img" loading="lazy" onclick="abrirMediaModal('${escHTML(p.gif_url)}','imagen')">` : ''}
+      ${p.gif_url ? `<img src="${escHTML(p.gif_url)}" alt="GIF" class="post-gif-img" loading="lazy" onclick="abrirMediaModal('${escHTML(p.gif_url)}','imagen',event)" style="cursor:zoom-in;">` : ''}
       ${mediaHtml}
       <div class="pv-fecha-completa">${p.fecha || ''}</div>
       <div class="pv-stats-row">
