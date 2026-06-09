@@ -134,6 +134,11 @@
       <div class="fvp-brightness-overlay fvp-bright-el" style="display:none"></div>
 
       <div class="fvp-menu fvp-menu-el">
+        <div class="fvp-menu-section fvp-quality-section" style="display:none">
+          <div class="fvp-menu-title">Calidad</div>
+          <div class="fvp-menu-item fvp-quality-item active" data-quality="auto"><span class="fvp-check"></span>Auto</div>
+        </div>
+        <div class="fvp-divider fvp-quality-divider" style="display:none"></div>
         <div class="fvp-menu-title">Velocidad</div>
         ${[0.5,0.75,1,1.25,1.5,2].map(s=>`
           <div class="fvp-menu-item fvp-speed-item ${s===1?'active':''}" data-speed="${s}">
@@ -547,30 +552,53 @@
     progWrap.addEventListener('touchend',   ()  => { isDragging = false; });
 
     /* ─── FULLSCREEN ─── */
+    // Detectar iOS: no soporta requestFullscreen en div, usa webkitEnterFullscreen en <video>
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+                  (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+    function enterFullscreen() {
+      if (isIOS) {
+        // iOS Safari: fullscreen nativo directo en el elemento video
+        if (videoEl.webkitEnterFullscreen) {
+          videoEl.webkitEnterFullscreen();
+        }
+      } else {
+        const req = wrap.requestFullscreen || wrap.webkitRequestFullscreen;
+        if (req) req.call(wrap);
+      }
+    }
+
+    function exitFullscreen() {
+      if (isIOS) {
+        if (videoEl.webkitExitFullscreen) videoEl.webkitExitFullscreen();
+      } else {
+        const exit = document.exitFullscreen || document.webkitExitFullscreen;
+        if (exit) exit.call(document);
+      }
+    }
+
+    function isInFullscreen() {
+      return !!(document.fullscreenElement || document.webkitFullscreenElement ||
+                videoEl.webkitDisplayingFullscreen);
+    }
+
     fsBtn.addEventListener('click', (e) => {
       e.stopPropagation();
-      if (!document.fullscreenElement) {
-        (wrap.requestFullscreen || wrap.webkitRequestFullscreen || (() => {})).call(wrap);
-      } else {
-        (document.exitFullscreen || document.webkitExitFullscreen || (() => {})).call(document);
-      }
+      isInFullscreen() ? exitFullscreen() : enterFullscreen();
     }, sig);
 
-    document.addEventListener('fullscreenchange', () => {
-      isFs = !!document.fullscreenElement;
+    function onFsChange() {
+      isFs = isInFullscreen();
       fsBtn.innerHTML = isFs ? IC.exitFs : IC.fullscreen;
-      // En fullscreen vertical → cubrir sin recortes
-      if (isFs && wrap.dataset.aspect === 'vertical') {
-        videoEl.style.objectFit = 'contain';
-        videoEl.style.maxHeight = '100vh';
-      } else if (isFs) {
-        videoEl.style.objectFit = 'contain';
-        videoEl.style.maxHeight = '100vh';
-      } else {
-        videoEl.style.objectFit = '';
-        videoEl.style.maxHeight = '';
-      }
-    }, sig);
+      videoEl.style.objectFit = isFs ? 'contain' : '';
+      videoEl.style.maxHeight = isFs ? '100vh' : '';
+    }
+
+    document.addEventListener('fullscreenchange',       onFsChange, sig);
+    document.addEventListener('webkitfullscreenchange', onFsChange, sig);
+    // iOS: el video emite estos eventos cuando entra/sale de su fullscreen nativo
+    videoEl.addEventListener('webkitbeginfullscreen',   onFsChange, sig);
+    videoEl.addEventListener('webkitendfullscreen',     onFsChange, sig);
 
     /* ─── PICTURE IN PICTURE ─── */
     if ('pictureInPictureEnabled' in document) {
@@ -657,6 +685,65 @@
       }, sig);
     }
 
+    /* ─── CALIDAD ─── */
+    function setupQuality() {
+      const qualSection  = wrap.querySelector('.fvp-quality-section');
+      const qualDivider  = wrap.querySelector('.fvp-quality-divider');
+
+      // Buscar <source> elements con data-quality o type distintos
+      const sources = Array.from(videoEl.querySelectorAll('source[data-quality]'));
+      if (sources.length < 2) return; // Sin múltiples calidades, no mostrar
+
+      qualSection.style.display = 'block';
+      qualDivider.style.display = 'block';
+
+      // Construir items de calidad desde los data-quality de los <source>
+      const autoItem = qualSection.querySelector('.fvp-quality-item');
+      sources.forEach(s => {
+        const label = s.dataset.quality;
+        const item  = document.createElement('div');
+        item.className = 'fvp-menu-item fvp-quality-item';
+        item.dataset.qualitySrc = s.src;
+        item.innerHTML = `<span class="fvp-check"></span>${label}`;
+        qualSection.appendChild(item);
+      });
+
+      let currentQuality = 'auto';
+
+      qualSection.querySelectorAll('.fvp-quality-item').forEach(item => {
+        item.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const src   = item.dataset.qualitySrc;
+          const label = item.textContent.trim();
+
+          qualSection.querySelectorAll('.fvp-quality-item').forEach(i => i.classList.remove('active'));
+          item.classList.add('active');
+          menuEl.classList.remove('open');
+
+          if (!src) {
+            // Auto → restaurar src original (primer source)
+            currentQuality = 'auto';
+            showToast('📺 Auto');
+            return;
+          }
+
+          // Cambiar calidad manteniendo posición
+          const savedTime = videoEl.currentTime;
+          const wasPaused = videoEl.paused;
+          currentQuality  = label;
+
+          videoEl.src = src;
+          videoEl.load();
+          videoEl.addEventListener('loadedmetadata', () => {
+            videoEl.currentTime = savedTime;
+            if (!wasPaused) videoEl.play().catch(() => {});
+          }, { once: true });
+
+          showToast('📺 ' + label);
+        });
+      });
+    }
+
     /* ─── GESTOS MÓVILES ─── */
     let touchStartX = 0, touchStartY = 0, touchStartTime = 0;
     let touchStartVol = 1, isTouchSeeking = false;
@@ -739,7 +826,7 @@
     }, sig);
 
     /* ─── VIDEO EVENTS ─── */
-    videoEl.addEventListener('loadedmetadata', () => { setAspect(); updateTime(); updateVol(); setupCaptions(); }, sig);
+    videoEl.addEventListener('loadedmetadata', () => { setAspect(); updateTime(); updateVol(); setupCaptions(); setupQuality(); }, sig);
     videoEl.addEventListener('play',           () => { updatePlayBtn(); }, sig);
     videoEl.addEventListener('pause',          () => { updatePlayBtn(); }, sig);
     videoEl.addEventListener('timeupdate',     updateTime, sig);

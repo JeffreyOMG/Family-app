@@ -445,3 +445,13 @@
 body.dark-mode .fvp-wrap {
   border-color: rgba(255,255,255,0.08);
 }
+
+/* ── QUALITY SECTION en menú ── */
+.fvp-quality-section .fvp-menu-title { margin-top: 2px; }
+
+/* ── DIVIDER ── */
+.fvp-divider {
+  height: 1px;
+  background: rgba(255,255,255,0.1);
+  margin: 4px 0;
+}
