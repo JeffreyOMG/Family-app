@@ -7525,6 +7525,58 @@ document.addEventListener('DOMContentLoaded', () => {
 window._giphyLib = window._giphyLib || {};
 
 /* ── CARGAR MÁS POSTS ── */
+function _crearBloqueSeguidores(panelIndex) {
+  // Filtra miembros que el usuario actual no sigue (excluye al propio usuario)
+  const usuarioActualId = parseInt(document.getElementById('_cmt-session-uid')?.dataset?.uid || '0');
+  const sugerencias = _miembros.filter(m => m.id !== usuarioActualId);
+  if (!sugerencias.length) return null;
+
+  // Rota entre grupos de 5, igual que el template Jinja
+  const offset = ((panelIndex - 1) * 5) % sugerencias.length;
+  let panel = sugerencias.slice(offset, offset + 5);
+  if (!panel.length) panel = sugerencias.slice(0, 5);
+
+  const wrap = document.createElement('div');
+  wrap.className = 'seguir-card';
+  wrap.id = `seguir-panel-dyn-${panelIndex}`;
+
+  const items = panel.map(m => {
+    const avatar = m.foto
+      ? `<img src="${m.foto}" class="user-avatar-img seguir-av" title="${m.nombre}">`
+      : `<div class="user-avatar seguir-av">${(m.nombre?.[0] || 'U').toUpperCase()}</div>`;
+    const badge = m.rol === 'admin'
+      ? `<span class="seguir-badge seguir-badge--admin">Admin</span>`
+      : m.rol === 'invitado'
+        ? `<span class="seguir-badge seguir-badge--invitado">Invitado</span>`
+        : `<span class="seguir-badge seguir-badge--miembro">Miembro</span>`;
+    return `
+      <div class="seguir-item" id="sugerencia-${m.id}-dyn-${panelIndex}">
+        <div class="seguir-av-wrap" data-ver-perfil="${m.usuario}" style="cursor:pointer;">${avatar}</div>
+        <div class="seguir-info" data-ver-perfil="${m.usuario}" style="cursor:pointer;">
+          <strong class="seguir-nombre">${m.nombre}</strong>
+          <span class="seguir-handle">@${m.usuario}</span>
+          ${badge}
+        </div>
+        <button class="btn-seguir" data-uid="${m.id}" data-nombre="${m.nombre}"
+          onclick="accionSeguir(this)" title="Seguir a ${m.nombre}">
+          <span class="material-symbols-outlined">person_add</span>
+          <span class="btn-seguir-txt">Seguir</span>
+        </button>
+      </div>`;
+  }).join('');
+
+  wrap.innerHTML = `
+    <div class="seguir-header">
+      <span class="material-symbols-outlined">person_add</span>
+      <h3>A quién seguir</h3>
+    </div>
+    <div class="seguir-lista">${items}</div>
+    <button class="seguir-ver-mas" onclick="irSeccion('buscador')">
+      Ver más personas <span class="material-symbols-outlined">arrow_forward</span>
+    </button>`;
+  return wrap;
+}
+
 async function cargarMasPosts(btn) {
   if (!btn) return;
   const page = parseInt(btn.dataset.page) || 2;
@@ -7540,6 +7592,11 @@ async function cargarMasPosts(btn) {
     const feed = document.getElementById('feed-posts');
     const wrapBtn = document.getElementById('feed-load-more-wrap');
 
+    // Cuenta cuántos posts reales hay actualmente en el feed
+    let postCount = feed.querySelectorAll(':scope > .post-card, :scope > [id^="post-"]').length;
+    // Contador de bloques de sugerencias ya insertados dinámicamente
+    let dynPanelCount = feed.querySelectorAll(':scope > .seguir-card[id^="seguir-panel-dyn-"]').length;
+
     for (const p of data.posts) {
       if (!p.html) continue;
       const div = document.createElement('div');
@@ -7547,6 +7604,14 @@ async function cargarMasPosts(btn) {
       const card = div.firstElementChild;
       if (!card) continue;
       feed.insertBefore(card, wrapBtn);
+      postCount++;
+
+      // Cada 8 posts acumulados insertar bloque de sugerencias
+      if (postCount % 8 === 0) {
+        dynPanelCount++;
+        const bloque = _crearBloqueSeguidores(dynPanelCount);
+        if (bloque) feed.insertBefore(bloque, wrapBtn);
+      }
     }
 
     if (data.has_more) {
