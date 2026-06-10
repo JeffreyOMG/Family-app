@@ -46,6 +46,16 @@ def seguir_usuario(follower_id: int, following_id: int) -> dict:
         (follower_id, following_id)
     )
     con.commit()
+
+    # ── Notificación de nuevo seguidor ────────────────────────────────────────
+    try:
+        from routes.notificaciones import crear_notificacion
+        crear_notificacion(con, dest_id=following_id, tipo="seguidor",
+                           actor_id=follower_id)
+        con.commit()
+    except Exception:
+        pass
+
     return {"ok": True, "accion": "seguido", "msg": "Ahora sigues a este usuario."}
 
 

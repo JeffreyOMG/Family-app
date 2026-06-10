@@ -24,8 +24,9 @@
       </span>
     </div>
     <div class="navbar-ig-right">
-      <button class="navbar-ig-btn" title="Notificaciones" aria-label="Notificaciones">
-        <span class="material-symbols-outlined">favorite</span>
+      <button class="navbar-ig-btn notif-bell-btn" id="notif-bell-mob" title="Notificaciones" aria-label="Notificaciones" onclick="toggleNotifPanel()">
+        <span class="material-symbols-outlined" id="notif-icon-mob">favorite</span>
+        <span class="notif-badge" id="notif-badge-mob" style="display:none">0</span>
       </button>
       <button class="navbar-ig-btn" onclick="irSeccion('buscador')" title="Buscar" aria-label="Buscar">
         <span class="material-symbols-outlined">search</span>
@@ -44,6 +45,10 @@
     <button class="nav-icon-btn" onclick="irSeccion('buscador')" title="Buscar">
       <span class="material-symbols-outlined">search</span>
     </button>
+    <button class="nav-icon-btn notif-bell-btn" id="notif-bell-desk" title="Notificaciones" onclick="toggleNotifPanel()">
+      <span class="material-symbols-outlined" id="notif-icon-desk">notifications</span>
+      <span class="notif-badge" id="notif-badge-desk" style="display:none">0</span>
+    </button>
     <span class="navbar-date">{{ ahora }}</span>
     <img src="{{ usuario.foto or '' }}" class="user-avatar-img navbar-av-img"
          style="cursor:pointer;{{ '' if usuario.foto else 'display:none;' }}"
@@ -54,10 +59,143 @@
   </div>
 </nav>
 
+<!-- ══ PANEL DE NOTIFICACIONES ═══════════════════════════════════════════════ -->
+<div id="notif-panel" class="notif-panel" style="display:none;" role="dialog" aria-label="Notificaciones">
+  <div class="notif-panel-header">
+    <span class="material-symbols-outlined" style="font-size:20px;color:var(--accent,#ff4d8d)">notifications</span>
+    <h3>Notificaciones</h3>
+    <button class="notif-mark-all" onclick="marcarTodasLeidas()" title="Marcar todas como leídas">
+      <span class="material-symbols-outlined">done_all</span>
+    </button>
+    <button class="notif-close-btn" onclick="cerrarNotifPanel()" aria-label="Cerrar">
+      <span class="material-symbols-outlined">close</span>
+    </button>
+  </div>
+  <div id="notif-lista" class="notif-lista">
+    <div class="notif-loading">
+      <span class="material-symbols-outlined spin">refresh</span>
+    </div>
+  </div>
+</div>
+<div id="notif-overlay" onclick="cerrarNotifPanel()" style="display:none;position:fixed;inset:0;z-index:1098;"></div>
+
 <!-- Botón flotante "subir" — solo escritorio -->
 <button id="scroll-top-fab" onclick="subirAlInicio()" title="Volver al inicio" aria-label="Volver al inicio">
   <span class="material-symbols-outlined">keyboard_arrow_up</span>
 </button>
+
+<!-- ══ NOTIFICACIONES CSS ════════════════════════════════════════════════════ -->
+<style>
+/* ── Bell button ── */
+.notif-bell-btn { position: relative; }
+.notif-badge {
+  position: absolute; top: 2px; right: 2px;
+  min-width: 18px; height: 18px; border-radius: 9px;
+  background: #ff4d8d; color: #fff;
+  font-size: 10px; font-weight: 700; line-height: 18px;
+  text-align: center; padding: 0 4px;
+  pointer-events: none;
+  animation: notif-pop .3s cubic-bezier(.34,1.56,.64,1);
+}
+@keyframes notif-pop { from { transform: scale(0); } to { transform: scale(1); } }
+
+/* ── Panel ── */
+.notif-panel {
+  position: fixed;
+  top: 60px; right: 12px;
+  width: min(380px, calc(100vw - 24px));
+  max-height: min(540px, calc(100vh - 80px));
+  background: var(--card-bg, #1e1e2e);
+  border: 1px solid var(--border, #2a2a3e);
+  border-radius: 16px;
+  box-shadow: 0 8px 40px rgba(0,0,0,.45);
+  z-index: 1099;
+  display: flex; flex-direction: column;
+  overflow: hidden;
+  animation: notif-panel-in .22s cubic-bezier(.34,1.3,.64,1);
+}
+@keyframes notif-panel-in {
+  from { opacity:0; transform: translateY(-8px) scale(.97); }
+  to   { opacity:1; transform: translateY(0) scale(1); }
+}
+.notif-panel-header {
+  display: flex; align-items: center; gap: 8px;
+  padding: 14px 16px 10px;
+  border-bottom: 1px solid var(--border, #2a2a3e);
+  flex-shrink: 0;
+}
+.notif-panel-header h3 { flex: 1; margin: 0; font-size: 15px; font-weight: 700; }
+.notif-mark-all, .notif-close-btn {
+  background: none; border: none; cursor: pointer;
+  color: var(--text-muted, #9ca3af); padding: 4px; border-radius: 6px;
+  display: flex; align-items: center;
+}
+.notif-mark-all:hover, .notif-close-btn:hover { color: var(--text, #fff); background: var(--hover-bg, rgba(255,255,255,.07)); }
+.notif-mark-all .material-symbols-outlined,
+.notif-close-btn .material-symbols-outlined { font-size: 20px; }
+
+/* ── Lista ── */
+.notif-lista { overflow-y: auto; flex: 1; padding: 6px 0; }
+.notif-lista::-webkit-scrollbar { width: 4px; }
+.notif-lista::-webkit-scrollbar-thumb { background: var(--border, #2a2a3e); border-radius: 2px; }
+.notif-loading { display: flex; justify-content: center; padding: 32px; color: var(--text-muted,#9ca3af); }
+.notif-loading .material-symbols-outlined { font-size: 28px; }
+.notif-vacio { text-align: center; padding: 40px 20px; color: var(--text-muted,#9ca3af); font-size:13px; }
+.notif-vacio .material-symbols-outlined { font-size: 40px; display: block; margin-bottom: 8px; opacity: .5; }
+
+/* ── Item ── */
+.notif-item {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 10px 14px; cursor: pointer;
+  transition: background .15s;
+  border-radius: 0;
+  position: relative;
+}
+.notif-item:hover { background: var(--hover-bg, rgba(255,255,255,.05)); }
+.notif-item.no-leida { background: rgba(255,77,141,.06); }
+.notif-item.no-leida::before {
+  content: '';
+  position: absolute; left: 5px; top: 50%; transform: translateY(-50%);
+  width: 6px; height: 6px; border-radius: 50%; background: #ff4d8d;
+}
+.notif-av {
+  width: 38px; height: 38px; border-radius: 50%; flex-shrink: 0;
+  object-fit: cover; background: var(--accent,#ff4d8d);
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: 15px; color: #fff;
+  overflow: hidden;
+}
+.notif-av img { width: 100%; height: 100%; object-fit: cover; }
+.notif-icono-wrap {
+  position: relative; flex-shrink: 0;
+}
+.notif-icono-badge {
+  position: absolute; bottom: -2px; right: -2px;
+  width: 18px; height: 18px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; border: 2px solid var(--card-bg, #1e1e2e);
+}
+.notif-icono-badge .material-symbols-outlined { font-size: 11px; }
+.tipo-like     .notif-icono-badge { background: #ef4444; color:#fff; }
+.tipo-comentario .notif-icono-badge,
+.tipo-respuesta  .notif-icono-badge { background: #3b82f6; color:#fff; }
+.tipo-seguidor   .notif-icono-badge { background: #8b5cf6; color:#fff; }
+.tipo-mencion    .notif-icono-badge { background: #f59e0b; color:#fff; }
+.tipo-repost     .notif-icono-badge { background: #10b981; color:#fff; }
+.tipo-admin_post .notif-icono-badge,
+.tipo-admin_aviso .notif-icono-badge { background: #ff4d8d; color:#fff; }
+.tipo-encuesta   .notif-icono-badge { background: #06b6d4; color:#fff; }
+
+.notif-cuerpo { flex: 1; min-width: 0; }
+.notif-texto { font-size: 13px; line-height: 1.4; color: var(--text,#e5e7eb); margin: 0 0 3px; }
+.notif-texto strong { font-weight: 700; }
+.notif-snippet { font-size: 12px; color: var(--text-muted,#9ca3af); margin: 0 0 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 240px; }
+.notif-tiempo { font-size: 11px; color: var(--text-muted,#9ca3af); }
+
+@media (max-width: 480px) {
+  .notif-panel { top: 56px; right: 8px; width: calc(100vw - 16px); }
+}
+</style>
 
 <style>
 #scroll-top-fab {
@@ -165,5 +303,279 @@ function subirAlInicio() {
   window.addEventListener('scroll', update, { passive: true });
   document.addEventListener('scroll', update, { passive: true });
   update();
+})();
+</script>
+
+<!-- ══ NOTIFICACIONES JS ═════════════════════════════════════════════════════ -->
+<script>
+(function () {
+  'use strict';
+
+  /* ── Estado ── */
+  let _notifPanelOpen = false;
+  let _notifCache     = [];
+  let _pollingTimer   = null;
+  let _swRegistered   = false;
+
+  /* ── Iconos por tipo ── */
+  const TIPO_META = {
+    like:        { icono: 'favorite',        color: '#ef4444', texto: (n) => `<strong>${n.actor_nombre}</strong> le dio like a tu publicación` },
+    comentario:  { icono: 'chat_bubble',     color: '#3b82f6', texto: (n) => `<strong>${n.actor_nombre}</strong> comentó en tu publicación` },
+    respuesta:   { icono: 'reply',           color: '#3b82f6', texto: (n) => `<strong>${n.actor_nombre}</strong> respondió tu comentario` },
+    seguidor:    { icono: 'person_add',      color: '#8b5cf6', texto: (n) => `<strong>${n.actor_nombre}</strong> comenzó a seguirte` },
+    mencion:     { icono: 'alternate_email', color: '#f59e0b', texto: (n) => `<strong>${n.actor_nombre}</strong> te mencionó en una publicación` },
+    repost:      { icono: 'repeat',          color: '#10b981', texto: (n) => `<strong>${n.actor_nombre}</strong> compartió tu publicación` },
+    admin_post:  { icono: 'campaign',        color: '#ff4d8d', texto: (n) => `<strong>${n.actor_nombre}</strong> publicó algo nuevo para la familia` },
+    admin_aviso: { icono: 'notification_important', color: '#ff4d8d', texto: (n) => `Aviso importante: ${n.texto_extra || ''}` },
+    encuesta:    { icono: 'how_to_vote',     color: '#06b6d4', texto: (n) => `<strong>${n.actor_nombre}</strong> votó en tu encuesta` },
+  };
+
+  /* ── Tiempo relativo ── */
+  function tiempoRelativo(fechaStr) {
+    try {
+      const d = new Date(fechaStr.replace(' ', 'T') + 'Z');
+      const diff = Math.floor((Date.now() - d.getTime()) / 1000);
+      if (diff < 60)   return 'ahora mismo';
+      if (diff < 3600) return `hace ${Math.floor(diff/60)} min`;
+      if (diff < 86400) return `hace ${Math.floor(diff/3600)} h`;
+      return `hace ${Math.floor(diff/86400)} d`;
+    } catch { return ''; }
+  }
+
+  /* ── Actualizar badges ── */
+  function _setBadge(count) {
+    ['notif-badge-mob', 'notif-badge-desk'].forEach(id => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      if (count > 0) {
+        el.textContent = count > 99 ? '99+' : count;
+        el.style.display = 'block';
+      } else {
+        el.style.display = 'none';
+      }
+    });
+    // Móvil: corazón lleno cuando hay notifs, outline cuando no
+    const mobIcon = document.getElementById('notif-icon-mob');
+    if (mobIcon) mobIcon.textContent = count > 0 ? 'favorite' : 'favorite';
+    // Desktop: campana activa cuando hay notifs
+    const deskIcon = document.getElementById('notif-icon-desk');
+    if (deskIcon) deskIcon.textContent = count > 0 ? 'notifications_active' : 'notifications';
+    // Móvil: tinte rosa cuando hay notifs no leídas
+    const mobBtn = document.getElementById('notif-bell-mob');
+    if (mobBtn) mobBtn.style.color = count > 0 ? 'var(--accent, #ff4d8d)' : '';
+    // Tab title badge
+    const base = document.title.replace(/^\(\d+\) /, '');
+    document.title = count > 0 ? `(${count}) ${base}` : base;
+  }
+
+  /* ── Construir HTML de un item ── */
+  function _buildItem(n) {
+    const meta  = TIPO_META[n.tipo] || { icono: 'circle_notifications', color: '#9ca3af', texto: () => n.texto_extra || n.tipo };
+    const texto = meta.texto(n);
+    const avatarHTML = n.actor_foto
+      ? `<img src="${n.actor_foto}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`
+      : `<span style="font-size:15px;font-weight:700;">${(n.actor_nombre||'?')[0].toUpperCase()}</span>`;
+
+    const snippet = n.post_texto
+      ? `<p class="notif-snippet">"${n.post_texto}"</p>` : '';
+
+    return `
+      <div class="notif-item tipo-${n.tipo} ${n.leida ? '' : 'no-leida'}"
+           data-id="${n.id}" data-post="${n.post_id||''}" data-tipo="${n.tipo}"
+           onclick="window._notifClick(this)">
+        <div class="notif-icono-wrap">
+          <div class="notif-av">${avatarHTML}</div>
+          <span class="notif-icono-badge">
+            <span class="material-symbols-outlined" style="font-size:11px;">${meta.icono}</span>
+          </span>
+        </div>
+        <div class="notif-cuerpo">
+          <p class="notif-texto">${texto}</p>
+          ${snippet}
+          <span class="notif-tiempo">${tiempoRelativo(n.fecha)}</span>
+        </div>
+      </div>`;
+  }
+
+  /* ── Renderizar lista ── */
+  function _renderLista(notifs) {
+    const lista = document.getElementById('notif-lista');
+    if (!lista) return;
+    if (!notifs.length) {
+      lista.innerHTML = `<div class="notif-vacio"><span class="material-symbols-outlined">notifications_off</span>Sin notificaciones por ahora</div>`;
+      return;
+    }
+    lista.innerHTML = notifs.map(_buildItem).join('');
+  }
+
+  /* ── Fetch notificaciones ── */
+  async function _fetchNotifs(silent = false) {
+    try {
+      const r = await fetch('/api/notificaciones', { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+      if (!r.ok) return;
+      const data = await r.json();
+      if (!data.ok) return;
+      _notifCache = data.notificaciones;
+      _setBadge(data.no_leidas);
+
+      // Mostrar push-notification del navegador para nuevas no leídas
+      if (!silent && Notification.permission === 'granted') {
+        _pushNuevas(data.notificaciones);
+      }
+
+      if (_notifPanelOpen) _renderLista(_notifCache);
+    } catch {}
+  }
+
+  /* ── Push: notificar solo las nuevas desde la última revisión ── */
+  let _lastNotifId = 0;
+  function _pushNuevas(notifs) {
+    const nuevas = notifs.filter(n => !n.leida && n.id > _lastNotifId);
+    if (nuevas.length && _lastNotifId > 0) {
+      nuevas.slice(0, 3).forEach(n => {
+        const meta = TIPO_META[n.tipo] || { icono: 'notifications', texto: () => n.texto_extra };
+        try {
+          new Notification('FamilyApp', {
+            body:    meta.texto(n).replace(/<[^>]+>/g, ''),
+            icon:    '/static/icono/icono.png',
+            tag:     `notif-${n.id}`,
+            silent:  false,
+          });
+        } catch {}
+      });
+    }
+    if (notifs.length) _lastNotifId = Math.max(_lastNotifId, ...notifs.map(n => n.id));
+  }
+
+  /* ── Polling liviano cada 45 seg ── */
+  async function _pollConteo() {
+    try {
+      const r = await fetch('/api/notificaciones/no_leidas', { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+      if (!r.ok) return;
+      const d = await r.json();
+      if (d.ok) _setBadge(d.count);
+    } catch {}
+  }
+
+  function _startPolling() {
+    if (_pollingTimer) return;
+    _pollingTimer = setInterval(_pollConteo, 45000);
+  }
+
+  /* ── Pedir permiso de notificaciones ── */
+  async function _pedirPermiso() {
+    if (!('Notification' in window)) return;
+    if (Notification.permission === 'default') {
+      await Notification.requestPermission();
+    }
+  }
+
+  /* ── Service Worker (push en background) ── */
+  function _registrarSW() {
+    if (_swRegistered || !('serviceWorker' in navigator)) return;
+    _swRegistered = true;
+    // Inline SW para no depender de archivos externos
+    const swCode = `
+self.addEventListener('push', e => {
+  const d = e.data ? e.data.json() : { title: 'FamilyApp', body: 'Nueva notificación' };
+  e.waitUntil(self.registration.showNotification(d.title || 'FamilyApp', {
+    body: d.body || '',
+    icon: '/static/icono/icono.png',
+    badge: '/static/icono/icono.png',
+  }));
+});
+self.addEventListener('notificationclick', e => {
+  e.notification.close();
+  e.waitUntil(clients.openWindow('/dashboard'));
+});
+`;
+    const blob = new Blob([swCode], { type: 'application/javascript' });
+    const swUrl = URL.createObjectURL(blob);
+    navigator.serviceWorker.register(swUrl, { scope: '/' })
+      .then(() => { URL.revokeObjectURL(swUrl); })
+      .catch(() => {});
+  }
+
+  /* ── Toggle panel ── */
+  window.toggleNotifPanel = function () {
+    if (_notifPanelOpen) { cerrarNotifPanel(); return; }
+    const panel   = document.getElementById('notif-panel');
+    const overlay = document.getElementById('notif-overlay');
+    if (!panel) return;
+    _notifPanelOpen = true;
+    panel.style.display   = 'flex';
+    overlay.style.display = 'block';
+    document.getElementById('notif-lista').innerHTML =
+      '<div class="notif-loading"><span class="material-symbols-outlined spin">refresh</span></div>';
+    _fetchNotifs(true).then(() => _renderLista(_notifCache));
+  };
+
+  window.cerrarNotifPanel = function () {
+    const panel   = document.getElementById('notif-panel');
+    const overlay = document.getElementById('notif-overlay');
+    if (panel)   panel.style.display   = 'none';
+    if (overlay) overlay.style.display = 'none';
+    _notifPanelOpen = false;
+  };
+
+  /* ── Marcar todas leídas ── */
+  window.marcarTodasLeidas = async function () {
+    try {
+      await fetch('/api/notificaciones/marcar_leidas', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+      _notifCache.forEach(n => n.leida = true);
+      _setBadge(0);
+      _renderLista(_notifCache);
+    } catch {}
+  };
+
+  /* ── Click en item ── */
+  window._notifClick = async function (el) {
+    const nid    = el.dataset.id;
+    const postId = el.dataset.post;
+    const tipo   = el.dataset.tipo;
+    // Marcar como leída
+    if (el.classList.contains('no-leida')) {
+      el.classList.remove('no-leida');
+      try {
+        await fetch(`/api/notificaciones/marcar_una/${nid}`, { method: 'POST' });
+        const noLeidas = _notifCache.filter(n => !n.leida).length;
+        _setBadge(noLeidas > 0 ? noLeidas : 0);
+      } catch {}
+    }
+    cerrarNotifPanel();
+    // Navegar al contenido relevante
+    if (postId) {
+      if (typeof irSeccion === 'function') irSeccion('inicio');
+      setTimeout(() => {
+        const card = document.getElementById('post-' + postId);
+        if (card) {
+          card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          card.style.outline = '2px solid var(--accent,#ff4d8d)';
+          setTimeout(() => { card.style.outline = ''; }, 2000);
+        }
+      }, 400);
+    } else if (tipo === 'seguidor') {
+      if (typeof irSeccion === 'function') irSeccion('perfil');
+    }
+  };
+
+  /* ── Init al cargar la página ── */
+  document.addEventListener('DOMContentLoaded', () => {
+    // Fetch inicial al cargar (sin push — silencioso)
+    _fetchNotifs(true).then(() => {
+      // Después del primer fetch, establecemos el ID base para detectar nuevas
+      if (_notifCache.length) _lastNotifId = Math.max(..._notifCache.map(n => n.id));
+    });
+    _startPolling();
+    // Pedir permiso de notificaciones (no invasivo — solo si no decidió antes)
+    setTimeout(_pedirPermiso, 3000);
+    _registrarSW();
+  });
+
+  /* ── Cerrar con Escape ── */
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && _notifPanelOpen) cerrarNotifPanel();
+  });
+
 })();
 </script>

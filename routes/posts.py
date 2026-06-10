@@ -177,6 +177,8 @@ def publicar_ajax():
         return jsonify({"ok": False}), 400
     poll = _get_poll(con, post_id, uid)
     html = render_template_string(POST_TMPL, p=dict(p), poll=poll)
+    # Disparar notificaciones post-publicación (no bloquea la respuesta)
+    _notificar_post(con, post_id, uid, p["texto"] or "")
     return jsonify({"ok": True, "html": html})
 
 def _guardar_post():
@@ -264,6 +266,20 @@ def _guardar_post():
 
     return post_id
 
+
+def _notificar_post(con, post_id, uid, texto):
+    """Lanza notificaciones después de publicar un post."""
+    try:
+        from routes.notificaciones import notificar_menciones, notificar_admin_post
+        # Menciones en el texto del post
+        notificar_menciones(con, actor_id=uid, texto=texto, post_id=post_id)
+        # Si es admin, notificar a todos
+        if session.get("rol") == "admin":
+            notificar_admin_post(con, post_id, uid)
+        con.commit()
+    except Exception:
+        pass
+
 @posts_bp.route("/like/<int:post_id>", methods=["POST"])
 def like(post_id):
     if "uid" not in session:
@@ -279,6 +295,19 @@ def like(post_id):
         liked = True
     con.commit()
     total = con.execute("SELECT COUNT(*) FROM likes WHERE post_id=%s", (post_id,)).fetchone()[0]
+
+    # ── Notificación de like ──────────────────────────────────────────────────
+    if liked:
+        try:
+            from routes.notificaciones import crear_notificacion
+            post_owner = con.execute("SELECT usuario_id FROM publicaciones WHERE id=%s", (post_id,)).fetchone()
+            if post_owner:
+                crear_notificacion(con, dest_id=post_owner["usuario_id"], tipo="like",
+                                   actor_id=uid, post_id=post_id)
+                con.commit()
+        except Exception:
+            pass
+
     return jsonify({"ok": True, "likes": total, "liked": liked})
 
 @posts_bp.route("/comentar", methods=["POST"])
@@ -321,6 +350,30 @@ def comentar_ajax():
     foto    = (usuario["foto"] or "") if usuario else ""
     uname   = (usuario["usuario"] or "") if usuario else ""
     cmt_id  = con.execute("SELECT lastval()").fetchone()[0]
+
+    # ── Notificaciones de comentario y menciones ──────────────────────────────
+    try:
+        from routes.notificaciones import crear_notificacion, notificar_menciones
+        # Notificar al dueño del post
+        post_owner = con.execute("SELECT usuario_id FROM publicaciones WHERE id=%s", (post_id,)).fetchone()
+        if post_owner:
+            crear_notificacion(con, dest_id=post_owner["usuario_id"], tipo="comentario",
+                               actor_id=uid, post_id=int(post_id), comentario_id=cmt_id,
+                               texto_extra=(texto or "")[:120])
+        # Si es respuesta, notificar al autor del comentario padre
+        if parent_id:
+            parent = con.execute("SELECT usuario_id FROM comentarios WHERE id=%s", (parent_id,)).fetchone()
+            if parent and parent["usuario_id"] != (post_owner["usuario_id"] if post_owner else None):
+                crear_notificacion(con, dest_id=parent["usuario_id"], tipo="respuesta",
+                                   actor_id=uid, post_id=int(post_id), comentario_id=cmt_id,
+                                   texto_extra=(texto or "")[:120])
+        # Menciones en el texto
+        notificar_menciones(con, actor_id=uid, texto=texto,
+                            post_id=int(post_id), comentario_id=cmt_id)
+        con.commit()
+    except Exception:
+        pass
+
     return jsonify({"ok": True, "nombre": nombre, "foto": foto, "texto": texto, "inicial": inicial, "id": cmt_id, "usuario_id": uid, "usuario": uname, "gif_url": gif_url})
 
 @posts_bp.route("/eliminar_post/<int:post_id>", methods=["POST"])
@@ -386,6 +439,19 @@ def repost(post_id):
         reposted = True
     con.commit()
     total = con.execute("SELECT COUNT(*) FROM reposts WHERE post_id=%s", (post_id,)).fetchone()[0]
+
+    # ── Notificación de repost ────────────────────────────────────────────────
+    if reposted:
+        try:
+            from routes.notificaciones import crear_notificacion
+            post_owner = con.execute("SELECT usuario_id FROM publicaciones WHERE id=%s", (post_id,)).fetchone()
+            if post_owner:
+                crear_notificacion(con, dest_id=post_owner["usuario_id"], tipo="repost",
+                                   actor_id=uid, post_id=post_id)
+                con.commit()
+        except Exception:
+            pass
+
     return jsonify({"ok": True, "reposted": reposted, "reposts": total})
 
 

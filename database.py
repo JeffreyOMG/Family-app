@@ -318,6 +318,19 @@ _TABLES = [
     "CREATE INDEX IF NOT EXISTS idx_pub_fecha       ON publicaciones(fecha DESC)",
     "CREATE INDEX IF NOT EXISTS idx_pub_usuario     ON publicaciones(usuario_id)",
     "CREATE INDEX IF NOT EXISTS idx_coment_post     ON comentarios(post_id)",
+    # ── Sistema de Notificaciones ────────────────────────────────────────────
+    """CREATE TABLE IF NOT EXISTS notificaciones (
+        id             SERIAL PRIMARY KEY,
+        dest_id        INTEGER NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+        tipo           TEXT    NOT NULL,
+        actor_id       INTEGER REFERENCES usuarios(id) ON DELETE SET NULL,
+        post_id        INTEGER REFERENCES publicaciones(id) ON DELETE CASCADE,
+        comentario_id  INTEGER REFERENCES comentarios(id) ON DELETE CASCADE,
+        texto_extra    TEXT    DEFAULT '',
+        leida          BOOLEAN DEFAULT FALSE,
+        fecha          TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""",
+    "CREATE INDEX IF NOT EXISTS idx_notif_dest  ON notificaciones(dest_id, leida)",
+    "CREATE INDEX IF NOT EXISTS idx_notif_fecha ON notificaciones(fecha DESC)",
 ]
 
 def init_db():
