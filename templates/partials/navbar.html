@@ -579,3 +579,176 @@ self.addEventListener('notificationclick', e => {
 
 })();
 </script>
+
+<!-- ══ PULL TO REFRESH — solo móvil ════════════════════════════════════════ -->
+<style>
+/* Indicador pull-to-refresh */
+#ptr-indicator {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%) translateY(-100%);
+  z-index: 2000;
+  background: var(--card-bg, #1e1e2e);
+  border: 1px solid var(--border, #2a2a3e);
+  border-radius: 50%;
+  width: 44px;
+  height: 44px;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 20px rgba(0,0,0,.4);
+  transition: transform 0.15s ease;
+  pointer-events: none;
+}
+#ptr-indicator .material-symbols-outlined {
+  font-size: 22px;
+  color: var(--accent, #ff4d8d);
+  transition: transform 0.2s ease;
+  display: block;
+}
+#ptr-indicator.ptr-pulling {
+  display: flex;
+}
+#ptr-indicator.ptr-ready .material-symbols-outlined {
+  color: #4ade80;
+}
+#ptr-indicator.ptr-loading .material-symbols-outlined {
+  animation: ptr-spin 0.7s linear infinite;
+}
+@keyframes ptr-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+/* Solo se muestra en móvil */
+@media (min-width: 769px) {
+  #ptr-indicator { display: none !important; }
+}
+</style>
+
+<!-- El círculo indicador -->
+<div id="ptr-indicator" aria-hidden="true">
+  <span class="material-symbols-outlined" id="ptr-icon">arrow_downward</span>
+</div>
+
+<script>
+/* ══ Pull-to-Refresh — solo pantallas ≤ 768px ═══════════════════════════════
+   Funciona tanto en browser como en APK/WebView donde no hay pull nativo.
+   ─────────────────────────────────────────────────────────────────────────── */
+(function () {
+  'use strict';
+
+  if (window.innerWidth > 768) return; // Solo móvil
+
+  var PTR_THRESHOLD   = 80;   // px que hay que bajar para activar
+  var PTR_MAX_PULL    = 120;  // máximo desplazamiento visual
+  var PTR_RESISTANCE  = 0.4;  // cuánto "cuesta" tirar (0.4 = amortiguado)
+
+  var indicator = document.getElementById('ptr-indicator');
+  var icon      = document.getElementById('ptr-icon');
+
+  var startY    = 0;
+  var currentY  = 0;
+  var pulling   = false;
+  var loading   = false;
+
+  /* Saber si el scroll está en el tope */
+  function isAtTop() {
+    var mc = document.querySelector('.main-content');
+    if (mc && mc.scrollTop > 2) return false;
+    return (window.scrollY || document.documentElement.scrollTop || document.body.scrollTop) < 2;
+  }
+
+  /* Mover el indicador visualmente */
+  function setIndicatorPos(py) {
+    var raw      = py * PTR_RESISTANCE;
+    var clamped  = Math.min(raw, PTR_MAX_PULL);
+    var progress = Math.min(clamped / PTR_THRESHOLD, 1);
+
+    indicator.style.display = 'flex';
+    indicator.style.transform = 'translateX(-50%) translateY(' + (clamped - 44) + 'px)';
+
+    // Rotar flecha según progreso
+    icon.style.transform = 'rotate(' + (progress * 180) + 'deg)';
+
+    if (progress >= 1) {
+      indicator.classList.add('ptr-ready');
+      icon.textContent = 'refresh';
+    } else {
+      indicator.classList.remove('ptr-ready');
+      icon.textContent = 'arrow_downward';
+    }
+  }
+
+  function resetIndicator() {
+    indicator.style.transition = 'transform 0.3s ease, opacity 0.3s ease';
+    indicator.style.opacity    = '0';
+    indicator.style.transform  = 'translateX(-50%) translateY(-60px)';
+    setTimeout(function () {
+      indicator.style.display    = 'none';
+      indicator.style.transition = '';
+      indicator.style.opacity    = '1';
+      indicator.classList.remove('ptr-pulling', 'ptr-ready', 'ptr-loading');
+      icon.style.transform = '';
+    }, 300);
+  }
+
+  function showLoading() {
+    indicator.style.display   = 'flex';
+    indicator.style.transform = 'translateX(-50%) translateY(12px)';
+    indicator.classList.add('ptr-loading');
+    icon.textContent          = 'refresh';
+    icon.style.transform      = '';
+  }
+
+  function doRefresh() {
+    if (loading) return;
+    loading = true;
+    showLoading();
+    // Pequeño delay para que se vea el spinner, luego recarga
+    setTimeout(function () {
+      location.reload();
+    }, 600);
+  }
+
+  /* ── Touch handlers ── */
+  document.addEventListener('touchstart', function (e) {
+    if (loading) return;
+    if (!isAtTop()) return;
+    startY  = e.touches[0].clientY;
+    pulling = false;
+  }, { passive: true });
+
+  document.addEventListener('touchmove', function (e) {
+    if (loading) return;
+    if (!isAtTop()) return;
+    currentY = e.touches[0].clientY;
+    var dy   = currentY - startY;
+    if (dy <= 0) return;
+
+    pulling = true;
+    indicator.classList.add('ptr-pulling');
+    setIndicatorPos(dy);
+  }, { passive: true });
+
+  document.addEventListener('touchend', function () {
+    if (loading || !pulling) return;
+    var dy = currentY - startY;
+    pulling = false;
+    if (dy * PTR_RESISTANCE >= PTR_THRESHOLD) {
+      doRefresh();
+    } else {
+      resetIndicator();
+    }
+  }, { passive: true });
+
+  /* ── Resize: desactivar si rotan a landscape > 768px ── */
+  window.addEventListener('resize', function () {
+    if (window.innerWidth > 768) {
+      resetIndicator();
+    }
+  }, { passive: true });
+
+})();
+</script>
