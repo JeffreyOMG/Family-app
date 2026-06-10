@@ -440,16 +440,15 @@ def api_feed_posts():
         """, tuple(_ids)).fetchall():
             comentarios_por_post.setdefault(c["post_id"], []).append(dict(c))
 
-    # Renderizar cada post con el macro real de inicio.html
+    # Renderizar cada post con el macro standalone
+    from flask import current_app
     posts_html = []
+    jinja_env = current_app.jinja_env
+    macro_tmpl = jinja_env.get_template("partials/post_card.html")
+    macro_fn = macro_tmpl.module.render_post
     for _p in rows:
         try:
-            h = render_template(
-                "partials/post_card.html",
-                p=_p,
-                usuario=usuario_dict,
-                comentarios_por_post=comentarios_por_post,
-            )
+            h = macro_fn(_p, usuario=usuario_dict, comentarios_por_post=comentarios_por_post)
             posts_html.append({"id": _p["id"], "html": h})
         except Exception as e:
             posts_html.append({"id": _p["id"], "html": "", "error": str(e)})
