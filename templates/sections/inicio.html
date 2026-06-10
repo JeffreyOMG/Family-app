@@ -4394,13 +4394,15 @@ img.inline-emote:hover {
 /* ── CARGAR MÁS ── */
 .btn-cargar-mas {
   display: inline-flex; align-items: center; gap: 6px;
-  padding: 10px 24px; border-radius: 24px;
-  background: var(--surface, #fff); border: 1.5px solid var(--border, #e5e7eb);
-  color: var(--text, #374151); font-size: 14px; font-weight: 500;
-  cursor: pointer; transition: all .18s;
+  padding: 10px 28px; border-radius: 24px;
+  background: #ff4d8d; border: none;
+  color: #fff !important; font-size: 14px; font-weight: 600;
+  cursor: pointer; transition: opacity .18s, transform .12s;
+  box-shadow: 0 2px 8px rgba(255,77,141,.35);
 }
-.btn-cargar-mas:hover { background: var(--ac, #ff4d8d); color: #fff; border-color: var(--ac, #ff4d8d); }
-.btn-cargar-mas:disabled { opacity: .5; cursor: not-allowed; }
+.btn-cargar-mas:hover { opacity: .88; transform: translateY(-1px); }
+.btn-cargar-mas:active { opacity: 1; transform: translateY(0); }
+.btn-cargar-mas:disabled { opacity: .5; cursor: not-allowed; transform: none; }
 .btn-cargar-mas .spin { animation: spin .8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 </style>

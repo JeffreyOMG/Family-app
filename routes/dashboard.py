@@ -414,21 +414,45 @@ def api_feed_posts():
         LIMIT {POSTS_PER_PAGE} OFFSET {offset}
     """, (uid, uid)).fetchall()]
 
-    from routes.posts import _get_poll, POST_TMPL
-    from flask import render_template_string
+    from routes.posts import _get_poll
+    from flask import render_template
     for _p in rows:
         _p["poll"] = _get_poll(con, _p["id"], uid)
 
     has_more = (offset + POSTS_PER_PAGE) < total
 
-    # Renderizar cada post como HTML usando POST_TMPL
+    # Obtener datos del usuario para el macro render_post
+    usuario = con.execute(
+        "SELECT id, nombre, usuario, foto, rol FROM usuarios WHERE id=%s", (uid,)
+    ).fetchone()
+    usuario_dict = dict(usuario) if usuario else {"id": uid, "nombre": "?", "usuario": "?", "foto": "", "rol": "invitado"}
+
+    # Cargar comentarios solo de estos posts para el macro
+    _ids = [p["id"] for p in rows]
+    comentarios_por_post = {}
+    if _ids:
+        _ph = ",".join(["%s"] * len(_ids))
+        for c in con.execute(f"""
+            SELECT c.id, c.post_id, c.texto, c.parent_id, c.fecha, c.usuario_id,
+                   COALESCE(c.gif_url,'') AS gif_url, u.nombre, u.usuario, u.foto
+            FROM comentarios c JOIN usuarios u ON u.id=c.usuario_id
+            WHERE c.post_id IN ({_ph}) ORDER BY c.fecha ASC
+        """, tuple(_ids)).fetchall():
+            comentarios_por_post.setdefault(c["post_id"], []).append(dict(c))
+
+    # Renderizar cada post con el macro real de inicio.html
     posts_html = []
     for _p in rows:
         try:
-            h = render_template_string(POST_TMPL, p=_p, poll=_p.get("poll"))
+            h = render_template(
+                "partials/post_card.html",
+                p=_p,
+                usuario=usuario_dict,
+                comentarios_por_post=comentarios_por_post,
+            )
             posts_html.append({"id": _p["id"], "html": h})
         except Exception as e:
-            posts_html.append({"id": _p["id"], "html": ""})
+            posts_html.append({"id": _p["id"], "html": "", "error": str(e)})
 
     return jsonify({
         "ok": True,
