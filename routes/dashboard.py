@@ -90,6 +90,8 @@ def get_ctx(uid, con, extra=None):
         SELECT p.id, p.texto, p.media, p.media_tipo, p.fecha,
                COALESCE(p.visibilidad,'general') AS visibilidad,
                COALESCE(p.gif_url,'') AS gif_url,
+               COALESCE(p.fijado, FALSE) AS fijado,
+               COALESCE(p.fijado_admin, FALSE) AS fijado_admin,
                u.nombre, u.usuario, u.foto, u.id AS usuario_id,
                EXISTS(SELECT 1 FROM likes l WHERE l.usuario_id=%s AND l.post_id=p.id) AS liked,
                (SELECT COUNT(*) FROM likes l2 WHERE l2.post_id=p.id) AS total_likes,
@@ -97,7 +99,7 @@ def get_ctx(uid, con, extra=None):
                EXISTS(SELECT 1 FROM bookmarks b WHERE b.usuario_id=%s AND b.post_id=p.id) AS bookmarked
         FROM publicaciones p JOIN usuarios u ON u.id=p.usuario_id
         WHERE 1=1 {vis_filter}
-        ORDER BY p.fecha DESC
+        ORDER BY COALESCE(p.fijado_admin, FALSE) DESC, p.fecha DESC
         LIMIT {POSTS_PER_PAGE}
     """, (uid, uid)).fetchall()]
     for _p in publicaciones:
@@ -403,6 +405,8 @@ def api_feed_posts():
         SELECT p.id, p.texto, p.media, p.media_tipo, p.fecha,
                COALESCE(p.visibilidad,'general') AS visibilidad,
                COALESCE(p.gif_url,'') AS gif_url,
+               COALESCE(p.fijado, FALSE) AS fijado,
+               COALESCE(p.fijado_admin, FALSE) AS fijado_admin,
                u.nombre, u.usuario, u.foto, u.id AS usuario_id,
                EXISTS(SELECT 1 FROM likes l WHERE l.usuario_id=%s AND l.post_id=p.id) AS liked,
                (SELECT COUNT(*) FROM likes l2 WHERE l2.post_id=p.id) AS total_likes,
@@ -410,7 +414,7 @@ def api_feed_posts():
                EXISTS(SELECT 1 FROM bookmarks b WHERE b.usuario_id=%s AND b.post_id=p.id) AS bookmarked
         FROM publicaciones p JOIN usuarios u ON u.id=p.usuario_id
         WHERE 1=1 {vis_filter}
-        ORDER BY p.fecha DESC
+        ORDER BY COALESCE(p.fijado_admin, FALSE) DESC, p.fecha DESC
         LIMIT {POSTS_PER_PAGE} OFFSET {offset}
     """, (uid, uid)).fetchall()]
 

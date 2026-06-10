@@ -481,6 +481,29 @@ def fijar_post(post_id):
         return jsonify({"ok": True, "fijado": True})
 
 
+# ─── FIJAR PARA TODOS (solo admin) ──────────────────────────────────────────
+@posts_bp.route("/fijar_admin/<int:post_id>", methods=["POST"])
+def fijar_admin(post_id):
+    if "uid" not in session or session.get("rol") != "admin":
+        return jsonify({"ok": False, "error": "No autorizado"}), 403
+    con = get_db()
+    post = con.execute("SELECT id, fijado_admin FROM publicaciones WHERE id=%s", (post_id,)).fetchone()
+    if not post:
+        return jsonify({"ok": False, "error": "Post no encontrado"}), 404
+
+    ya_fijado = bool(post["fijado_admin"])
+    if ya_fijado:
+        con.execute("UPDATE publicaciones SET fijado_admin=FALSE WHERE id=%s", (post_id,))
+        con.commit()
+        return jsonify({"ok": True, "fijado_admin": False})
+    else:
+        # Solo puede haber uno fijado por admin a la vez
+        con.execute("UPDATE publicaciones SET fijado_admin=FALSE WHERE fijado_admin=TRUE")
+        con.execute("UPDATE publicaciones SET fijado_admin=TRUE WHERE id=%s", (post_id,))
+        con.commit()
+        return jsonify({"ok": True, "fijado_admin": True})
+
+
 # ─── ACTIVIDAD DEL POST ───────────────────────────────────────────────────────
 @posts_bp.route("/api/post_actividad/<int:post_id>")
 def post_actividad(post_id):

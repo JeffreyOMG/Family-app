@@ -175,6 +175,7 @@ _TABLES = [
     # Migración: columna visibilidad ('general' = todos ven, 'privada' = solo miembros/admin)
     """ALTER TABLE publicaciones ADD COLUMN IF NOT EXISTS visibilidad TEXT DEFAULT 'general'""",
     """ALTER TABLE publicaciones ADD COLUMN IF NOT EXISTS fijado BOOLEAN DEFAULT FALSE""",
+    """ALTER TABLE publicaciones ADD COLUMN IF NOT EXISTS fijado_admin BOOLEAN DEFAULT FALSE""",
     """ALTER TABLE publicaciones ADD COLUMN IF NOT EXISTS gif_url TEXT DEFAULT ''""",
     """ALTER TABLE comentarios ADD COLUMN IF NOT EXISTS gif_url TEXT DEFAULT ''""",
     """CREATE TABLE IF NOT EXISTS likes (

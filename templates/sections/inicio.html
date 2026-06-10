@@ -1350,6 +1350,23 @@ body.dark-mode .post-badge-privado { background: rgba(139,92,246,.2); color: #a7
   color: var(--accent, #ff4d8d);
   transform: rotate(45deg);
 }
+/* Admin pin banner — rosado distintivo */
+.post-pin-banner--admin {
+  color: var(--accent, #ff4d8d);
+  background: rgba(255, 77, 141, 0.08);
+  border-radius: 8px;
+  padding: 6px 10px;
+  margin: -4px -4px 10px -4px;
+  border-bottom: none;
+  border: 1px solid rgba(255, 77, 141, 0.25);
+}
+.post-pin-banner--admin .material-symbols-outlined {
+  color: var(--accent, #ff4d8d);
+}
+.post-card--admin-pin {
+  border: 1.5px solid rgba(255, 77, 141, 0.35) !important;
+  box-shadow: 0 0 0 3px rgba(255, 77, 141, 0.07), 0 2px 12px rgba(255, 77, 141, 0.10) !important;
+}
 
 /* 3-dot options button */
 .post-options-btn {
@@ -4035,6 +4052,10 @@ img.inline-emote:hover {
       <span class="material-symbols-outlined">push_pin</span>
       <span id="pm-pin-label">Fijar publicación</span>
     </button>
+    <button class="pm-item pm-pin pm-admin-pin" id="pm-btn-admin-pin" onclick="pmAccion('fijar_admin')" style="display:none;">
+      <span class="material-symbols-outlined" style="color:var(--accent,#ff4d8d)">keep</span>
+      <span id="pm-admin-pin-label">Fijar para todos</span>
+    </button>
     <div class="pm-divider"></div>
     <button class="pm-item" id="pm-btn-actividad" onclick="pmAccion('actividad')">
       <span class="material-symbols-outlined">bar_chart</span>
@@ -5692,16 +5713,22 @@ function mostrarToast(msg, tipo='ok'){
 let _pmPostId = null;
 let _pmEsMio  = false;
 let _pmFijado = false;
+let _pmFijadoAdmin = false;
 
 function abrirMenuPost(postId, esMio, fijado, event) {
   if (event) { event.stopPropagation(); event.preventDefault(); }
   _pmPostId = postId;
   _pmEsMio  = esMio;
   _pmFijado = fijado;
+  const card = document.getElementById('post-' + postId);
+  _pmFijadoAdmin = card ? card.dataset.fijadoAdmin === 'true' : false;
 
-  const pinBtn   = document.getElementById('pm-btn-pin');
-  const pinLabel = document.getElementById('pm-pin-label');
-  const actBtn   = document.getElementById('pm-btn-actividad');
+  const pinBtn       = document.getElementById('pm-btn-pin');
+  const pinLabel     = document.getElementById('pm-pin-label');
+  const actBtn       = document.getElementById('pm-btn-actividad');
+  const adminPinBtn  = document.getElementById('pm-btn-admin-pin');
+  const adminPinLbl  = document.getElementById('pm-admin-pin-label');
+  const esAdmin      = document.body.dataset.rol === 'admin';
 
   if (esMio) {
     pinBtn.style.display = '';
@@ -5710,6 +5737,10 @@ function abrirMenuPost(postId, esMio, fijado, event) {
   } else {
     pinBtn.style.display = 'none';
     actBtn.style.display = 'none';
+  }
+  if (adminPinBtn) {
+    adminPinBtn.style.display = esAdmin ? '' : 'none';
+    if (adminPinLbl) adminPinLbl.textContent = _pmFijadoAdmin ? 'Desfijar para todos' : 'Fijar para todos';
   }
 
   const overlay = document.getElementById('post-menu-overlay');
@@ -6026,6 +6057,44 @@ async function pmAccion(accion) {
         }
       }
     } catch(e) { mostrarToast('Error al fijar', 'err'); }
+
+  } else if (accion === 'fijar_admin') {
+    try {
+      const res  = await fetch('/fijar_admin/' + _pmPostId, {
+        method: 'POST',
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+      });
+      const data = await res.json();
+      if (data.ok) {
+        // Quitar banner admin de todos los posts
+        document.querySelectorAll('.post-pin-banner--admin').forEach(b => b.remove());
+        document.querySelectorAll('.post-card').forEach(c => {
+          c.dataset.fijadoAdmin = 'false';
+          c.classList.remove('post-card--admin-pin');
+        });
+
+        const card = document.getElementById('post-' + _pmPostId);
+        if (card) {
+          if (data.fijado_admin) {
+            const banner = document.createElement('div');
+            banner.className = 'post-pin-banner post-pin-banner--admin';
+            banner.innerHTML = '<span class="material-symbols-outlined">push_pin</span><span>Fijado por el administrador</span>';
+            card.insertBefore(banner, card.firstChild);
+            card.dataset.fijadoAdmin = 'true';
+            card.classList.add('post-card--admin-pin');
+            // Mover al tope del feed
+            const feed = document.getElementById('feed-posts');
+            if (feed) feed.insertBefore(card, feed.firstChild);
+            mostrarToast('📌 Fijado para todos los usuarios');
+          } else {
+            mostrarToast('Publicación desfijada para todos');
+          }
+          _pmFijadoAdmin = data.fijado_admin;
+        }
+      } else {
+        mostrarToast(data.error || 'Error al fijar', 'err');
+      }
+    } catch(e) { mostrarToast('Error al fijar para todos', 'err'); }
 
   } else if (accion === 'actividad') {
     const modal   = document.getElementById('pm-activity-modal');

@@ -1,6 +1,11 @@
 {% macro render_post(p, usuario=None, comentarios_por_post=None) %}
-<article class="post-card" id="post-{{ p.id }}" data-fijado="{{ 'true' if p.get('fijado') else 'false' }}">
-  {% if p.get('fijado') %}
+<article class="post-card{% if p.get('fijado_admin') %} post-card--admin-pin{% endif %}" id="post-{{ p.id }}" data-fijado="{{ 'true' if p.get('fijado') else 'false' }}" data-fijado-admin="{{ 'true' if p.get('fijado_admin') else 'false' }}">
+  {% if p.get('fijado_admin') %}
+  <div class="post-pin-banner post-pin-banner--admin">
+    <span class="material-symbols-outlined">push_pin</span>
+    <span>Fijado por el administrador</span>
+  </div>
+  {% elif p.get('fijado') %}
   <div class="post-pin-banner">
     <span class="material-symbols-outlined">push_pin</span>
     <span>Publicación fijada</span>
