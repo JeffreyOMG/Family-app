@@ -1,369 +1,1262 @@
 <section class="section" id="sec-perfil">
 
-  <!-- CABECERA PERFIL -->
-  <div class="content-card pf-hero">
-    <div class="pf-avatar-wrap">
-      <img src="{{ usuario.foto or '' }}" id="preview-foto-perfil" class="pf-avatar-img user-avatar-img" style="{{ '' if usuario.foto else 'display:none;' }}">
-      <div class="user-avatar pf-avatar-letter" id="pf-avatar-letter" style="{{ 'display:none;' if usuario.foto else '' }}">{{ usuario.nombre[0]|upper }}</div>
-      <label class="pf-camera-btn" id="pf-camera-label" title="Cambiar foto">
-        <span class="material-symbols-outlined" id="pf-camera-icon">photo_camera</span>
-        <input type="file" accept="image/*" id="pf-foto-direct" style="display:none;" onchange="autoGuardarFoto(this)">
-      </label>
-    </div>
-    <div class="pf-hero-info">
-      <h2 class="pf-nombre" id="pf-hero-nombre">{{ usuario.nombre }}</h2>
-      <p class="pf-usuario">@{{ usuario.usuario }} &nbsp;·&nbsp; <span class="pf-rol-badge">{{ usuario.rol }}</span></p>
-      {% if usuario.bio %}<p class="pf-bio">{{ usuario.bio }}</p>{% endif %}
-      {% if usuario.gmail %}<p class="pf-gmail"><span class="material-symbols-outlined">mail</span>{{ usuario.gmail }}</p>{% endif %}
-      {% if usuario.fecha %}
-      <p class="pf-miembro-desde"><span class="material-symbols-outlined">calendar_month</span>Miembro desde {{ usuario.fecha[:10] if usuario.fecha else '' }}</p>
+  <!-- ══════════════════════════════════════════════════════
+       PORTADA + HERO
+  ══════════════════════════════════════════════════════ -->
+  <div class="pf2-cover-wrap">
+    <!-- Portada -->
+    <div class="pf2-cover" id="pf2-cover">
+      <div class="pf2-cover-gradient"></div>
+      {% if usuario.portada %}
+      <img src="{{ usuario.portada }}" class="pf2-cover-img" id="pf2-cover-img" alt="Portada">
+      {% else %}
+      <div class="pf2-cover-placeholder" id="pf2-cover-img"></div>
       {% endif %}
     </div>
+
+    <!-- Avatar flotando sobre la portada -->
+    <div class="pf2-avatar-area">
+      <div class="pf2-avatar-wrap">
+        {% if usuario.foto %}
+        <img src="{{ usuario.foto }}" id="preview-foto-perfil" class="pf2-avatar user-avatar-img" alt="{{ usuario.nombre }}">
+        <div class="pf2-avatar-letter" id="pf-avatar-letter" style="display:none;">{{ usuario.nombre[0]|upper }}</div>
+        {% else %}
+        <img src="" id="preview-foto-perfil" class="pf2-avatar user-avatar-img" style="display:none;" alt="{{ usuario.nombre }}">
+        <div class="pf2-avatar-letter" id="pf-avatar-letter">{{ usuario.nombre[0]|upper }}</div>
+        {% endif %}
+        <!-- Botón cambiar foto rápido (click en avatar) -->
+        <label class="pf2-avatar-cam" title="Cambiar foto de perfil">
+          <span class="material-symbols-outlined" id="pf-camera-icon">photo_camera</span>
+          <input type="file" accept="image/*" id="pf-foto-direct" style="display:none;" onchange="autoGuardarFoto(this)">
+        </label>
+      </div>
+
+      <!-- Nombre + usuario + botones de acción -->
+      <div class="pf2-identity">
+        <div class="pf2-names">
+          <h1 class="pf2-nombre" id="pf-hero-nombre">{{ usuario.nombre }}</h1>
+          <div class="pf2-meta-row">
+            <span class="pf2-usuario">@{{ usuario.usuario }}</span>
+            <span class="pf2-rol-badge">{{ usuario.rol }}</span>
+          </div>
+          {% if usuario.bio %}
+          <p class="pf2-bio" id="pf2-bio-texto">{{ usuario.bio }}</p>
+          {% else %}
+          <p class="pf2-bio pf2-bio-empty" id="pf2-bio-texto">Sin biografía aún.</p>
+          {% endif %}
+          <div class="pf2-info-pills" id="pf2-info-pills">
+            {% if usuario.ciudad %}<span class="pf2-pill"><span class="material-symbols-outlined">location_on</span>{{ usuario.ciudad }}</span>{% endif %}
+            {% if usuario.sitio_web %}<a href="{{ usuario.sitio_web }}" target="_blank" rel="noopener" class="pf2-pill pf2-pill-link"><span class="material-symbols-outlined">link</span>{{ usuario.sitio_web }}</a>{% endif %}
+            {% if usuario.fecha %}<span class="pf2-pill"><span class="material-symbols-outlined">calendar_month</span>Desde {{ usuario.fecha[:7] if usuario.fecha else '' }}</span>{% endif %}
+          </div>
+        </div>
+
+        <!-- Acciones del perfil -->
+        <div class="pf2-actions">
+          <button class="pf2-btn-edit" onclick="pf2AbrirModalEditar()">
+            <span class="material-symbols-outlined">edit</span>
+            <span>Editar información</span>
+          </button>
+          <button class="pf2-btn-settings" onclick="pf2AbrirModalAjustes()" title="Ajustes">
+            <span class="material-symbols-outlined">settings</span>
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 
-  <!-- ESTADÍSTICAS (solo social, sin datos financieros) -->
-  <div class="pf-stats-grid" id="pf-stats-grid">
-    <div class="pf-stat">
-      <span class="material-symbols-outlined">forum</span>
+  <!-- ══════════════════════════════════════════════════════
+       ESTADÍSTICAS
+  ══════════════════════════════════════════════════════ -->
+  <div class="pf2-stats-row" id="pf-stats-grid">
+    <div class="pf2-stat">
       <strong id="stat-posts">{{ usuario_posts }}</strong>
-      <span>Posts</span>
+      <span>Publicaciones</span>
     </div>
-    <div class="pf-stat">
-      <span class="material-symbols-outlined">favorite</span>
+    <div class="pf2-stat pf2-stat-div">
+      <strong id="stat-seguidores">{{ usuario.total_seguidores if usuario.total_seguidores is defined else '—' }}</strong>
+      <span>Seguidores</span>
+    </div>
+    <div class="pf2-stat pf2-stat-div">
       <strong id="stat-likes">{{ usuario_likes }}</strong>
-      <span>Likes recibidos</span>
+      <span>Likes</span>
     </div>
-    <div class="pf-stat">
-      <span class="material-symbols-outlined">emoji_events</span>
+    <div class="pf2-stat pf2-stat-div">
       <strong id="stat-puntos">{{ usuario_puntos }}</strong>
-      <span>Pts Mundial</span>
-    </div>
-    <div class="pf-stat">
-      <span class="material-symbols-outlined">calendar_month</span>
-      <strong id="stat-fecha">{{ usuario.fecha[:7] if usuario.fecha else '—' }}</strong>
-      <span>Fecha registro</span>
+      <span>Pts. Mundial</span>
     </div>
   </div>
 
-  <!-- PESTAÑAS DE CONTENIDO -->
-  <div class="pf-tabs-wrap">
-    <div class="pf-tabs-nav" role="tablist">
-      <button class="pf-tab-btn active" data-tab="publicaciones" onclick="pfCambiarTab(this,'publicaciones')">
+  <!-- ══════════════════════════════════════════════════════
+       PESTAÑAS
+  ══════════════════════════════════════════════════════ -->
+  <div class="pf2-tabs-wrap">
+    <nav class="pf2-tabs-nav" role="tablist">
+      <button class="pf2-tab active" data-tab="publicaciones" onclick="pfCambiarTab(this,'publicaciones')">
         <span class="material-symbols-outlined">grid_on</span>
-        <span class="pf-tab-label">Publicaciones</span>
+        <span class="pf2-tab-lbl">Publicaciones</span>
       </button>
-      <button class="pf-tab-btn" data-tab="mundial" onclick="pfCambiarTab(this,'mundial')">
+      <button class="pf2-tab" data-tab="mundial" onclick="pfCambiarTab(this,'mundial')">
         <span class="material-symbols-outlined">sports_soccer</span>
-        <span class="pf-tab-label">Mundial</span>
+        <span class="pf2-tab-lbl">Mundial</span>
       </button>
-      <button class="pf-tab-btn" data-tab="galeria" onclick="pfCambiarTab(this,'galeria')">
+      <button class="pf2-tab" data-tab="galeria" onclick="pfCambiarTab(this,'galeria')">
         <span class="material-symbols-outlined">photo_library</span>
-        <span class="pf-tab-label">Galería</span>
+        <span class="pf2-tab-lbl">Galería</span>
       </button>
-    </div>
+    </nav>
 
-    <!-- TAB: PUBLICACIONES -->
-    <div class="pf-tab-panel active" id="pf-tab-publicaciones">
+    <div class="pf2-tab-panel active" id="pf-tab-publicaciones">
       <div id="pf-posts-lista" class="pf-posts-lista">
-        <div class="pf-tab-loading">
-          <span class="material-symbols-outlined pf-spin">progress_activity</span>
-          Cargando publicaciones…
-        </div>
+        <div class="pf2-loading"><span class="material-symbols-outlined pf-spin">progress_activity</span>Cargando publicaciones…</div>
       </div>
     </div>
-
-    <!-- TAB: MUNDIAL -->
-    <div class="pf-tab-panel" id="pf-tab-mundial">
+    <div class="pf2-tab-panel" id="pf-tab-mundial">
       <div id="pf-mundial-contenido" class="pf-mundial-contenido">
-        <div class="pf-tab-loading">
-          <span class="material-symbols-outlined pf-spin">progress_activity</span>
-          Cargando pronósticos…
-        </div>
+        <div class="pf2-loading"><span class="material-symbols-outlined pf-spin">progress_activity</span>Cargando pronósticos…</div>
       </div>
     </div>
-
-    <!-- TAB: GALERÍA -->
-    <div class="pf-tab-panel" id="pf-tab-galeria">
+    <div class="pf2-tab-panel" id="pf-tab-galeria">
       <div id="pf-galeria-grid" class="pf-galeria-grid">
-        <div class="pf-tab-loading">
-          <span class="material-symbols-outlined pf-spin">progress_activity</span>
-          Cargando galería…
-        </div>
+        <div class="pf2-loading"><span class="material-symbols-outlined pf-spin">progress_activity</span>Cargando galería…</div>
       </div>
     </div>
   </div>
-
-  <!-- EDITAR PERFIL -->
-  <div class="content-card">
-    <div class="pf-section-head">
-      <span class="material-symbols-outlined">edit</span>
-      <h3>Editar Información</h3>
-    </div>
-    <form method="POST" action="/actualizar_perfil" enctype="multipart/form-data" id="form-perfil">
-      <div class="pf-form-grid">
-        <div class="pf-form-group">
-          <label class="pf-label">Nombre completo</label>
-          <input type="text" name="nombre" value="{{ usuario.nombre }}" class="pf-input" required>
-        </div>
-        <div class="pf-form-group">
-          <label class="pf-label">Usuario</label>
-          <input type="text" value="{{ usuario.usuario }}" class="pf-input pf-disabled" disabled>
-        </div>
-        <div class="pf-form-group pf-full">
-          <label class="pf-label">Gmail</label>
-          <input type="email" name="gmail" value="{{ usuario.gmail or '' }}" class="pf-input">
-        </div>
-        <div class="pf-form-group pf-full">
-          <label class="pf-label">Biografía</label>
-          <textarea name="bio" rows="3" class="pf-input pf-textarea" placeholder="Cuéntanos algo de ti...">{{ usuario.bio or '' }}</textarea>
-        </div>
-      </div>
-      <button type="submit" class="pf-btn-primary">
-        <span class="material-symbols-outlined">save</span> Guardar cambios
-      </button>
-    </form>
-  </div>
-
-  <!-- CAMBIAR CONTRASEÑA -->
-  <div class="content-card">
-    <div class="pf-section-head">
-      <span class="material-symbols-outlined">lock</span>
-      <h3>Cambiar Contraseña</h3>
-    </div>
-    <form method="POST" action="/cambiar_password">
-      <div class="pf-form-col">
-        <div class="pf-form-group pf-full">
-          <label class="pf-label">Contraseña actual</label>
-          <input type="password" name="actual" class="pf-input" required placeholder="••••••••">
-        </div>
-        <div class="pf-form-group pf-full">
-          <label class="pf-label">Nueva contraseña</label>
-          <input type="password" name="nueva" class="pf-input" required placeholder="Mín. 8 caracteres">
-        </div>
-        <div class="pf-form-group pf-full">
-          <label class="pf-label">Confirmar nueva</label>
-          <input type="password" name="confirmar" class="pf-input" required placeholder="Repite la contraseña">
-        </div>
-      </div>
-      <button type="submit" class="pf-btn-primary">
-        <span class="material-symbols-outlined">lock_reset</span> Cambiar contraseña
-      </button>
-    </form>
-  </div>
-
-  <!-- CERRAR SESIÓN -->
-  <div class="content-card pf-logout-card">
-    <div class="pf-section-head">
-      <span class="material-symbols-outlined">logout</span>
-      <h3>Sesión</h3>
-    </div>
-    <p class="pf-logout-desc">¿Quieres salir de tu cuenta en este dispositivo?</p>
-    <a href="/logout" class="pf-btn-logout">
-      <span class="material-symbols-outlined">logout</span> Cerrar sesión
-    </a>
-  </div>
-
-  <!-- APARIENCIA -->
-  <div class="content-card">
-    <h3><span class="material-symbols-outlined">palette</span> Apariencia</h3>
-    <div class="ajuste-row">
-      <div>
-        <div class="ajuste-label">Tema oscuro</div>
-        <div class="ajuste-desc">Cambia el fondo de la aplicación</div>
-      </div>
-      <label class="toggle-switch">
-        <input type="checkbox" id="toggle-dark" onchange="toggleTheme(this.checked)">
-        <span class="toggle-track"><span class="toggle-thumb"></span></span>
-      </label>
-    </div>
-    <div class="ajuste-row" style="margin-top:14px;">
-      <div>
-        <div class="ajuste-label">Color de acento</div>
-        <div class="ajuste-desc">Color principal de botones y elementos</div>
-      </div>
-      <div style="display:flex;gap:8px;">
-        {% for color in ['#ffd700','#4fc3f7','#a78bfa','#4ade80','#f87171','#fb923c'] %}
-        <button onclick="setAccent('{{ color }}')"
-          style="width:26px;height:26px;border-radius:50%;background:{{ color }};border:2px solid transparent;cursor:pointer;transition:border .2s;"
-          class="accent-btn" data-color="{{ color }}"></button>
-        {% endfor %}
-      </div>
-    </div>
-  </div>
-
-  <!-- SEGURIDAD -->
-  <div class="content-card">
-    <h3><span class="material-symbols-outlined">lock</span> Seguridad</h3>
-    <form method="POST" action="/cambiar_password">
-      <div style="display:grid;gap:10px;">
-        <div class="form-group">
-          <label class="form-label">Contraseña actual</label>
-          <input type="password" name="actual" class="form-input" required placeholder="••••••••">
-        </div>
-        <div class="form-group">
-          <label class="form-label">Nueva contraseña</label>
-          <input type="password" name="nueva" class="form-input" id="nueva-pwd" required placeholder="Mín. 8 caracteres">
-        </div>
-        <div class="form-group">
-          <label class="form-label">Confirmar nueva</label>
-          <input type="password" name="confirmar" class="form-input" id="conf-pwd" required placeholder="Repite la contraseña"
-            oninput="checkPwdMatch()">
-        </div>
-        <div id="pwd-match-msg" style="font-size:.8rem;display:none;"></div>
-      </div>
-      <button type="submit" class="btn btn-primary" style="margin-top:10px;">
-        Cambiar contraseña
-      </button>
-    </form>
-  </div>
-
-  <!-- NOTIFICACIONES -->
-  <div class="content-card">
-    <h3><span class="material-symbols-outlined">notifications</span> Notificaciones</h3>
-    <div class="ajuste-row">
-      <div>
-        <div class="ajuste-label">Nuevas publicaciones</div>
-        <div class="ajuste-desc">Aviso cuando alguien publique en el feed</div>
-      </div>
-      <label class="toggle-switch">
-        <input type="checkbox" id="notif-posts" checked onchange="guardarPref('notif_posts',this.checked)">
-        <span class="toggle-track"><span class="toggle-thumb"></span></span>
-      </label>
-    </div>
-    <div class="ajuste-row" style="margin-top:12px;">
-      <div>
-        <div class="ajuste-label">Nuevos eventos</div>
-        <div class="ajuste-desc">Aviso cuando se cree un evento</div>
-      </div>
-      <label class="toggle-switch">
-        <input type="checkbox" id="notif-eventos" checked onchange="guardarPref('notif_eventos',this.checked)">
-        <span class="toggle-track"><span class="toggle-thumb"></span></span>
-      </label>
-    </div>
-    <div class="ajuste-row" style="margin-top:12px;">
-      <div>
-        <div class="ajuste-label">Sonido</div>
-        <div class="ajuste-desc">Reproducir sonido al llegar notificaciones</div>
-      </div>
-      <label class="toggle-switch">
-        <input type="checkbox" id="notif-sonido" onchange="guardarPref('notif_sonido',this.checked)">
-        <span class="toggle-track"><span class="toggle-thumb"></span></span>
-      </label>
-    </div>
-  </div>
-
-  <!-- SESIÓN -->
-  <div class="content-card">
-    <h3><span class="material-symbols-outlined">devices</span> Sesión activa</h3>
-    <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.07);">
-      <span class="material-symbols-outlined" style="font-size:28px;opacity:.5;">computer</span>
-      <div>
-        <div style="font-size:.9rem;font-weight:600;">Este dispositivo</div>
-        <div style="font-size:.78rem;opacity:.5;" id="ua-info">Cargando...</div>
-      </div>
-      <span class="badge-ok" style="margin-left:auto;">Activa</span>
-    </div>
-    <a href="/logout" class="btn btn-ghost" style="margin-top:14px;display:inline-flex;align-items:center;gap:6px;">
-      <span class="material-symbols-outlined" style="font-size:16px;">logout</span>
-      Cerrar sesión
-    </a>
-  </div>
-
-  <!-- ZONA PELIGRO -->
-  {% if usuario.rol != 'admin' %}
-  <div class="content-card" style="border:1px solid rgba(255,77,77,.2);">
-    <h3 style="color:#ff6b6b;"><span class="material-symbols-outlined">warning</span> Zona de peligro</h3>
-    <p style="font-size:.88rem;opacity:.7;margin-bottom:14px;">Eliminar tu cuenta es irreversible. Todos tus datos, publicaciones y aportes serán borrados permanentemente.</p>
-    <button class="btn btn-danger" onclick="document.getElementById('modal-eliminar-cuenta').style.display='flex'">
-      <span class="material-symbols-outlined" style="font-size:16px;vertical-align:middle;">delete_forever</span>
-      Eliminar mi cuenta
-    </button>
-  </div>
-  {% endif %}
 
 </section>
 
-<!-- MODAL ELIMINAR CUENTA -->
-<div id="modal-eliminar-cuenta" class="modal-overlay" style="display:none;" onclick="if(event.target===this)this.style.display='none'">
-  <div class="modal-box" onclick="event.stopPropagation()" style="max-width:420px;">
-    <div class="modal-header">
-      <h3 style="color:#ff6b6b;">⚠️ Eliminar cuenta</h3>
-      <button class="modal-close" onclick="document.getElementById('modal-eliminar-cuenta').style.display='none'">✕</button>
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     MODAL: EDITAR INFORMACIÓN
+═══════════════════════════════════════════════════════════════════ -->
+<div id="pf2-modal-editar" class="pf2-modal-overlay" onclick="if(event.target===this)pf2CerrarModal('pf2-modal-editar')" aria-hidden="true" role="dialog" aria-modal="true" aria-label="Editar información de perfil">
+  <div class="pf2-modal pf2-modal-lg" onclick="event.stopPropagation()">
+
+    <div class="pf2-modal-header">
+      <h2 class="pf2-modal-title">Editar información</h2>
+      <button class="pf2-modal-close" onclick="pf2CerrarModal('pf2-modal-editar')" aria-label="Cerrar">
+        <span class="material-symbols-outlined">close</span>
+      </button>
     </div>
-    <p style="font-size:.9rem;opacity:.8;margin-bottom:16px;">Confirma tu contraseña para eliminar la cuenta. Esta acción es irreversible.</p>
-    <form method="POST" action="/eliminar_cuenta">
-      <div class="form-group">
-        <label class="form-label">Tu contraseña</label>
-        <input type="password" name="password_confirm" class="form-input" required placeholder="••••••••">
+
+    <form id="pf2-form-editar" method="POST" action="/actualizar_perfil" enctype="multipart/form-data">
+      <div class="pf2-modal-body">
+
+        <!-- Portada -->
+        <div class="pf2-cover-edit-wrap">
+          <div class="pf2-cover-edit-preview" id="pf2-cover-preview">
+            <div class="pf2-cover-edit-overlay">
+              <label class="pf2-cover-edit-btn" title="Cambiar portada">
+                <span class="material-symbols-outlined">add_a_photo</span>
+                <span>Cambiar portada</span>
+                <input type="file" name="portada" accept="image/*" id="pf2-portada-input" style="display:none;" onchange="pf2PreviewPortada(this)">
+              </label>
+            </div>
+          </div>
+          <!-- Avatar editable dentro del modal -->
+          <div class="pf2-cover-avatar-edit">
+            <div class="pf2-avatar-edit-wrap">
+              <img id="pf2-edit-foto-preview" class="pf2-avatar-edit-img" src="" alt="Avatar" style="display:none;">
+              <div class="pf2-avatar-edit-letter" id="pf2-edit-avatar-letter">{{ usuario.nombre[0]|upper }}</div>
+              <label class="pf2-avatar-edit-cam" title="Cambiar foto de perfil">
+                <span class="material-symbols-outlined">photo_camera</span>
+                <input type="file" name="foto_perfil" accept="image/*" id="pf2-foto-input" style="display:none;" onchange="pf2PreviewFoto(this)">
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Campos del formulario -->
+        <div class="pf2-form-grid">
+          <div class="pf2-fg">
+            <label class="pf2-label">Nombre completo</label>
+            <input type="text" name="nombre" id="pf2-inp-nombre" value="{{ usuario.nombre }}" class="pf2-input" required placeholder="Tu nombre">
+          </div>
+          <div class="pf2-fg">
+            <label class="pf2-label">Usuario</label>
+            <div class="pf2-input pf2-input-disabled">@{{ usuario.usuario }}</div>
+          </div>
+          <div class="pf2-fg pf2-full">
+            <label class="pf2-label">Biografía</label>
+            <textarea name="bio" id="pf2-inp-bio" class="pf2-input pf2-textarea" rows="3" placeholder="Cuéntanos algo de ti…" maxlength="180">{{ usuario.bio or '' }}</textarea>
+            <span class="pf2-char-count"><span id="pf2-bio-count">{{ (usuario.bio or '')|length }}</span>/180</span>
+          </div>
+          <div class="pf2-fg">
+            <label class="pf2-label">Ciudad</label>
+            <div class="pf2-input-icon-wrap">
+              <span class="material-symbols-outlined pf2-input-icon">location_on</span>
+              <input type="text" name="ciudad" id="pf2-inp-ciudad" value="{{ usuario.ciudad or '' }}" class="pf2-input pf2-input-with-icon" placeholder="Tu ciudad">
+            </div>
+          </div>
+          <div class="pf2-fg">
+            <label class="pf2-label">Sitio web</label>
+            <div class="pf2-input-icon-wrap">
+              <span class="material-symbols-outlined pf2-input-icon">link</span>
+              <input type="url" name="sitio_web" id="pf2-inp-web" value="{{ usuario.sitio_web or '' }}" class="pf2-input pf2-input-with-icon" placeholder="https://tusitio.com">
+            </div>
+          </div>
+          <div class="pf2-fg">
+            <label class="pf2-label">Correo electrónico</label>
+            <div class="pf2-input-icon-wrap">
+              <span class="material-symbols-outlined pf2-input-icon">mail</span>
+              <input type="email" name="gmail" id="pf2-inp-gmail" value="{{ usuario.gmail or '' }}" class="pf2-input pf2-input-with-icon" placeholder="tu@email.com">
+            </div>
+          </div>
+          <div class="pf2-fg">
+            <label class="pf2-label">Fecha de nacimiento</label>
+            <div class="pf2-input-icon-wrap">
+              <span class="material-symbols-outlined pf2-input-icon">cake</span>
+              <input type="date" name="fecha_nacimiento" id="pf2-inp-nacimiento" value="{{ usuario.fecha_nacimiento or '' }}" class="pf2-input pf2-input-with-icon">
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /body -->
+
+      <div class="pf2-modal-footer">
+        <button type="button" class="pf2-btn-ghost" onclick="pf2CerrarModal('pf2-modal-editar')">Cancelar</button>
+        <button type="submit" class="pf2-btn-primary" id="pf2-btn-guardar">
+          <span class="material-symbols-outlined">save</span>
+          Guardar cambios
+        </button>
       </div>
-      <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:10px;">
-        <button type="button" class="btn btn-ghost" onclick="document.getElementById('modal-eliminar-cuenta').style.display='none'">Cancelar</button>
-        <button type="submit" class="btn btn-danger">Eliminar definitivamente</button>
+    </form>
+
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     MODAL: AJUSTES
+═══════════════════════════════════════════════════════════════════ -->
+<div id="pf2-modal-ajustes" class="pf2-modal-overlay" onclick="if(event.target===this)pf2CerrarModal('pf2-modal-ajustes')" aria-hidden="true" role="dialog" aria-modal="true" aria-label="Ajustes de la cuenta">
+  <div class="pf2-modal pf2-modal-ajustes" onclick="event.stopPropagation()">
+
+    <div class="pf2-modal-header">
+      <h2 class="pf2-modal-title">Ajustes</h2>
+      <button class="pf2-modal-close" onclick="pf2CerrarModal('pf2-modal-ajustes')" aria-label="Cerrar">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
+
+    <div class="pf2-modal-body pf2-ajustes-layout">
+
+      <!-- Nav lateral -->
+      <nav class="pf2-ajustes-nav">
+        <button class="pf2-aj-navbtn active" onclick="pf2AjustesSec(this,'cuenta')">
+          <span class="material-symbols-outlined">manage_accounts</span>Cuenta
+        </button>
+        <button class="pf2-aj-navbtn" onclick="pf2AjustesSec(this,'privacidad')">
+          <span class="material-symbols-outlined">shield</span>Privacidad
+        </button>
+        <button class="pf2-aj-navbtn" onclick="pf2AjustesSec(this,'notificaciones')">
+          <span class="material-symbols-outlined">notifications</span>Notificaciones
+        </button>
+        <button class="pf2-aj-navbtn" onclick="pf2AjustesSec(this,'apariencia')">
+          <span class="material-symbols-outlined">palette</span>Apariencia
+        </button>
+        <button class="pf2-aj-navbtn" onclick="pf2AjustesSec(this,'seguridad')">
+          <span class="material-symbols-outlined">lock</span>Seguridad
+        </button>
+        {% if usuario.rol != 'admin' %}
+        <button class="pf2-aj-navbtn pf2-aj-danger" onclick="pf2AjustesSec(this,'peligro')">
+          <span class="material-symbols-outlined">warning</span>Zona de peligro
+        </button>
+        {% endif %}
+      </nav>
+
+      <!-- Contenido secciones -->
+      <div class="pf2-ajustes-content">
+
+        <!-- CUENTA -->
+        <div class="pf2-aj-sec active" id="aj-sec-cuenta">
+          <h3 class="pf2-aj-sec-title">Cuenta</h3>
+          <div class="pf2-info-item">
+            <div class="pf2-info-item-left">
+              <span class="material-symbols-outlined">mail</span>
+              <div>
+                <div class="pf2-info-item-label">Correo electrónico</div>
+                <div class="pf2-info-item-val">{{ usuario.gmail or 'No configurado' }}</div>
+              </div>
+            </div>
+            <button class="pf2-btn-sm" onclick="pf2AbrirModalEditar()">Editar</button>
+          </div>
+          <div class="pf2-info-item">
+            <div class="pf2-info-item-left">
+              <span class="material-symbols-outlined">verified</span>
+              <div>
+                <div class="pf2-info-item-label">Estado de verificación</div>
+                <div class="pf2-info-item-val">
+                  {% if usuario.rol == 'admin' %}<span class="pf2-badge pf2-badge-ok">Admin verificado</span>
+                  {% else %}<span class="pf2-badge pf2-badge-default">Cuenta estándar</span>{% endif %}
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="pf2-info-item">
+            <div class="pf2-info-item-left">
+              <span class="material-symbols-outlined">computer</span>
+              <div>
+                <div class="pf2-info-item-label">Sesión activa</div>
+                <div class="pf2-info-item-val" id="pf2-ua-info">Cargando…</div>
+              </div>
+            </div>
+            <span class="pf2-badge pf2-badge-ok">Activa</span>
+          </div>
+          <div class="pf2-aj-divider"></div>
+          <a href="/logout" class="pf2-btn-logout-row">
+            <span class="material-symbols-outlined">logout</span>
+            Cerrar sesión
+          </a>
+        </div>
+
+        <!-- PRIVACIDAD -->
+        <div class="pf2-aj-sec" id="aj-sec-privacidad">
+          <h3 class="pf2-aj-sec-title">Privacidad</h3>
+          <div class="pf2-toggle-row">
+            <div>
+              <div class="pf2-toggle-label">Perfil público</div>
+              <div class="pf2-toggle-desc">Cualquier miembro puede ver tu perfil</div>
+            </div>
+            <label class="pf2-toggle">
+              <input type="checkbox" checked onchange="guardarPref('privacidad_publico',this.checked)">
+              <span class="pf2-toggle-track"><span class="pf2-toggle-thumb"></span></span>
+            </label>
+          </div>
+          <div class="pf2-toggle-row">
+            <div>
+              <div class="pf2-toggle-label">Quién puede comentar</div>
+              <div class="pf2-toggle-desc">Solo seguidores pueden comentar tus posts</div>
+            </div>
+            <label class="pf2-toggle">
+              <input type="checkbox" onchange="guardarPref('priv_comentarios',this.checked)">
+              <span class="pf2-toggle-track"><span class="pf2-toggle-thumb"></span></span>
+            </label>
+          </div>
+          <div class="pf2-toggle-row">
+            <div>
+              <div class="pf2-toggle-label">Mensajes directos</div>
+              <div class="pf2-toggle-desc">Solo seguidores pueden enviarte mensajes</div>
+            </div>
+            <label class="pf2-toggle">
+              <input type="checkbox" onchange="guardarPref('priv_mensajes',this.checked)">
+              <span class="pf2-toggle-track"><span class="pf2-toggle-thumb"></span></span>
+            </label>
+          </div>
+          <div class="pf2-toggle-row">
+            <div>
+              <div class="pf2-toggle-label">Mostrar seguidores</div>
+              <div class="pf2-toggle-desc">Otros pueden ver tu lista de seguidores</div>
+            </div>
+            <label class="pf2-toggle">
+              <input type="checkbox" checked onchange="guardarPref('priv_seguidores',this.checked)">
+              <span class="pf2-toggle-track"><span class="pf2-toggle-thumb"></span></span>
+            </label>
+          </div>
+        </div>
+
+        <!-- NOTIFICACIONES -->
+        <div class="pf2-aj-sec" id="aj-sec-notificaciones">
+          <h3 class="pf2-aj-sec-title">Notificaciones</h3>
+          <div class="pf2-toggle-row">
+            <div>
+              <div class="pf2-toggle-label">Likes</div>
+              <div class="pf2-toggle-desc">Cuando alguien le da like a tu post</div>
+            </div>
+            <label class="pf2-toggle">
+              <input type="checkbox" id="notif-posts" checked onchange="guardarPref('notif_posts',this.checked)">
+              <span class="pf2-toggle-track"><span class="pf2-toggle-thumb"></span></span>
+            </label>
+          </div>
+          <div class="pf2-toggle-row">
+            <div>
+              <div class="pf2-toggle-label">Comentarios</div>
+              <div class="pf2-toggle-desc">Cuando alguien comenta en tu post</div>
+            </div>
+            <label class="pf2-toggle">
+              <input type="checkbox" checked onchange="guardarPref('notif_comentarios',this.checked)">
+              <span class="pf2-toggle-track"><span class="pf2-toggle-thumb"></span></span>
+            </label>
+          </div>
+          <div class="pf2-toggle-row">
+            <div>
+              <div class="pf2-toggle-label">Nuevos seguidores</div>
+              <div class="pf2-toggle-desc">Cuando alguien te empieza a seguir</div>
+            </div>
+            <label class="pf2-toggle">
+              <input type="checkbox" id="notif-eventos" checked onchange="guardarPref('notif_eventos',this.checked)">
+              <span class="pf2-toggle-track"><span class="pf2-toggle-thumb"></span></span>
+            </label>
+          </div>
+          <div class="pf2-toggle-row">
+            <div>
+              <div class="pf2-toggle-label">Mensajes</div>
+              <div class="pf2-toggle-desc">Cuando recibes un mensaje directo</div>
+            </div>
+            <label class="pf2-toggle">
+              <input type="checkbox" checked onchange="guardarPref('notif_mensajes',this.checked)">
+              <span class="pf2-toggle-track"><span class="pf2-toggle-thumb"></span></span>
+            </label>
+          </div>
+          <div class="pf2-toggle-row">
+            <div>
+              <div class="pf2-toggle-label">Sonido</div>
+              <div class="pf2-toggle-desc">Reproducir sonido al recibir notificaciones</div>
+            </div>
+            <label class="pf2-toggle">
+              <input type="checkbox" id="notif-sonido" onchange="guardarPref('notif_sonido',this.checked)">
+              <span class="pf2-toggle-track"><span class="pf2-toggle-thumb"></span></span>
+            </label>
+          </div>
+        </div>
+
+        <!-- APARIENCIA -->
+        <div class="pf2-aj-sec" id="aj-sec-apariencia">
+          <h3 class="pf2-aj-sec-title">Apariencia</h3>
+          <div class="pf2-theme-options">
+            <button class="pf2-theme-opt" id="theme-light" onclick="pf2SetTheme('light',this)">
+              <span class="pf2-theme-icon">☀️</span>
+              <span>Claro</span>
+            </button>
+            <button class="pf2-theme-opt" id="theme-dark" onclick="pf2SetTheme('dark',this)">
+              <span class="pf2-theme-icon">🌙</span>
+              <span>Oscuro</span>
+            </button>
+            <button class="pf2-theme-opt" id="theme-auto" onclick="pf2SetTheme('auto',this)">
+              <span class="pf2-theme-icon">⚙️</span>
+              <span>Automático</span>
+            </button>
+          </div>
+          <div class="pf2-aj-divider"></div>
+          <div class="pf2-aj-label">Color de acento</div>
+          <div class="pf2-accent-grid">
+            {% for color in ['#ffd700','#4fc3f7','#a78bfa','#4ade80','#f87171','#fb923c','#f472b6','#34d399'] %}
+            <button class="pf2-accent-btn accent-btn" data-color="{{ color }}" onclick="setAccent('{{ color }}')" style="background:{{ color }}" aria-label="Acento {{ color }}"></button>
+            {% endfor %}
+          </div>
+        </div>
+
+        <!-- SEGURIDAD -->
+        <div class="pf2-aj-sec" id="aj-sec-seguridad">
+          <h3 class="pf2-aj-sec-title">Seguridad</h3>
+          <div class="pf2-security-row" onclick="pf2AbrirModalPassword()">
+            <div class="pf2-info-item-left">
+              <span class="material-symbols-outlined">lock_reset</span>
+              <div>
+                <div class="pf2-info-item-label">Contraseña</div>
+                <div class="pf2-info-item-val">Última actualización: —</div>
+              </div>
+            </div>
+            <span class="material-symbols-outlined pf2-chevron">chevron_right</span>
+          </div>
+          <div class="pf2-security-row" onclick="mostrarToast('Sesión cerrada en todos los dispositivos','info')">
+            <div class="pf2-info-item-left">
+              <span class="material-symbols-outlined">devices_off</span>
+              <div>
+                <div class="pf2-info-item-label">Cerrar otras sesiones</div>
+                <div class="pf2-info-item-val">Cierra sesión en todos los dispositivos</div>
+              </div>
+            </div>
+            <span class="material-symbols-outlined pf2-chevron">chevron_right</span>
+          </div>
+        </div>
+
+        <!-- ZONA DE PELIGRO -->
+        {% if usuario.rol != 'admin' %}
+        <div class="pf2-aj-sec" id="aj-sec-peligro">
+          <h3 class="pf2-aj-sec-title pf2-danger-title">Zona de peligro</h3>
+          <p class="pf2-danger-desc">Eliminar tu cuenta es irreversible. Todos tus datos, publicaciones y aportes serán borrados permanentemente.</p>
+          <button class="pf2-btn-danger" onclick="pf2AbrirModalEliminar()">
+            <span class="material-symbols-outlined">delete_forever</span>
+            Eliminar mi cuenta
+          </button>
+        </div>
+        {% endif %}
+
+      </div><!-- /content -->
+    </div><!-- /body -->
+
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     MODAL: CAMBIAR CONTRASEÑA
+═══════════════════════════════════════════════════════════════════ -->
+<div id="pf2-modal-password" class="pf2-modal-overlay" onclick="if(event.target===this)pf2CerrarModal('pf2-modal-password')" aria-hidden="true" role="dialog" aria-modal="true" aria-label="Cambiar contraseña">
+  <div class="pf2-modal pf2-modal-sm" onclick="event.stopPropagation()">
+
+    <div class="pf2-modal-header">
+      <button class="pf2-modal-back" onclick="pf2CerrarModal('pf2-modal-password');pf2AbrirModalAjustes();" title="Volver">
+        <span class="material-symbols-outlined">arrow_back</span>
+      </button>
+      <h2 class="pf2-modal-title">Cambiar contraseña</h2>
+      <button class="pf2-modal-close" onclick="pf2CerrarModal('pf2-modal-password')" aria-label="Cerrar">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
+
+    <form id="pf2-form-password" method="POST" action="/cambiar_password">
+      <div class="pf2-modal-body">
+
+        <!-- Campo: contraseña actual -->
+        <div class="pf2-fg">
+          <label class="pf2-label">Contraseña actual</label>
+          <div class="pf2-pwd-wrap">
+            <input type="password" name="actual" id="pf2-pwd-actual" class="pf2-input pf2-pwd-input" placeholder="••••••••" required autocomplete="current-password">
+            <button type="button" class="pf2-pwd-toggle" onclick="pf2TogglePwd('pf2-pwd-actual',this)" aria-label="Mostrar contraseña">
+              <span class="material-symbols-outlined">visibility</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Campo: nueva contraseña -->
+        <div class="pf2-fg">
+          <label class="pf2-label">Nueva contraseña</label>
+          <div class="pf2-pwd-wrap">
+            <input type="password" name="nueva" id="pf2-pwd-nueva" class="pf2-input pf2-pwd-input" placeholder="Mín. 8 caracteres" required autocomplete="new-password" oninput="pf2CheckPwd()">
+            <button type="button" class="pf2-pwd-toggle" onclick="pf2TogglePwd('pf2-pwd-nueva',this)" aria-label="Mostrar contraseña">
+              <span class="material-symbols-outlined">visibility</span>
+            </button>
+          </div>
+          <!-- Indicador de fortaleza -->
+          <div class="pf2-strength-wrap" id="pf2-strength-wrap" style="display:none;">
+            <div class="pf2-strength-bar">
+              <div class="pf2-strength-fill" id="pf2-strength-fill"></div>
+            </div>
+            <span class="pf2-strength-label" id="pf2-strength-label"></span>
+          </div>
+        </div>
+
+        <!-- Campo: confirmar -->
+        <div class="pf2-fg">
+          <label class="pf2-label">Confirmar nueva contraseña</label>
+          <div class="pf2-pwd-wrap">
+            <input type="password" name="confirmar" id="pf2-pwd-confirm" class="pf2-input pf2-pwd-input" placeholder="Repite la contraseña" required autocomplete="new-password" oninput="pf2CheckPwd()">
+            <button type="button" class="pf2-pwd-toggle" onclick="pf2TogglePwd('pf2-pwd-confirm',this)" aria-label="Mostrar contraseña">
+              <span class="material-symbols-outlined">visibility</span>
+            </button>
+          </div>
+          <div class="pf2-pwd-match-msg" id="pf2-pwd-match-msg" style="display:none;"></div>
+        </div>
+
+        <div class="pf2-pwd-rules">
+          <p id="pr-len"  class="pf2-pr"><span class="material-symbols-outlined">check_circle</span>Al menos 8 caracteres</p>
+          <p id="pr-num"  class="pf2-pr"><span class="material-symbols-outlined">check_circle</span>Incluye un número</p>
+          <p id="pr-esp"  class="pf2-pr"><span class="material-symbols-outlined">check_circle</span>Incluye un símbolo (!@#$…)</p>
+        </div>
+
+      </div><!-- /body -->
+
+      <div class="pf2-modal-footer">
+        <button type="button" class="pf2-btn-ghost" onclick="pf2CerrarModal('pf2-modal-password')">Cancelar</button>
+        <button type="submit" class="pf2-btn-primary" id="pf2-btn-pwd">
+          <span class="material-symbols-outlined">lock_reset</span>
+          Actualizar contraseña
+        </button>
+      </div>
+    </form>
+
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     MODAL: ELIMINAR CUENTA
+═══════════════════════════════════════════════════════════════════ -->
+<div id="modal-eliminar-cuenta" class="pf2-modal-overlay" onclick="if(event.target===this)this.style.display='none'" aria-hidden="true">
+  <div class="pf2-modal pf2-modal-sm" onclick="event.stopPropagation()">
+    <div class="pf2-modal-header">
+      <h2 class="pf2-modal-title pf2-danger-title">⚠️ Eliminar cuenta</h2>
+      <button class="pf2-modal-close" onclick="document.getElementById('modal-eliminar-cuenta').style.display='none'">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
+    <form method="POST" action="/eliminar_cuenta">
+      <div class="pf2-modal-body">
+        <p class="pf2-danger-desc">Confirma tu contraseña para eliminar la cuenta. Esta acción es irreversible.</p>
+        <div class="pf2-fg">
+          <label class="pf2-label">Tu contraseña</label>
+          <input type="password" name="password_confirm" class="pf2-input" required placeholder="••••••••">
+        </div>
+      </div>
+      <div class="pf2-modal-footer">
+        <button type="button" class="pf2-btn-ghost" onclick="document.getElementById('modal-eliminar-cuenta').style.display='none'">Cancelar</button>
+        <button type="submit" class="pf2-btn-danger">Eliminar definitivamente</button>
       </div>
     </form>
   </div>
 </div>
 
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     ESTILOS
+═══════════════════════════════════════════════════════════════════ -->
 <style>
-/* ── PERFIL MOBILE-FIRST ── */
-.pf-hero { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
-.pf-avatar-wrap { position: relative; flex-shrink: 0; }
-.pf-avatar-img { width: 90px; height: 90px; border-radius: 50%; object-fit: cover; border: 3px solid var(--border); display: block; }
-.pf-avatar-letter { width: 90px; height: 90px; font-size: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
-.pf-camera-btn {
+/* ─── RESET local ─────────────────────────────────────────────────── */
+#sec-perfil * { box-sizing: border-box; }
+
+/* ─── PORTADA ─────────────────────────────────────────────────────── */
+.pf2-cover-wrap {
+  border-radius: 18px;
+  overflow: visible;
+  margin-bottom: 0;
+  position: relative;
+}
+.pf2-cover {
+  position: relative;
+  width: 100%;
+  height: 200px;
+  border-radius: 18px 18px 0 0;
+  overflow: hidden;
+  background: linear-gradient(135deg, var(--accent) 0%, rgba(0,0,0,.4) 100%);
+}
+.pf2-cover-img {
+  width: 100%; height: 100%; object-fit: cover; display: block;
+}
+.pf2-cover-placeholder {
+  width: 100%; height: 100%;
+  background: linear-gradient(135deg, var(--accent, #ffd700) 0%, #1a1a2e 100%);
+}
+.pf2-cover-gradient {
+  position: absolute; inset: 0; z-index: 1;
+  background: linear-gradient(to bottom, transparent 40%, rgba(0,0,0,.35) 100%);
+  pointer-events: none;
+}
+
+/* ─── ÁREA DEL AVATAR ─────────────────────────────────────────────── */
+.pf2-avatar-area {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-top: none;
+  border-radius: 0 0 18px 18px;
+  padding: 0 20px 20px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  align-items: flex-start;
+}
+
+/* Avatar con solapamiento sobre portada */
+.pf2-avatar-wrap {
+  position: relative;
+  margin-top: -46px;
+  flex-shrink: 0;
+}
+.pf2-avatar {
+  width: 92px; height: 92px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 4px solid var(--card);
+  display: block;
+  transition: opacity .2s;
+}
+.pf2-avatar-letter {
+  width: 92px; height: 92px;
+  border-radius: 50%;
+  background: var(--accent, #ffd700);
+  color: #000;
+  font-size: 36px; font-weight: 800;
+  display: flex; align-items: center; justify-content: center;
+  border: 4px solid var(--card);
+  user-select: none;
+}
+.pf2-avatar-cam {
+  position: absolute; bottom: 3px; right: 3px;
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  background: var(--card);
+  border: 2px solid var(--border);
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: background .15s, transform .1s;
+  z-index: 2;
+}
+.pf2-avatar-cam:hover { background: var(--bg2); transform: scale(1.1); }
+.pf2-avatar-cam .material-symbols-outlined { font-size: 14px; color: var(--text2); }
+
+/* ─── IDENTIDAD ─────────────────────────────────────────────────────── */
+.pf2-identity {
+  flex: 1;
+  min-width: 200px;
+  padding-top: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+.pf2-names { flex: 1; min-width: 160px; }
+.pf2-nombre {
+  font-size: 1.3rem; font-weight: 800; margin: 0 0 4px;
+  color: var(--text); line-height: 1.2;
+}
+.pf2-meta-row {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  margin-bottom: 7px;
+}
+.pf2-usuario { font-size: .85rem; color: var(--text3); }
+.pf2-rol-badge {
+  padding: 2px 9px; border-radius: 20px;
+  background: rgba(0,149,246,.12); color: var(--accent);
+  font-size: .68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em;
+}
+.pf2-bio {
+  font-size: .88rem; color: var(--text2);
+  line-height: 1.5; margin: 0 0 8px;
+}
+.pf2-bio-empty { opacity: .4; font-style: italic; }
+
+/* Pills de info */
+.pf2-info-pills { display: flex; flex-wrap: wrap; gap: 6px; }
+.pf2-pill {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: .76rem; color: var(--text3);
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 20px; padding: 3px 10px;
+}
+.pf2-pill .material-symbols-outlined { font-size: 13px; }
+.pf2-pill-link { color: var(--accent); text-decoration: none; }
+.pf2-pill-link:hover { text-decoration: underline; }
+
+/* ─── BOTONES DE ACCIÓN ────────────────────────────────────────────── */
+.pf2-actions {
+  display: flex; gap: 8px; align-items: center;
+  flex-shrink: 0;
+}
+.pf2-btn-edit {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 18px; border-radius: 24px;
+  border: 1.5px solid var(--border);
+  background: var(--card); color: var(--text);
+  font-size: .85rem; font-weight: 600; font-family: inherit;
+  cursor: pointer;
+  transition: background .15s, border-color .15s, transform .1s;
+}
+.pf2-btn-edit:hover { background: var(--bg2); border-color: var(--accent); transform: translateY(-1px); }
+.pf2-btn-edit .material-symbols-outlined { font-size: 17px; }
+.pf2-btn-settings {
+  width: 38px; height: 38px;
+  border-radius: 50%;
+  border: 1.5px solid var(--border);
+  background: var(--card); color: var(--text2);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  transition: background .15s, transform .15s;
+}
+.pf2-btn-settings:hover { background: var(--bg2); color: var(--accent); transform: rotate(30deg); }
+.pf2-btn-settings .material-symbols-outlined { font-size: 20px; }
+
+/* ─── ESTADÍSTICAS ─────────────────────────────────────────────────── */
+.pf2-stats-row {
+  display: flex; gap: 0;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-top: none;
+  border-radius: 0 0 14px 14px;
+  margin: 0 0 14px;
+  overflow: hidden;
+}
+.pf2-stat {
+  flex: 1;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 2px; padding: 14px 8px;
+  cursor: default;
+  transition: background .15s;
+}
+.pf2-stat:hover { background: var(--bg2); }
+.pf2-stat-div { border-left: 1px solid var(--border); }
+.pf2-stat strong {
+  font-size: 1.1rem; font-weight: 800; color: var(--text);
+  line-height: 1;
+}
+.pf2-stat span {
+  font-size: .68rem; color: var(--text3);
+  text-align: center; line-height: 1.2;
+}
+
+/* ─── TABS ─────────────────────────────────────────────────────────── */
+.pf2-tabs-wrap {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+  margin-bottom: 14px;
+}
+.pf2-tabs-nav {
+  display: flex;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg2);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.pf2-tabs-nav::-webkit-scrollbar { display: none; }
+.pf2-tab {
+  flex: 1; min-width: 60px;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 14px 10px;
+  border: none; border-bottom: 2.5px solid transparent;
+  background: transparent; color: var(--text3);
+  font-size: .82rem; font-weight: 500; font-family: inherit;
+  cursor: pointer; white-space: nowrap;
+  transition: color .2s, border-color .2s, background .15s;
+}
+.pf2-tab .material-symbols-outlined { font-size: 18px; }
+.pf2-tab:hover { color: var(--text); background: rgba(0,0,0,.03); }
+.pf2-tab.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 700; }
+.pf2-tab-lbl { display: none; }
+@media(min-width:420px){ .pf2-tab-lbl { display: inline; } }
+.pf2-tab-panel { display: none; padding: 16px; min-height: 100px; }
+.pf2-tab-panel.active { display: block; }
+.pf2-loading {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  color: var(--text3); font-size: .88rem; padding: 32px 0;
+}
+
+/* ─── SKELETON LOADERS ─────────────────────────────────────────────── */
+@keyframes pf2-shimmer {
+  0%   { background-position: -400px 0; }
+  100% { background-position:  400px 0; }
+}
+.pf2-skeleton {
+  border-radius: 8px;
+  background: linear-gradient(90deg, var(--border) 25%, var(--bg2) 50%, var(--border) 75%);
+  background-size: 800px 100%;
+  animation: pf2-shimmer 1.4s ease infinite;
+}
+
+/* ─── MODALES: BASE ─────────────────────────────────────────────────── */
+.pf2-modal-overlay {
+  position: fixed; inset: 0; z-index: 3000;
+  display: flex; align-items: center; justify-content: center;
+  padding: 16px;
+  background: rgba(0,0,0,.55);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  opacity: 0; pointer-events: none;
+  transition: opacity .25s cubic-bezier(.4,0,.2,1);
+}
+.pf2-modal-overlay.pf2-open {
+  opacity: 1; pointer-events: all;
+}
+.pf2-modal {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  width: 100%; max-width: 540px;
+  max-height: 90vh;
+  display: flex; flex-direction: column;
+  overflow: hidden;
+  transform: translateY(24px) scale(.97);
+  transition: transform .28s cubic-bezier(.34,1.56,.64,1), opacity .25s;
+  opacity: 0;
+  box-shadow: 0 24px 64px rgba(0,0,0,.3);
+}
+.pf2-modal-overlay.pf2-open .pf2-modal {
+  transform: translateY(0) scale(1);
+  opacity: 1;
+}
+.pf2-modal-sm  { max-width: 420px; }
+.pf2-modal-lg  { max-width: 600px; }
+
+/* Modal Header */
+.pf2-modal-header {
+  display: flex; align-items: center; gap: 10px;
+  padding: 18px 20px 14px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.pf2-modal-title {
+  flex: 1; font-size: 1.05rem; font-weight: 700;
+  margin: 0; color: var(--text);
+}
+.pf2-modal-close, .pf2-modal-back {
+  width: 34px; height: 34px; border-radius: 50%;
+  border: none; background: transparent; color: var(--text3);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; flex-shrink: 0;
+  transition: background .15s, color .15s;
+}
+.pf2-modal-close:hover { background: rgba(239,68,68,.1); color: #ef4444; }
+.pf2-modal-back:hover { background: var(--bg2); color: var(--text); }
+.pf2-modal-close .material-symbols-outlined,
+.pf2-modal-back .material-symbols-outlined { font-size: 20px; }
+
+/* Modal Body */
+.pf2-modal-body {
+  flex: 1; overflow-y: auto; padding: 20px;
+  scrollbar-width: thin;
+}
+
+/* Modal Footer */
+.pf2-modal-footer {
+  display: flex; gap: 10px; justify-content: flex-end;
+  padding: 14px 20px;
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+/* ─── FORM ELEMENTS ─────────────────────────────────────────────────── */
+.pf2-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-top: 16px;
+}
+.pf2-fg { display: flex; flex-direction: column; gap: 5px; }
+.pf2-full { grid-column: 1 / -1; }
+.pf2-label { font-size: .76rem; font-weight: 600; color: var(--text2); letter-spacing: .03em; }
+.pf2-input {
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  padding: 10px 13px;
+  font-size: .9rem; font-family: inherit;
+  background: var(--bg2); color: var(--text);
+  width: 100%;
+  transition: border-color .15s, box-shadow .15s;
+}
+.pf2-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent);
+}
+.pf2-input-disabled {
+  opacity: .5; cursor: not-allowed; user-select: none;
+  display: flex; align-items: center;
+}
+.pf2-textarea { resize: vertical; min-height: 72px; }
+.pf2-char-count { font-size: .72rem; color: var(--text3); text-align: right; margin-top: 2px; }
+.pf2-input-icon-wrap { position: relative; }
+.pf2-input-icon {
+  position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+  font-size: 17px; color: var(--text3); pointer-events: none;
+}
+.pf2-input-with-icon { padding-left: 38px; }
+
+/* Botones del modal */
+.pf2-btn-primary {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 10px 22px;
+  border-radius: 24px; border: none;
+  background: var(--accent-gradient, linear-gradient(135deg,#ff6b9d,#c9236a));
+  color: #fff;
+  font-size: .88rem; font-weight: 700; font-family: inherit;
+  cursor: pointer;
+  transition: opacity .15s, transform .1s, box-shadow .2s;
+  box-shadow: 0 4px 14px rgba(0,0,0,.18);
+}
+.pf2-btn-primary:hover { opacity: .9; transform: translateY(-1px); box-shadow: 0 6px 20px rgba(0,0,0,.22); }
+.pf2-btn-primary:active { transform: translateY(0) scale(.98); }
+.pf2-btn-primary .material-symbols-outlined { font-size: 17px; }
+
+.pf2-btn-ghost {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 10px 18px;
+  border-radius: 24px;
+  border: 1.5px solid var(--border);
+  background: transparent; color: var(--text2);
+  font-size: .88rem; font-weight: 600; font-family: inherit;
+  cursor: pointer;
+  transition: background .15s, border-color .15s;
+}
+.pf2-btn-ghost:hover { background: var(--bg2); }
+
+.pf2-btn-danger {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 10px 18px;
+  border-radius: 24px;
+  border: 1.5px solid rgba(239,68,68,.4);
+  background: rgba(239,68,68,.08); color: #ef4444;
+  font-size: .88rem; font-weight: 700; font-family: inherit;
+  cursor: pointer;
+  transition: background .15s, transform .1s;
+}
+.pf2-btn-danger:hover { background: rgba(239,68,68,.18); transform: translateY(-1px); }
+
+.pf2-btn-sm {
+  padding: 6px 14px; border-radius: 20px;
+  border: 1px solid var(--border);
+  background: var(--bg2); color: var(--text2);
+  font-size: .78rem; font-weight: 600; font-family: inherit;
+  cursor: pointer;
+  transition: background .15s;
+}
+.pf2-btn-sm:hover { background: var(--card); color: var(--accent); }
+
+/* ─── PORTADA EDITABLE (dentro del modal) ──────────────────────────── */
+.pf2-cover-edit-wrap {
+  position: relative;
+  border-radius: 14px;
+  overflow: visible;
+  margin-bottom: 4px;
+}
+.pf2-cover-edit-preview {
+  width: 100%; height: 130px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, var(--accent,#ffd700) 0%, #1a1a2e 100%);
+  overflow: hidden;
+  position: relative;
+}
+.pf2-cover-edit-overlay {
+  position: absolute; inset: 0; z-index: 2;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(0,0,0,.35);
+  border-radius: 14px;
+  opacity: 0;
+  transition: opacity .2s;
+}
+.pf2-cover-edit-wrap:hover .pf2-cover-edit-overlay { opacity: 1; }
+.pf2-cover-edit-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 16px; border-radius: 20px;
+  background: rgba(255,255,255,.15); color: #fff;
+  border: 1.5px solid rgba(255,255,255,.4);
+  font-size: .82rem; font-weight: 600; font-family: inherit;
+  cursor: pointer;
+  backdrop-filter: blur(4px);
+  transition: background .15s;
+}
+.pf2-cover-edit-btn:hover { background: rgba(255,255,255,.25); }
+.pf2-cover-edit-btn .material-symbols-outlined { font-size: 18px; }
+
+.pf2-cover-avatar-edit {
+  position: absolute;
+  bottom: -36px;
+  left: 20px;
+  z-index: 3;
+}
+.pf2-avatar-edit-wrap { position: relative; }
+.pf2-avatar-edit-img {
+  width: 72px; height: 72px;
+  border-radius: 50%; object-fit: cover;
+  border: 4px solid var(--card);
+  display: block;
+}
+.pf2-avatar-edit-letter {
+  width: 72px; height: 72px;
+  border-radius: 50%;
+  background: var(--accent, #ffd700); color: #000;
+  font-size: 28px; font-weight: 800;
+  display: flex; align-items: center; justify-content: center;
+  border: 4px solid var(--card);
+}
+.pf2-avatar-edit-cam {
   position: absolute; bottom: 2px; right: 2px;
-  width: 28px; height: 28px; border-radius: 50%;
+  width: 26px; height: 26px;
+  border-radius: 50%;
   background: var(--card); border: 2px solid var(--border);
-  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: transform .1s;
 }
-.pf-camera-btn .material-symbols-outlined { font-size: 15px; color: var(--text2); transition: color .2s; }
-@keyframes spin { to { transform: rotate(360deg); } }
-.pf-hero-info { flex: 1; min-width: 160px; }
-.pf-nombre { font-size: 1.2rem; font-weight: 700; margin: 0 0 4px; color: var(--text); }
-.pf-usuario { font-size: .85rem; color: var(--text2); margin: 0 0 6px; display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
-.pf-rol-badge { padding: 2px 8px; border-radius: 20px; background: rgba(0,149,246,.12); color: var(--accent); font-size: .7rem; font-weight: 700; }
-.pf-bio { font-size: .85rem; color: var(--text2); margin: 6px 0 0; line-height: 1.4; }
-.pf-gmail { font-size: .8rem; color: var(--text3); margin: 4px 0 0; display: flex; align-items: center; gap: 4px; }
-.pf-gmail .material-symbols-outlined { font-size: 14px; }
-.pf-miembro-desde { font-size: .78rem; color: var(--text3); margin: 4px 0 0; display: flex; align-items: center; gap: 4px; }
-.pf-miembro-desde .material-symbols-outlined { font-size: 14px; }
+.pf2-avatar-edit-cam:hover { transform: scale(1.12); }
+.pf2-avatar-edit-cam .material-symbols-outlined { font-size: 13px; color: var(--text2); }
 
-/* ── ESTADÍSTICAS ── */
-.pf-stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 16px; }
-.pf-stat {
-  background: var(--card); border: 1px solid var(--border); border-radius: 14px;
-  padding: 16px 8px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 5px;
-  transition: transform .15s, box-shadow .15s;
+/* ─── AJUSTES MODAL ─────────────────────────────────────────────────── */
+.pf2-modal-ajustes { max-width: 680px; }
+.pf2-ajustes-layout {
+  display: flex; gap: 0;
+  padding: 0 !important;
 }
-.pf-stat:hover { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0,0,0,.08); }
-.pf-stat .material-symbols-outlined { font-size: 24px; color: var(--accent); }
-.pf-stat strong { font-size: 1.05rem; font-weight: 700; color: var(--text); }
-.pf-stat span:last-child { font-size: .68rem; color: var(--text3); line-height: 1.2; text-align: center; }
-
-/* ── PESTAÑAS ── */
-.pf-tabs-wrap { background: var(--card); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; margin-bottom: 16px; }
-.pf-tabs-nav { display: flex; border-bottom: 1px solid var(--border); background: var(--bg2); }
-.pf-tab-btn {
-  flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px;
-  padding: 13px 8px; border: none; background: transparent; cursor: pointer;
-  color: var(--text3); font-size: .82rem; font-family: inherit; font-weight: 500;
-  border-bottom: 2.5px solid transparent; transition: color .2s, border-color .2s, background .2s;
+.pf2-ajustes-nav {
+  width: 180px; flex-shrink: 0;
+  display: flex; flex-direction: column;
+  border-right: 1px solid var(--border);
+  padding: 10px 8px;
+  gap: 2px;
 }
-.pf-tab-btn .material-symbols-outlined { font-size: 18px; }
-.pf-tab-btn:hover { color: var(--text); background: rgba(0,0,0,.04); }
-.pf-tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); background: transparent; font-weight: 700; }
-.pf-tab-label { display: none; }
-@media (min-width: 420px) { .pf-tab-label { display: inline; } }
-.pf-tab-panel { display: none; padding: 16px; min-height: 120px; }
-.pf-tab-panel.active { display: block; }
-.pf-tab-loading { display: flex; align-items: center; justify-content: center; gap: 8px; color: var(--text3); font-size: .88rem; padding: 30px 0; }
+.pf2-aj-navbtn {
+  display: flex; align-items: center; gap: 9px;
+  padding: 10px 12px; border-radius: 10px;
+  border: none; background: transparent;
+  color: var(--text2); font-size: .83rem; font-weight: 500; font-family: inherit;
+  cursor: pointer; text-align: left; width: 100%;
+  transition: background .15s, color .15s;
+}
+.pf2-aj-navbtn .material-symbols-outlined { font-size: 18px; }
+.pf2-aj-navbtn:hover { background: var(--bg2); color: var(--text); }
+.pf2-aj-navbtn.active { background: color-mix(in srgb, var(--accent) 12%, transparent); color: var(--accent); font-weight: 700; }
+.pf2-aj-danger { color: #ef4444 !important; }
+.pf2-aj-danger:hover { background: rgba(239,68,68,.08) !important; }
+.pf2-aj-danger.active { background: rgba(239,68,68,.12) !important; color: #ef4444 !important; }
 
-/* ── PUBLICACIONES EN PERFIL ── */
+.pf2-ajustes-content {
+  flex: 1; overflow-y: auto; padding: 20px;
+  scrollbar-width: thin;
+}
+.pf2-aj-sec { display: none; }
+.pf2-aj-sec.active { display: block; }
+.pf2-aj-sec-title {
+  font-size: 1rem; font-weight: 700; color: var(--text);
+  margin: 0 0 16px;
+}
+
+/* Items de info */
+.pf2-info-item {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 10px; padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+}
+.pf2-info-item:last-of-type { border-bottom: none; }
+.pf2-info-item-left {
+  display: flex; align-items: center; gap: 12px;
+}
+.pf2-info-item-left .material-symbols-outlined { font-size: 22px; color: var(--text3); }
+.pf2-info-item-label { font-size: .82rem; font-weight: 600; color: var(--text); }
+.pf2-info-item-val { font-size: .78rem; color: var(--text3); margin-top: 1px; }
+
+/* Badges */
+.pf2-badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 3px 10px; border-radius: 20px;
+  font-size: .72rem; font-weight: 700;
+}
+.pf2-badge-ok { background: rgba(74,222,128,.12); color: #4ade80; }
+.pf2-badge-default { background: var(--bg2); color: var(--text3); border: 1px solid var(--border); }
+
+/* Rows de toggle */
+.pf2-toggle-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 13px 0;
+  border-bottom: 1px solid var(--border);
+}
+.pf2-toggle-row:last-child { border-bottom: none; }
+.pf2-toggle-label { font-size: .88rem; font-weight: 600; color: var(--text); }
+.pf2-toggle-desc { font-size: .76rem; color: var(--text3); margin-top: 2px; }
+
+/* Toggle switch */
+.pf2-toggle { position: relative; flex-shrink: 0; cursor: pointer; }
+.pf2-toggle input { opacity: 0; width: 0; height: 0; position: absolute; }
+.pf2-toggle-track {
+  display: block; width: 44px; height: 24px;
+  border-radius: 12px; background: var(--border);
+  transition: background .2s;
+  position: relative;
+}
+.pf2-toggle input:checked + .pf2-toggle-track { background: var(--accent); }
+.pf2-toggle-thumb {
+  position: absolute; top: 3px; left: 3px;
+  width: 18px; height: 18px;
+  border-radius: 50%; background: #fff;
+  transition: transform .2s cubic-bezier(.34,1.56,.64,1);
+  box-shadow: 0 1px 4px rgba(0,0,0,.2);
+}
+.pf2-toggle input:checked + .pf2-toggle-track .pf2-toggle-thumb { transform: translateX(20px); }
+
+/* Temas */
+.pf2-theme-options {
+  display: flex; gap: 10px; margin-bottom: 18px;
+}
+.pf2-theme-opt {
+  flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px;
+  padding: 14px 8px; border-radius: 14px;
+  border: 2px solid var(--border);
+  background: var(--bg2); color: var(--text2);
+  font-size: .8rem; font-weight: 600; font-family: inherit;
+  cursor: pointer;
+  transition: border-color .15s, color .15s, background .15s, transform .1s;
+}
+.pf2-theme-opt:hover { border-color: var(--accent); color: var(--text); }
+.pf2-theme-opt.active { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, transparent); color: var(--accent); }
+.pf2-theme-icon { font-size: 1.6rem; }
+
+/* Colores de acento */
+.pf2-aj-label { font-size: .78rem; font-weight: 600; color: var(--text2); margin-bottom: 8px; letter-spacing: .03em; }
+.pf2-accent-grid { display: flex; gap: 8px; flex-wrap: wrap; }
+.pf2-accent-btn {
+  width: 28px; height: 28px; border-radius: 50%;
+  border: 3px solid transparent; cursor: pointer;
+  transition: border-color .15s, transform .1s;
+}
+.pf2-accent-btn:hover { transform: scale(1.15); }
+.pf2-accent-btn.pf2-active { border-color: var(--text); }
+
+/* Filas de seguridad */
+.pf2-security-row {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 10px; padding: 13px 10px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: background .15s;
+  margin-bottom: 4px;
+}
+.pf2-security-row:hover { background: var(--bg2); }
+.pf2-chevron { font-size: 20px; color: var(--text3); }
+
+/* Divider */
+.pf2-aj-divider { height: 1px; background: var(--border); margin: 14px 0; }
+
+/* Logout row */
+.pf2-btn-logout-row {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 10px 18px; border-radius: 24px;
+  border: 1.5px solid rgba(239,68,68,.35);
+  background: rgba(239,68,68,.06); color: #ef4444;
+  font-size: .85rem; font-weight: 600; font-family: inherit;
+  text-decoration: none; cursor: pointer;
+  transition: background .15s, transform .1s;
+}
+.pf2-btn-logout-row:hover { background: rgba(239,68,68,.14); transform: translateY(-1px); }
+.pf2-btn-logout-row .material-symbols-outlined { font-size: 17px; }
+
+/* Peligro */
+.pf2-danger-title { color: #ef4444 !important; }
+.pf2-danger-desc { font-size: .85rem; color: var(--text3); margin: 0 0 16px; line-height: 1.5; }
+
+/* ─── CONTRASEÑA MODAL ─────────────────────────────────────────────── */
+.pf2-pwd-wrap { position: relative; }
+.pf2-pwd-input { padding-right: 42px; }
+.pf2-pwd-toggle {
+  position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+  border: none; background: none;
+  color: var(--text3); cursor: pointer; padding: 4px;
+  transition: color .15s;
+}
+.pf2-pwd-toggle:hover { color: var(--text); }
+.pf2-pwd-toggle .material-symbols-outlined { font-size: 18px; display: block; }
+
+/* Fortaleza */
+.pf2-strength-wrap {
+  display: flex; align-items: center; gap: 8px;
+  margin-top: 6px;
+}
+.pf2-strength-bar {
+  flex: 1; height: 4px;
+  background: var(--border); border-radius: 4px; overflow: hidden;
+}
+.pf2-strength-fill {
+  height: 100%; width: 0;
+  border-radius: 4px;
+  transition: width .3s ease, background-color .3s;
+}
+.pf2-strength-label { font-size: .72rem; font-weight: 600; flex-shrink: 0; min-width: 48px; }
+
+/* Match msg */
+.pf2-pwd-match-msg {
+  font-size: .76rem; margin-top: 5px;
+  display: flex; align-items: center; gap: 4px;
+  animation: pf2-fadein .2s ease;
+}
+
+/* Reglas de contraseña */
+.pf2-pwd-rules { margin-top: 14px; display: flex; flex-direction: column; gap: 6px; }
+.pf2-pr {
+  display: flex; align-items: center; gap: 7px;
+  font-size: .78rem; color: var(--text3); margin: 0;
+  transition: color .2s;
+}
+.pf2-pr .material-symbols-outlined { font-size: 16px; opacity: .35; transition: opacity .2s, color .2s; }
+.pf2-pr.ok { color: #4ade80; }
+.pf2-pr.ok .material-symbols-outlined { opacity: 1; color: #4ade80; }
+
+/* ─── ANIMATIONS ─────────────────────────────────────────────────────── */
+@keyframes pf2-fadein { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+@keyframes pf-spin    { to { transform: rotate(360deg); } }
+.pf-spin { display: inline-block; animation: pf-spin .8s linear infinite; }
+
+/* ─── POSTS / GALERÍA / MUNDIAL (heredado) ───────────────────────────── */
 .pf-posts-lista { display: flex; flex-direction: column; gap: 14px; }
-.pf-post-card {
-  background: var(--bg2); border: 1px solid var(--border); border-radius: 12px;
-  padding: 14px; transition: border-color .15s;
-}
+.pf-post-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 14px; transition: border-color .15s; }
 .pf-post-card:hover { border-color: var(--accent); }
 .pf-post-meta { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
 .pf-post-fecha { font-size: .75rem; color: var(--text3); }
@@ -376,16 +1269,12 @@
 .pf-empty-tab .material-symbols-outlined { font-size: 40px; margin-bottom: 8px; display: block; opacity: .4; }
 .pf-empty-tab p { font-size: .88rem; margin: 0; }
 
-/* ── MUNDIAL EN PERFIL ── */
 .pf-mundial-resumen { display: flex; align-items: center; gap: 12px; background: var(--bg2); border-radius: 12px; padding: 14px 16px; margin-bottom: 14px; border: 1px solid var(--border); }
 .pf-mundial-resumen .material-symbols-outlined { font-size: 32px; color: var(--accent); }
 .pf-mundial-resumen-txt strong { font-size: 1.2rem; font-weight: 800; color: var(--text); }
 .pf-mundial-resumen-txt span { font-size: .8rem; color: var(--text3); }
 .pf-pronosticos-lista { display: flex; flex-direction: column; gap: 8px; }
-.pf-prono-item {
-  display: flex; align-items: center; justify-content: space-between; gap: 8px;
-  background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px;
-}
+.pf-prono-item { display: flex; align-items: center; justify-content: space-between; gap: 8px; background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; }
 .pf-prono-equip { font-size: .82rem; font-weight: 600; color: var(--text); flex: 1; }
 .pf-prono-equip.visitante { text-align: right; }
 .pf-prono-score { font-size: .95rem; font-weight: 700; color: var(--accent); min-width: 44px; text-align: center; }
@@ -396,100 +1285,122 @@
 .pf-prono-puntos.pnd { background: rgba(100,100,100,.1); color: var(--text3); }
 .pf-prono-grupo { font-size: .65rem; color: var(--text3); text-transform: uppercase; }
 
-/* ── GALERÍA EN PERFIL ── */
 .pf-galeria-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
 .pf-galeria-item { position: relative; aspect-ratio: 1; overflow: hidden; border-radius: 8px; background: var(--bg2); cursor: pointer; }
 .pf-galeria-item img, .pf-galeria-item video { width: 100%; height: 100%; object-fit: cover; transition: transform .2s; }
 .pf-galeria-item:hover img, .pf-galeria-item:hover video { transform: scale(1.05); }
-.pf-galeria-video-badge {
-  position: absolute; bottom: 4px; right: 4px;
-  background: rgba(0,0,0,.55); border-radius: 4px; padding: 2px 5px;
-}
+.pf-galeria-video-badge { position: absolute; bottom: 4px; right: 4px; background: rgba(0,0,0,.55); border-radius: 4px; padding: 2px 5px; }
 .pf-galeria-video-badge .material-symbols-outlined { font-size: 14px; color: #fff; }
 
-/* ── LOADING SPINNER ── */
-@keyframes pf-spin { to { transform: rotate(360deg); } }
-.pf-spin { display: inline-block; animation: pf-spin .8s linear infinite; }
-
-/* ── SECCIÓN HEAD ── */
-.pf-section-head { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
-.pf-section-head h3 { font-size: 1rem; font-weight: 700; margin: 0; }
-.pf-section-head .material-symbols-outlined { font-size: 20px; color: var(--accent); }
-
-/* ── FORM ── */
-.pf-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px; }
-.pf-form-col { display: flex; flex-direction: column; gap: 12px; margin-bottom: 14px; }
-.pf-form-group { display: flex; flex-direction: column; gap: 5px; }
-.pf-full { grid-column: 1 / -1; }
-.pf-label { font-size: .78rem; font-weight: 600; color: var(--text2); }
-.pf-input {
-  border: 1px solid var(--border); border-radius: 10px;
-  padding: 10px 12px; font-size: .9rem;
-  background: var(--bg2); color: var(--text);
-  width: 100%; box-sizing: border-box; font-family: inherit;
-  transition: border-color .15s;
-}
-.pf-input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(0,149,246,.1); }
-.pf-disabled { opacity: .5; cursor: not-allowed; }
-.pf-textarea { resize: vertical; min-height: 70px; }
-
-.pf-btn-primary {
-    display: flex; align-items: center; justify-content: center; gap: 6px;
-    padding: 11px 20px; width: 100%;
-    border-radius: 10px; border: none;
-    background: var(--accent-gradient, linear-gradient(135deg,#ff6b9d,#ff4d8d,#c9236a));
-    font-size: .9rem; font-weight: 600; font-family: inherit;
-    cursor: pointer;
-    transition: opacity .15s ease, transform .1s ease, box-shadow .2s ease;
-}
-body.dark-mode .pf-btn-primary { box-shadow: 0 6px 18px rgba(0,0,0,.35); }
-
-.pf-logout-card { border: 1px solid rgba(239,68,68,.2); }
-.pf-logout-desc { font-size: .85rem; color: var(--text3); margin: 0 0 14px; }
-.pf-btn-logout {
-  display: flex; align-items: center; justify-content: center; gap: 6px;
-  padding: 11px 20px; width: 100%; box-sizing: border-box;
-  border-radius: 10px; border: 1.5px solid rgba(239,68,68,.5);
-  background: rgba(239,68,68,.08); color: #ef4444;
-  font-size: .9rem; font-weight: 600; font-family: inherit;
-  text-decoration: none; cursor: pointer;
-  transition: background .15s, transform .1s;
-}
-.pf-btn-logout:hover, .pf-btn-logout:active { background: rgba(239,68,68,.18); transform: scale(.98); }
-.pf-btn-logout .material-symbols-outlined { font-size: 18px; }
-
-body.dark-mode .pf-input { background: var(--bg2); border-color: var(--border); color: var(--text); }
-body.dark-mode .pf-stat { background: var(--card); border-color: var(--border); }
-body.dark-mode .pf-hero { background: var(--card); }
-
+/* ─── RESPONSIVE ─────────────────────────────────────────────────────── */
 @media (max-width: 600px) {
-  .pf-hero { flex-direction: column; align-items: center; text-align: center; }
-  .pf-usuario { justify-content: center; }
-  .pf-gmail, .pf-miembro-desde { justify-content: center; }
-  .pf-stats-grid { grid-template-columns: repeat(2, 1fr); }
-  .pf-form-grid { grid-template-columns: 1fr; }
-  .pf-full { grid-column: auto; }
-  .pf-galeria-grid { grid-template-columns: repeat(3, 1fr); }
+  .pf2-cover { height: 140px; }
+  .pf2-avatar { width: 78px; height: 78px; }
+  .pf2-avatar-letter { width: 78px; height: 78px; font-size: 30px; }
+  .pf2-avatar-wrap { margin-top: -38px; }
+  .pf2-nombre { font-size: 1.1rem; }
+  .pf2-identity { flex-direction: column; }
+  .pf2-actions { width: 100%; }
+  .pf2-btn-edit { flex: 1; justify-content: center; }
+  .pf2-stats-row { flex-wrap: wrap; }
+  .pf2-stat { flex: 1 1 50%; }
+  .pf2-stat:nth-child(3) { border-left: 1px solid var(--border); }
+  .pf2-form-grid { grid-template-columns: 1fr; }
+  .pf2-full { grid-column: auto; }
+  /* Modal fullscreen en móvil */
+  .pf2-modal-overlay { padding: 0; align-items: flex-end; }
+  .pf2-modal {
+    max-width: 100%; border-radius: 24px 24px 0 0;
+    max-height: 96vh;
+    transform: translateY(40px);
+  }
+  .pf2-modal-overlay.pf2-open .pf2-modal { transform: translateY(0) scale(1); }
+  /* Ajustes: layout vertical en móvil */
+  .pf2-ajustes-layout { flex-direction: column; }
+  .pf2-ajustes-nav {
+    width: 100%; flex-direction: row; overflow-x: auto;
+    border-right: none; border-bottom: 1px solid var(--border);
+    padding: 8px; gap: 4px;
+    scrollbar-width: none;
+  }
+  .pf2-ajustes-nav::-webkit-scrollbar { display: none; }
+  .pf2-aj-navbtn { flex-direction: column; gap: 4px; padding: 8px 10px; font-size: .72rem; white-space: nowrap; border-radius: 8px; }
+  .pf2-aj-navbtn span:not(.material-symbols-outlined) { display: none; }
+  .pf2-theme-options { flex-direction: column; gap: 8px; }
 }
 @media (max-width: 380px) {
-  .pf-stats-grid { grid-template-columns: repeat(2, 1fr); }
-  .pf-avatar-img, .pf-avatar-letter { width: 76px; height: 76px; }
   .pf-galeria-grid { grid-template-columns: repeat(2, 1fr); }
 }
 </style>
 
-<script>
-// ═══════════════════════════════════════════════════════════════════════
-//  PERFIL – Sistema de pestañas + carga dinámica desde API
-// ═══════════════════════════════════════════════════════════════════════
 
+<!-- ═══════════════════════════════════════════════════════════════════
+     SCRIPTS
+═══════════════════════════════════════════════════════════════════ -->
+<script>
+// ─── DATOS DE PERFIL ───────────────────────────────────────────────────
 const _PF_UID = {{ usuario.id }};
 const _PF_LOADED = { publicaciones: false, mundial: false, galeria: false };
 
-// ─── Cambio de pestaña ─────────────────────────────────────────────────
+// ─── MODAL SYSTEM ──────────────────────────────────────────────────────
+function pf2AbrirModal(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.style.display = 'flex';
+  // Force reflow para animación
+  void el.offsetWidth;
+  el.classList.add('pf2-open');
+  el.setAttribute('aria-hidden','false');
+  document.body.style.overflow = 'hidden';
+}
+function pf2CerrarModal(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.classList.remove('pf2-open');
+  el.setAttribute('aria-hidden','true');
+  el.addEventListener('transitionend', () => {
+    el.style.display = 'none';
+    document.body.style.overflow = '';
+  }, { once: true });
+}
+function pf2AbrirModalEditar() {
+  pf2CerrarModal('pf2-modal-ajustes');
+  // Pre-populate foto preview
+  const mainFoto = document.getElementById('preview-foto-perfil');
+  const editPreview = document.getElementById('pf2-edit-foto-preview');
+  const editLetter  = document.getElementById('pf2-edit-avatar-letter');
+  if (mainFoto && mainFoto.src && mainFoto.style.display !== 'none') {
+    editPreview.src = mainFoto.src;
+    editPreview.style.display = '';
+    if (editLetter) editLetter.style.display = 'none';
+  }
+  pf2AbrirModal('pf2-modal-editar');
+}
+function pf2AbrirModalAjustes() {
+  pf2AbrirModal('pf2-modal-ajustes');
+}
+function pf2AbrirModalPassword() {
+  pf2CerrarModal('pf2-modal-ajustes');
+  setTimeout(() => pf2AbrirModal('pf2-modal-password'), 50);
+}
+function pf2AbrirModalEliminar() {
+  pf2CerrarModal('pf2-modal-ajustes');
+  setTimeout(() => pf2AbrirModal('modal-eliminar-cuenta'), 50);
+}
+
+// ESC para cerrar modales
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Escape') return;
+  ['pf2-modal-editar','pf2-modal-ajustes','pf2-modal-password','modal-eliminar-cuenta'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el && el.classList.contains('pf2-open')) pf2CerrarModal(id);
+  });
+});
+
+// ─── TABS ──────────────────────────────────────────────────────────────
 function pfCambiarTab(btn, tab) {
-  document.querySelectorAll('.pf-tab-btn').forEach(b => b.classList.remove('active'));
-  document.querySelectorAll('.pf-tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.pf2-tab').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.pf2-tab-panel').forEach(p => p.classList.remove('active'));
   btn.classList.add('active');
   document.getElementById('pf-tab-' + tab).classList.add('active');
   if (!_PF_LOADED[tab]) {
@@ -499,22 +1410,23 @@ function pfCambiarTab(btn, tab) {
     else if (tab === 'galeria')  pfCargarGaleria();
   }
 }
-
-// ─── Cargar al abrir el perfil ─────────────────────────────────────────
 (function pfInit() {
-  // Resetear cache al abrir (carga fresca cada vez)
   _PF_LOADED.publicaciones = false;
-  _PF_LOADED.mundial = false;
-  _PF_LOADED.galeria = false;
   pfCargarPosts();
   _PF_LOADED.publicaciones = true;
 })();
 
-// ─── PUBLICACIONES ─────────────────────────────────────────────────────
+// ─── CARGA DE POSTS ────────────────────────────────────────────────────
 async function pfCargarPosts() {
   const cont = document.getElementById('pf-posts-lista');
   if (!cont) return;
-  cont.innerHTML = '<div class="pf-tab-loading"><span class="material-symbols-outlined pf-spin">progress_activity</span>Cargando…</div>';
+  // Skeleton loader
+  cont.innerHTML = [1,2,3].map(() => `
+    <div class="pf-post-card" style="pointer-events:none;">
+      <div class="pf2-skeleton" style="height:12px;width:80px;margin-bottom:10px;"></div>
+      <div class="pf2-skeleton" style="height:14px;width:90%;margin-bottom:6px;"></div>
+      <div class="pf2-skeleton" style="height:14px;width:70%;"></div>
+    </div>`).join('');
   try {
     const r = await fetch('/api/perfil/posts/' + _PF_UID, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
     const d = await r.json();
@@ -525,20 +1437,13 @@ async function pfCargarPosts() {
     cont.innerHTML = d.posts.map(p => {
       let mediaHtml = '';
       if (p.media) {
-        if (p.media_tipo === 'imagen') {
-          mediaHtml = `<img src="${p.media}" class="pf-post-img" loading="lazy" onclick="abrirMediaModal && abrirMediaModal('${p.media}','imagen')">`;
-        } else if (p.media_tipo === 'video') {
-          mediaHtml = `<video controls class="pf-post-img" preload="none"><source src="${p.media}"></video>`;
-        }
+        if (p.media_tipo === 'imagen') mediaHtml = `<img src="${p.media}" class="pf-post-img" loading="lazy" onclick="abrirMediaModal && abrirMediaModal('${p.media}','imagen')">`;
+        else if (p.media_tipo === 'video') mediaHtml = `<video controls class="pf-post-img" preload="none"><source src="${p.media}"></video>`;
       }
-      const gifHtml = p.gif_url
-        ? `<img src="${p.gif_url}" class="post-gif-img" loading="lazy">`
-        : '';
-      const texto = p.texto ? `<p class="pf-post-texto">${_pfEscape(p.texto)}</p>` : '';
+      const gifHtml = p.gif_url ? `<img src="${p.gif_url}" class="post-gif-img" loading="lazy">` : '';
+      const texto   = p.texto   ? `<p class="pf-post-texto">${_pfEsc(p.texto)}</p>` : '';
       return `<div class="pf-post-card">
-        <div class="pf-post-meta">
-          <span class="pf-post-fecha">${p.fecha}</span>
-        </div>
+        <div class="pf-post-meta"><span class="pf-post-fecha">${p.fecha}</span></div>
         ${texto}${gifHtml}${mediaHtml}
         <div class="pf-post-acciones">
           <span class="pf-post-accion"><span class="material-symbols-outlined">favorite</span>${p.total_likes}</span>
@@ -546,71 +1451,64 @@ async function pfCargarPosts() {
         </div>
       </div>`;
     }).join('');
-    // Actualizar stat
-    document.getElementById('stat-posts').textContent = d.posts.length;
+    const sp = document.getElementById('stat-posts');
+    if (sp) sp.textContent = d.posts.length;
   } catch(e) {
     cont.innerHTML = '<div class="pf-empty-tab"><p>Error al cargar publicaciones.</p></div>';
   }
 }
 
-// ─── MUNDIAL ────────────────────────────────────────────────────────────
+// ─── CARGA MUNDIAL ─────────────────────────────────────────────────────
 async function pfCargarMundial() {
   const cont = document.getElementById('pf-mundial-contenido');
   if (!cont) return;
-  cont.innerHTML = '<div class="pf-tab-loading"><span class="material-symbols-outlined pf-spin">progress_activity</span>Cargando…</div>';
+  cont.innerHTML = '<div class="pf2-loading"><span class="material-symbols-outlined pf-spin">progress_activity</span>Cargando…</div>';
   try {
     const r = await fetch('/api/perfil/mundial/' + _PF_UID, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
     const d = await r.json();
     if (!d.ok || !d.pronosticos.length) {
-      cont.innerHTML = '<div class="pf-empty-tab"><span class="material-symbols-outlined">sports_soccer</span><p>Aún no hay pronósticos registrados.</p></div>';
+      cont.innerHTML = '<div class="pf-empty-tab"><span class="material-symbols-outlined">sports_soccer</span><p>Aún no hay pronósticos.</p></div>';
       return;
     }
-    // Resumen de puntos
     const resumen = `<div class="pf-mundial-resumen">
       <span class="material-symbols-outlined">emoji_events</span>
       <div class="pf-mundial-resumen-txt">
         <strong>${d.total_puntos}</strong><br>
         <span>${d.pronosticos.length} pronósticos realizados</span>
-      </div>
-    </div>`;
-    // Lista de pronósticos
+      </div></div>`;
     const lista = d.pronosticos.map(p => {
-      const tienePuntos = p.res_local !== null && p.res_visitante !== null;
+      const tP = p.res_local !== null && p.res_visitante !== null;
       let cls = 'pnd', badge = '—';
-      if (tienePuntos) {
-        cls = p.puntos >= 3 ? 'p3' : p.puntos >= 1 ? 'p1' : 'p0';
-        badge = p.puntos + ' pt' + (p.puntos !== 1 ? 's' : '');
-      }
-      const resSt = tienePuntos ? `<small style="color:var(--text3);font-size:.7rem">(${p.res_local}-${p.res_visitante})</small>` : '';
+      if (tP) { cls = p.puntos>=3?'p3':p.puntos>=1?'p1':'p0'; badge = p.puntos+' pt'+(p.puntos!==1?'s':''); }
+      const resSt = tP ? `<small style="color:var(--text3);font-size:.7rem">(${p.res_local}-${p.res_visitante})</small>` : '';
       return `<div class="pf-prono-item">
-        <span class="pf-prono-equip">${_pfEscape(p.local)}</span>
+        <span class="pf-prono-equip">${_pfEsc(p.local)}</span>
         <div style="text-align:center;min-width:70px">
           <div class="pf-prono-score">${p.pred_local} - ${p.pred_visitante}</div>
-          ${resSt}
-          <div class="pf-prono-grupo">${p.grupo}</div>
+          ${resSt}<div class="pf-prono-grupo">${p.grupo}</div>
         </div>
-        <span class="pf-prono-equip visitante">${_pfEscape(p.visitante)}</span>
+        <span class="pf-prono-equip visitante">${_pfEsc(p.visitante)}</span>
         <span class="pf-prono-puntos ${cls}">${badge}</span>
       </div>`;
     }).join('');
     cont.innerHTML = resumen + '<div class="pf-pronosticos-lista">' + lista + '</div>';
-    // Actualizar stat
-    document.getElementById('stat-puntos').textContent = d.total_puntos;
+    const sp = document.getElementById('stat-puntos');
+    if (sp) sp.textContent = d.total_puntos;
   } catch(e) {
     cont.innerHTML = '<div class="pf-empty-tab"><p>Error al cargar pronósticos.</p></div>';
   }
 }
 
-// ─── GALERÍA ────────────────────────────────────────────────────────────
+// ─── CARGA GALERÍA ─────────────────────────────────────────────────────
 async function pfCargarGaleria() {
   const cont = document.getElementById('pf-galeria-grid');
   if (!cont) return;
-  cont.innerHTML = '<div class="pf-tab-loading"><span class="material-symbols-outlined pf-spin">progress_activity</span>Cargando…</div>';
+  cont.innerHTML = '<div class="pf2-loading" style="grid-column:1/-1"><span class="material-symbols-outlined pf-spin">progress_activity</span>Cargando…</div>';
   try {
     const r = await fetch('/api/perfil/galeria/' + _PF_UID, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
     const d = await r.json();
     if (!d.ok || !d.items.length) {
-      cont.innerHTML = '<div class="pf-empty-tab"><span class="material-symbols-outlined">photo_library</span><p>Aún no hay fotos en la galería.</p></div>';
+      cont.innerHTML = '<div class="pf-empty-tab" style="grid-column:1/-1"><span class="material-symbols-outlined">photo_library</span><p>Aún no hay fotos en la galería.</p></div>';
       return;
     }
     cont.innerHTML = d.items.map(item => {
@@ -621,47 +1519,240 @@ async function pfCargarGaleria() {
         </div>`;
       }
       return `<div class="pf-galeria-item" onclick="abrirMediaModal && abrirMediaModal('${item.ruta}','imagen')">
-        <img src="${item.ruta}" alt="${_pfEscape(item.descripcion)}" loading="lazy">
+        <img src="${item.ruta}" alt="${_pfEsc(item.descripcion)}" loading="lazy">
       </div>`;
     }).join('');
   } catch(e) {
-    cont.innerHTML = '<div class="pf-empty-tab"><p>Error al cargar galería.</p></div>';
+    cont.innerHTML = '<div class="pf-empty-tab" style="grid-column:1/-1"><p>Error al cargar galería.</p></div>';
   }
 }
 
-// ─── Utilidad escape XSS ───────────────────────────────────────────────
-function _pfEscape(str) {
-  return (str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+// ─── AJUSTES: SECCIONES ────────────────────────────────────────────────
+function pf2AjustesSec(btn, sec) {
+  document.querySelectorAll('.pf2-aj-navbtn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.pf2-aj-sec').forEach(s => s.classList.remove('active'));
+  btn.classList.add('active');
+  const el = document.getElementById('aj-sec-' + sec);
+  if (el) el.classList.add('active');
 }
 
-// ═══════════════════════════════════════════════════════════════════════
-//  FOTO DE PERFIL
-// ═══════════════════════════════════════════════════════════════════════
-function _aplicarFotoGlobal(fotoUrl) {
-  document.querySelectorAll('img.user-avatar-img').forEach(img => {
-    img.src = fotoUrl; img.style.display = '';
+// ─── APARIENCIA ────────────────────────────────────────────────────────
+function pf2SetTheme(mode, btn) {
+  document.querySelectorAll('.pf2-theme-opt').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  localStorage.setItem('theme', mode);
+  if (mode === 'auto') {
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    document.body.classList.toggle('dark-mode', prefersDark);
+  } else {
+    document.body.classList.toggle('dark-mode', mode === 'dark');
+  }
+  // Sincronizar toggle heredado si existe
+  const toggleDark = document.getElementById('toggle-dark');
+  if (toggleDark) toggleDark.checked = document.body.classList.contains('dark-mode');
+}
+
+function setAccent(color) {
+  document.documentElement.style.setProperty('--accent', color);
+  localStorage.setItem('accent', color);
+  document.querySelectorAll('.accent-btn, .pf2-accent-btn').forEach(b => {
+    const active = b.dataset.color === color;
+    b.style.borderColor = active ? 'var(--text)' : 'transparent';
+    b.classList.toggle('pf2-active', active);
   });
-  document.querySelectorAll('.sidebar-av-letter, .navbar-av-letter, #pf-avatar-letter').forEach(el => el.style.display = 'none');
-  document.querySelectorAll('.sidebar-av-img, .navbar-av-img').forEach(img => { img.src = fotoUrl; img.style.display = ''; });
+}
+
+function guardarPref(key, value) {
+  localStorage.setItem(key, value);
+}
+
+// ─── CONTRASEÑA ────────────────────────────────────────────────────────
+function pf2TogglePwd(inputId, btn) {
+  const inp = document.getElementById(inputId);
+  if (!inp) return;
+  const showing = inp.type === 'text';
+  inp.type = showing ? 'password' : 'text';
+  const icon = btn.querySelector('.material-symbols-outlined');
+  if (icon) icon.textContent = showing ? 'visibility' : 'visibility_off';
+}
+
+function pf2CheckPwd() {
+  const nueva   = document.getElementById('pf2-pwd-nueva');
+  const confirm = document.getElementById('pf2-pwd-confirm');
+  const wrap    = document.getElementById('pf2-strength-wrap');
+  const fill    = document.getElementById('pf2-strength-fill');
+  const label   = document.getElementById('pf2-strength-label');
+  const matchEl = document.getElementById('pf2-pwd-match-msg');
+
+  const val = nueva ? nueva.value : '';
+  const cfm = confirm ? confirm.value : '';
+
+  // Reglas
+  const prLen = document.getElementById('pr-len');
+  const prNum = document.getElementById('pr-num');
+  const prEsp = document.getElementById('pr-esp');
+  const hasLen = val.length >= 8;
+  const hasNum = /\d/.test(val);
+  const hasEsp = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(val);
+  if (prLen) prLen.classList.toggle('ok', hasLen);
+  if (prNum) prNum.classList.toggle('ok', hasNum);
+  if (prEsp) prEsp.classList.toggle('ok', hasEsp);
+
+  // Fortaleza
+  if (val.length > 0 && wrap) {
+    wrap.style.display = 'flex';
+    const score = [hasLen, hasNum, hasEsp, val.length >= 12].filter(Boolean).length;
+    const pct   = [0, 25, 50, 75, 100][score];
+    const cfg   = [
+      null,
+      { c: '#ef4444', t: 'Débil' },
+      { c: '#f59e0b', t: 'Regular' },
+      { c: '#3b82f6', t: 'Buena' },
+      { c: '#4ade80', t: 'Excelente' }
+    ][score] || { c: '#ef4444', t: 'Débil' };
+    if (fill)  { fill.style.width = pct + '%'; fill.style.background = cfg.c; }
+    if (label) { label.textContent = cfg.t; label.style.color = cfg.c; }
+  } else if (wrap) {
+    wrap.style.display = 'none';
+  }
+
+  // Match
+  if (matchEl && cfm.length > 0) {
+    matchEl.style.display = 'flex';
+    if (val === cfm) {
+      matchEl.innerHTML = '<span class="material-symbols-outlined" style="font-size:14px;color:#4ade80">check_circle</span><span style="color:#4ade80">Las contraseñas coinciden</span>';
+    } else {
+      matchEl.innerHTML = '<span class="material-symbols-outlined" style="font-size:14px;color:#ef4444">cancel</span><span style="color:#ef4444">Las contraseñas no coinciden</span>';
+    }
+  } else if (matchEl) {
+    matchEl.style.display = 'none';
+  }
+}
+
+// ─── SUBMIT: EDITAR PERFIL (AJAX) ──────────────────────────────────────
+document.getElementById('pf2-form-editar').addEventListener('submit', async function(e) {
+  e.preventDefault();
+  const btn = document.getElementById('pf2-btn-guardar');
+  const orig = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = '<span class="material-symbols-outlined pf-spin">progress_activity</span> Guardando…';
+
+  const fd = new FormData(this);
+
+  // Comprimir foto si hay
+  const fotoFile = fd.get('foto_perfil');
+  if (fotoFile && fotoFile.size > 0) {
+    const compressed = await _comprimirImagen(fotoFile);
+    fd.set('foto_perfil', compressed, 'perfil.jpg');
+  }
+
+  try {
+    const res  = await fetch('/actualizar_perfil', { method:'POST', headers:{'X-Requested-With':'XMLHttpRequest'}, body: fd });
+    const data = await res.json().catch(()=>({}));
+    if (res.ok && data.ok !== false) {
+      // Actualizar UI en vivo
+      const nombre = fd.get('nombre');
+      const bio    = fd.get('bio');
+      const ciudad = fd.get('ciudad');
+      const web    = fd.get('sitio_web');
+      if (nombre) {
+        document.querySelectorAll('#pf-hero-nombre').forEach(el => el.textContent = nombre);
+        document.querySelectorAll('#pf2-edit-avatar-letter').forEach(el => el.textContent = nombre[0].toUpperCase());
+      }
+      const bioEl = document.getElementById('pf2-bio-texto');
+      if (bioEl) { bioEl.textContent = bio || 'Sin biografía aún.'; bioEl.classList.toggle('pf2-bio-empty', !bio); }
+      if (data.foto) _aplicarFotoGlobal(data.foto);
+      pf2ActualizarPills(ciudad, web);
+      pf2CerrarModal('pf2-modal-editar');
+      mostrarToast('✅ Perfil actualizado');
+    } else {
+      mostrarToast('❌ ' + (data.error || 'Error al guardar'), 'error');
+    }
+  } catch(err) {
+    mostrarToast('❌ Error de conexión', 'error');
+  }
+  btn.disabled = false;
+  btn.innerHTML = orig;
+});
+
+function pf2ActualizarPills(ciudad, web) {
+  const pills = document.getElementById('pf2-info-pills');
+  if (!pills) return;
+  // Reconstruir pills de ciudad/web sin tocar la de fecha
+  const fechaPill = [...pills.querySelectorAll('.pf2-pill')].find(p => p.querySelector('.material-symbols-outlined')?.textContent === 'calendar_month');
+  pills.innerHTML = '';
+  if (ciudad) {
+    const p = document.createElement('span');
+    p.className = 'pf2-pill';
+    p.innerHTML = `<span class="material-symbols-outlined">location_on</span>${_pfEsc(ciudad)}`;
+    pills.appendChild(p);
+  }
+  if (web) {
+    const a = document.createElement('a');
+    a.href = web; a.target = '_blank'; a.rel = 'noopener';
+    a.className = 'pf2-pill pf2-pill-link';
+    a.innerHTML = `<span class="material-symbols-outlined">link</span>${_pfEsc(web)}`;
+    pills.appendChild(a);
+  }
+  if (fechaPill) pills.appendChild(fechaPill);
+}
+
+// ─── SUBMIT: CAMBIAR CONTRASEÑA (AJAX) ────────────────────────────────
+document.getElementById('pf2-form-password').addEventListener('submit', async function(e) {
+  e.preventDefault();
+  const btn  = document.getElementById('pf2-btn-pwd');
+  const orig = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = '<span class="material-symbols-outlined pf-spin">progress_activity</span> Actualizando…';
+  const fd = new FormData(this);
+  try {
+    const res  = await fetch('/cambiar_password', { method:'POST', headers:{'X-Requested-With':'XMLHttpRequest'}, body: fd });
+    const data = await res.json().catch(()=>({}));
+    if (res.ok && data.ok !== false) {
+      pf2CerrarModal('pf2-modal-password');
+      mostrarToast('🔒 Contraseña actualizada');
+      this.reset();
+      // Limpiar UI de fortaleza
+      const wrap = document.getElementById('pf2-strength-wrap');
+      if (wrap) wrap.style.display = 'none';
+      const matchEl = document.getElementById('pf2-pwd-match-msg');
+      if (matchEl) matchEl.style.display = 'none';
+    } else {
+      mostrarToast('❌ ' + (data.error || 'Datos incorrectos'), 'error');
+    }
+  } catch(err) {
+    mostrarToast('❌ Error de conexión', 'error');
+  }
+  btn.disabled = false;
+  btn.innerHTML = orig;
+});
+
+// ─── FOTO DE PERFIL (DIRECTO desde avatar) ────────────────────────────
+function _aplicarFotoGlobal(fotoUrl) {
+  document.querySelectorAll('img.user-avatar-img').forEach(img => { img.src = fotoUrl; img.style.display = ''; });
+  document.querySelectorAll('.sidebar-av-letter,.navbar-av-letter,#pf-avatar-letter,.pf2-avatar-letter').forEach(el => el.style.display = 'none');
+  document.querySelectorAll('.sidebar-av-img,.navbar-av-img').forEach(img => { img.src = fotoUrl; img.style.display = ''; });
   const prev = document.getElementById('preview-foto-perfil');
   if (prev) { prev.src = fotoUrl; prev.style.display = ''; }
+  const editPrev = document.getElementById('pf2-edit-foto-preview');
+  if (editPrev) { editPrev.src = fotoUrl; editPrev.style.display = ''; }
 }
 
-function _comprimirImagen(file, maxPx = 800, quality = 0.82) {
-  return new Promise((resolve) => {
+function _comprimirImagen(file, maxPx=800, quality=0.82) {
+  return new Promise(resolve => {
     const img = new Image();
     const blobUrl = URL.createObjectURL(file);
     img.onload = () => {
       URL.revokeObjectURL(blobUrl);
-      let { width, height } = img;
+      let {width, height} = img;
       if (width > maxPx || height > maxPx) {
-        if (width > height) { height = Math.round(height * maxPx / width); width = maxPx; }
-        else                { width  = Math.round(width  * maxPx / height); height = maxPx; }
+        if (width > height) { height = Math.round(height*maxPx/width); width=maxPx; }
+        else                { width=Math.round(width*maxPx/height); height=maxPx; }
       }
       const canvas = document.createElement('canvas');
-      canvas.width = width; canvas.height = height;
+      canvas.width=width; canvas.height=height;
       canvas.getContext('2d').drawImage(img, 0, 0, width, height);
-      canvas.toBlob(blob => resolve(blob || file), 'image/jpeg', quality);
+      canvas.toBlob(blob => resolve(blob||file), 'image/jpeg', quality);
     };
     img.onerror = () => { URL.revokeObjectURL(blobUrl); resolve(file); };
     img.src = blobUrl;
@@ -674,11 +1765,11 @@ async function autoGuardarFoto(input) {
   const blobUrl = URL.createObjectURL(file);
   _aplicarFotoGlobal(blobUrl);
   const icon  = document.getElementById('pf-camera-icon');
-  const label = document.getElementById('pf-camera-label');
-  if (icon)  { icon.textContent = 'hourglass_top'; icon.style.animation = 'spin 1s linear infinite'; }
+  const label = input.closest('label');
+  if (icon)  { icon.textContent = 'hourglass_top'; icon.style.animation = 'pf-spin 1s linear infinite'; }
   if (label) label.style.pointerEvents = 'none';
   const compressed = await _comprimirImagen(file);
-  const formPerfil = document.getElementById('form-perfil');
+  const formPerfil  = document.getElementById('pf2-form-editar');
   const fd = new FormData();
   fd.append('foto_perfil', compressed, 'perfil.jpg');
   if (formPerfil) {
@@ -688,15 +1779,15 @@ async function autoGuardarFoto(input) {
     });
   }
   try {
-    const res  = await fetch('/actualizar_perfil', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: fd });
-    const data = await res.json().catch(() => ({}));
+    const res  = await fetch('/actualizar_perfil', { method:'POST', headers:{'X-Requested-With':'XMLHttpRequest'}, body: fd });
+    const data = await res.json().catch(()=>({}));
     if (res.ok && data.ok !== false) {
       if (data.foto) _aplicarFotoGlobal(data.foto);
       mostrarToast('📸 Foto actualizada');
     } else {
       mostrarToast('❌ ' + (data.error || 'Error al guardar foto'), 'error');
     }
-  } catch (err) {
+  } catch(err) {
     mostrarToast('❌ Error de conexión', 'error');
   }
   if (icon)  { icon.textContent = 'photo_camera'; icon.style.animation = ''; }
@@ -704,56 +1795,83 @@ async function autoGuardarFoto(input) {
   input.value = '';
 }
 
-/* ── FUNCIONES DE AJUSTES (integradas en perfil) ── */
-function setAccent(color){
-  document.documentElement.style.setProperty('--accent', color);
-  localStorage.setItem('accent', color);
-  document.querySelectorAll('.accent-btn').forEach(b => {
-    b.style.borderColor = b.dataset.color === color ? '#fff' : 'transparent';
+// Preview foto modal editar
+function pf2PreviewFoto(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const url = URL.createObjectURL(file);
+  const editPrev   = document.getElementById('pf2-edit-foto-preview');
+  const editLetter = document.getElementById('pf2-edit-avatar-letter');
+  if (editPrev)   { editPrev.src = url; editPrev.style.display = ''; }
+  if (editLetter) editLetter.style.display = 'none';
+  // Preview también en el avatar principal
+  _aplicarFotoGlobal(url);
+}
+
+// Preview portada modal editar
+function pf2PreviewPortada(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const url  = URL.createObjectURL(file);
+  const prev = document.getElementById('pf2-cover-preview');
+  if (prev) {
+    prev.style.backgroundImage = `url(${url})`;
+    prev.style.backgroundSize  = 'cover';
+    prev.style.backgroundPosition = 'center';
+  }
+  // Actualizar portada en hero
+  const coverImg = document.getElementById('pf2-cover-img');
+  if (coverImg && coverImg.tagName === 'IMG') coverImg.src = url;
+}
+
+// ─── CONTADOR BIO ──────────────────────────────────────────────────────
+const bioTarea = document.getElementById('pf2-inp-bio');
+if (bioTarea) {
+  bioTarea.addEventListener('input', () => {
+    const counter = document.getElementById('pf2-bio-count');
+    if (counter) counter.textContent = bioTarea.value.length;
   });
 }
 
-function guardarPref(key, value){
-  localStorage.setItem(key, value);
-}
+// ─── COMPATIBILIDAD: funciones existentes ─────────────────────────────
+function checkPwdMatch() { pf2CheckPwd(); }
 
-function checkPwdMatch(){
-  const n = document.getElementById('nueva-pwd').value;
-  const c = document.getElementById('conf-pwd').value;
-  const msg = document.getElementById('pwd-match-msg');
-  if(!c) { msg.style.display='none'; return; }
-  msg.style.display = 'block';
-  if(n===c){ msg.textContent='✅ Las contraseñas coinciden'; msg.style.color='#4caf50'; }
-  else     { msg.textContent='❌ Las contraseñas no coinciden'; msg.style.color='#ff6b6b'; }
-}
-
-/* Cargar prefs al entrar a perfil */
+// ─── INIT ──────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
   // Tema
-  const dark = localStorage.getItem('theme') === 'dark';
+  const savedTheme = localStorage.getItem('theme') || 'dark';
+  const themeBtn = document.getElementById('theme-' + savedTheme);
+  if (themeBtn) themeBtn.classList.add('active');
   const toggleDark = document.getElementById('toggle-dark');
-  if(toggleDark) toggleDark.checked = dark;
+  if (toggleDark) toggleDark.checked = document.body.classList.contains('dark-mode');
 
   // Acento
   const accent = localStorage.getItem('accent') || '#ffd700';
   document.documentElement.style.setProperty('--accent', accent);
-  document.querySelectorAll('.accent-btn').forEach(b => {
-    b.style.borderColor = b.dataset.color === accent ? '#fff' : 'transparent';
+  document.querySelectorAll('.accent-btn,.pf2-accent-btn').forEach(b => {
+    const active = b.dataset.color === accent;
+    b.style.borderColor = active ? 'var(--text)' : 'transparent';
+    b.classList.toggle('pf2-active', active);
   });
 
   // Notificaciones
   ['notif_posts','notif_eventos','notif_sonido'].forEach(k => {
     const el = document.getElementById(k.replace('_','-'));
-    if(el) el.checked = localStorage.getItem(k) !== 'false';
+    if (el) el.checked = localStorage.getItem(k) !== 'false';
   });
 
   // Info dispositivo
   const ua = navigator.userAgent;
-  const browser = ua.includes('Chrome') ? 'Chrome' : ua.includes('Firefox') ? 'Firefox' :
-                  ua.includes('Safari') ? 'Safari' : ua.includes('Edge') ? 'Edge' : 'Navegador';
-  const os = ua.includes('Windows') ? 'Windows' : ua.includes('Mac') ? 'macOS' :
-             ua.includes('Linux') ? 'Linux' : ua.includes('Android') ? 'Android' : 'iOS';
-  const uaEl = document.getElementById('ua-info');
-  if(uaEl) uaEl.textContent = `${browser} en ${os}`;
+  const browser = ua.includes('Chrome')?'Chrome':ua.includes('Firefox')?'Firefox':ua.includes('Safari')?'Safari':ua.includes('Edge')?'Edge':'Navegador';
+  const os = ua.includes('Windows')?'Windows':ua.includes('Mac')?'macOS':ua.includes('Linux')?'Linux':ua.includes('Android')?'Android':'iOS';
+  ['ua-info','pf2-ua-info'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = `${browser} en ${os}`;
+  });
 });
+
+// ─── ESCAPE XSS ───────────────────────────────────────────────────────
+function _pfEsc(str) {
+  return (str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
 </script>

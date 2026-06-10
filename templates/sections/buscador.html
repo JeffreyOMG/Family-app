@@ -59,13 +59,14 @@
   <div id="bus-galeria-panel" style="display:none;">
     {% if usuario.rol in ('miembro', 'admin') %}
     <div class="bus-galeria-subir">
-      <form method="POST" action="/subir_archivo" enctype="multipart/form-data" class="bus-galeria-form">
-        <label class="bus-galeria-upload-btn">
+      <form id="bus-galeria-form" method="POST" action="/subir_archivo" enctype="multipart/form-data" class="bus-galeria-form">
+        <input type="file" id="bus-archivo-input" name="archivo" accept="image/*,video/*"
+          style="position:absolute;opacity:0;width:1px;height:1px;pointer-events:none;"
+          onchange="document.getElementById('bus-fn').textContent=this.files[0]?.name||''; document.getElementById('bus-galeria-form').submit();" required>
+        <button type="button" class="bus-galeria-upload-btn" onclick="busAbrirGaleria()">
           <span class="material-symbols-outlined">add_photo_alternate</span>
           <span>Subir foto / video</span>
-          <input type="file" name="archivo" accept="image/*,video/*" style="display:none"
-            onchange="document.getElementById('bus-fn').textContent=this.files[0]?.name||''; this.form.submit();" required>
-        </label>
+        </button>
         <span id="bus-fn" style="font-size:.78rem;opacity:.5;"></span>
       </form>
     </div>
@@ -528,4 +529,12 @@ document.getElementById('input-bq')?.addEventListener('keydown', function(e) {
     document.getElementById('form-buscar').submit();
   }
 });
+
+// Compatibilidad con WebView de Android — el label+display:none no siempre
+// dispara el selector de archivos en APKs. Usamos .click() explícito sobre el input.
+function busAbrirGaleria() {
+  var inp = document.getElementById('bus-archivo-input');
+  if (!inp) return;
+  setTimeout(function() { inp.click(); }, 50);
+}
 </script>
