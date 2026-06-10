@@ -416,7 +416,7 @@ function subirAlInicio() {
       const data = await r.json();
       if (!data.ok) return;
       _notifCache = data.notificaciones;
-      _setBadge(data.no_leidas);
+      _setBadge(_notifCache.filter(n => !n.leida).length);
 
       // Mostrar push-notification del navegador para nuevas no leídas
       if (!silent && Notification.permission === 'granted') {
@@ -453,7 +453,7 @@ function subirAlInicio() {
       const r = await fetch('/api/notificaciones/no_leidas', { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
       if (!r.ok) return;
       const d = await r.json();
-      if (d.ok) _setBadge(d.count);
+      if (d.count !== undefined) _setBadge(d.count);
     } catch {}
   }
 

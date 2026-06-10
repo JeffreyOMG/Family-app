@@ -16,14 +16,22 @@ def crear_notificacion(con, dest_id, tipo, actor_id=None, post_id=None,
         if actor_id and actor_id == dest_id:
             return
         # Anti-spam: no duplicar la misma acción en < 60 min
-        dup = con.execute(
-            """SELECT id FROM notificaciones
-               WHERE dest_id=%s AND tipo=%s AND actor_id=%s
-                 AND (post_id=%s OR (post_id IS NULL AND %s IS NULL))
-                 AND fecha > NOW() - INTERVAL '60 minutes'
-               LIMIT 1""",
-            (dest_id, tipo, actor_id, post_id, post_id)
-        ).fetchone()
+        if post_id is not None:
+            dup = con.execute(
+                """SELECT id FROM notificaciones
+                   WHERE dest_id=%s AND tipo=%s AND actor_id=%s AND post_id=%s
+                     AND fecha > NOW() - INTERVAL '60 minutes'
+                   LIMIT 1""",
+                (dest_id, tipo, actor_id, post_id)
+            ).fetchone()
+        else:
+            dup = con.execute(
+                """SELECT id FROM notificaciones
+                   WHERE dest_id=%s AND tipo=%s AND actor_id=%s AND post_id IS NULL
+                     AND fecha > NOW() - INTERVAL '60 minutes'
+                   LIMIT 1""",
+                (dest_id, tipo, actor_id)
+            ).fetchone()
         if dup:
             return
         con.execute(
