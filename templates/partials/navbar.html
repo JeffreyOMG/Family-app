@@ -19,7 +19,7 @@
   <!-- ── MÓVIL: Liquid Glass Instagram style ── -->
   <div class="navbar-mobile-ig">
     <div class="navbar-ig-left">
-      <span class="navbar-ig-brand">
+      <span class="navbar-ig-brand" onclick="subirAlInicio()" style="cursor:pointer;" title="Volver al inicio">
         <span class="brand-pink">FAMILLY</span><span class="brand-white">APP</span>
       </span>
     </div>
@@ -53,6 +53,42 @@
          onclick="irSeccion('perfil')">{{ usuario.nombre[0]|upper }}</div>
   </div>
 </nav>
+
+<!-- Botón flotante "subir" — solo escritorio -->
+<button id="scroll-top-fab" onclick="subirAlInicio()" title="Volver al inicio" aria-label="Volver al inicio">
+  <span class="material-symbols-outlined">keyboard_arrow_up</span>
+</button>
+
+<style>
+#scroll-top-fab {
+  display: none;
+  position: fixed;
+  bottom: 32px;
+  right: 32px;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: #ff4d8d;
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 3px 12px rgba(255,77,141,.45);
+  z-index: 999;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity .22s, transform .22s;
+}
+#scroll-top-fab .material-symbols-outlined { font-size: 26px; line-height: 1; }
+#scroll-top-fab.fab-visible {
+  display: flex;
+  opacity: 1;
+  transform: translateY(0);
+}
+#scroll-top-fab:hover { background: #e03070; transform: translateY(-2px); }
+@media (max-width: 768px) { #scroll-top-fab { display: none !important; } }
+</style>
 
 <script>
 /* Liquid Glass scroll effect — mobile only */
@@ -106,5 +142,29 @@
     attach();
     setTimeout(attach, 250);
   }
+})();
+
+/* ── SUBIR AL INICIO ── */
+function subirAlInicio() {
+  var mc = document.querySelector('.main-content');
+  if (mc) {
+    mc.scrollTo({ top: 0, behavior: 'smooth' });
+  } else {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+}
+
+/* Botón flotante escritorio: aparece al bajar 300px */
+(function () {
+  var btn = document.getElementById('scroll-top-fab');
+  if (!btn) return;
+  var mc = document.querySelector('.main-content');
+  var container = mc || window;
+  function update() {
+    var top = mc ? mc.scrollTop : window.scrollY;
+    btn.classList.toggle('fab-visible', top > 300);
+  }
+  container.addEventListener('scroll', update, { passive: true });
+  update();
 })();
 </script>
