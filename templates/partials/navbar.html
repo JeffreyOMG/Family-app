@@ -146,25 +146,24 @@
 
 /* ── SUBIR AL INICIO ── */
 function subirAlInicio() {
-  var mc = document.querySelector('.main-content');
-  if (mc) {
-    mc.scrollTo({ top: 0, behavior: 'smooth' });
-  } else {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }
+  /* En móvil scroll es body; en PC es html (documentElement) */
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  document.documentElement.scrollTo({ top: 0, behavior: 'smooth' });
+  document.body.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 /* Botón flotante escritorio: aparece al bajar 300px */
 (function () {
   var btn = document.getElementById('scroll-top-fab');
   if (!btn) return;
-  var mc = document.querySelector('.main-content');
-  var container = mc || window;
-  function update() {
-    var top = mc ? mc.scrollTop : window.scrollY;
-    btn.classList.toggle('fab-visible', top > 300);
+  function getScrollTop() {
+    return window.scrollY || document.documentElement.scrollTop || document.body.scrollTop || 0;
   }
-  container.addEventListener('scroll', update, { passive: true });
+  function update() {
+    btn.classList.toggle('fab-visible', getScrollTop() > 300);
+  }
+  window.addEventListener('scroll', update, { passive: true });
+  document.addEventListener('scroll', update, { passive: true });
   update();
 })();
 </script>
