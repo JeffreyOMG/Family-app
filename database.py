@@ -307,6 +307,17 @@ _TABLES = [
         usuario_id INTEGER NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
         votado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         UNIQUE (encuesta_id, usuario_id))""",
+
+    # ── Índices para acelerar queries del feed ──────────────────────────────
+    "CREATE INDEX IF NOT EXISTS idx_likes_post      ON likes(post_id)",
+    "CREATE INDEX IF NOT EXISTS idx_likes_usuario   ON likes(usuario_id)",
+    "CREATE INDEX IF NOT EXISTS idx_reposts_post    ON reposts(post_id)",
+    "CREATE INDEX IF NOT EXISTS idx_reposts_usuario ON reposts(usuario_id)",
+    "CREATE INDEX IF NOT EXISTS idx_bookmarks_post  ON bookmarks(post_id)",
+    "CREATE INDEX IF NOT EXISTS idx_bookmarks_user  ON bookmarks(usuario_id)",
+    "CREATE INDEX IF NOT EXISTS idx_pub_fecha       ON publicaciones(fecha DESC)",
+    "CREATE INDEX IF NOT EXISTS idx_pub_usuario     ON publicaciones(usuario_id)",
+    "CREATE INDEX IF NOT EXISTS idx_coment_post     ON comentarios(post_id)",
 ]
 
 def init_db():

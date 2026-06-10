@@ -319,6 +319,18 @@
         <p>Sé el primero en publicar algo para la familia</p>
       </div>
       {% endif %}
+      {% if total_publicaciones > 10 %}
+      <div id="feed-load-more-wrap" style="text-align:center;padding:18px 0 8px;">
+        <button id="btn-cargar-mas"
+          class="btn-cargar-mas"
+          data-page="2"
+          data-total="{{ total_publicaciones }}"
+          onclick="cargarMasPosts(this)">
+          <span class="material-symbols-outlined" style="vertical-align:-5px;font-size:18px;">expand_more</span>
+          Ver más posts
+        </button>
+      </div>
+      {% endif %}
       </div>
 
       <!-- FEED: GUARDADOS -->
@@ -4378,6 +4390,19 @@ img.inline-emote:hover {
   transition: color .15s;
 }
 .feed-cmt-ver-mas:hover { color: var(--ac, #ff4d8d); }
+
+/* ── CARGAR MÁS ── */
+.btn-cargar-mas {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 10px 24px; border-radius: 24px;
+  background: var(--surface, #fff); border: 1.5px solid var(--border, #e5e7eb);
+  color: var(--text, #374151); font-size: 14px; font-weight: 500;
+  cursor: pointer; transition: all .18s;
+}
+.btn-cargar-mas:hover { background: var(--ac, #ff4d8d); color: #fff; border-color: var(--ac, #ff4d8d); }
+.btn-cargar-mas:disabled { opacity: .5; cursor: not-allowed; }
+.btn-cargar-mas .spin { animation: spin .8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
 </style>
 <script>
 /* ── TABS ── */
@@ -7496,4 +7521,48 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 window._giphyLib = window._giphyLib || {};
+
+/* ── CARGAR MÁS POSTS ── */
+async function cargarMasPosts(btn) {
+  if (!btn) return;
+  const page = parseInt(btn.dataset.page) || 2;
+  btn.disabled = true;
+  const origHTML = btn.innerHTML;
+  btn.innerHTML = '<span class="material-symbols-outlined spin">refresh</span> Cargando...';
+
+  try {
+    const res = await fetch(`/api/feed/posts?page=${page}`);
+    const data = await res.json();
+    if (!data.ok) throw new Error('Error del servidor');
+
+    const feed = document.getElementById('feed-posts');
+    const wrapBtn = document.getElementById('feed-load-more-wrap');
+
+    for (const p of data.posts) {
+      if (!p.html) continue;
+      const div = document.createElement('div');
+      div.innerHTML = p.html.trim();
+      const card = div.firstElementChild;
+      if (!card) continue;
+      feed.insertBefore(card, wrapBtn);
+    }
+
+    if (data.has_more) {
+      btn.dataset.page = page + 1;
+      btn.disabled = false;
+      btn.innerHTML = origHTML;
+    } else {
+      wrapBtn.innerHTML = '<p style="font-size:13px;color:var(--text-muted,#9ca3af);padding:8px 0;">· Ya viste todos los posts ·</p>';
+    }
+
+    // Re-inicializar observers de video si existe
+    if (typeof initVideoObserver === 'function') initVideoObserver();
+
+  } catch (e) {
+    console.error('cargarMasPosts error:', e);
+    btn.disabled = false;
+    btn.innerHTML = origHTML;
+  }
+}
+
 </script>

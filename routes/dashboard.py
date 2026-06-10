@@ -1,8 +1,10 @@
-from flask import Blueprint, render_template, session, redirect
+from flask import Blueprint, render_template, session, redirect, jsonify, request as flask_request
 from database import get_db, GRUPOS_MUNDIAL
 from datetime import datetime
 
 dash_bp = Blueprint("dashboard", __name__)
+
+POSTS_PER_PAGE = 10
 
 def _get_poll_for_post(con, post_id, uid):
     from routes.posts import _get_poll
@@ -81,6 +83,9 @@ def get_ctx(uid, con, extra=None):
     rol = usuario['rol']  # 'invitado', 'miembro', 'admin'
     vis_filter = "" if rol in ('miembro', 'admin') else "AND COALESCE(p.visibilidad,'general') = 'general'"
 
+    total_publicaciones = con.execute(
+        f"SELECT COUNT(*) FROM publicaciones p WHERE 1=1 {vis_filter}"
+    ).fetchone()[0]
     publicaciones = [dict(p, liked=bool(p["liked"]), bookmarked=bool(p["bookmarked"])) for p in con.execute(f"""
         SELECT p.id, p.texto, p.media, p.media_tipo, p.fecha,
                COALESCE(p.visibilidad,'general') AS visibilidad,
@@ -93,6 +98,7 @@ def get_ctx(uid, con, extra=None):
         FROM publicaciones p JOIN usuarios u ON u.id=p.usuario_id
         WHERE 1=1 {vis_filter}
         ORDER BY p.fecha DESC
+        LIMIT {POSTS_PER_PAGE}
     """, (uid, uid)).fetchall()]
     for _p in publicaciones:
         _p['poll'] = _get_poll_for_post(con, _p['id'], uid)
@@ -109,6 +115,7 @@ def get_ctx(uid, con, extra=None):
         FROM publicaciones p JOIN usuarios u ON u.id=p.usuario_id
         WHERE 1=1 {vis_filter}
         ORDER BY total_likes DESC, p.fecha DESC
+        LIMIT 20
     """, (uid, uid)).fetchall()]
     for _p in tendencias:
         _p['poll'] = _get_poll_for_post(con, _p['id'], uid)
@@ -129,19 +136,26 @@ def get_ctx(uid, con, extra=None):
             SELECT post_id FROM reposts WHERE usuario_id=%s
         ) {vis_filter}
         ORDER BY p.fecha DESC
+        LIMIT 20
     """, (uid, uid, uid)).fetchall()]
     for _p in guardados:
         _p['poll'] = _get_poll_for_post(con, _p['id'], uid)
 
-    comentarios_rows = con.execute("""
-        SELECT c.id, c.post_id, c.texto, c.parent_id, c.fecha, c.usuario_id,
-               COALESCE(c.gif_url,'') AS gif_url,
-               u.nombre, u.usuario, u.foto
-        FROM comentarios c JOIN usuarios u ON u.id=c.usuario_id ORDER BY c.fecha ASC
-    """).fetchall()
+    # Solo cargamos comentarios de los posts visibles inicialmente (primeros 10)
+    _post_ids_visibles = [p["id"] for p in publicaciones]
     comentarios_por_post = {}
-    for c in comentarios_rows:
-        comentarios_por_post.setdefault(c["post_id"], []).append(dict(c))
+    if _post_ids_visibles:
+        _placeholders = ",".join(["%s"] * len(_post_ids_visibles))
+        comentarios_rows = con.execute(f"""
+            SELECT c.id, c.post_id, c.texto, c.parent_id, c.fecha, c.usuario_id,
+                   COALESCE(c.gif_url,'') AS gif_url,
+                   u.nombre, u.usuario, u.foto
+            FROM comentarios c JOIN usuarios u ON u.id=c.usuario_id
+            WHERE c.post_id IN ({_placeholders})
+            ORDER BY c.fecha ASC
+        """, tuple(_post_ids_visibles)).fetchall()
+        for c in comentarios_rows:
+            comentarios_por_post.setdefault(c["post_id"], []).append(dict(c))
 
     total_global  = con.execute("SELECT COALESCE(SUM(monto),0) FROM aportes").fetchone()[0]
     total_aportes = con.execute("SELECT COALESCE(SUM(monto),0) FROM aportes WHERE usuario_id=%s", (uid,)).fetchone()[0]
@@ -308,6 +322,7 @@ def get_ctx(uid, con, extra=None):
     ctx = dict(
         usuario=usuario,
         publicaciones=publicaciones,
+        total_publicaciones=total_publicaciones,
         tendencias=tendencias,
         guardados=guardados,
         comentarios_por_post=comentarios_por_post,
@@ -362,3 +377,63 @@ def dashboard():
         session.clear()
         return redirect("/")
     return render_template("dashboard.html", **ctx)
+
+
+@dash_bp.route("/api/feed/posts")
+def api_feed_posts():
+    """Paginación del feed principal — devuelve HTML de posts para cargar más."""
+    if "uid" not in session:
+        return jsonify({"ok": False, "error": "no auth"}), 401
+    uid  = session["uid"]
+    page = int(flask_request.args.get("page", 1))
+    offset = (page - 1) * POSTS_PER_PAGE
+
+    con = get_db()
+    usuario = con.execute("SELECT rol FROM usuarios WHERE id=%s", (uid,)).fetchone()
+    if not usuario:
+        return jsonify({"ok": False}), 403
+    rol = usuario["rol"]
+    vis_filter = "" if rol in ("miembro", "admin") else "AND COALESCE(p.visibilidad,'general') = 'general'"
+
+    total = con.execute(
+        f"SELECT COUNT(*) FROM publicaciones p WHERE 1=1 {vis_filter}"
+    ).fetchone()[0]
+
+    rows = [dict(p, liked=bool(p["liked"]), bookmarked=bool(p["bookmarked"])) for p in con.execute(f"""
+        SELECT p.id, p.texto, p.media, p.media_tipo, p.fecha,
+               COALESCE(p.visibilidad,'general') AS visibilidad,
+               COALESCE(p.gif_url,'') AS gif_url,
+               u.nombre, u.usuario, u.foto, u.id AS usuario_id,
+               EXISTS(SELECT 1 FROM likes l WHERE l.usuario_id=%s AND l.post_id=p.id) AS liked,
+               (SELECT COUNT(*) FROM likes l2 WHERE l2.post_id=p.id) AS total_likes,
+               (SELECT COUNT(*) FROM reposts r WHERE r.post_id=p.id) AS total_reposts,
+               EXISTS(SELECT 1 FROM bookmarks b WHERE b.usuario_id=%s AND b.post_id=p.id) AS bookmarked
+        FROM publicaciones p JOIN usuarios u ON u.id=p.usuario_id
+        WHERE 1=1 {vis_filter}
+        ORDER BY p.fecha DESC
+        LIMIT {POSTS_PER_PAGE} OFFSET {offset}
+    """, (uid, uid)).fetchall()]
+
+    from routes.posts import _get_poll, POST_TMPL
+    from flask import render_template_string
+    for _p in rows:
+        _p["poll"] = _get_poll(con, _p["id"], uid)
+
+    has_more = (offset + POSTS_PER_PAGE) < total
+
+    # Renderizar cada post como HTML usando POST_TMPL
+    posts_html = []
+    for _p in rows:
+        try:
+            h = render_template_string(POST_TMPL, p=_p, poll=_p.get("poll"))
+            posts_html.append({"id": _p["id"], "html": h})
+        except Exception as e:
+            posts_html.append({"id": _p["id"], "html": ""})
+
+    return jsonify({
+        "ok": True,
+        "posts": posts_html,
+        "has_more": has_more,
+        "total": total,
+        "page": page,
+    })

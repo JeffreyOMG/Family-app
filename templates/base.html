@@ -38,7 +38,7 @@
   <div id="toast-container"></div>
 
   <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
-  <script src="{{ url_for('static', filename='js/video-player.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/video-player.js') }}" defer></script>
   {% block scripts %}{% endblock %}
 </body>
 </html>
