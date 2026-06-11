@@ -2361,21 +2361,26 @@ async function autoGuardarPortada(input) {
     let src = '';
     if (type === 'avatar') {
       const av = document.getElementById('preview-foto-perfil');
-      if (!av || !av.src || av.style.display === 'none') return; // sin foto, no abrir
+      if (!av || !av.src || av.style.display === 'none') return;
       src = av.src;
     } else if (type === 'cover') {
       const ci = document.getElementById('pf2-cover-img');
-      if (!ci || ci.tagName !== 'IMG') return; // sin portada, no abrir
+      if (!ci || ci.tagName !== 'IMG') return;
       src = ci.src;
     }
-    if (!src || src.startsWith('blob:') === false && src.length < 5) return;
+    if (!src || (src.startsWith('blob:') === false && src.length < 5)) return;
     _lbScale = 1;
     _lbDragging = false;
     const img = _lbImg();
     img.style.transform = 'scale(1) translate(0,0)';
     img.src = src;
     const lb = _lbBox();
-    // Mostrar como flex antes de la transición para que el centrado funcione
+    // CRÍTICO: teleportar al body para escapar cualquier stacking context con transform
+    if (lb.parentElement !== document.body) {
+      lb._pfLbOrigParent = lb.parentElement;
+      lb._pfLbOrigNext   = lb.nextSibling;
+      document.body.appendChild(lb);
+    }
     lb.style.display = 'flex';
     lb.style.opacity = '0';
     lb.style.pointerEvents = 'all';
@@ -2386,7 +2391,6 @@ async function autoGuardarPortada(input) {
       });
     });
     document.body.style.overflow = 'hidden';
-    // Ocultar hint después de 3s
     const hint = document.getElementById('pf2-lb-hint');
     if (hint) { hint.style.opacity = '1'; setTimeout(() => hint.style.opacity = '0', 3000); }
   };
@@ -2399,6 +2403,12 @@ async function autoGuardarPortada(input) {
     setTimeout(() => {
       lb.style.display = 'none';
       document.body.style.overflow = '';
+      // Devolver al lugar original
+      if (lb._pfLbOrigParent) {
+        lb._pfLbOrigParent.insertBefore(lb, lb._pfLbOrigNext || null);
+        lb._pfLbOrigParent = null;
+        lb._pfLbOrigNext   = null;
+      }
     }, 300);
   };
 

@@ -1382,6 +1382,12 @@ function vpMostrarMas(tipo) {
     img.src = src;
 
     const lb = document.getElementById('vp-lightbox');
+    // CRÍTICO: teleportar al body para escapar stacking context con transform
+    if (lb.parentElement !== document.body) {
+      lb._vpLbOrigParent = lb.parentElement;
+      lb._vpLbOrigNext   = lb.nextSibling;
+      document.body.appendChild(lb);
+    }
     lb.style.display = 'flex';
     lb.style.opacity = '0';
     lb.style.pointerEvents = 'all';
@@ -1393,7 +1399,6 @@ function vpMostrarMas(tipo) {
     });
     document.body.style.overflow = 'hidden';
 
-    // Ocultar hint tras 3s
     const hint = document.getElementById('vp-lb-hint');
     if (hint) { hint.style.opacity = '1'; setTimeout(() => hint.style.opacity = '0', 3000); }
   };
@@ -1406,6 +1411,11 @@ function vpMostrarMas(tipo) {
     setTimeout(() => {
       lb.style.display = 'none';
       document.body.style.overflow = '';
+      if (lb._vpLbOrigParent) {
+        lb._vpLbOrigParent.insertBefore(lb, lb._vpLbOrigNext || null);
+        lb._vpLbOrigParent = null;
+        lb._vpLbOrigNext   = null;
+      }
     }, 300);
   };
 
