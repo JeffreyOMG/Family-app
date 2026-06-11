@@ -4581,7 +4581,7 @@ async function enviarComentario(postId, input){
         row.innerHTML = `
           <div class="user-avatar" style="width:28px;height:28px;font-size:11px;flex-shrink:0;">${escHTML(data.inicial)}</div>
           <div class="comment-bubble">
-            <strong class="comment-author">${escHTML(data.nombre)}</strong>
+            <strong class="comment-author">${escHTML(data.nombre)}${verifiedBadgeHTML(data.verified,"sm")}</strong>
             <span class="comment-text" data-cmt-text="${data.id||''}">${escHTML(data.texto)}</span>
             <div class="comment-actions-row">
               <button class="cmt-action-btn cmt-like-btn" onclick="likearComentario(${data.id||0},this)" title="Me gusta">
@@ -5945,7 +5945,7 @@ async function enviarRespuesta(parentId, postId, input) {
         row.innerHTML = `
           <div class="user-avatar" style="width:24px;height:24px;font-size:10px;flex-shrink:0;">${escHTML(data.inicial)}</div>
           <div class="comment-bubble">
-            <strong class="comment-author">${escHTML(data.nombre)}</strong>
+            <strong class="comment-author">${escHTML(data.nombre)}${verifiedBadgeHTML(data.verified,"sm")}</strong>
             <span class="comment-text">${escHTML(data.texto)}</span>
             <span class="comment-date">${new Date().toISOString().slice(0,10)}</span>
           </div>`;
@@ -5983,7 +5983,7 @@ async function enviarRespuestaModal(parentId, postId, input) {
           <div class="pv-comment-av-placeholder" style="width:22px;height:22px;font-size:10px;">${escHTML(data.inicial)}</div>
           <div class="pv-comment-body">
             <div class="pv-comment-meta">
-              <span class="pv-comment-author">${escHTML(data.nombre)}</span>
+              <span class="pv-comment-author">${escHTML(data.nombre)}${verifiedBadgeHTML(data.verified,"sm")}</span>
               <span class="pv-comment-date">${new Date().toISOString().slice(0,10)}</span>
             </div>
             <span class="pv-comment-text">${escHTML(data.texto)}</span>
@@ -6359,7 +6359,7 @@ function _renderCmtNode(c, postId, depth) {
       ${cAv}
       <div class="pv-comment-body" style="flex:1;min-width:0;">
         <div class="pv-comment-meta">
-          <span class="pv-comment-author">${escHTML(c.nombre)}</span>
+          <span class="pv-comment-author">${escHTML(c.nombre)}${verifiedBadgeHTML(c.verified,"sm")}</span>
           <span class="pv-comment-date">${(c.fecha||'').slice(0,10)}</span>
         </div>
         <span class="pv-comment-text" data-cmt-text="${c.id}">${escHTML(c.texto)}</span>
@@ -6501,7 +6501,7 @@ async function pvEnviarRespuesta(parentId, postId, input) {
           ${av}
           <div class="pv-comment-body" style="flex:1;min-width:0;">
             <div class="pv-comment-meta">
-              <span class="pv-comment-author">${escHTML(data.nombre)}</span>
+              <span class="pv-comment-author">${escHTML(data.nombre)}${verifiedBadgeHTML(data.verified,"sm")}</span>
               <span class="pv-comment-date">${new Date().toISOString().slice(0,10)}</span>
             </div>
             <span class="pv-comment-text" data-cmt-text="${data.id}">${escHTML(data.texto)}</span>
@@ -6756,7 +6756,7 @@ async function pvEnviarComentario(postId) {
           ${av}
           <div class="pv-comment-body" style="flex:1;min-width:0;">
             <div class="pv-comment-meta">
-              <span class="pv-comment-author">${escHTML(data.nombre)}</span>
+              <span class="pv-comment-author">${escHTML(data.nombre)}${verifiedBadgeHTML(data.verified,"sm")}</span>
               <span class="pv-comment-date">${new Date().toISOString().slice(0,10)}</span>
             </div>
             <span class="pv-comment-text" data-cmt-text="${data.id||''}">${escHTML(data.texto)}</span>
@@ -7123,7 +7123,7 @@ async function mobEnviarComentario() {
           ${av}
           <div class="pv-comment-body" style="flex:1;min-width:0;">
             <div class="pv-comment-meta">
-              <span class="pv-comment-author">${escHTML(data.nombre)}</span>
+              <span class="pv-comment-author">${escHTML(data.nombre)}${verifiedBadgeHTML(data.verified,"sm")}</span>
               <span class="pv-comment-date">${new Date().toISOString().slice(0,10)}</span>
             </div>
             <span class="pv-comment-text" data-cmt-text="${data.id||''}">${escHTML(data.texto)}</span>

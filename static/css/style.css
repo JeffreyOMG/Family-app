@@ -5200,11 +5200,11 @@ body.dark-mode .cruce-num {
 
 /* Variables de color — se adaptan automáticamente al tema */
 :root {
-  --verified-bg:    #1d9bf0;  /* azul Twitter/X */
+  --verified-bg:    var(--accent, #1d9bf0);  /* sigue el color de personalización */
   --verified-check: #ffffff;
 }
 body.dark-mode {
-  --verified-bg:    #1d9bf0;
+  --verified-bg:    var(--accent, #1d9bf0);
   --verified-check: #ffffff;
 }
 
