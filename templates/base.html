@@ -39,7 +39,11 @@
         s.setProperty('--accent-soft','rgba('+r+','+g+','+b+',.15)');
         s.setProperty('--accent-border','rgba('+r+','+g+','+b+',.40)');
         s.setProperty('--accent-shadow','0 4px 16px rgba('+r+','+g+','+b+',.40)');
-        s.setProperty('--accent-gradient','linear-gradient(135deg,'+hov+' 0%,'+hex+' 45%,'+drk+' 100%)');
+        if(hex.toLowerCase()==='#ff4d8d'){
+          s.setProperty('--accent-gradient','linear-gradient(135deg,#ff6b9d 0%,#ff4d8d 35%,#e0386f 70%,#c9236a 100%)');
+        } else {
+          s.setProperty('--accent-gradient','linear-gradient(135deg,'+hov+' 0%,'+hex+' 45%,'+drk+' 100%)');
+        }
         s.setProperty('--btn-bg',hex);
       } catch(e){}
     })();

@@ -137,7 +137,7 @@
 
 
   <!-- AMIGO SECRETO WIDGET -->
-  <div class="content-card" style="background:linear-gradient(135deg,rgba(255,77,141,.08),rgba(156,39,176,.08));border:1px solid rgba(255,77,141,.2);">
+  <div class="content-card" style="background:linear-gradient(135deg,var(--accent-soft),rgba(156,39,176,.08));border:1px solid var(--accent-soft);">
     <div class="nt-section-head">
       <span style="font-size:22px;">&#127877;</span>
       <h3 style="color:var(--text);">Amigo Secreto <span style="font-size:13px;font-weight:400;color:var(--text2);">Sorteo Familiar</span></h3>
@@ -145,7 +145,7 @@
     <p style="color:var(--text2);font-size:13px;margin:0 0 16px;line-height:1.6;">
       Participa en el sorteo navide&ntilde;o familiar. &iexcl;Descubre a qui&eacute;n le toca regalar!
     </p>
-    <a href="/amigo-secreto" style="display:inline-flex;align-items:center;gap:8px;text-decoration:none;background:linear-gradient(135deg,#ff4d8d,#c9236a);padding:12px 24px;border-radius:10px;color:#fff;font-weight:700;font-size:14px;box-shadow:0 4px 16px rgba(255,77,141,.3);">
+    <a href="/amigo-secreto" style="display:inline-flex;align-items:center;gap:8px;text-decoration:none;background:var(--accent-gradient);padding:12px 24px;border-radius:10px;color:#fff;font-weight:700;font-size:14px;box-shadow: 0 4px 16px var(--accent-border);">
       &#127873; Entrar a Amigo Secreto
     </a>
   </div>
@@ -567,7 +567,7 @@ body.dark-mode .nt-contador-ano .nt-cd-num { color:#818cf8; }
 .nt-eventos-dia-vacio { text-align:center;color:var(--text3);font-size:.85rem;padding:8px 0; }
 .nt-eventos-dia-agenda { display:flex;justify-content:center;margin-top:8px; }
 .nt-dia-agenda-btn {
-  padding:6px 14px;background:var(--accent-gradient, linear-gradient(135deg,#ff6b9d,#ff4d8d,#c9236a));color:#fff;border:none;border-radius:8px;box-shadow:0 2px 8px rgba(255,77,141,.3);
+  padding:6px 14px;background:var(--accent-gradient, linear-gradient(135deg,#ff6b9d,#ff4d8d,#c9236a));color:#fff;border:none;border-radius:8px;box-shadow:0 2px 8px var(--accent-border);
   font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;
 }
 
@@ -791,7 +791,7 @@ body.dark-mode .nt-contador-ano .nt-cd-num { color:#818cf8; }
 .ntm-submit {
   flex:2;padding:13px;border:none;border-radius:12px;
   background:var(--accent-gradient, linear-gradient(135deg,#ff6b9d,#ff4d8d,#c9236a));color:#fff;cursor:pointer;font-size:15px;font-weight:700;
-  box-shadow:0 4px 16px rgba(255,77,141,.38);
+  box-shadow: 0 4px 16px var(--accent-border);
   display:flex;align-items:center;justify-content:center;gap:7px;
   font-family:inherit;transition:opacity .15s,transform .1s;
 }
@@ -826,15 +826,15 @@ body.dark-mode .ntm-ampm-btn:first-child { border-right-color:#3a3a40; }
 body.dark-mode .ntm-footer { background:var(--card);border-color:var(--border); }
 body.dark-mode .ntm-cancel { background:#1f1f1f;border-color:#444;color:#cbd5e1; }
 body.dark-mode .ntm-cancel:hover { background:#27272a;border-color:#666;color:#e5e7eb;transform:translateY(-1px); }
-body.dark-mode .ntm-submit { background:var(--accent);color:#fff;box-shadow:0 4px 16px rgba(255,77,141,.35); }
+body.dark-mode .ntm-submit { background:var(--accent);color:#fff;box-shadow:0 4px 16px var(--accent-border); }
 body.dark-mode .ntm-submit:hover { opacity:.88;transform:translateY(-1px); }
 
 /* ── DARK MODE GENERAL ── */
 body.dark-mode .nt-label { color:#b0b0b0; }
 body.dark-mode .nt-input { background:#1e1e22;border-color:#3a3a40;color:#f0f0f0; }
 body.dark-mode .nt-input::placeholder { color:#555; }
-body.dark-mode .nt-input:focus { border-color:var(--accent);box-shadow:0 0 0 3px rgba(255,77,141,.15);background:#252529; }
-body.dark-mode .nt-btn-nuevo { background:var(--accent);color:#fff;box-shadow:0 4px 14px rgba(255,77,141,.3); }
+body.dark-mode .nt-input:focus { border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft);background:#252529; }
+body.dark-mode .nt-btn-nuevo { background:var(--accent);color:#fff;box-shadow:0 4px 14px var(--accent-border); }
 body.dark-mode .nt-btn-nuevo:hover { opacity:.88;transform:translateY(-1px); }
 body.dark-mode .nt-btn-nuevo-inline { background:#27272a;color:#d1d5db;border:1px solid rgba(255,255,255,.08); }
 body.dark-mode .nt-btn-nuevo-inline:hover { background:#323238;color:#e5e7eb; }
@@ -843,7 +843,7 @@ body.dark-mode .nt-btn-publicar:hover { opacity:.88; }
 body.dark-mode .nt-btn-nuevo-sm { background:#1f1f1f;border-color:#3a3a40;color:#e2e8f0; }
 body.dark-mode .nt-btn-nuevo-sm:hover { background:var(--accent-gradient, linear-gradient(135deg,#ff6b9d,#ff4d8d,#c9236a));color:#fff;border-color:var(--accent); }
 body.dark-mode .nt-cal-cell.has-num { background:var(--bg2); }
-body.dark-mode .nt-cal-cell.cal-hoy { background:rgba(255,77,141,.1);border-color:rgba(255,77,141,.35); }
+body.dark-mode .nt-cal-cell.cal-hoy { background:var(--accent-soft);border-color:var(--accent-border); }
 body.dark-mode .cal-hoy .nt-cal-num { color:var(--accent); }
 body.dark-mode .nt-evento-badge-fecha { background:var(--bg2);border-color:var(--border); }
 body.dark-mode .nt-evento-card { background:var(--bg2);border-color:var(--border); }

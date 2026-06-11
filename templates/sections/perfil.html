@@ -188,7 +188,7 @@
 <!-- ═══════════════════════════════════════════════════════════════════
      MODAL: EDITAR INFORMACIÓN
 ═══════════════════════════════════════════════════════════════════ -->
-<div id="pf2-modal-editar" class="pf2-modal-overlay" onclick="if(event.target===this)pf2CerrarModal('pf2-modal-editar')" aria-hidden="true" role="dialog" aria-modal="true" aria-label="Editar información de perfil">
+<div id="pf2-modal-editar" class="pf2-modal-overlay" onclick="if(event.target===this)pf2CerrarModal('pf2-modal-editar')" role="dialog" aria-modal="true" aria-label="Editar información de perfil" inert>
   <div class="pf2-modal pf2-modal-lg" onclick="event.stopPropagation()">
 
     <div class="pf2-modal-header">
@@ -288,7 +288,7 @@
 <!-- ═══════════════════════════════════════════════════════════════════
      MODAL: AJUSTES
 ═══════════════════════════════════════════════════════════════════ -->
-<div id="pf2-modal-ajustes" class="pf2-modal-overlay" onclick="if(event.target===this)pf2CerrarModal('pf2-modal-ajustes')" aria-hidden="true" role="dialog" aria-modal="true" aria-label="Ajustes de la cuenta">
+<div id="pf2-modal-ajustes" class="pf2-modal-overlay" onclick="if(event.target===this)pf2CerrarModal('pf2-modal-ajustes')" role="dialog" aria-modal="true" aria-label="Ajustes de la cuenta" inert>
   <div class="pf2-modal pf2-modal-ajustes" onclick="event.stopPropagation()">
 
     <div class="pf2-modal-header">
@@ -487,9 +487,12 @@
             </button>
           </div>
           <div class="pf2-aj-divider"></div>
-          <div class="pf2-aj-label">Color de acento</div>
+          <div class="pf2-aj-label" style="display:flex;align-items:center;justify-content:space-between;">
+            Color de acento
+            <button onclick="setAccent('#ff4d8d')" style="font-size:11px;padding:3px 10px;border-radius:20px;border:1px solid var(--accent);background:transparent;color:var(--accent);cursor:pointer;">↺ Rosado</button>
+          </div>
           <div class="pf2-accent-grid">
-            {% for color,label in [('#ff4d8d','Rosa'),('#f472b6','Rosa claro'),('#a855f7','Morado'),('#6366f1','Indigo'),('#3b82f6','Azul'),('#06b6d4','Cyan'),('#10b981','Verde'),('#f59e0b','Ambar'),('#ef4444','Rojo'),('#f97316','Naranja')] %}
+            {% for color,label in [('#ff4d8d','Rosa ★'),('#f472b6','Rosa claro'),('#a855f7','Morado'),('#6366f1','Indigo'),('#3b82f6','Azul'),('#06b6d4','Cyan'),('#10b981','Verde'),('#f59e0b','Ámbar'),('#ef4444','Rojo'),('#f97316','Naranja')] %}
             <button class="pf2-accent-btn accent-btn" data-color="{{ color }}" onclick="setAccent('{{ color }}')" style="background:{{ color }}" title="{{ label }}" aria-label="Acento {{ label }}"></button>
             {% endfor %}
           </div>
@@ -542,7 +545,7 @@
 <!-- ═══════════════════════════════════════════════════════════════════
      MODAL: CAMBIAR CONTRASEÑA
 ═══════════════════════════════════════════════════════════════════ -->
-<div id="pf2-modal-password" class="pf2-modal-overlay" onclick="if(event.target===this)pf2CerrarModal('pf2-modal-password')" aria-hidden="true" role="dialog" aria-modal="true" aria-label="Cambiar contraseña">
+<div id="pf2-modal-password" class="pf2-modal-overlay" onclick="if(event.target===this)pf2CerrarModal('pf2-modal-password')" role="dialog" aria-modal="true" aria-label="Cambiar contraseña" inert>
   <div class="pf2-modal pf2-modal-sm" onclick="event.stopPropagation()">
 
     <div class="pf2-modal-header">
@@ -623,7 +626,7 @@
 <!-- ═══════════════════════════════════════════════════════════════════
      MODAL: ELIMINAR CUENTA
 ═══════════════════════════════════════════════════════════════════ -->
-<div id="modal-eliminar-cuenta" class="pf2-modal-overlay" onclick="if(event.target===this)this.style.display='none'" aria-hidden="true">
+<div id="modal-eliminar-cuenta" class="pf2-modal-overlay" onclick="if(event.target===this)pf2CerrarModal('modal-eliminar-cuenta')" role="dialog" aria-modal="true" aria-label="Eliminar cuenta" inert>
   <div class="pf2-modal pf2-modal-sm" onclick="event.stopPropagation()">
     <div class="pf2-modal-header">
       <h2 class="pf2-modal-title pf2-danger-title">⚠️ Eliminar cuenta</h2>
@@ -1655,17 +1658,21 @@ function pf2AbrirModal(id) {
     el._pfOrigNext   = el.nextSibling;
     document.body.appendChild(el);
   }
+  el.removeAttribute('inert');          // habilitar interacción
+  el.removeAttribute('aria-hidden');    // no ocultar de screen readers
   el.style.display = 'flex';
-  void el.offsetWidth; // force reflow para animación
+  void el.offsetWidth;                  // force reflow para animación
   el.classList.add('pf2-open');
-  el.setAttribute('aria-hidden', 'false');
   document.body.style.overflow = 'hidden';
+  // Enfocar primer elemento focusable dentro del modal
+  const focusable = el.querySelector('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+  if (focusable) setTimeout(() => focusable.focus(), 50);
 }
 function pf2CerrarModal(id) {
   const el = document.getElementById(id);
   if (!el) return;
   el.classList.remove('pf2-open');
-  el.setAttribute('aria-hidden', 'true');
+  el.setAttribute('inert', '');         // bloquea foco e interacción accesible
   el.addEventListener('transitionend', () => {
     el.style.display = 'none';
     document.body.style.overflow = '';

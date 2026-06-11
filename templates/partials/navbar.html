@@ -91,7 +91,7 @@
 .notif-badge {
   position: absolute; top: 2px; right: 2px;
   min-width: 18px; height: 18px; border-radius: 9px;
-  background: #ff4d8d; color: #fff;
+  background: var(--accent); color: #fff;
   font-size: 10px; font-weight: 700; line-height: 18px;
   text-align: center; padding: 0 4px;
   pointer-events: none;
@@ -152,11 +152,11 @@
   position: relative;
 }
 .notif-item:hover { background: var(--hover-bg, rgba(255,255,255,.05)); }
-.notif-item.no-leida { background: rgba(255,77,141,.06); }
+.notif-item.no-leida { background: var(--accent-soft); }
 .notif-item.no-leida::before {
   content: '';
   position: absolute; left: 5px; top: 50%; transform: translateY(-50%);
-  width: 6px; height: 6px; border-radius: 50%; background: #ff4d8d;
+  width: 6px; height: 6px; border-radius: 50%; background: var(--accent);
 }
 .notif-av {
   width: 38px; height: 38px; border-radius: 50%; flex-shrink: 0;
@@ -183,7 +183,7 @@
 .tipo-mencion    .notif-icono-badge { background: #f59e0b; color:#fff; }
 .tipo-repost     .notif-icono-badge { background: #10b981; color:#fff; }
 .tipo-admin_post .notif-icono-badge,
-.tipo-admin_aviso .notif-icono-badge { background: #ff4d8d; color:#fff; }
+.tipo-admin_aviso .notif-icono-badge { background: var(--accent); color:#fff; }
 .tipo-encuesta   .notif-icono-badge { background: #06b6d4; color:#fff; }
 
 .notif-cuerpo { flex: 1; min-width: 0; }
@@ -206,11 +206,11 @@
   width: 44px;
   height: 44px;
   border-radius: 50%;
-  background: #ff4d8d;
+  background: var(--accent);
   color: #fff;
   border: none;
   cursor: pointer;
-  box-shadow: 0 3px 12px rgba(255,77,141,.45);
+  box-shadow: 0 3px 12px var(--accent-border);
   z-index: 999;
   align-items: center;
   justify-content: center;
@@ -325,8 +325,8 @@ function subirAlInicio() {
     seguidor:    { icono: 'person_add',      color: '#8b5cf6', texto: (n) => `<strong>${n.actor_nombre}</strong> comenzó a seguirte` },
     mencion:     { icono: 'alternate_email', color: '#f59e0b', texto: (n) => `<strong>${n.actor_nombre}</strong> te mencionó en una publicación` },
     repost:      { icono: 'repeat',          color: '#10b981', texto: (n) => `<strong>${n.actor_nombre}</strong> compartió tu publicación` },
-    admin_post:  { icono: 'campaign',        color: '#ff4d8d', texto: (n) => `<strong>${n.actor_nombre}</strong> publicó algo nuevo para la familia` },
-    admin_aviso: { icono: 'notification_important', color: '#ff4d8d', texto: (n) => `Aviso importante: ${n.texto_extra || ''}` },
+    admin_post:  { icono: 'campaign',        color: 'var(--accent)', texto: (n) => `<strong>${n.actor_nombre}</strong> publicó algo nuevo para la familia` },
+    admin_aviso: { icono: 'notification_important', color: 'var(--accent)', texto: (n) => `Aviso importante: ${n.texto_extra || ''}` },
     encuesta:    { icono: 'how_to_vote',     color: '#06b6d4', texto: (n) => `<strong>${n.actor_nombre}</strong> votó en tu encuesta` },
   };
 

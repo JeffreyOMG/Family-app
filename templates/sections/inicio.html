@@ -470,7 +470,7 @@
   color: #fff;
   border: none;
   cursor: pointer;
-  box-shadow: 0 4px 18px rgba(255,77,141,.45);
+  box-shadow: 0 4px 18px var(--accent-border);
   align-items: center;
   justify-content: center;
   transition: transform .2s, box-shadow .2s;
@@ -485,7 +485,7 @@
   line-height: 1;
   display: block;
 }
-.compose-fab:hover { transform: scale(1.08); box-shadow: 0 6px 24px rgba(255,77,141,.55); }
+.compose-fab:hover { transform: scale(1.08); box-shadow: 0 6px 24px var(--accent-border); }
 .compose-fab:active { transform: scale(.93); }
 
 @media (max-width: 768px) {
@@ -1070,9 +1070,9 @@
   --ac-hover: rgba(192,57,43,.07);
 }
 body.dark-mode {
-  --ac: #ff4d8d;
-  --ac-soft: rgba(255,77,141,.12);
-  --ac-hover: rgba(255,77,141,.07);
+  --ac: var(--accent);
+  --ac-soft: var(--accent-soft);
+  --ac-hover: var(--accent-soft);
 }
 
 /* Layout 2 col */
@@ -1353,19 +1353,19 @@ body.dark-mode .post-badge-privado { background: rgba(139,92,246,.2); color: #a7
 /* Admin pin banner — rosado distintivo */
 .post-pin-banner--admin {
   color: var(--accent, #ff4d8d);
-  background: rgba(255, 77, 141, 0.08);
+  background: var(--accent-soft);
   border-radius: 8px;
   padding: 6px 10px;
   margin: -4px -4px 10px -4px;
   border-bottom: none;
-  border: 1px solid rgba(255, 77, 141, 0.25);
+  border: 1px solid var(--accent-soft);
 }
 .post-pin-banner--admin .material-symbols-outlined {
   color: var(--accent, #ff4d8d);
 }
 .post-card--admin-pin {
-  border: 1.5px solid rgba(255, 77, 141, 0.35) !important;
-  box-shadow: 0 0 0 3px rgba(255, 77, 141, 0.07), 0 2px 12px rgba(255, 77, 141, 0.10) !important;
+  border: 1.5px solid var(--accent-border) !important;
+  box-shadow: 0 0 0 3px var(--accent-soft), 0 2px 12px var(--accent-soft) !important;
 }
 
 /* 3-dot options button */
@@ -1744,7 +1744,7 @@ body.dark-mode .post-badge-privado { background: rgba(139,92,246,.2); color: #a7
 }
 .pv-cinput-wrap:focus-within {
   border-color: var(--accent, #ff4d8d);
-  box-shadow: 0 0 0 3px rgba(255,77,141,.12);
+  box-shadow: 0 0 0 3px var(--accent-soft);
 }
 .pv-comment-input {
   flex: 1;
@@ -2076,7 +2076,7 @@ body.dark-mode .post-badge-privado { background: rgba(139,92,246,.2); color: #a7
 }
 .pv-cinput-wrap:focus-within {
   border-color: var(--accent, #ff4d8d);
-  box-shadow: 0 0 0 3px rgba(255,77,141,.12);
+  box-shadow: 0 0 0 3px var(--accent-soft);
 }
 .pv-comment-input {
   flex: 1;
@@ -3672,7 +3672,7 @@ body.dark-mode .post-badge-privado { background: rgba(139,92,246,.2); color: #a7
 }
 .comment-input:focus {
   border-color: var(--accent, #ff4d8d);
-  box-shadow: 0 0 0 3px rgba(255,77,141,.1);
+  box-shadow: 0 0 0 3px var(--accent-soft);
 }
 
 /* ── Fase 5.3 — Loader entre posts (infinite scroll feel) ── */
@@ -4040,7 +4040,7 @@ img.inline-emote:hover {
 
 .btn-emote-cmt.active .material-symbols-outlined {
   color: #FF4D8D;
-  filter: drop-shadow(0 0 6px rgba(255, 77, 141, 0.4));
+  filter: drop-shadow(0 0 6px var(--accent-border));
 }
 </style>
 
@@ -4410,16 +4410,16 @@ img.inline-emote:hover {
   text-align: left;
   transition: color .15s;
 }
-.feed-cmt-ver-mas:hover { color: var(--ac, #ff4d8d); }
+.feed-cmt-ver-mas:hover { color: var(--ac, var(--accent)); }
 
 /* ── CARGAR MÁS ── */
 .btn-cargar-mas {
   display: inline-flex; align-items: center; gap: 6px;
   padding: 10px 28px; border-radius: 24px;
-  background: #ff4d8d; border: none;
+  background: var(--accent); border: none;
   color: #fff !important; font-size: 14px; font-weight: 600;
   cursor: pointer; transition: opacity .18s, transform .12s;
-  box-shadow: 0 2px 8px rgba(255,77,141,.35);
+  box-shadow: 0 2px 8px var(--accent-border);
 }
 .btn-cargar-mas:hover { opacity: .88; transform: translateY(-1px); }
 .btn-cargar-mas:active { opacity: 1; transform: translateY(0); }
