@@ -238,6 +238,12 @@
           <button class="act-btn act-btn--del" onclick="eliminar({{ u.id }}, '{{ u.nombre }}')">
             <span class="material-symbols-outlined">delete</span>
           </button>
+          <button class="act-btn {% if u.get('verified') %}act-btn--unban{% else %}act-btn--save{% endif %}"
+                  onclick="toggleVerificado({{ u.id }}, this)"
+                  title="{% if u.get('verified') %}Quitar verificación{% else %}Verificar usuario{% endif %}">
+            <span class="material-symbols-outlined">{% if u.get('verified') %}verified_user{% else %}person_check{% endif %}</span>
+            {% if u.get('verified') %}Verificado{% else %}Verificar{% endif %}
+          </button>
         </div>
       </td>
     </tr>
@@ -365,6 +371,20 @@ async function banear(uid, accion) {
   const r = await post('/admin/banear', { uid, accion });
   showToast(accion === 'ban' ? 'Usuario baneado' : 'Usuario desbaneado', r.ok);
   if (r.ok) setTimeout(() => location.reload(), 1200);
+}
+
+async function toggleVerificado(uid, btn) {
+  const r = await post('/admin/toggle_verified', { uid });
+  if (r.ok) {
+    btn.innerHTML = r.verified
+      ? '<span class="material-symbols-outlined">verified_user</span> Verificado'
+      : '<span class="material-symbols-outlined">person_check</span> Verificar';
+    btn.className = r.verified
+      ? 'act-btn act-btn--unban'
+      : 'act-btn act-btn--save';
+    btn.title = r.verified ? 'Quitar verificación' : 'Verificar usuario';
+    mostrarMensaje(r.msg);
+  }
 }
 
 async function eliminar(uid, nombre) {

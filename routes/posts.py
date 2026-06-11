@@ -344,11 +344,12 @@ def comentar_ajax():
         (post_id, uid, texto, parent_id, gif_url)
     )
     con.commit()
-    usuario = con.execute("SELECT nombre, foto, usuario FROM usuarios WHERE id=%s", (uid,)).fetchone()
-    nombre  = usuario["nombre"] if usuario else "?"
-    inicial = nombre[0].upper() if nombre else "?"
-    foto    = (usuario["foto"] or "") if usuario else ""
-    uname   = (usuario["usuario"] or "") if usuario else ""
+    usuario = con.execute("SELECT nombre, foto, usuario, COALESCE(verified,FALSE) AS verified FROM usuarios WHERE id=%s", (uid,)).fetchone()
+    nombre   = usuario["nombre"] if usuario else "?"
+    inicial  = nombre[0].upper() if nombre else "?"
+    foto     = (usuario["foto"] or "") if usuario else ""
+    uname    = (usuario["usuario"] or "") if usuario else ""
+    verified = bool(usuario["verified"]) if usuario else False
     cmt_id  = con.execute("SELECT lastval()").fetchone()[0]
 
     # ── Notificaciones de comentario y menciones ──────────────────────────────
@@ -374,7 +375,7 @@ def comentar_ajax():
     except Exception:
         pass
 
-    return jsonify({"ok": True, "nombre": nombre, "foto": foto, "texto": texto, "inicial": inicial, "id": cmt_id, "usuario_id": uid, "usuario": uname, "gif_url": gif_url})
+    return jsonify({"ok": True, "nombre": nombre, "foto": foto, "texto": texto, "inicial": inicial, "id": cmt_id, "usuario_id": uid, "usuario": uname, "gif_url": gif_url, "verified": verified})
 
 @posts_bp.route("/eliminar_post/<int:post_id>", methods=["POST"])
 def eliminar_post(post_id):
@@ -541,6 +542,7 @@ def api_ver_post(post_id):
                COALESCE(p.visibilidad,'general') AS visibilidad,
                COALESCE(p.gif_url,'') AS gif_url,
                u.nombre, u.usuario, u.foto, u.id AS usuario_id,
+               COALESCE(u.verified, FALSE) AS verified,
                EXISTS(SELECT 1 FROM likes l WHERE l.usuario_id=%s AND l.post_id=p.id) AS liked,
                (SELECT COUNT(*) FROM likes l2 WHERE l2.post_id=p.id) AS total_likes,
                (SELECT COUNT(*) FROM reposts r WHERE r.post_id=p.id) AS total_reposts,
@@ -566,7 +568,7 @@ def api_ver_post(post_id):
     comentarios_rows = con.execute("""
         SELECT c.id, c.texto, c.fecha, c.usuario_id, c.parent_id,
                COALESCE(c.gif_url,'') AS gif_url,
-               u.nombre, u.usuario, u.foto,
+               u.nombre, u.usuario, u.foto, COALESCE(u.verified, FALSE) AS verified,
                (SELECT COUNT(*) FROM comentario_likes cl WHERE cl.comentario_id=c.id) AS total_likes,
                EXISTS(SELECT 1 FROM comentario_likes cl2 WHERE cl2.comentario_id=c.id AND cl2.usuario_id=%s) AS liked_by_me
         FROM comentarios c JOIN usuarios u ON u.id=c.usuario_id
@@ -594,6 +596,7 @@ def api_ver_post(post_id):
             "nombre":       p["nombre"],
             "usuario":      p["usuario"],
             "foto":         p["foto"] or "",
+            "verified":     bool(p.get("verified", False)),
             "usuario_id":   p["usuario_id"],
             "liked":        bool(p["liked"]),
             "bookmarked":   bool(p["bookmarked"]),
@@ -769,14 +772,15 @@ def responder_comentario():
         (post_id, uid, texto, parent_id)
     )
     con.commit()
-    usuario = con.execute("SELECT nombre, usuario, foto FROM usuarios WHERE id=%s", (uid,)).fetchone()
+    usuario = con.execute("SELECT nombre, usuario, foto, COALESCE(verified,FALSE) AS verified FROM usuarios WHERE id=%s", (uid,)).fetchone()
     nombre  = usuario["nombre"] if usuario else "?"
     return jsonify({
-        "ok":     True,
-        "nombre": nombre,
-        "usuario": usuario["usuario"] if usuario else "",
-        "foto":   (usuario["foto"] or "") if usuario else "",
-        "texto":  texto,
-        "inicial": nombre[0].upper() if nombre else "?",
-        "id":     con.execute("SELECT lastval()").fetchone()[0],
+        "ok":       True,
+        "nombre":   nombre,
+        "usuario":  usuario["usuario"] if usuario else "",
+        "foto":     (usuario["foto"] or "") if usuario else "",
+        "texto":    texto,
+        "inicial":  nombre[0].upper() if nombre else "?",
+        "id":       con.execute("SELECT lastval()").fetchone()[0],
+        "verified": bool(usuario["verified"]) if usuario else False,
     })

@@ -285,6 +285,8 @@ _TABLES = [
     """CREATE TABLE IF NOT EXISTS cajitas_ahorro_codigos (
         cajita_id INTEGER PRIMARY KEY REFERENCES cajitas_ahorro(id) ON DELETE CASCADE,
         codigo TEXT UNIQUE NOT NULL)""",
+    # ─── FASE 4: Usuarios Verificados ──────────────────────────────────────────
+    """ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS verified BOOLEAN DEFAULT FALSE""",
     # ─── FASE 3.1: Sistema de Seguidores ───────────────────────────────────────
     """CREATE TABLE IF NOT EXISTS followers (
         id SERIAL PRIMARY KEY,

@@ -140,3 +140,21 @@ def fases_lock_set():
     con.commit()
     accion = "bloqueada" if estado == "1" else "desbloqueada"
     return jsonify(ok=True, msg=f"Fase {fase} {accion}")
+
+
+@admin_bp.route("/admin/toggle_verified", methods=["POST"])
+@admin_required
+def toggle_verified():
+    """Activa o desactiva la verificación de un usuario."""
+    uid_target = request.form.get("uid")
+    if not uid_target:
+        return jsonify(ok=False, msg="uid requerido"), 400
+    con = get_db()
+    row = con.execute("SELECT verified FROM usuarios WHERE id=%s", (uid_target,)).fetchone()
+    if not row:
+        return jsonify(ok=False, msg="Usuario no encontrado"), 404
+    nuevo = not bool(row["verified"])
+    con.execute("UPDATE usuarios SET verified=%s WHERE id=%s", (nuevo, uid_target))
+    con.commit()
+    return jsonify(ok=True, verified=nuevo,
+                   msg="Verificación activada" if nuevo else "Verificación desactivada")

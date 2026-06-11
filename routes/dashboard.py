@@ -76,7 +76,8 @@ def calcular_tabla(grupos, partidos_db):
 def get_ctx(uid, con, extra=None):
     usuario = con.execute(
         """SELECT id, nombre, usuario, rol, gmail, bio, foto, fecha,
-                  portada, ciudad, sitio_web, fecha_nacimiento
+                  portada, ciudad, sitio_web, fecha_nacimiento,
+                  COALESCE(verified, FALSE) AS verified
            FROM usuarios WHERE id=%s""", (uid,)
     ).fetchone()
     if not usuario: return None
@@ -88,13 +89,14 @@ def get_ctx(uid, con, extra=None):
     total_publicaciones = con.execute(
         f"SELECT COUNT(*) FROM publicaciones p WHERE 1=1 {vis_filter}"
     ).fetchone()[0]
-    publicaciones = [dict(p, liked=bool(p["liked"]), bookmarked=bool(p["bookmarked"])) for p in con.execute(f"""
+    publicaciones = [dict(p, liked=bool(p["liked"]), bookmarked=bool(p["bookmarked"]), verified=bool(p.get("verified",False))) for p in con.execute(f"""
         SELECT p.id, p.texto, p.media, p.media_tipo, p.fecha,
                COALESCE(p.visibilidad,'general') AS visibilidad,
                COALESCE(p.gif_url,'') AS gif_url,
                COALESCE(p.fijado, FALSE) AS fijado,
                COALESCE(p.fijado_admin, FALSE) AS fijado_admin,
                u.nombre, u.usuario, u.foto, u.id AS usuario_id,
+               COALESCE(u.verified, FALSE) AS verified,
                EXISTS(SELECT 1 FROM likes l WHERE l.usuario_id=%s AND l.post_id=p.id) AS liked,
                (SELECT COUNT(*) FROM likes l2 WHERE l2.post_id=p.id) AS total_likes,
                (SELECT COUNT(*) FROM reposts r WHERE r.post_id=p.id) AS total_reposts,
@@ -107,11 +109,12 @@ def get_ctx(uid, con, extra=None):
     for _p in publicaciones:
         _p['poll'] = _get_poll_for_post(con, _p['id'], uid)
 
-    tendencias = [dict(p, liked=bool(p["liked"]), bookmarked=bool(p["bookmarked"])) for p in con.execute(f"""
+    tendencias = [dict(p, liked=bool(p["liked"]), bookmarked=bool(p["bookmarked"]), verified=bool(p.get("verified",False))) for p in con.execute(f"""
         SELECT p.id, p.texto, p.media, p.media_tipo, p.fecha,
                COALESCE(p.visibilidad,'general') AS visibilidad,
                COALESCE(p.gif_url,'') AS gif_url,
                u.nombre, u.usuario, u.foto, u.id AS usuario_id,
+               COALESCE(u.verified, FALSE) AS verified,
                EXISTS(SELECT 1 FROM likes l WHERE l.usuario_id=%s AND l.post_id=p.id) AS liked,
                (SELECT COUNT(*) FROM likes l2 WHERE l2.post_id=p.id) AS total_likes,
                (SELECT COUNT(*) FROM reposts r WHERE r.post_id=p.id) AS total_reposts,
@@ -124,11 +127,12 @@ def get_ctx(uid, con, extra=None):
     for _p in tendencias:
         _p['poll'] = _get_poll_for_post(con, _p['id'], uid)
 
-    guardados = [dict(p, liked=bool(p["liked"]), bookmarked=True) for p in con.execute(f"""
+    guardados = [dict(p, liked=bool(p["liked"]), bookmarked=True, verified=bool(p.get("verified",False))) for p in con.execute(f"""
         SELECT p.id, p.texto, p.media, p.media_tipo, p.fecha,
                COALESCE(p.visibilidad,'general') AS visibilidad,
                COALESCE(p.gif_url,'') AS gif_url,
                u.nombre, u.usuario, u.foto, u.id AS usuario_id,
+               COALESCE(u.verified, FALSE) AS verified,
                EXISTS(SELECT 1 FROM likes l WHERE l.usuario_id=%s AND l.post_id=p.id) AS liked,
                (SELECT COUNT(*) FROM likes l2 WHERE l2.post_id=p.id) AS total_likes,
                (SELECT COUNT(*) FROM reposts r WHERE r.post_id=p.id) AS total_reposts,
@@ -153,7 +157,7 @@ def get_ctx(uid, con, extra=None):
         comentarios_rows = con.execute(f"""
             SELECT c.id, c.post_id, c.texto, c.parent_id, c.fecha, c.usuario_id,
                    COALESCE(c.gif_url,'') AS gif_url,
-                   u.nombre, u.usuario, u.foto
+                   u.nombre, u.usuario, u.foto, COALESCE(u.verified, FALSE) AS verified
             FROM comentarios c JOIN usuarios u ON u.id=c.usuario_id
             WHERE c.post_id IN ({_placeholders})
             ORDER BY c.fecha ASC
@@ -306,7 +310,7 @@ def get_ctx(uid, con, extra=None):
     usuario_puntos = con.execute("SELECT COALESCE(SUM(puntos),0) FROM pronosticos WHERE usuario_id=%s", (uid,)).fetchone()[0]
 
     miembros = [dict(m) for m in con.execute(
-        "SELECT id, nombre, usuario, foto, rol FROM usuarios ORDER BY nombre ASC"
+        "SELECT id, nombre, usuario, foto, rol, COALESCE(verified, FALSE) AS verified FROM usuarios ORDER BY nombre ASC"
     ).fetchall()]
 
     polla_pagos_usuario = {p["fase"]: dict(p) for p in con.execute(
@@ -410,6 +414,7 @@ def api_feed_posts():
                COALESCE(p.fijado, FALSE) AS fijado,
                COALESCE(p.fijado_admin, FALSE) AS fijado_admin,
                u.nombre, u.usuario, u.foto, u.id AS usuario_id,
+               COALESCE(u.verified, FALSE) AS verified,
                EXISTS(SELECT 1 FROM likes l WHERE l.usuario_id=%s AND l.post_id=p.id) AS liked,
                (SELECT COUNT(*) FROM likes l2 WHERE l2.post_id=p.id) AS total_likes,
                (SELECT COUNT(*) FROM reposts r WHERE r.post_id=p.id) AS total_reposts,

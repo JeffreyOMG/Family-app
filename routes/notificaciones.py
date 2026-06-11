@@ -93,7 +93,8 @@ def api_listar():
         rows = con.execute(
             """SELECT n.id, n.tipo, n.leida, n.fecha, n.texto_extra,
                       n.post_id, n.comentario_id,
-                      u.usuario AS actor_nombre, u.foto AS actor_foto
+                      u.usuario AS actor_nombre, u.foto AS actor_foto,
+                      COALESCE(u.verified, FALSE) AS actor_verified
                FROM notificaciones n
                LEFT JOIN usuarios u ON u.id = n.actor_id
                WHERE n.dest_id = %s
@@ -113,6 +114,7 @@ def api_listar():
                 "comentario_id": r["comentario_id"],
                 "actor_nombre":  r["actor_nombre"] or "",
                 "actor_foto":    r["actor_foto"] or "",
+                "actor_verified": bool(r.get("actor_verified", False)),
             })
         return jsonify({"ok": True, "notificaciones": notifs})
     except Exception as e:

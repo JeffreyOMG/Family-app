@@ -1,3 +1,20 @@
+// ═══════════════════════════════════════════════════════════════════════════
+// SISTEMA DE USUARIOS VERIFICADOS — helper global
+// Uso: verifiedBadgeHTML(verified, size)
+//   verified  — boolean
+//   size      — 'sm' | 'md' (default) | 'lg'
+// ═══════════════════════════════════════════════════════════════════════════
+function verifiedBadgeHTML(verified, size) {
+  if (!verified) return '';
+  const s = size || 'md';
+  const px = s === 'sm' ? 14 : s === 'lg' ? 20 : 16;
+  return `<span class="verified-badge verified-badge--${s}" aria-label="Usuario verificado" title="Usuario verificado" role="img">`
+    + `<svg xmlns="http://www.w3.org/2000/svg" width="${px}" height="${px}" viewBox="0 0 24 24" aria-hidden="true" focusable="false">`
+    + `<path d="M12 1L3 5v6c0 5.25 3.75 10.14 9 11.31C17.25 21.14 21 16.25 21 11V5L12 1z" fill="var(--verified-bg,#1d9bf0)"/>`
+    + `<polyline points="9,12.5 11.5,15 15.5,9.5" stroke="var(--verified-check,#fff)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/>`
+    + `</svg></span>`;
+}
+
 const $ = id => document.getElementById(id);
 const $$ = q => document.querySelectorAll(q);
 

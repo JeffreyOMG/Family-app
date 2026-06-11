@@ -5193,3 +5193,62 @@ body.dark-mode .cruce-num {
   }
 }
 
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   INSIGNIA DE USUARIO VERIFICADO — Sistema centralizado
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Variables de color — se adaptan automáticamente al tema */
+:root {
+  --verified-bg:    #1d9bf0;  /* azul Twitter/X */
+  --verified-check: #ffffff;
+}
+body.dark-mode {
+  --verified-bg:    #1d9bf0;
+  --verified-check: #ffffff;
+}
+
+/* Contenedor base */
+.verified-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  vertical-align: middle;
+  margin-left: 3px;
+  position: relative;
+  top: -1px;
+  line-height: 1;
+  /* Sutil animación al aparecer */
+  animation: vbadge-pop 0.25s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+/* Tamaños */
+.verified-badge--sm  { margin-left: 2px; top: 0px; }
+.verified-badge--lg  { margin-left: 4px; top: -1px; }
+
+/* Hover: leve brillo */
+.verified-badge:hover svg path:first-child {
+  filter: brightness(1.15);
+  transition: filter 0.15s ease;
+}
+
+/* Animación de entrada */
+@keyframes vbadge-pop {
+  from { transform: scale(0.5); opacity: 0; }
+  to   { transform: scale(1);   opacity: 1; }
+}
+
+/* Accesibilidad: no animar si el usuario lo prefiere */
+@media (prefers-reduced-motion: reduce) {
+  .verified-badge { animation: none; }
+}
+
+/* Asegura que el badge no rompa el flujo de texto en líneas apretadas */
+.post-name .verified-badge,
+.comment-author .verified-badge,
+.pf2-nombre .verified-badge,
+.notif-texto strong .verified-badge,
+.bus-item-title .verified-badge {
+  vertical-align: text-bottom;
+}

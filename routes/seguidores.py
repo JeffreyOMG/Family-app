@@ -83,7 +83,7 @@ def obtener_seguidores(usuario_id: int) -> list:
     """
     con = get_db()
     rows = con.execute(
-        """SELECT u.id, u.nombre, u.usuario, u.foto
+        """SELECT u.id, u.nombre, u.usuario, u.foto, COALESCE(u.verified,FALSE) AS verified
            FROM followers f
            JOIN usuarios u ON u.id = f.follower_id
            WHERE f.following_id = %s
@@ -96,6 +96,7 @@ def obtener_seguidores(usuario_id: int) -> list:
             "nombre":  r["nombre"],
             "usuario": r["usuario"],
             "foto":    r["foto"] or "",
+            "verified": bool(r.get("verified", False)),
         }
         for r in rows
     ]
@@ -108,7 +109,7 @@ def obtener_siguiendo(usuario_id: int) -> list:
     """
     con = get_db()
     rows = con.execute(
-        """SELECT u.id, u.nombre, u.usuario, u.foto
+        """SELECT u.id, u.nombre, u.usuario, u.foto, COALESCE(u.verified,FALSE) AS verified
            FROM followers f
            JOIN usuarios u ON u.id = f.following_id
            WHERE f.follower_id = %s
@@ -121,6 +122,7 @@ def obtener_siguiendo(usuario_id: int) -> list:
             "nombre":  r["nombre"],
             "usuario": r["usuario"],
             "foto":    r["foto"] or "",
+            "verified": bool(r.get("verified", False)),
         }
         for r in rows
     ]

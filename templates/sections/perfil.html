@@ -1,3 +1,4 @@
+{% from 'components/verified_badge.html' import verified_badge %}
 <section class="section" id="sec-perfil">
 
   <!-- ══════════════════════════════════════════════════════
@@ -39,7 +40,7 @@
       <!-- Nombre + usuario + botones de acción -->
       <div class="pf2-identity">
         <div class="pf2-names">
-          <h1 class="pf2-nombre" id="pf-hero-nombre">{{ usuario.nombre }}</h1>
+          <h1 class="pf2-nombre" id="pf-hero-nombre">{{ usuario.nombre }}{{ verified_badge(usuario, 'md') }}</h1>
           <div class="pf2-meta-row">
             <span class="pf2-usuario">@{{ usuario.usuario }}</span>
             <span class="pf2-rol-badge">{{ usuario.rol }}</span>
@@ -1776,6 +1777,7 @@ async function pfCargarPosts() {
       return;
     }
     cont.innerHTML = d.posts.map(p => {
+      p._vbadge = verifiedBadgeHTML(p.verified,'sm');
       let mediaHtml = '';
       if (p.media) {
         if (p.media_tipo === 'imagen') mediaHtml = `<img src="${p.media}" class="pf-post-img" loading="lazy" onclick="abrirMediaModal && abrirMediaModal('${p.media}','imagen')">`;
@@ -2313,7 +2315,7 @@ function _pfSocialItemHTML(u) {
   return `<button class="pf2-social-item" onclick="verPerfil && verPerfil('${_pfEsc(u.usuario)}','perfil')">
       ${avatar}
       <div class="pf2-social-info">
-        <p class="pf2-social-nombre">${_pfEsc(u.nombre)}</p>
+        <p class="pf2-social-nombre">${_pfEsc(u.nombre)}${verifiedBadgeHTML(u.verified,"sm")}</p>
         <p class="pf2-social-usuario">@${_pfEsc(u.usuario)}</p>
       </div>
       <span class="material-symbols-outlined pf2-social-chevron">chevron_right</span>

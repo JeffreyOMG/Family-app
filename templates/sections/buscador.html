@@ -1,3 +1,4 @@
+{% from 'components/verified_badge.html' import verified_badge %}
 <section class="section" id="sec-buscador">
 
   <!-- HEADER -->
@@ -146,7 +147,7 @@
 
                 <!-- Contenido -->
                 <div class="bus-item-info">
-                  <div class="bus-item-title">{{ r.titulo }}</div>
+                  <div class="bus-item-title">{{ r.titulo }}{% if r.tipo == 'Usuario' %}{{ verified_badge(r, 'sm') }}{% endif %}</div>
                   <div class="bus-item-desc">{{ r.descripcion }}</div>
                   {% if r.get('fecha') %}
                     <div class="bus-item-meta">

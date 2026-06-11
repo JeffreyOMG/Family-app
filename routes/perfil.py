@@ -55,6 +55,7 @@ def api_usuario(nombre_usuario):
             "total_siguiendo":  contar_siguiendo(uid),
             "yo_lo_sigo":       esta_siguiendo(mi_uid, uid),
             "es_mi_perfil":     (mi_uid == uid),
+            "verified":        bool(u["verified"]),
         }
     })
 
@@ -71,7 +72,7 @@ def api_perfil_posts(uid):
     rows = con.execute(
         """SELECT p.id, p.texto, p.media, p.media_tipo, p.fecha, p.fijado,
                   COALESCE(p.gif_url,'') AS gif_url,
-                  u.nombre, u.usuario, u.foto,
+                  u.nombre, u.usuario, u.foto, COALESCE(u.verified,FALSE) AS verified,
                   (SELECT COUNT(*) FROM likes l WHERE l.post_id=p.id) AS total_likes,
                   (SELECT COUNT(*) FROM comentarios c WHERE c.post_id=p.id) AS total_comentarios
            FROM publicaciones p JOIN usuarios u ON u.id=p.usuario_id
@@ -91,6 +92,7 @@ def api_perfil_posts(uid):
             "nombre": r["nombre"],
             "usuario": r["usuario"],
             "foto": r["foto"] or "",
+            "verified": bool(r.get("verified", False)),
             "total_likes": r["total_likes"],
             "total_comentarios": r["total_comentarios"],
         })

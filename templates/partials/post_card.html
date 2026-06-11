@@ -1,3 +1,4 @@
+{% from 'components/verified_badge.html' import verified_badge %}
 {% macro render_post(p, usuario=None, comentarios_por_post=None) %}
 <article class="post-card{% if p.get('fijado_admin') %} post-card--admin-pin{% endif %}" id="post-{{ p.id }}" data-fijado="{{ 'true' if p.get('fijado') else 'false' }}" data-fijado-admin="{{ 'true' if p.get('fijado_admin') else 'false' }}">
   {% if p.get('fijado_admin') %}
@@ -18,7 +19,7 @@
       <div class="user-avatar post-av" data-ver-perfil="{{ p.usuario }}" title="Ver perfil de {{ p.nombre }}" style="cursor:pointer;">{{ (p.nombre[0] if p.nombre else 'U')|upper }}</div>
     {% endif %}
     <div class="post-meta-block">
-      <span class="post-name" data-ver-perfil="{{ p.usuario }}" title="Ver perfil" style="cursor:pointer;">{{ p.nombre }}</span>
+      <span class="post-name" data-ver-perfil="{{ p.usuario }}" title="Ver perfil" style="cursor:pointer;">{{ p.nombre }}{{ verified_badge(p, 'sm') }}</span>
       <span class="post-handle"><span data-ver-perfil="{{ p.usuario }}" style="cursor:pointer;">@{{ p.usuario }}</span> · {{ p.fecha[:10] }}{% if p.get('visibilidad','general')=='privada' %} <span class="post-badge-privado">Solo miembros</span>{% endif %}</span>
     </div>
     {% if usuario and (p.usuario_id == usuario.id or usuario.rol == 'admin') %}

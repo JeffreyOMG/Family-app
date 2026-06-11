@@ -365,15 +365,15 @@ function subirAlInicio() {
 
   /* ── Iconos por tipo ── */
   const TIPO_META = {
-    like:        { icono: 'favorite',        color: '#ef4444', texto: (n) => `<strong>${n.actor_nombre}</strong> le dio like a tu publicación` },
-    comentario:  { icono: 'chat_bubble',     color: '#3b82f6', texto: (n) => `<strong>${n.actor_nombre}</strong> comentó en tu publicación` },
-    respuesta:   { icono: 'reply',           color: '#3b82f6', texto: (n) => `<strong>${n.actor_nombre}</strong> respondió tu comentario` },
-    seguidor:    { icono: 'person_add',      color: '#8b5cf6', texto: (n) => `<strong>${n.actor_nombre}</strong> comenzó a seguirte` },
-    mencion:     { icono: 'alternate_email', color: '#f59e0b', texto: (n) => `<strong>${n.actor_nombre}</strong> te mencionó en una publicación` },
-    repost:      { icono: 'repeat',          color: '#10b981', texto: (n) => `<strong>${n.actor_nombre}</strong> compartió tu publicación` },
-    admin_post:  { icono: 'campaign',        color: 'var(--accent)', texto: (n) => `<strong>${n.actor_nombre}</strong> publicó algo nuevo para la familia` },
+    like:        { icono: 'favorite',        color: '#ef4444', texto: (n) => `<strong>${n.actor_nombre}${verifiedBadgeHTML(n.actor_verified,"sm")}</strong> le dio like a tu publicación` },
+    comentario:  { icono: 'chat_bubble',     color: '#3b82f6', texto: (n) => `<strong>${n.actor_nombre}${verifiedBadgeHTML(n.actor_verified,"sm")}</strong> comentó en tu publicación` },
+    respuesta:   { icono: 'reply',           color: '#3b82f6', texto: (n) => `<strong>${n.actor_nombre}${verifiedBadgeHTML(n.actor_verified,"sm")}</strong> respondió tu comentario` },
+    seguidor:    { icono: 'person_add',      color: '#8b5cf6', texto: (n) => `<strong>${n.actor_nombre}${verifiedBadgeHTML(n.actor_verified,"sm")}</strong> comenzó a seguirte` },
+    mencion:     { icono: 'alternate_email', color: '#f59e0b', texto: (n) => `<strong>${n.actor_nombre}${verifiedBadgeHTML(n.actor_verified,"sm")}</strong> te mencionó en una publicación` },
+    repost:      { icono: 'repeat',          color: '#10b981', texto: (n) => `<strong>${n.actor_nombre}${verifiedBadgeHTML(n.actor_verified,"sm")}</strong> compartió tu publicación` },
+    admin_post:  { icono: 'campaign',        color: 'var(--accent)', texto: (n) => `<strong>${n.actor_nombre}${verifiedBadgeHTML(n.actor_verified,"sm")}</strong> publicó algo nuevo para la familia` },
     admin_aviso: { icono: 'notification_important', color: 'var(--accent)', texto: (n) => `Aviso importante: ${n.texto_extra || ''}` },
-    encuesta:    { icono: 'how_to_vote',     color: '#06b6d4', texto: (n) => `<strong>${n.actor_nombre}</strong> votó en tu encuesta` },
+    encuesta:    { icono: 'how_to_vote',     color: '#06b6d4', texto: (n) => `<strong>${n.actor_nombre}${verifiedBadgeHTML(n.actor_verified,"sm")}</strong> votó en tu encuesta` },
   };
 
   /* ── Tiempo relativo ── */

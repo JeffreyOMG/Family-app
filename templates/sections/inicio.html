@@ -1,3 +1,4 @@
+{% from 'components/verified_badge.html' import verified_badge %}
 {% macro render_post(p) %}
 <article class="post-card" id="post-{{ p.id }}" data-fijado="{{ 'true' if p.get('fijado') else 'false' }}">
   {% if p.get('fijado') %}
@@ -13,7 +14,7 @@
       <div class="user-avatar post-av" data-ver-perfil="{{ p.usuario }}" title="Ver perfil de {{ p.nombre }}" style="cursor:pointer;">{{ (p.nombre[0] if p.nombre else 'U')|upper }}</div>
     {% endif %}
     <div class="post-meta-block">
-      <span class="post-name" data-ver-perfil="{{ p.usuario }}" title="Ver perfil" style="cursor:pointer;">{{ p.nombre }}</span>
+      <span class="post-name" data-ver-perfil="{{ p.usuario }}" title="Ver perfil" style="cursor:pointer;">{{ p.nombre }}{{ verified_badge(p, 'sm') }}</span>
       <span class="post-handle"><span data-ver-perfil="{{ p.usuario }}" style="cursor:pointer;">@{{ p.usuario }}</span> · {{ p.fecha[:10] }}{% if p.get('visibilidad','general')=='privada' %} <span class="post-badge-privado">Solo miembros</span>{% endif %}</span>
     </div>
     {% if p.usuario_id == usuario.id or usuario.rol == 'admin' %}
@@ -6868,7 +6869,7 @@ function feedRenderComments(postId) {
       <div class="feed-cmt-node comment-row" data-cmt-id="${c.id}" data-post-id="${postId}">
         ${avHtml}
         <div class="comment-bubble" style="flex:1;min-width:0;">
-          <strong class="comment-author" data-ver-perfil="${escHTML(c.usuario)}" style="cursor:pointer;">${escHTML(c.nombre)}</strong>
+          <strong class="comment-author" data-ver-perfil="${escHTML(c.usuario)}" style="cursor:pointer;">${escHTML(c.nombre)}${verifiedBadgeHTML(c.verified,"sm")}</strong>
           ${textoHtml}
           ${c.gif_url ? `<img src="${escHTML(c.gif_url)}" alt="GIF" class="comment-gif-img" loading="lazy" onclick="if(window.abrirMediaModal)abrirMediaModal('${escHTML(c.gif_url)}','imagen')">` : ''}
           <div class="comment-actions-row">

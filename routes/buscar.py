@@ -18,10 +18,10 @@ def buscar():
         pat = f"%{q}%"
         if tipo in ("todo", "usuarios"):
             for u in con.execute(
-                "SELECT nombre, usuario, rol, foto FROM usuarios WHERE nombre LIKE %s OR usuario LIKE %s",
+                "SELECT nombre, usuario, rol, foto, COALESCE(verified,FALSE) AS verified FROM usuarios WHERE nombre LIKE %s OR usuario LIKE %s",
                 (pat, pat)
             ).fetchall():
-                resultados.append({"titulo": u["nombre"], "descripcion": f"@{u['usuario']} · {u['rol']}", "tipo": "Usuario", "foto": u["foto"], "usuario": u["usuario"]})
+                resultados.append({"titulo": u["nombre"], "descripcion": f"@{u['usuario']} · {u['rol']}", "tipo": "Usuario", "foto": u["foto"], "usuario": u["usuario"], "verified": bool(u.get("verified", False))})
         if tipo in ("todo", "publicaciones"):
             for p in con.execute(
                 "SELECT p.texto, u.nombre, p.fecha FROM publicaciones p JOIN usuarios u ON u.id=p.usuario_id WHERE p.texto LIKE %s",
