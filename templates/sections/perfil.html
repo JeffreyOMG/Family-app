@@ -87,7 +87,7 @@
       <strong id="stat-siguiendo">—</strong>
       <span>Siguiendo</span>
     </div>
-    <div class="pf2-stat pf2-stat-div">
+    <div class="pf2-stat pf2-stat-div pf2-stat-likes-hide">
       <strong id="stat-likes">{{ usuario_likes }}</strong>
       <span>Likes</span>
     </div>
@@ -1592,6 +1592,8 @@
     width: 44px; height: 44px;
     flex-shrink: 0;
   }
+
+  .pf2-stat-likes-hide { display: none; }
 
   /* Estadísticas: fila scrollable en lugar de grid roto */
   .pf2-stats-row {
