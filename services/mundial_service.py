@@ -275,8 +275,11 @@ def _normalize_game(raw: dict, idx: int = 0) -> dict:
         gv = score.get("away") if score.get("away") is not None else score.get("away_score")
     else:
         # worldcup26.ir: home_score / away_score como strings ("0")
-        gl = raw.get("home_score") or raw.get("goals_home")
-        gv = raw.get("away_score") or raw.get("goals_away")
+        # IMPORTANTE: usar 'is not None' — no 'or' — porque "0" es falsy
+        hs = raw.get("home_score")
+        ga = raw.get("away_score")
+        gl = hs if hs is not None else raw.get("goals_home")
+        gv = ga if ga is not None else raw.get("goals_away")
 
     try:
         gl = int(gl) if gl is not None else None

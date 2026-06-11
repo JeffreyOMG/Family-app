@@ -187,8 +187,9 @@
 
       <!-- ⚽ PARTIDOS DE HOY — MÓVIL (reemplaza el contador; visible en ≤900px) -->
       <div class="panel-card pah-mobile-card" id="pah-widget-mobile">
-        <div class="panel-header">
+        <div class="panel-header pah-panel-header">
           <h3>⚽ Partidos de Hoy</h3>
+          <span class="pah-world-cup-badge">Mundial 2026</span>
         </div>
         <div class="pah-body">
           <div class="pah-loading" id="pah-loading-mobile">
@@ -204,6 +205,9 @@
             <p>Sin partidos hoy</p>
           </div>
           <div class="noticias-list" id="pah-lista-mobile" style="display:none;"></div>
+          <button class="pah-ver-mas-btn" id="pah-ver-mas-mobile" style="display:none;" onclick="abrirModalPartidos()">
+            Ver todos los partidos <span class="material-symbols-outlined" style="font-size:14px;vertical-align:middle;">expand_more</span>
+          </button>
         </div>
       </div>
 
@@ -442,6 +446,9 @@
             <p>Sin partidos hoy</p>
           </div>
           <div class="noticias-list" id="pah-lista-desktop" style="display:none;"></div>
+          <button class="pah-ver-mas-btn" id="pah-ver-mas-desktop" style="display:none;" onclick="abrirModalPartidos()">
+            Ver todos los partidos <span class="material-symbols-outlined" style="font-size:14px;vertical-align:middle;">expand_more</span>
+          </button>
         </div>
       </div>
 
@@ -474,6 +481,21 @@
     </aside>
   </div>
 </section>
+
+<!-- ── MODAL PARTIDOS DE HOY ── -->
+<div class="pah-modal-overlay" id="pah-modal" style="display:none;" onclick="cerrarModalPartidos(event)">
+  <div class="pah-modal-box">
+    <div class="pah-modal-header">
+      <h3>⚽ Todos los Partidos de Hoy</h3>
+      <button class="pah-modal-close" onclick="cerrarModalPartidos()" aria-label="Cerrar">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
+    <div class="pah-modal-body" id="pah-modal-body">
+      <div class="noticias-list" id="pah-lista-modal"></div>
+    </div>
+  </div>
+</div>
 
 <!-- ── PARTE 5: FAB móvil para publicar rápido ── -->
 <button class="compose-fab" onclick="abrirComposer()" title="Nueva publicación" aria-label="Publicar">
@@ -2539,7 +2561,8 @@ body.dark-mode .post-badge-privado { background: rgba(139,92,246,.2); color: #a7
 .feed-empty p { font-size: 14px; }
 
 /* ── RIGHT PANEL ── */
-.right-panel { display: flex; flex-direction: column; gap: 14px; position: sticky; top: 76px; }
+.right-panel { display: flex; flex-direction: column; gap: 14px; position: sticky; top: 76px; max-height: calc(100vh - 92px); overflow-y: auto; overflow-x: hidden; padding-right: 2px; scrollbar-width: none; }
+.right-panel::-webkit-scrollbar { display: none; }
 .panel-card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
 .panel-header {
   display: flex;
@@ -2837,6 +2860,14 @@ body.dark-mode .post-badge-privado { background: rgba(139,92,246,.2); color: #a7
   display: flex; align-items: center; gap: 4px; padding-left: 2px;
 }
 
+/* Banderas PNG */
+.pah-flag-img {
+  width: 20px; height: 14px; object-fit: cover;
+  border-radius: 2px; flex-shrink: 0;
+  border: 1px solid rgba(255,255,255,.08);
+}
+.pah-flag-placeholder { font-size: 14px; line-height: 1; }
+
 /* Desktop card highlight */
 .pah-desktop-card {
   border: 1px solid rgba(var(--accent-rgb, 20,184,166), .2) !important;
@@ -2844,6 +2875,57 @@ body.dark-mode .post-badge-privado { background: rgba(139,92,246,.2); color: #a7
 
 /* Mobile card */
 .pah-mobile-card { /* same as panel-card */ }
+
+/* Botón Ver más */
+.pah-ver-mas-btn {
+  display: flex; align-items: center; justify-content: center; gap: 4px;
+  width: 100%; padding: 8px 12px; margin-top: 2px;
+  background: none; border: none; border-top: 1px solid var(--border);
+  color: var(--accent); font-size: 12px; font-weight: 700;
+  cursor: pointer; transition: background .15s; letter-spacing: .02em;
+  text-transform: uppercase;
+}
+.pah-ver-mas-btn:hover { background: var(--bg2); }
+
+/* Modal overlay */
+.pah-modal-overlay {
+  position: fixed; inset: 0; z-index: 11000;
+  background: rgba(0,0,0,.65);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  display: flex; align-items: center; justify-content: center;
+  padding: 16px;
+}
+.pah-modal-box {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 18px; width: 100%; max-width: 460px;
+  max-height: 85vh; display: flex; flex-direction: column;
+  overflow: hidden;
+  animation: pahModalIn .22s ease;
+}
+@keyframes pahModalIn {
+  from { opacity:0; transform:translateY(-16px) scale(.97); }
+  to   { opacity:1; transform:translateY(0) scale(1); }
+}
+.pah-modal-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 18px 12px; border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.pah-modal-header h3 { font-size: 15px; font-weight: 700; color: var(--text); margin: 0; }
+.pah-modal-close {
+  background: var(--bg2); border: 1px solid var(--border); border-radius: 50%;
+  width: 30px; height: 30px; cursor: pointer; color: var(--text2);
+  display: flex; align-items: center; justify-content: center;
+  transition: background .15s;
+}
+.pah-modal-close:hover { background: var(--border); }
+.pah-modal-close .material-symbols-outlined { font-size: 16px; }
+.pah-modal-body {
+  overflow-y: auto; flex: 1;
+  padding-bottom: 8px;
+}
+.pah-modal-body .pah-item { border-radius: 0; }
 
 /* ── BOTTOM NAV — no local overrides; global style.css handles the pill ── */
 .bnav-label { display: none !important; }
@@ -7764,13 +7846,31 @@ async function cargarMasPosts(btn) {
   }
 
   // FIX: base correcta 0x1F1E6 = Regional Indicator A (no 0x1F1E0 que genera caracteres rotos)
+  // Mapa ISO-2 → nombre de archivo PNG en /static/banderas/
+  const _FLAG_MAP = {
+    'ar':'ARG','au':'AUS','at':'AUT','be':'BEL','br':'BRA','ca':'CAN',
+    'cl':'CHI','cn':'CHN','co':'COL','cd':'COD','cr':'CRI','hr':'CRO',
+    'cz':'CZE','dk':'DEN','ec':'ECU','eg':'EGY','fr':'FRA','de':'GER',
+    'gh':'GHA','gb-eng':'ENG','hu':'HUN','in':'IND','id':'IDN','ir':'IRN',
+    'iq':'IRQ','ci':'CIV','jp':'JPN','jo':'JOR','kr':'KOR','sa':'KSA',
+    'ma':'MAR','mx':'MEX','nl':'NED','nz':'NZL','ng':'NGA','no':'NOR',
+    'pa':'PAN','py':'PAR','pe':'PER','pt':'POR','qa':'QAT','ro':'ROU',
+    'za':'RSA','sn':'SEN','rs':'SRB','gb-sct':'SCO','sk':'SVK','za':'RSA',
+    'es':'ESP','se':'SWE','ch':'SUI','tn':'TUN','tr':'TUR','us':'USA',
+    'uy':'URU','uz':'UZB','ve':'VEN','dz':'ALG','cv':'CPV','ht':'HAI',
+    'cw':'CUW','bi':'BIH','gb-wls':'WAL','tt':'TRI','jm':'JAM','pt':'POR',
+  };
+
   function _bandera(codigo) {
-    if (!codigo || codigo.length < 2) return '🏳️';
-    try {
-      return codigo.toUpperCase().split('').map(c =>
-        String.fromCodePoint(0x1F1E6 + c.charCodeAt(0) - 65)
-      ).join('');
-    } catch (_) { return '🏳️'; }
+    if (!codigo || codigo.length < 2) return '<span class="pah-flag-placeholder">🏳</span>';
+    const key = codigo.toLowerCase();
+    const file = _FLAG_MAP[key];
+    if (file) {
+      return `<img src="/static/banderas/${file}.png" class="pah-flag-img" alt="${codigo.toUpperCase()}" onerror="this.outerHTML='<span class=pah-flag-placeholder>🏳</span>'">`;
+    }
+    // Intentar con el código en mayúsculas directamente (ej: 'KOR' → KOR.png)
+    const upper = codigo.toUpperCase().replace('-','');
+    return `<img src="/static/banderas/${upper}.png" class="pah-flag-img" alt="${upper}" onerror="this.outerHTML='<span class=pah-flag-placeholder>🏳</span>'">`;
   }
 
   function _hora(fechaIso) {
@@ -7874,16 +7974,40 @@ async function cargarMasPosts(btn) {
     lista.innerHTML = partidos.map(_renderPartido).join('');
   }
 
-  // FIX: prioridad incluye 'en_curso' (estado real de la API)
+  // prioridad: en vivo → próximos → finalizados (sin límite, para el modal)
   function _ordenar(partidos) {
     const prio = (p) => {
       const e = (p.estado || '').toLowerCase();
-      if (e === 'en_curso' || e === 'en_vivo' || e === 'live') return 0;   // EN VIVO primero
-      if (e === 'programado' || e === 'upcoming' || e === 'scheduled')     return 1;   // Próximos
-      return 2;                                                              // Finalizados
+      if (e === 'en_curso' || e === 'en_vivo' || e === 'live') return 0;
+      if (e === 'programado' || e === 'upcoming' || e === 'scheduled')     return 1;
+      return 2;
     };
-    return [...partidos].sort((a, b) => prio(a) - prio(b)).slice(0, 3);
+    return [...partidos].sort((a, b) => prio(a) - prio(b));
   }
+
+  // ── Modal ────────────────────────────────────────────────────────────────
+
+  function abrirModalPartidos() {
+    const modal = document.getElementById('pah-modal');
+    if (!modal) return;
+    const lista = document.getElementById('pah-lista-modal');
+    if (lista && window._pahTodosPartidos) {
+      lista.innerHTML = window._pahTodosPartidos.map(_renderPartido).join('');
+    }
+    modal.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+  }
+
+  function cerrarModalPartidos(e) {
+    if (e && e.target !== document.getElementById('pah-modal')) return;
+    const modal = document.getElementById('pah-modal');
+    if (modal) modal.style.display = 'none';
+    document.body.style.overflow = '';
+  }
+
+  // Exponer globalmente
+  window.abrirModalPartidos  = abrirModalPartidos;
+  window.cerrarModalPartidos = cerrarModalPartidos;
 
   // ── Fetch ────────────────────────────────────────────────────────────────
 
@@ -7905,15 +8029,22 @@ async function cargarMasPosts(btn) {
 
       if (!json.ok || !Array.isArray(json.data)) throw new Error('Respuesta inválida del servidor');
 
-      const partidos = _ordenar(json.data);
-      console.log('[PAH] partidos a renderizar:', partidos.length, partidos.map(p => p.estado + ':' + p.local + 'vs' + p.visitante));
+      const todos    = _ordenar(json.data);
+      const preview  = todos.slice(0, 2);
+      window._pahTodosPartidos = todos;  // guardar para el modal
+
+      console.log('[PAH] partidos a renderizar:', preview.length, 'de', todos.length, 'total');
 
       ['desktop', 'mobile'].forEach(suf => {
-        if (partidos.length === 0) {
+        if (todos.length === 0) {
           _setEstado(suf, 'vacio');
+          const btn = document.getElementById('pah-ver-mas-' + suf);
+          if (btn) btn.style.display = 'none';
         } else {
-          _poblarLista(suf, partidos);
+          _poblarLista(suf, preview);
           _setEstado(suf, 'lista');
+          const btn = document.getElementById('pah-ver-mas-' + suf);
+          if (btn) btn.style.display = todos.length > 2 ? 'flex' : 'none';
         }
       });
     } catch (err) {
