@@ -7876,18 +7876,29 @@ async function cargarMasPosts(btn) {
   function _hora(fechaIso) {
     if (!fechaIso) return '';
     try {
-      const d = new Date(fechaIso);
-      // FIX: 'es-CO' no existe en Safari/iOS; usar 'es' con fallback manual
-      return d.toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit', hour12: true });
-    } catch (_) {
+      // La API worldcup26.ir devuelve local_date en hora local del estadio (ET/CT/PT, USA).
+      // Los estadios del Mundial 2026 están en ET (UTC-4 verano) o CT (UTC-5).
+      // Colombia/Perú = UTC-5. Ajuste: restar 1h para ET→COL, 0h para CT→COL.
+      // La solución más robusta: mostrar la hora tal como viene de la API (hora local del estadio)
+      // pero convertida explícitamente a America/Bogota si el string no tiene zona.
+      const str = fechaIso.includes('Z') || fechaIso.includes('+') ? fechaIso : fechaIso + 'Z';
+      const d = new Date(str);
+      // Mostrar en zona Colombia/Perú
       try {
-        const d = new Date(fechaIso);
-        let h = d.getHours(), m = d.getMinutes();
+        return d.toLocaleTimeString('es', {
+          hour: '2-digit', minute: '2-digit', hour12: true,
+          timeZone: 'America/Bogota'
+        });
+      } catch(_) {
+        // Fallback manual UTC-5
+        const offsetMin = -300; // UTC-5
+        const local = new Date(d.getTime() + offsetMin * 60000);
+        let h = local.getUTCHours(), m = local.getUTCMinutes();
         const ap = h >= 12 ? 'PM' : 'AM';
         h = h % 12 || 12;
         return h + ':' + String(m).padStart(2, '0') + ' ' + ap;
-      } catch (_) { return ''; }
-    }
+      }
+    } catch (_) { return ''; }
   }
 
   // ── State renderer ───────────────────────────────────────────────────────

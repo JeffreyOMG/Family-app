@@ -211,12 +211,16 @@ def _normalize_phase(raw: str) -> str:
 
 
 def _parse_iso(raw: str) -> Optional[str]:
-    """Devuelve ISO-8601 si el string tiene formato reconocible, else None."""
+    """Devuelve ISO-8601 si el string tiene formato reconocible, else None.
+    Preserva el sufijo Z (UTC) si está presente."""
     raw = raw.strip()
+    has_z = raw.endswith("Z")
+    clean = raw.rstrip("Z")
     for fmt in ("%Y-%m-%dT%H:%M:%S", "%Y-%m-%d %H:%M:%S", "%Y-%m-%dT%H:%M",
                 "%Y-%m-%d %H:%M", "%Y-%m-%d"):
         try:
-            return datetime.strptime(raw, fmt).isoformat()
+            result = datetime.strptime(clean, fmt).isoformat()
+            return result + "Z" if has_z else result
         except ValueError:
             continue
     return None
@@ -334,6 +338,11 @@ def _normalize_game(raw: dict, idx: int = 0) -> dict:
         grupo = m.group(0) if m else None
 
     # ── Fecha — worldcup26.ir usa local_date = "MM/DD/YYYY HH:MM" ────────────
+    # NOTA: worldcup26.ir devuelve local_date en hora local del estadio (ET/CT).
+    # Para que el frontend pueda convertir a zona horaria del usuario,
+    # guardamos la ISO tal cual (sin indicador de zona) y el frontend la trata como UTC
+    # sumándole 'Z' para que toLocaleTimeString pueda aplicar timeZone: 'America/Bogota'.
+    # Esto funciona porque la app fuerza zona Bogotá en el frontend.
     date_raw = str(
         raw.get("local_date") or          # worldcup26.ir: "06/11/2026 13:00"
         raw.get("date") or
@@ -343,7 +352,7 @@ def _normalize_game(raw: dict, idx: int = 0) -> dict:
     )
     time_raw = str(raw.get("time") or raw.get("kickoff_time") or "")
 
-    # Normalizar "MM/DD/YYYY HH:MM" → "YYYY-MM-DDTHH:MM"
+    # Normalizar "MM/DD/YYYY HH:MM" → "YYYY-MM-DDTHH:MM:00Z" (UTC explícito)
     if date_raw and "/" in date_raw and "T" not in date_raw:
         try:
             parts = date_raw.strip().split(" ")
@@ -351,13 +360,16 @@ def _normalize_game(raw: dict, idx: int = 0) -> dict:
             time_part = parts[1] if len(parts) > 1 else (time_raw or "00:00")
             md = date_part.split("/")
             if len(md) == 3:
-                # MM/DD/YYYY
-                date_raw = f"{md[2]}-{md[0].zfill(2)}-{md[1].zfill(2)}T{time_part}"
+                # MM/DD/YYYY → YYYY-MM-DDTHH:MM:00Z
+                date_raw = f"{md[2]}-{md[0].zfill(2)}-{md[1].zfill(2)}T{time_part}:00Z"
         except Exception:
             pass
 
     if date_raw and time_raw and "T" not in date_raw and "/" not in date_raw:
         date_raw = f"{date_raw}T{time_raw}"
+    # Si ya tiene Z, _parse_iso lo maneja; si no, agregar Z para marcar como UTC
+    if date_raw and not date_raw.endswith("Z") and "+" not in date_raw:
+        date_raw = date_raw + "Z"
     fecha_iso = _parse_iso(date_raw)
 
     # Texto legible en español (si hay)
