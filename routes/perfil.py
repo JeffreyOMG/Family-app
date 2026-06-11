@@ -16,7 +16,9 @@ def api_usuario(nombre_usuario):
     mi_uid = session["uid"]
     con = get_db()
     u = con.execute(
-        "SELECT id, nombre, usuario, rol, bio, foto, fecha FROM usuarios WHERE usuario=%s",
+        """SELECT id, nombre, usuario, rol, bio, foto, fecha,
+                  portada, ciudad, sitio_web, fecha_nacimiento
+           FROM usuarios WHERE usuario=%s""",
         (nombre_usuario,)
     ).fetchone()
 
@@ -41,6 +43,10 @@ def api_usuario(nombre_usuario):
             "rol":             u["rol"],
             "bio":             u["bio"] or "",
             "foto":            u["foto"] or "",
+            "portada":         u["portada"] or "",
+            "ciudad":          u["ciudad"] or "",
+            "sitio_web":       u["sitio_web"] or "",
+            "fecha_nacimiento": str(u["fecha_nacimiento"]) if u["fecha_nacimiento"] else "",
             "fecha":           str(u["fecha"]) if u["fecha"] else "",
             "total_posts":     total_posts,
             "total_likes":     total_likes,
@@ -149,51 +155,73 @@ def api_perfil_galeria(uid):
 def actualizar_perfil():
     if "uid" not in session:
         return (jsonify({"ok": False}), 401) if _is_ajax() else redirect("/")
-    uid              = session["uid"]
-    nombre           = request.form.get("nombre", "").strip()
-    gmail            = request.form.get("gmail", "").strip()
-    bio              = request.form.get("bio", "").strip()
-    ciudad           = request.form.get("ciudad", "").strip()
-    sitio_web        = request.form.get("sitio_web", "").strip()
-    fecha_nacimiento = request.form.get("fecha_nacimiento", "").strip() or None
-    con              = get_db()
+    uid = session["uid"]
+    con = get_db()
+
+    # ── Leer valores actuales para no destruir campos no enviados ────────
+    row = con.execute(
+        """SELECT nombre, gmail, bio, foto, portada, ciudad, sitio_web, fecha_nacimiento
+           FROM usuarios WHERE id=%s""", (uid,)
+    ).fetchone()
+    if not row:
+        return (jsonify({"ok": False, "error": "Usuario no encontrado"}), 404) if _is_ajax() else redirect("/")
+
+    # _field: usa el valor del form si fue enviado, si no conserva el de la BD
+    def _field(name, current):
+        v = request.form.get(name)
+        if v is None:
+            return current  # campo no incluido en este envio -> conservar
+        return v.strip() if isinstance(v, str) else v
+
+    nombre           = _field("nombre", row["nombre"]) or row["nombre"]
+    gmail            = _field("gmail",  row["gmail"] or "")
+    bio              = _field("bio",    row["bio"] or "")
+    ciudad           = _field("ciudad", row["ciudad"] or "")
+    sitio_web        = _field("sitio_web", row["sitio_web"] or "")
+    fn_raw           = _field("fecha_nacimiento", row["fecha_nacimiento"] or "")
+    fecha_nacimiento = (str(fn_raw).strip() if fn_raw else None) or None
+
+    # ── Validacion basica ─────────────────────────────────────────────
+    if not nombre:
+        return (jsonify({"ok": False, "error": "El nombre no puede estar vacio"}), 400) if _is_ajax() else redirect("/dashboard")
 
     # ── Foto de perfil ────────────────────────────────────────────────
-    foto_url  = None
+    foto_url  = row["foto"]
     foto_file = request.files.get("foto_perfil")
     if foto_file and foto_file.filename:
+        ext = foto_file.filename.rsplit(".", 1)[-1].lower()
+        if ext not in ("jpg", "jpeg", "png", "gif", "webp"):
+            return (jsonify({"ok": False, "error": "Formato de imagen no permitido"}), 400) if _is_ajax() else redirect("/dashboard")
+        foto_file.seek(0, 2)
+        size = foto_file.tell()
+        foto_file.seek(0)
+        if size > 10 * 1024 * 1024:
+            return (jsonify({"ok": False, "error": "La foto de perfil supera 10 MB"}), 400) if _is_ajax() else redirect("/dashboard")
         url, _ = subir_a_cloudinary(foto_file, folder="familia/perfiles")
         if url:
             foto_url = url
         else:
-            if _is_ajax():
-                return jsonify({"ok": False, "error": "No se pudo subir la foto de perfil."}), 500
-            return redirect("/dashboard")
+            return (jsonify({"ok": False, "error": "No se pudo subir la foto de perfil."}), 500) if _is_ajax() else redirect("/dashboard")
 
     # ── Portada ───────────────────────────────────────────────────────
-    portada_url  = None
+    portada_url  = row["portada"]
     portada_file = request.files.get("portada")
     if portada_file and portada_file.filename:
+        ext = portada_file.filename.rsplit(".", 1)[-1].lower()
+        if ext not in ("jpg", "jpeg", "png", "gif", "webp"):
+            return (jsonify({"ok": False, "error": "Formato de portada no permitido"}), 400) if _is_ajax() else redirect("/dashboard")
+        portada_file.seek(0, 2)
+        size = portada_file.tell()
+        portada_file.seek(0)
+        if size > 10 * 1024 * 1024:
+            return (jsonify({"ok": False, "error": "La portada supera 10 MB"}), 400) if _is_ajax() else redirect("/dashboard")
         url, _ = subir_a_cloudinary(portada_file, folder="familia/portadas")
         if url:
             portada_url = url
         else:
-            if _is_ajax():
-                return jsonify({"ok": False, "error": "No se pudo subir la portada."}), 500
-            return redirect("/dashboard")
+            return (jsonify({"ok": False, "error": "No se pudo subir la portada."}), 500) if _is_ajax() else redirect("/dashboard")
 
-    # ── Conservar valores actuales si no se subió algo nuevo ──────────
-    row = con.execute("SELECT foto, portada FROM usuarios WHERE id=%s", (uid,)).fetchone()
-    if row:
-        if not foto_url:
-            foto_url = row["foto"]
-        if not portada_url:
-            try:
-                portada_url = row["portada"]
-            except Exception:
-                portada_url = None
-
-    # ── Guardar todo ──────────────────────────────────────────────────
+    # ── Guardar todo en la BD ──────────────────────────────────────────
     con.execute(
         """UPDATE usuarios
            SET nombre=%s, gmail=%s, bio=%s, foto=%s, portada=%s,
@@ -206,10 +234,12 @@ def actualizar_perfil():
     session["nombre"] = nombre
     if _is_ajax():
         return jsonify({
-            "ok":      True,
-            "nombre":  nombre,
-            "foto":    foto_url    or "",
-            "portada": portada_url or "",
+            "ok":        True,
+            "nombre":    nombre,
+            "foto":      foto_url    or "",
+            "portada":   portada_url or "",
+            "ciudad":    ciudad,
+            "sitio_web": sitio_web,
         })
     return redirect("/dashboard")
 

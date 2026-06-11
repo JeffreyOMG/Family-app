@@ -1686,7 +1686,7 @@ function pf2CerrarModal(id) {
 }
 function pf2AbrirModalEditar() {
   pf2CerrarModal('pf2-modal-ajustes');
-  // Pre-populate foto preview
+  // Pre-populate foto de perfil en el preview del modal
   const mainFoto = document.getElementById('preview-foto-perfil');
   const editPreview = document.getElementById('pf2-edit-foto-preview');
   const editLetter  = document.getElementById('pf2-edit-avatar-letter');
@@ -1694,6 +1694,17 @@ function pf2AbrirModalEditar() {
     editPreview.src = mainFoto.src;
     editPreview.style.display = '';
     if (editLetter) editLetter.style.display = 'none';
+  }
+  // Pre-populate portada en el preview del modal
+  const coverEl = document.getElementById('pf2-cover-img');
+  const coverPrev = document.getElementById('pf2-cover-preview');
+  if (coverPrev && coverEl) {
+    const src = coverEl.tagName === 'IMG' ? coverEl.src : '';
+    if (src) {
+      coverPrev.style.backgroundImage = 'url(' + src + ')';
+      coverPrev.style.backgroundSize = 'cover';
+      coverPrev.style.backgroundPosition = 'center';
+    }
   }
   pf2AbrirModal('pf2-modal-editar');
 }
@@ -2123,8 +2134,9 @@ async function autoGuardarFoto(input) {
   const formPerfil  = document.getElementById('pf2-form-editar');
   const fd = new FormData();
   fd.append('foto_perfil', compressed, 'perfil.jpg');
+  // Enviar TODOS los campos del formulario para no sobreescribir con vacíos
   if (formPerfil) {
-    ['nombre','gmail','bio'].forEach(name => {
+    ['nombre','gmail','bio','ciudad','sitio_web','fecha_nacimiento'].forEach(name => {
       const el = formPerfil.querySelector('[name="' + name + '"]');
       if (el) fd.append(name, el.value);
     });
@@ -2134,7 +2146,7 @@ async function autoGuardarFoto(input) {
     const data = await res.json().catch(()=>({}));
     if (res.ok && data.ok !== false) {
       if (data.foto) _aplicarFotoGlobal(data.foto);
-      mostrarToast('📸 Foto actualizada');
+      mostrarToast('📸 Foto de perfil actualizada');
     } else {
       mostrarToast('❌ ' + (data.error || 'Error al guardar foto'), 'error');
     }
@@ -2356,10 +2368,10 @@ async function autoGuardarPortada(input) {
   if (btn) btn.style.pointerEvents = 'none';
   const fd = new FormData();
   fd.append('portada', file, 'portada.jpg');
-  // Necesitamos enviar campos mínimos requeridos
+  // Enviar TODOS los campos del formulario para no sobreescribir con vacíos
   const formPerfil = document.getElementById('pf2-form-editar');
   if (formPerfil) {
-    ['nombre','gmail'].forEach(name => {
+    ['nombre','gmail','bio','ciudad','sitio_web','fecha_nacimiento'].forEach(name => {
       const el = formPerfil.querySelector('[name="' + name + '"]');
       if (el) fd.append(name, el.value);
     });
@@ -2370,9 +2382,18 @@ async function autoGuardarPortada(input) {
     if (res.ok && data.ok !== false) {
       if (data.portada) {
         const ci = document.getElementById('pf2-cover-img');
-        if (ci && ci.tagName === 'IMG') ci.src = data.portada;
+        if (ci) {
+          if (ci.tagName === 'IMG') {
+            ci.src = data.portada;
+          } else {
+            const img = document.createElement('img');
+            img.src = data.portada; img.className = 'pf2-cover-img';
+            img.id = 'pf2-cover-img'; img.alt = 'Portada';
+            ci.replaceWith(img);
+          }
+        }
       }
-      mostrarToast('🖼️ Portada actualizada');
+      mostrarToast('🖼️ Portada actualizada correctamente');
     } else {
       mostrarToast('❌ ' + (data.error || 'Error al guardar portada'), 'error');
     }

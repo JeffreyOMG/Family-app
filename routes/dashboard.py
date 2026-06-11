@@ -75,7 +75,9 @@ def calcular_tabla(grupos, partidos_db):
 
 def get_ctx(uid, con, extra=None):
     usuario = con.execute(
-        "SELECT id, nombre, usuario, rol, gmail, bio, foto, fecha FROM usuarios WHERE id=%s", (uid,)
+        """SELECT id, nombre, usuario, rol, gmail, bio, foto, fecha,
+                  portada, ciudad, sitio_web, fecha_nacimiento
+           FROM usuarios WHERE id=%s""", (uid,)
     ).fetchone()
     if not usuario: return None
     usuario = dict(usuario)
