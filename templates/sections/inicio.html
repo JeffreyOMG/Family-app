@@ -421,6 +421,30 @@
       </div>
 
 
+      <!-- ⚽ PARTIDOS DE HOY — DESKTOP (arriba del panel derecho) -->
+      <div class="panel-card pah-desktop-card" id="pah-widget-desktop">
+        <div class="panel-header pah-panel-header">
+          <h3>⚽ Partidos de Hoy</h3>
+          <span class="pah-world-cup-badge">Mundial 2026</span>
+        </div>
+        <div id="pah-body-desktop" class="pah-body">
+          <div class="pah-loading" id="pah-loading-desktop">
+            <div class="pah-skeleton"></div>
+            <div class="pah-skeleton pah-skeleton--short"></div>
+            <div class="pah-skeleton"></div>
+          </div>
+          <div class="panel-empty pah-error" id="pah-error-desktop" style="display:none;">
+            <span class="material-symbols-outlined">wifi_off</span>
+            <p>No se pudo cargar</p>
+          </div>
+          <div class="panel-empty pah-vacio" id="pah-vacio-desktop" style="display:none;">
+            <span class="material-symbols-outlined">sports_soccer</span>
+            <p>Sin partidos hoy</p>
+          </div>
+          <div class="noticias-list" id="pah-lista-desktop" style="display:none;"></div>
+        </div>
+      </div>
+
       <!-- NOTICIAS -->
       <div class="panel-card">
         <div class="panel-header">
@@ -445,33 +469,6 @@
             <p>Sin noticias por ahora</p>
           </div>
         {% endif %}
-      </div>
-
-      <!-- ⚽ PARTIDOS DE HOY — DESKTOP (solo visible en right-panel) -->
-      <div class="panel-card" id="pah-widget-desktop">
-        <div class="panel-header">
-          <h3>⚽ Partidos de Hoy</h3>
-        </div>
-        <div id="pah-body-desktop" class="pah-body">
-          <!-- Estado: loading -->
-          <div class="pah-loading" id="pah-loading-desktop">
-            <div class="pah-skeleton"></div>
-            <div class="pah-skeleton pah-skeleton--short"></div>
-            <div class="pah-skeleton"></div>
-          </div>
-          <!-- Estado: error -->
-          <div class="panel-empty pah-error" id="pah-error-desktop" style="display:none;">
-            <span class="material-symbols-outlined">wifi_off</span>
-            <p>No se pudo cargar</p>
-          </div>
-          <!-- Estado: sin partidos -->
-          <div class="panel-empty pah-vacio" id="pah-vacio-desktop" style="display:none;">
-            <span class="material-symbols-outlined">sports_soccer</span>
-            <p>Sin partidos hoy</p>
-          </div>
-          <!-- Lista de partidos -->
-          <div class="noticias-list" id="pah-lista-desktop" style="display:none;"></div>
-        </div>
       </div>
 
     </aside>
@@ -2757,12 +2754,22 @@ body.dark-mode .post-badge-privado { background: rgba(139,92,246,.2); color: #a7
   #pah-widget-desktop { display: none !important; }
 }
 /* Body del widget: pequeño padding inferior para respirar */
+/* ── PARTIDOS DE HOY WIDGET ─────────────────────────────── */
 .pah-body { padding-bottom: 2px; }
+
+/* Header especial con badge Mundial */
+.pah-panel-header { position: relative; }
+.pah-world-cup-badge {
+  font-size: 10px; font-weight: 700; letter-spacing: .04em;
+  color: var(--accent); background: rgba(var(--accent-rgb, 20,184,166), .12);
+  border: 1px solid rgba(var(--accent-rgb, 20,184,166), .25);
+  border-radius: 20px; padding: 2px 8px;
+}
 
 /* Skeleton loader */
 .pah-loading { padding: 10px 16px 6px; display: flex; flex-direction: column; gap: 8px; }
 .pah-skeleton {
-  height: 38px; border-radius: 10px;
+  height: 52px; border-radius: 10px;
   background: linear-gradient(90deg, var(--bg2) 25%, var(--border) 50%, var(--bg2) 75%);
   background-size: 200% 100%;
   animation: pah-shimmer 1.4s infinite;
@@ -2770,10 +2777,10 @@ body.dark-mode .post-badge-privado { background: rgba(139,92,246,.2); color: #a7
 .pah-skeleton--short { height: 28px; width: 70%; }
 @keyframes pah-shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
 
-/* Ítem de partido — hereda de noticia-item */
+/* Ítem de partido */
 .pah-item {
-  display: flex; flex-direction: column; gap: 4px;
-  padding: 10px 10px; border-bottom: 1px solid var(--border);
+  display: flex; flex-direction: column; gap: 6px;
+  padding: 10px 12px; border-bottom: 1px solid var(--border);
   transition: background .15s; border-radius: 8px; cursor: default;
 }
 .pah-item:last-child { border-bottom: none; }
@@ -2784,7 +2791,7 @@ body.dark-mode .post-badge-privado { background: rgba(139,92,246,.2); color: #a7
   display: inline-flex; align-items: center; gap: 4px;
   font-size: 10px; font-weight: 800; letter-spacing: .05em;
   text-transform: uppercase; padding: 2px 7px;
-  border-radius: 20px; align-self: flex-start; margin-bottom: 2px;
+  border-radius: 20px; align-self: flex-start; margin-bottom: 0px;
 }
 .pah-badge--live {
   color: #fff; background: #dc2626;
@@ -2807,9 +2814,21 @@ body.dark-mode .post-badge-privado { background: rgba(139,92,246,.2); color: #a7
 .pah-team { flex: 1; display: flex; align-items: center; gap: 5px; min-width: 0; }
 .pah-team--right { flex-direction: row-reverse; text-align: right; }
 .pah-team-name { font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.pah-score { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
-.pah-score-num { font-size: 15px; font-weight: 900; color: var(--text); min-width: 14px; text-align: center; }
-.pah-score-sep { color: var(--text3); font-weight: 700; }
+
+/* Marcador */
+.pah-score {
+  display: flex; align-items: center; gap: 4px; flex-shrink: 0;
+  background: var(--bg2); border-radius: 8px; padding: 4px 8px;
+  border: 1px solid var(--border);
+}
+.pah-score-num {
+  font-size: 17px; font-weight: 900; color: var(--text2);
+  min-width: 16px; text-align: center; line-height: 1;
+}
+.pah-score-num.pah-score-win {
+  color: var(--accent, #14b8a6);
+}
+.pah-score-sep { color: var(--text3); font-weight: 700; font-size: 13px; }
 .pah-score-vs   { font-size: 11px; font-weight: 700; color: var(--text3); padding: 0 2px; }
 
 /* Pie del ítem (minuto / hora / sede) */
@@ -2817,6 +2836,14 @@ body.dark-mode .post-badge-privado { background: rgba(139,92,246,.2); color: #a7
   font-size: 11px; color: var(--text3);
   display: flex; align-items: center; gap: 4px; padding-left: 2px;
 }
+
+/* Desktop card highlight */
+.pah-desktop-card {
+  border: 1px solid rgba(var(--accent-rgb, 20,184,166), .2) !important;
+}
+
+/* Mobile card */
+.pah-mobile-card { /* same as panel-card */ }
 
 /* ── BOTTOM NAV — no local overrides; global style.css handles the pill ── */
 .bnav-label { display: none !important; }
@@ -7780,9 +7807,7 @@ async function cargarMasPosts(btn) {
 
   function _renderPartido(p) {
     const estado = (p.estado || '').toLowerCase();
-    // FIX: API devuelve 'en_curso' (no 'en_vivo' ni 'live')
     const enVivo     = estado === 'en_curso' || estado === 'en_vivo' || estado === 'live';
-    // FIX: no usar p.bloqueado como criterio extra de finalizado
     const finalizado = estado === 'finalizado' || estado === 'finished';
 
     let badge = '';
@@ -7797,15 +7822,16 @@ async function cargarMasPosts(btn) {
       badge = `<span class="pah-badge pah-badge--proximo">🕒 ${hora || _esc(p.fecha_texto || 'Próximo')}</span>`;
     }
 
-    const tieneScore = (enVivo || finalizado) &&
-                       p.goles_local !== null && p.goles_local !== undefined &&
-                       p.goles_visit !== null && p.goles_visit !== undefined;
+    // Mostrar marcador: si el partido está en curso o finalizado, mostrar goles (o "?" si son null)
+    const mostrarScore = enVivo || finalizado;
+    const golesLocal = (p.goles_local !== null && p.goles_local !== undefined) ? String(p.goles_local) : '?';
+    const golesVisit = (p.goles_visit !== null && p.goles_visit !== undefined) ? String(p.goles_visit) : '?';
 
     const banLocal = _bandera(p.codigo_local);
     const banVisit = _bandera(p.codigo_visit);
 
     let matchRow = '';
-    if (tieneScore) {
+    if (mostrarScore) {
       matchRow = `
         <div class="pah-match-row">
           <div class="pah-team">
@@ -7813,9 +7839,9 @@ async function cargarMasPosts(btn) {
             <span class="pah-team-name">${_esc(p.local)}</span>
           </div>
           <div class="pah-score">
-            <span class="pah-score-num">${_esc(String(p.goles_local))}</span>
+            <span class="pah-score-num${finalizado && golesLocal !== '?' && golesVisit !== '?' && Number(golesLocal) > Number(golesVisit) ? ' pah-score-win' : ''}">${_esc(golesLocal)}</span>
             <span class="pah-score-sep">-</span>
-            <span class="pah-score-num">${_esc(String(p.goles_visit))}</span>
+            <span class="pah-score-num${finalizado && golesLocal !== '?' && golesVisit !== '?' && Number(golesVisit) > Number(golesLocal) ? ' pah-score-win' : ''}">${_esc(golesVisit)}</span>
           </div>
           <div class="pah-team pah-team--right">
             <span>${banVisit}</span>
