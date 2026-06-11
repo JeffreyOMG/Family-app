@@ -35,12 +35,12 @@
     <div id="vp-perfil" style="display:none;">
 
       <!-- BANNER -->
-      <div class="vp-banner" id="vp-banner"></div>
+      <div class="vp-banner" id="vp-banner" onclick="vpAbrirLightbox('portada')" title="Ver portada" style="cursor:zoom-in;"></div>
 
       <!-- AVATAR + INFO PRINCIPAL -->
       <div class="vp-header-card content-card">
         <div class="vp-avatar-wrap">
-          <img id="vp-foto" class="vp-avatar-img" src="" alt="" style="display:none;">
+          <img id="vp-foto" class="vp-avatar-img" src="" alt="" style="display:none;cursor:zoom-in;" onclick="vpAbrirLightbox('foto')">
           <div id="vp-letra" class="user-avatar vp-avatar-letter"></div>
         </div>
         <div class="vp-info-wrap">
@@ -184,8 +184,72 @@
 
 </section>
 
+<!-- ══════════════════════════════════════════════════════
+     LIGHTBOX — visor de portada y foto de perfil
+══════════════════════════════════════════════════════ -->
+<div id="vp-lightbox" onclick="vpCerrarLightbox()" role="dialog" aria-modal="true" aria-label="Visor de imagen">
+  <button class="vp-lb-close" onclick="vpCerrarLightbox()" title="Cerrar">
+    <span class="material-symbols-outlined">close</span>
+  </button>
+  <img id="vp-lb-img" src="" alt="Imagen ampliada" draggable="false" onclick="event.stopPropagation()">
+  <div class="vp-lb-hint" id="vp-lb-hint">Pellizca o usa la rueda para hacer zoom · Toca fuera para cerrar</div>
+</div>
+
 <style>
-/* ── VER PERFIL — estilos completos ─────────────────── */
+/* ── LIGHTBOX ─────────────────────────────────────────────────── */
+#vp-lightbox {
+  position: fixed; inset: 0; z-index: 9999;
+  background: rgba(0,0,0,.94);
+  display: none; align-items: center; justify-content: center;
+  opacity: 0;
+  transition: opacity .28s ease;
+  cursor: zoom-out;
+  touch-action: none;
+}
+#vp-lightbox.vp-lb-open {
+  display: flex;
+  opacity: 1;
+}
+#vp-lb-img {
+  max-width: 92vw;
+  max-height: 92dvh;
+  border-radius: 14px;
+  object-fit: contain;
+  box-shadow: 0 20px 80px rgba(0,0,0,.6);
+  cursor: zoom-in;
+  transition: transform .2s ease;
+  transform-origin: center center;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+.vp-lb-close {
+  position: fixed; top: 18px; right: 18px;
+  width: 44px; height: 44px; border-radius: 50%;
+  background: rgba(255,255,255,.12);
+  border: 1.5px solid rgba(255,255,255,.25);
+  color: #fff; font-size: 22px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; z-index: 10000;
+  transition: background .15s, transform .15s;
+  backdrop-filter: blur(6px);
+}
+.vp-lb-close:hover { background: rgba(255,255,255,.24); transform: scale(1.08); }
+.vp-lb-hint {
+  position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%);
+  background: rgba(255,255,255,.1);
+  border: 1px solid rgba(255,255,255,.18);
+  color: rgba(255,255,255,.8);
+  font-size: .75rem; padding: 6px 14px; border-radius: 20px;
+  backdrop-filter: blur(6px);
+  pointer-events: none;
+  white-space: nowrap;
+  transition: opacity .5s;
+}
+/* Cursor en avatar */
+.vp-avatar-img { cursor: zoom-in; }
+</style>
+
+<style>
 
 /* Evitar efecto de escala/jump al abrir: el contenedor siempre ocupa espacio */
 #sec-ver-perfil {
@@ -912,7 +976,7 @@ function _renderVerPerfil(u) {
   const skeleton = document.getElementById('vp-skeleton');
   const perfilEl = document.getElementById('vp-perfil');
 
-  // Banner con color basado en inicial del nombre
+  // Banner — portada real si existe, si no gradiente por color del nombre
   const bannerColors = [
     ['#ff4d8d','#a855f7','#3b82f6'],
     ['#f97316','#eab308','#22c55e'],
@@ -923,7 +987,22 @@ function _renderVerPerfil(u) {
   const idx = (u.nombre || 'A').charCodeAt(0) % bannerColors.length;
   const [c1, c2, c3] = bannerColors[idx];
   const banner = document.getElementById('vp-banner');
-  if (banner) banner.style.background = `linear-gradient(135deg, ${c1} 0%, ${c2} 55%, ${c3} 100%)`;
+  if (banner) {
+    if (u.portada) {
+      banner.style.background = `linear-gradient(135deg, ${c1} 0%, ${c2} 55%, ${c3} 100%)`;
+      banner.style.backgroundImage = `url(${u.portada})`;
+      banner.style.backgroundSize   = 'cover';
+      banner.style.backgroundPosition = 'center';
+      banner.dataset.portadaUrl = u.portada;
+      banner.title = 'Ver portada';
+    } else {
+      banner.style.background = `linear-gradient(135deg, ${c1} 0%, ${c2} 55%, ${c3} 100%)`;
+      banner.style.backgroundImage = '';
+      delete banner.dataset.portadaUrl;
+      banner.title = '';
+      banner.style.cursor = 'default';
+    }
+  }
 
   // Foto / letra
   const fotoEl  = document.getElementById('vp-foto');
@@ -1359,4 +1438,101 @@ function vpFiltrarSocial(tipo) {
 function vpMostrarMas(tipo) {
   _vpRenderSocial(tipo);
 }
+
+// ── LIGHTBOX: zoom en portada y foto de perfil ────────────────────────
+(function() {
+  let _scale = 1;
+  let _pinchDist = null;
+
+  window.vpAbrirLightbox = function(tipo) {
+    let src = '';
+    if (tipo === 'foto') {
+      const img = document.getElementById('vp-foto');
+      if (!img || img.style.display === 'none' || !img.src) return;
+      src = img.src;
+    } else if (tipo === 'portada') {
+      const banner = document.getElementById('vp-banner');
+      if (!banner || !banner.dataset.portadaUrl) return;
+      src = banner.dataset.portadaUrl;
+    }
+    if (!src) return;
+
+    _scale = 1;
+    const img = document.getElementById('vp-lb-img');
+    img.style.transform = 'scale(1)';
+    img.src = src;
+
+    const lb = document.getElementById('vp-lightbox');
+    lb.style.display = 'flex';
+    lb.style.opacity = '0';
+    requestAnimationFrame(() => {
+      lb.style.opacity = '1';
+      lb.classList.add('vp-lb-open');
+    });
+    document.body.style.overflow = 'hidden';
+
+    // Ocultar hint tras 3s
+    const hint = document.getElementById('vp-lb-hint');
+    if (hint) { hint.style.opacity = '1'; setTimeout(() => hint.style.opacity = '0', 3000); }
+  };
+
+  window.vpCerrarLightbox = function() {
+    const lb = document.getElementById('vp-lightbox');
+    lb.style.opacity = '0';
+    setTimeout(() => {
+      lb.style.display = 'none';
+      lb.classList.remove('vp-lb-open');
+      document.body.style.overflow = '';
+    }, 280);
+  };
+
+  // Double-click zoom
+  document.addEventListener('DOMContentLoaded', () => {
+    const img = document.getElementById('vp-lb-img');
+    if (!img) return;
+    img.addEventListener('dblclick', () => {
+      _scale = _scale > 1 ? 1 : 2.5;
+      img.style.transform = `scale(${_scale})`;
+    });
+  });
+
+  // Wheel zoom
+  document.addEventListener('wheel', function(e) {
+    const lb = document.getElementById('vp-lightbox');
+    if (!lb || !lb.classList.contains('vp-lb-open')) return;
+    e.preventDefault();
+    _scale = Math.min(5, Math.max(1, _scale - e.deltaY * 0.002));
+    document.getElementById('vp-lb-img').style.transform = `scale(${_scale})`;
+  }, { passive: false });
+
+  // Pinch zoom (mobile)
+  document.addEventListener('touchstart', function(e) {
+    if (!document.getElementById('vp-lightbox').classList.contains('vp-lb-open')) return;
+    if (e.touches.length === 2) {
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      _pinchDist = Math.hypot(dx, dy);
+    }
+  }, { passive: true });
+
+  document.addEventListener('touchmove', function(e) {
+    if (!document.getElementById('vp-lightbox').classList.contains('vp-lb-open')) return;
+    if (e.touches.length === 2 && _pinchDist) {
+      e.preventDefault();
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      const newDist = Math.hypot(dx, dy);
+      _scale = Math.min(5, Math.max(1, _scale * (newDist / _pinchDist)));
+      _pinchDist = newDist;
+      document.getElementById('vp-lb-img').style.transform = `scale(${_scale})`;
+    }
+  }, { passive: false });
+
+  document.addEventListener('touchend', () => { _pinchDist = null; }, { passive: true });
+
+  // ESC para cerrar
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') vpCerrarLightbox();
+  });
+})();
 </script>
