@@ -17,7 +17,8 @@ def api_usuario(nombre_usuario):
     con = get_db()
     u = con.execute(
         """SELECT id, nombre, usuario, rol, bio, foto, fecha,
-                  portada, ciudad, sitio_web, fecha_nacimiento
+                  portada, ciudad, sitio_web, fecha_nacimiento,
+                  COALESCE(verified, FALSE) AS verified
            FROM usuarios WHERE usuario=%s""",
         (nombre_usuario,)
     ).fetchone()

@@ -9,9 +9,9 @@ function verifiedBadgeHTML(verified, size) {
   const s = size || 'md';
   const px = s === 'sm' ? 14 : s === 'lg' ? 20 : 16;
   return `<span class="verified-badge verified-badge--${s}" aria-label="Usuario verificado" title="Usuario verificado" role="img">`
-    + `<svg xmlns="http://www.w3.org/2000/svg" width="${px}" height="${px}" viewBox="0 0 24 24" aria-hidden="true" focusable="false">`
-    + `<path d="M12 1L3 5v6c0 5.25 3.75 10.14 9 11.31C17.25 21.14 21 16.25 21 11V5L12 1z" fill="var(--verified-bg,#1d9bf0)"/>`
-    + `<polyline points="9,12.5 11.5,15 15.5,9.5" stroke="var(--verified-check,#fff)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/>`
+    + `<svg xmlns="http://www.w3.org/2000/svg" width="${px}" height="${px}" viewBox="0 0 100 100" aria-hidden="true" focusable="false">`
+    + `<path d="M 50.00,5.00 L 61.12,15.76 L 76.45,13.59 L 79.12,28.84 L 92.80,36.09 L 86.00,50.00 L 92.80,63.91 L 79.12,71.16 L 76.45,86.41 L 61.12,84.24 L 50.00,95.00 L 38.88,84.24 L 23.55,86.41 L 20.88,71.16 L 7.20,63.91 L 14.00,50.00 L 7.20,36.09 L 20.88,28.84 L 23.55,13.59 L 38.88,15.76 Z" fill="var(--verified-bg,#1d9bf0)"/>`
+    + `<polyline points="30,52 44,66 70,38" stroke="var(--verified-check,#fff)" stroke-width="9" stroke-linecap="round" stroke-linejoin="round" fill="none"/>`
     + `</svg></span>`;
 }
 
