@@ -839,85 +839,105 @@ body.dark-mode .vp-follow-btn.siguiendo:hover {
   .vp-avatar-area { border-radius: 0 0 14px 14px; }
 }
 
-@media (max-width: 480px) {
-  /* Portada */
-  .vp-banner { height: 130px; border-radius: 12px 12px 0 0; }
+/* ════════════════════════════════════════════════
+   RESPONSIVE VER PERFIL
+   ════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  .vp-banner { border-radius: 14px 14px 0 0; }
+  .vp-avatar-area { border-radius: 0 0 14px 14px; }
+}
 
-  /* Avatar area */
+@media (max-width: 480px) {
+  /* Portada: buena altura, conectada al área */
+  .vp-cover-wrap { margin-bottom: 10px; }
+  .vp-banner {
+    height: 140px;
+    border-radius: 12px 12px 0 0;
+  }
+
+  /* Avatar area: misma estructura q PC pero adaptada.
+     El avatar se solapa sobre la portada con margin-top negativo,
+     la identidad queda al lado derecho del avatar. */
   .vp-avatar-area {
     padding: 0 14px 18px;
     border-radius: 0 0 12px 12px;
-    gap: 12px;
+    gap: 10px;
+    flex-wrap: nowrap;      /* avatar + identity en la misma fila */
+    align-items: flex-start;
   }
-  .vp-avatar-wrap { margin-top: -42px; }
+  .vp-avatar-wrap {
+    margin-top: -40px;      /* solapa sobre portada */
+    flex-shrink: 0;
+  }
   .vp-avatar-img, .vp-avatar-letter {
-    width: 82px; height: 82px;
-    font-size: 30px;
+    width: 76px; height: 76px;
+    font-size: 28px;
     border-width: 3px;
   }
 
-  /* Identidad: columna completa */
+  /* Identidad: columna a la derecha del avatar */
   .vp-identity {
     flex-direction: column;
-    gap: 8px;
-    width: 100%;
-    padding-top: 8px;
+    gap: 4px;
+    flex: 1;
     min-width: 0;
+    padding-top: 6px;
+    justify-content: flex-start;
   }
-  .vp-names { min-width: 0; width: 100%; }
-  .vp-nombre { font-size: 1.1rem; word-break: break-word; }
-  .vp-meta-row { flex-wrap: wrap; gap: 6px; }
-  .vp-usuario-text { font-size: .82rem; }
-  .vp-bio { font-size: .85rem; }
-  .vp-pills { gap: 5px; margin-top: 6px; }
-  .vp-pill { font-size: .74rem; padding: 4px 10px; }
+  .vp-names { width: 100%; min-width: 0; }
+  .vp-nombre { font-size: 1.05rem; word-break: break-word; line-height: 1.2; }
+  .vp-meta-row { gap: 5px; margin-bottom: 4px; flex-wrap: wrap; }
+  .vp-usuario-text { font-size: .8rem; }
+  .vp-bio { font-size: .83rem; margin-bottom: 5px; }
+  .vp-pills { gap: 5px; margin-top: 4px; flex-wrap: wrap; }
+  .vp-pill { font-size: .72rem; padding: 3px 8px; }
 
-  /* Follow button full width */
-  .vp-follow-actions { width: 100%; padding-top: 4px; }
-  .vp-follow-btn { width: 100%; justify-content: center; min-height: 44px; }
+  /* Follow: sale del flujo de vp-identity y ocupa fila completa */
+  .vp-identity {
+    position: relative;
+  }
+  .vp-follow-actions {
+    /* En mobil el follow queda dentro de vp-identity como columna */
+    width: 100%;
+    padding-top: 6px;
+  }
+  .vp-follow-btn {
+    width: 100%;
+    justify-content: center;
+    min-height: 42px;
+    padding: 9px 16px;
+    font-size: .88rem;
+  }
 
-  /* Stats */
+  /* Stats: fila uniforme */
   .vp-stats-grid {
-    display: flex;
-    overflow-x: auto;
-    scrollbar-width: none;
-    gap: 0;
-    -webkit-overflow-scrolling: touch;
     border-radius: 12px;
-    overflow: hidden;
-    margin-bottom: 12px;
+    margin-bottom: 10px;
   }
-  .vp-stats-grid::-webkit-scrollbar { display: none; }
-  .vp-stat {
-    flex: 0 0 auto;
-    min-width: 76px;
-    padding: 14px 8px;
-    border-radius: 0;
-    border-right: 1px solid var(--border);
-  }
-  .vp-stat:last-child { border-right: none; }
-  .vp-stat strong { font-size: .95rem; }
-  .vp-stat span { font-size: .66rem; }
+  .vp-stat { padding: 13px 8px; }
+  .vp-stat strong { font-size: 1rem; }
+  .vp-stat span { font-size: .65rem; }
 
   /* Tabs */
   .vp-tabs-wrap { border-radius: 12px; margin-top: 8px; }
-  .vp-tab-btn { padding: 13px 6px; font-size: .78rem; }
-  .vp-tab-panel { padding: 14px; }
+  .vp-tab-btn { padding: 12px 6px; font-size: .77rem; }
+  .vp-tab-panel { padding: 12px; }
 }
 
 @media (max-width: 390px) {
-  .vp-banner { height: 115px; }
-  .vp-avatar-wrap { margin-top: -38px; }
-  .vp-avatar-img, .vp-avatar-letter { width: 74px; height: 74px; font-size: 27px; }
-  .vp-nombre { font-size: 1rem; }
-  .vp-stat { min-width: 66px; }
+  .vp-banner { height: 120px; }
+  .vp-avatar-wrap { margin-top: -36px; }
+  .vp-avatar-img, .vp-avatar-letter { width: 68px; height: 68px; font-size: 25px; }
+  .vp-nombre { font-size: .97rem; }
+  .vp-stat { min-width: 60px; }
 }
 
 @media (max-width: 340px) {
   .vp-banner { height: 100px; }
-  .vp-avatar-img, .vp-avatar-letter { width: 64px; height: 64px; font-size: 24px; }
-  .vp-nombre { font-size: .92rem; }
-  .vp-stat { min-width: 56px; padding: 10px 6px; }
+  .vp-avatar-wrap { margin-top: -30px; }
+  .vp-avatar-img, .vp-avatar-letter { width: 60px; height: 60px; font-size: 22px; }
+  .vp-nombre { font-size: .9rem; }
+  .vp-stat { min-width: 52px; padding: 10px 5px; }
 }
 
 /* ── PESTAÑAS PERFIL PÚBLICO ── */
