@@ -2844,8 +2844,11 @@ body.dark-mode .post-badge-privado { background: rgba(139,92,246,.2); color: #a7
 
 /* ── PARTIDOS DE HOY (pah-) ── */
 /* Mobile card: visible solo en ≤900px dentro del feed */
-.pah-mobile-card { display: none; margin-bottom: 0; }
+.pah-mobile-card { display: none; margin-bottom: 12px; }
 @media (max-width: 900px) { .pah-mobile-card { display: block; } }
+
+/* Body interno de la tarjeta */
+.pah-body { padding-bottom: 4px; }
 
 /* Skeleton loader */
 .pah-loading { padding: 10px 16px 6px; display: flex; flex-direction: column; gap: 8px; }
@@ -7828,19 +7831,32 @@ async function cargarMasPosts(btn) {
   }
 
   function _bandera(codigo) {
-    if (!codigo) return '🏳️';
-    // Convierte código ISO de 2 letras a emoji de bandera
-    return codigo.toUpperCase().split('').map(c =>
-      String.fromCodePoint(0x1F1E0 - 65 + c.charCodeAt(0))
-    ).join('');
+    if (!codigo || codigo.length < 2) return '🏳️';
+    // Convierte código ISO-2 en par de Regional Indicator Symbol Letters.
+    // Base correcta: 0x1F1E6 = 🇦 (Regional Indicator A)
+    try {
+      return codigo.toUpperCase().split('').map(c =>
+        String.fromCodePoint(0x1F1E6 + c.charCodeAt(0) - 65)
+      ).join('');
+    } catch (_) { return '🏳️'; }
   }
 
   function _hora(fechaIso) {
     if (!fechaIso) return '';
     try {
       const d = new Date(fechaIso);
-      return d.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', hour12: true });
-    } catch (_) { return ''; }
+      // 'es' es ampliamente soportado; 'es-CO' puede no existir en Safari
+      return d.toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit', hour12: true });
+    } catch (_) {
+      // Fallback manual HH:MM AM/PM
+      try {
+        const d = new Date(fechaIso);
+        let h = d.getHours(), m = d.getMinutes();
+        const ampm = h >= 12 ? 'PM' : 'AM';
+        h = h % 12 || 12;
+        return h + ':' + String(m).padStart(2, '0') + ' ' + ampm;
+      } catch (_) { return ''; }
+    }
   }
 
   // ── Renderizadores de estado ──────────────────────────────────────────────
@@ -7851,7 +7867,8 @@ async function cargarMasPosts(btn) {
     const error   = document.getElementById('pah-error-'   + sufijo);
     const vacio   = document.getElementById('pah-vacio-'   + sufijo);
     const lista   = document.getElementById('pah-lista-'   + sufijo);
-    if (!loading) return;
+    // Guardia completa: si algún elemento no existe, salir sin romper
+    if (!loading || !error || !vacio || !lista) return;
     loading.style.display = estado === 'loading' ? '' : 'none';
     error  .style.display = estado === 'error'   ? '' : 'none';
     vacio  .style.display = estado === 'vacio'   ? '' : 'none';
@@ -7860,11 +7877,12 @@ async function cargarMasPosts(btn) {
 
   function _renderPartido(p) {
     const estado = (p.estado || '').toLowerCase();
-    const enVivo     = estado === 'en_vivo'   || estado === 'en vivo'  || estado === 'live';
-    const finalizado = estado === 'finalizado'|| estado === 'finished' || estado === 'bloqueado' || p.bloqueado;
-    const proximo    = !enVivo && !finalizado;
+    // La API devuelve: "programado" | "en_curso" | "finalizado"
+    const enVivo     = estado === 'en_curso' || estado === 'en_vivo' || estado === 'live';
+    const finalizado = estado === 'finalizado' || estado === 'finished';
+    // proximo = cualquier otro estado (programado, etc.)
 
-    // Badge
+    // Badge + meta de tiempo
     let badge = '';
     if (enVivo) {
       const min = p.minuto ? `⏱️ ${_esc(p.minuto)}'` : '⏱️ En curso';
@@ -7877,10 +7895,10 @@ async function cargarMasPosts(btn) {
       badge = `<span class="pah-badge pah-badge--proximo">🕒 ${hora || _esc(p.fecha_texto || 'Próximo')}</span>`;
     }
 
-    // Marcador
+    // Marcador: solo mostrar si hay goles disponibles
     const tieneScore = (enVivo || finalizado) &&
-                       (p.goles_local !== null && p.goles_local !== undefined) &&
-                       (p.goles_visit !== null && p.goles_visit !== undefined);
+                       p.goles_local !== null && p.goles_local !== undefined &&
+                       p.goles_visit !== null && p.goles_visit !== undefined;
 
     const banLocal = _bandera(p.codigo_local);
     const banVisit = _bandera(p.codigo_visit);
@@ -7929,13 +7947,16 @@ async function cargarMasPosts(btn) {
     lista.innerHTML = partidos.map(_renderPartido).join('');
   }
 
-  // ── Prioridad y filtrado ──────────────────────────────────────────────────
+  // ── Prioridad: EN VIVO > HOY/PRÓXIMO > FINALIZADO, máx 3 ─────────────────
 
   function _ordenar(partidos) {
     const prio = (p) => {
       const e = (p.estado || '').toLowerCase();
-      if (e === 'en_vivo' || e === 'en vivo' || e === 'live') return 0;
-      if (!p.bloqueado && e !== 'finalizado' && e !== 'finished') return 1;
+      // Prioridad 0 — en vivo ahora mismo
+      if (e === 'en_curso' || e === 'en_vivo' || e === 'live') return 0;
+      // Prioridad 1 — programados para hoy (aún no empezados)
+      if (e === 'programado' || e === 'upcoming' || e === 'scheduled') return 1;
+      // Prioridad 2 — finalizados
       return 2;
     };
     return [...partidos].sort((a, b) => prio(a) - prio(b)).slice(0, 3);
@@ -7970,11 +7991,10 @@ async function cargarMasPosts(btn) {
   // ── Init ─────────────────────────────────────────────────────────────────
 
   document.addEventListener('DOMContentLoaded', () => {
-    // Mostrar loading en ambos widgets
     _setEstado('desktop', 'loading');
     _setEstado('mobile',  'loading');
     cargarPartidosHoy();
-    // Refresco cada 2 minutos si hay partido en vivo
+    // Refresco automático cada 2 minutos para partidos en vivo
     setInterval(cargarPartidosHoy, 120_000);
   });
 })();
