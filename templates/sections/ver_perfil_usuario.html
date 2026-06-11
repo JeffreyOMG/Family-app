@@ -75,11 +75,7 @@
             <span class="material-symbols-outlined">grid_on</span>
             <span class="vp-tab-label">Publicaciones</span>
           </button>
-          <button class="vp-tab-btn" data-tab="mundial" onclick="vpCambiarTab(this,'mundial')">
-            <span class="material-symbols-outlined">sports_soccer</span>
-            <span class="vp-tab-label">Mundial</span>
-          </button>
-          <button class="vp-tab-btn" data-tab="galeria" onclick="vpCambiarTab(this,'galeria')">
+<button class="vp-tab-btn" data-tab="galeria" onclick="vpCambiarTab(this,'galeria')">
             <span class="material-symbols-outlined">photo_library</span>
             <span class="vp-tab-label">Galería</span>
           </button>
@@ -103,17 +99,7 @@
           </div>
         </div>
 
-        <!-- TAB: MUNDIAL -->
-        <div class="vp-tab-panel" id="vp-tab-mundial">
-          <div id="vp-mundial-contenido" class="vp-mundial-contenido">
-            <div class="vp-tab-loading">
-              <span class="material-symbols-outlined vp-spin">progress_activity</span>
-              Cargando pronósticos…
-            </div>
-          </div>
-        </div>
-
-        <!-- TAB: GALERÍA -->
+<!-- TAB: GALERÍA -->
         <div class="vp-tab-panel" id="vp-tab-galeria">
           <div id="vp-galeria-grid" class="vp-galeria-grid">
             <div class="vp-tab-loading">
@@ -883,31 +869,6 @@ body.dark-mode .vp-follow-btn.siguiendo:hover {
 .vp-post-accion { display: flex; align-items: center; gap: 4px; font-size: .8rem; color: var(--text3); }
 .vp-post-accion .material-symbols-outlined { font-size: 16px; }
 
-/* Mundial en perfil público */
-.vp-mundial-resumen { display: flex; align-items: center; gap: 12px; background: var(--bg2); border-radius: 12px; padding: 14px 16px; margin-bottom: 14px; border: 1px solid var(--border); }
-.vp-mundial-resumen .material-symbols-outlined { font-size: 32px; color: var(--accent); }
-.vp-mundial-resumen-txt strong { font-size: 1.2rem; font-weight: 800; color: var(--text); }
-.vp-mundial-resumen-txt span { font-size: .8rem; color: var(--text3); }
-.vp-pronosticos-lista { display: flex; flex-direction: column; gap: 8px; }
-.vp-prono-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  background: var(--bg2);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 10px 12px;
-}
-.vp-prono-equip { font-size: .82rem; font-weight: 600; color: var(--text); flex: 1; }
-.vp-prono-equip.visitante { text-align: right; }
-.vp-prono-score { font-size: .95rem; font-weight: 700; color: var(--accent); min-width: 44px; text-align: center; }
-.vp-prono-puntos { font-size: .72rem; font-weight: 700; padding: 2px 8px; border-radius: 20px; min-width: 28px; text-align: center; }
-.vp-prono-puntos.p3 { background: rgba(76,175,80,.15); color: #4caf50; }
-.vp-prono-puntos.p1 { background: rgba(255,193,7,.15); color: #ffc107; }
-.vp-prono-puntos.p0 { background: rgba(239,68,68,.1); color: #ef4444; }
-.vp-prono-puntos.pnd { background: rgba(100,100,100,.1); color: var(--text3); }
-.vp-prono-grupo { font-size: .65rem; color: var(--text3); text-transform: uppercase; }
 
 /* Galería en perfil público */
 .vp-galeria-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
@@ -1101,7 +1062,6 @@ function _renderVerPerfil(u) {
   // Guardar UID y resetear pestañas para carga fresca
   _vpUidActual = u.id;
   _vpLoaded.publicaciones = false;
-  _vpLoaded.mundial = false;
   _vpLoaded.galeria = false;
   _vpLoaded.seguidores = false;
   _vpLoaded.siguiendo  = false;
@@ -1111,9 +1071,7 @@ function _renderVerPerfil(u) {
   document.querySelectorAll('.vp-tab-panel').forEach((p,i) => p.classList.toggle('active', i===0));
   document.getElementById('vp-posts-lista').innerHTML =
     '<div class="vp-tab-loading"><span class="material-symbols-outlined vp-spin">progress_activity</span>Cargando publicaciones…</div>';
-  document.getElementById('vp-mundial-contenido').innerHTML =
-    '<div class="vp-tab-loading"><span class="material-symbols-outlined vp-spin">progress_activity</span>Cargando pronósticos…</div>';
-  document.getElementById('vp-galeria-grid').innerHTML =
+document.getElementById('vp-galeria-grid').innerHTML =
     '<div class="vp-tab-loading"><span class="material-symbols-outlined vp-spin">progress_activity</span>Cargando galería…</div>';
 
   _vpLoaded.publicaciones = true;
@@ -1180,7 +1138,7 @@ async function vpToggleSeguir() {
 // ─── PESTAÑAS DEL PERFIL PÚBLICO ─────────────────────────────────────────────
 
 let _vpUidActual = null;
-const _vpLoaded = { publicaciones: false, mundial: false, galeria: false, seguidores: false, siguiendo: false };
+const _vpLoaded = { publicaciones: false, galeria: false, seguidores: false, siguiendo: false };
 
 function vpCambiarTab(btn, tab) {
   document.querySelectorAll('.vp-tab-btn').forEach(b => b.classList.remove('active'));
@@ -1190,7 +1148,6 @@ function vpCambiarTab(btn, tab) {
   if (!_vpLoaded[tab] && _vpUidActual) {
     _vpLoaded[tab] = true;
     if (tab === 'publicaciones') vpCargarPosts(_vpUidActual);
-    else if (tab === 'mundial')  vpCargarMundial(_vpUidActual);
     else if (tab === 'galeria')  vpCargarGaleria(_vpUidActual);
     else if (tab === 'seguidores') vpCargarSocial('seguidores', _vpUidActual);
     else if (tab === 'siguiendo')  vpCargarSocial('siguiendo',  _vpUidActual);
@@ -1241,48 +1198,6 @@ async function vpCargarPosts(uid) {
   }
 }
 
-async function vpCargarMundial(uid) {
-  const cont = document.getElementById('vp-mundial-contenido');
-  if (!cont) return;
-  cont.innerHTML = '<div class="vp-tab-loading"><span class="material-symbols-outlined vp-spin">progress_activity</span>Cargando…</div>';
-  try {
-    const r = await fetch('/api/perfil/mundial/' + uid, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
-    const d = await r.json();
-    if (!d.ok || !d.pronosticos.length) {
-      cont.innerHTML = '<div class="vp-empty-tab"><span class="material-symbols-outlined">sports_soccer</span><p>Aún no hay pronósticos registrados.</p></div>';
-      return;
-    }
-    const resumen = `<div class="vp-mundial-resumen">
-      <span class="material-symbols-outlined">emoji_events</span>
-      <div class="vp-mundial-resumen-txt">
-        <strong>${d.total_puntos}</strong><br>
-        <span>${d.pronosticos.length} pronósticos realizados</span>
-      </div>
-    </div>`;
-    const lista = d.pronosticos.map(p => {
-      const tienePuntos = p.res_local !== null && p.res_visitante !== null;
-      let cls = 'pnd', badge = '—';
-      if (tienePuntos) {
-        cls = p.puntos >= 3 ? 'p3' : p.puntos >= 1 ? 'p1' : 'p0';
-        badge = p.puntos + ' pt' + (p.puntos !== 1 ? 's' : '');
-      }
-      const resSt = tienePuntos ? `<small style="color:var(--text3);font-size:.7rem">(${p.res_local}-${p.res_visitante})</small>` : '';
-      return `<div class="vp-prono-item">
-        <span class="vp-prono-equip">${_vpEscape(p.local)}</span>
-        <div style="text-align:center;min-width:70px">
-          <div class="vp-prono-score">${p.pred_local} - ${p.pred_visitante}</div>
-          ${resSt}
-          <div class="vp-prono-grupo">${p.grupo}</div>
-        </div>
-        <span class="vp-prono-equip visitante">${_vpEscape(p.visitante)}</span>
-        <span class="vp-prono-puntos ${cls}">${badge}</span>
-      </div>`;
-    }).join('');
-    cont.innerHTML = resumen + '<div class="vp-pronosticos-lista">' + lista + '</div>';
-  } catch(e) {
-    cont.innerHTML = '<div class="vp-empty-tab"><p>Error al cargar pronósticos.</p></div>';
-  }
-}
 
 async function vpCargarGaleria(uid) {
   const cont = document.getElementById('vp-galeria-grid');
