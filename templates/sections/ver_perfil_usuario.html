@@ -186,19 +186,21 @@
 #vp-lightbox {
   position: fixed; inset: 0; z-index: 9999;
   background: rgba(0,0,0,.94);
-  display: none; align-items: center; justify-content: center;
-  opacity: 0;
+  display: none;                    /* oculto por defecto */
+  align-items: center; justify-content: center;
+  opacity: 0; pointer-events: none;
   transition: opacity .28s ease;
   cursor: zoom-out;
   touch-action: none;
 }
 #vp-lightbox.vp-lb-open {
-  display: flex;
-  opacity: 1;
+  display: flex;                    /* flex para centrar */
+  opacity: 1; pointer-events: all;
 }
 #vp-lb-img {
-  max-width: 92vw;
-  max-height: 92dvh;
+  max-width: min(92vw, 900px);      /* limitar en PC */
+  max-height: 88dvh;
+  width: auto; height: auto;
   border-radius: 14px;
   object-fit: contain;
   box-shadow: 0 20px 80px rgba(0,0,0,.6);
@@ -207,6 +209,8 @@
   transform-origin: center center;
   user-select: none;
   -webkit-user-drag: none;
+  display: block;
+  margin: auto;                     /* centrado extra */
 }
 .vp-lb-close {
   position: fixed; top: 18px; right: 18px;
@@ -1380,9 +1384,12 @@ function vpMostrarMas(tipo) {
     const lb = document.getElementById('vp-lightbox');
     lb.style.display = 'flex';
     lb.style.opacity = '0';
+    lb.style.pointerEvents = 'all';
     requestAnimationFrame(() => {
-      lb.style.opacity = '1';
-      lb.classList.add('vp-lb-open');
+      requestAnimationFrame(() => {
+        lb.style.opacity = '1';
+        lb.classList.add('vp-lb-open');
+      });
     });
     document.body.style.overflow = 'hidden';
 
@@ -1394,11 +1401,12 @@ function vpMostrarMas(tipo) {
   window.vpCerrarLightbox = function() {
     const lb = document.getElementById('vp-lightbox');
     lb.style.opacity = '0';
+    lb.style.pointerEvents = 'none';
+    lb.classList.remove('vp-lb-open');
     setTimeout(() => {
       lb.style.display = 'none';
-      lb.classList.remove('vp-lb-open');
       document.body.style.overflow = '';
-    }, 280);
+    }, 300);
   };
 
   // Double-click zoom

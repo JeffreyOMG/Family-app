@@ -955,6 +955,10 @@
   box-shadow: 0 24px 64px rgba(0,0,0,.45);
   position: relative;
 }
+/* Ajustes específico: altura fija en PC para que scroll funcione */
+.pf2-modal-ajustes {
+  height: 80vh;
+}
 .pf2-modal-overlay.pf2-open .pf2-modal {
   transform: translateY(0) scale(1);
   opacity: 1;
@@ -1502,25 +1506,49 @@
     width: 100%;
     border-radius: 22px 22px 0 0;
     max-height: 92dvh;
-    /* El flex-column + min-height:0 garantiza scroll interno */
+    height: 92dvh;            /* altura fija para habilitar scroll */
+    display: flex;
+    flex-direction: column;
   }
   .pf2-modal-body {
+    flex: 1;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
+    min-height: 0;             /* necesario para scroll en flexbox */
   }
   .pf2-modal-overlay.pf2-open .pf2-modal {
     transform: translateY(0) scale(1);
   }
-  .pf2-ajustes-layout { flex-direction: column; }
+
+  /* Ajustes: nav horizontal scrollable + contenido scrollable */
+  .pf2-ajustes-layout {
+    flex-direction: column;
+    overflow: hidden;
+    min-height: 0;
+    flex: 1;
+  }
   .pf2-ajustes-nav {
     width: 100%; flex-direction: row;
     border-right: none; border-bottom: 1px solid var(--border);
-    padding: 8px; gap: 4px;
+    padding: 6px 8px; gap: 4px;
     scrollbar-width: none; overflow-x: auto;
+    flex-shrink: 0;
   }
   .pf2-ajustes-nav::-webkit-scrollbar { display: none; }
-  .pf2-aj-navbtn { flex-direction: column; gap: 4px; padding: 8px 10px; font-size: .72rem; white-space: nowrap; border-radius: 8px; }
-  .pf2-aj-navbtn span:not(.material-symbols-outlined) { display: none; }
+  .pf2-aj-navbtn {
+    flex-direction: column; gap: 3px;
+    padding: 7px 12px; font-size: .68rem;
+    white-space: nowrap; border-radius: 8px;
+    flex-shrink: 0;
+  }
+  .pf2-aj-navbtn span:not(.material-symbols-outlined) { display: block; }
+  .pf2-ajustes-content {
+    flex: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    min-height: 0;
+    padding: 16px;
+  }
   .pf2-theme-options { flex-direction: column; gap: 8px; }
 }
 
@@ -1528,18 +1556,23 @@
 #pf2-lightbox {
   position: fixed; inset: 0; z-index: 9999;
   background: rgba(0,0,0,.94);
-  display: flex; align-items: center; justify-content: center;
+  display: none;                  /* oculto por defecto */
+  align-items: center;
+  justify-content: center;
   opacity: 0; pointer-events: none;
   transition: opacity .28s ease;
   cursor: zoom-out;
   touch-action: none;
 }
 #pf2-lightbox.pf2-lb-open {
+  display: flex;                  /* mostrar como flex para centrar */
   opacity: 1; pointer-events: all;
 }
 #pf2-lightbox img {
-  max-width: 90vw;
-  max-height: 90dvh;
+  max-width: min(90vw, 900px);    /* limitar ancho en PC */
+  max-height: 88dvh;
+  width: auto;
+  height: auto;
   border-radius: 12px;
   object-fit: contain;
   box-shadow: 0 20px 80px rgba(0,0,0,.6);
@@ -1548,6 +1581,8 @@
   transform-origin: center center;
   user-select: none;
   -webkit-user-drag: none;
+  display: block;
+  margin: auto;                   /* doble seguro de centrado */
 }
 .pf2-lb-close {
   position: fixed; top: 18px; right: 18px;
@@ -2340,9 +2375,16 @@ async function autoGuardarPortada(input) {
     img.style.transform = 'scale(1) translate(0,0)';
     img.src = src;
     const lb = _lbBox();
+    // Mostrar como flex antes de la transición para que el centrado funcione
     lb.style.display = 'flex';
-    void lb.offsetWidth;
-    lb.classList.add('pf2-lb-open');
+    lb.style.opacity = '0';
+    lb.style.pointerEvents = 'all';
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        lb.style.opacity = '1';
+        lb.classList.add('pf2-lb-open');
+      });
+    });
     document.body.style.overflow = 'hidden';
     // Ocultar hint después de 3s
     const hint = document.getElementById('pf2-lb-hint');
@@ -2352,10 +2394,12 @@ async function autoGuardarPortada(input) {
   window.pf2CerrarLightbox = function() {
     const lb = _lbBox();
     lb.classList.remove('pf2-lb-open');
-    lb.addEventListener('transitionend', () => {
+    lb.style.opacity = '0';
+    lb.style.pointerEvents = 'none';
+    setTimeout(() => {
       lb.style.display = 'none';
       document.body.style.overflow = '';
-    }, { once: true });
+    }, 300);
   };
 
   // Wheel zoom
