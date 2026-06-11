@@ -2,6 +2,48 @@ const $ = id => document.getElementById(id);
 const $$ = q => document.querySelectorAll(q);
 
 // ─────────────────────────────
+// SISTEMA DE ACENTOS GLOBAL
+// Aplica el color de acento y TODAS sus variables derivadas
+// ─────────────────────────────
+function applyAccent(hex) {
+  if (!hex || hex.length < 7) return;
+  const r = parseInt(hex.slice(1,3),16);
+  const g = parseInt(hex.slice(3,5),16);
+  const b = parseInt(hex.slice(5,7),16);
+  const lr = Math.min(255, Math.round(r + (255-r)*.30));
+  const lg = Math.min(255, Math.round(g + (255-g)*.30));
+  const lb = Math.min(255, Math.round(b + (255-b)*.30));
+  const dr = Math.round(r*.75);
+  const dg = Math.round(g*.75);
+  const db = Math.round(b*.75);
+  const toHex = n => n.toString(16).padStart(2,'0');
+  const hoverHex = '#'+toHex(lr)+toHex(lg)+toHex(lb);
+  const darkHex  = '#'+toHex(dr)+toHex(dg)+toHex(db);
+  const root = document.documentElement;
+  root.style.setProperty('--accent',          hex);
+  root.style.setProperty('--accent-2',        darkHex);
+  root.style.setProperty('--accent-hover',    hoverHex);
+  root.style.setProperty('--accent-soft',     'rgba('+r+','+g+','+b+',.15)');
+  root.style.setProperty('--accent-border',   'rgba('+r+','+g+','+b+',.40)');
+  root.style.setProperty('--accent-shadow',   '0 4px 16px rgba('+r+','+g+','+b+',.40)');
+  root.style.setProperty('--accent-gradient', 'linear-gradient(135deg,'+hoverHex+' 0%,'+hex+' 45%,'+darkHex+' 100%)');
+  root.style.setProperty('--accent-gradient-hover', 'linear-gradient(135deg,'+hoverHex+' 0%,'+hex+' 60%,'+darkHex+' 100%)');
+  root.style.setProperty('--btn-bg', hex);
+  document.querySelectorAll('.accent-btn,.pf2-accent-btn').forEach(function(b) {
+    var active = b.dataset.color === hex;
+    b.style.borderColor = active ? 'var(--text)' : 'transparent';
+    b.classList.toggle('pf2-active', active);
+  });
+}
+function setAccentAndSave(hex) {
+  localStorage.setItem('accent', hex);
+  applyAccent(hex);
+}
+// Aplicar accent ANTES del DOMContentLoaded para evitar flash de color incorrecto
+(function() { applyAccent(localStorage.getItem('accent') || '#ff4d8d'); })();
+
+
+// ─────────────────────────────
 // SECCIÓN ACTIVA (persiste con hash)
 // ─────────────────────────────
 // Secciones que requieren rol miembro/admin
@@ -106,8 +148,7 @@ window.addEventListener('DOMContentLoaded', () => {
   initTheme();
   iniciarCountdown();
 
-  const accent = localStorage.getItem('accent');
-  if (accent) document.documentElement.style.setProperty('--accent', accent);
+  applyAccent(localStorage.getItem('accent') || '#ff4d8d');
 
   initPublicarAjax();
   initAjaxForms();

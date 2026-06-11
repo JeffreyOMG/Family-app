@@ -37,11 +37,14 @@
      PRIMARY UI COLOR
      (ANTES ROSA → AHORA AZUL CLEAN)
   ===================== */
+  /* Rosado default — JS sobreescribe todas estas variables con applyAccent() */
   --accent: #ff4d8d;
-  --accent-hover: #e0386f;
+  --accent-2: #c9236a;
+  --accent-hover: #ff85ad;
   --accent-soft: rgba(255, 77, 141, .15);
-  --accent-gradient: linear-gradient(135deg, #ff6b9d 0%, #ff4d8d 35%, #e0386f 70%, #c9236a 100%);
-  --accent-gradient-hover: linear-gradient(135deg, #ff85ad 0%, #ff6b9d 35%, #f04d82 70%, #d93578 100%);
+  --accent-border: rgba(255, 77, 141, .40);
+  --accent-gradient: linear-gradient(135deg, #ff85ad 0%, #ff4d8d 45%, #c9236a 100%);
+  --accent-gradient-hover: linear-gradient(135deg, #ff85ad 0%, #ff4d8d 60%, #c9236a 100%);
   --accent-shadow: 0 4px 16px rgba(255, 77, 141, .40);
 
   /* =====================
@@ -1862,8 +1865,7 @@ body.dark-mode{
   --text3:#7a7a7a;
 
   /* ACCENT */
-  --accent:#ff4d8d;
-  --accent-2:#e0386f;
+  /* accent se hereda del :root — applyAccent() lo actualiza en ambos modos */
 
   --score-empty-bg: #242222;
   --score-empty-color: #ddd;
@@ -2431,7 +2433,7 @@ html{
   border-radius: 8px; font-size: .88rem; transition: all .2s;
 }
 .tab-btn.active {
-  background: var(--accent-gradient, linear-gradient(135deg,#ff6b9d,#ff4d8d,#c9236a)); color: #fff;
+  background: var(--accent-gradient); color: #fff;
   border-color: transparent; font-weight: 700;
   box-shadow: 0 3px 12px rgba(255,77,141,.35);
 }
@@ -2810,7 +2812,7 @@ select.form-input.tipo-evento[data-color="cumpleanos"] { background-color: rgba(
   background: #fff; transition: transform .25s, background .25s;
   box-shadow: 0 1px 4px rgba(0,0,0,.3);
 }
-.toggle-switch input:checked + .toggle-track { background: var(--accent-gradient, linear-gradient(135deg,#ff6b9d,#ff4d8d,#c9236a)); }
+.toggle-switch input:checked + .toggle-track { background: var(--accent-gradient); }
 .toggle-switch input:checked + .toggle-track .toggle-thumb { transform: translateX(20px); background: #111; }
 
 .ajuste-row {
@@ -2868,7 +2870,7 @@ input[type="checkbox"]:not(.toggle-switch input) {
   transition: all .2s;
 }
 input[type="checkbox"]:checked {
-  background: var(--accent-gradient, linear-gradient(135deg,#ff6b9d,#ff4d8d,#c9236a));
+  background: var(--accent-gradient);
   border-color: var(--accent, #ff4d8d);
 }
 input[type="checkbox"]:checked::after {
@@ -2961,7 +2963,7 @@ input[type="checkbox"]:checked::after {
 }
 
 .tab-btn.active {
-  background: var(--accent-gradient, linear-gradient(135deg,#ff6b9d,#ff4d8d,#c9236a)) !important;
+  background: var(--accent-gradient) !important;
   color: #ffffff !important;
   border: 1px solid rgba(0,0,0,.15) !important;
 }
@@ -4718,7 +4720,7 @@ body.dark-mode .cruce-num {
 }
 .pron-pen-btn:active { transform: scale(.96); }
 .pron-pen-btn--selected {
-  background: var(--accent-gradient, linear-gradient(135deg,#ff6b9d,#ff4d8d,#c9236a));
+  background: var(--accent-gradient);
   border-color: var(--accent, #ff4d8d);
   color: #ffffff;
   box-shadow: 0 3px 12px rgba(255,77,141,.35);
@@ -5177,7 +5179,7 @@ body.dark-mode .cruce-num {
   .bnav-avatar-letter {
     width: 27px; height: 27px;
     border-radius: 50%;
-    background: var(--accent-gradient, linear-gradient(135deg,#ff6b9d,#ff4d8d,#c9236a));
+    background: var(--accent-gradient);
     color: #fff; font-size: 11px; font-weight: 700;
     display: flex; align-items: center; justify-content: center;
     border: 1.5px solid rgba(255,255,255,0.15);

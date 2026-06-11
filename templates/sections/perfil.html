@@ -489,8 +489,8 @@
           <div class="pf2-aj-divider"></div>
           <div class="pf2-aj-label">Color de acento</div>
           <div class="pf2-accent-grid">
-            {% for color in ['#f472b6','#ffd700','#4fc3f7','#a78bfa','#4ade80','#f87171','#fb923c','#34d399'] %}
-            <button class="pf2-accent-btn accent-btn" data-color="{{ color }}" onclick="setAccent('{{ color }}')" style="background:{{ color }}" aria-label="Acento {{ color }}"></button>
+            {% for color,label in [('#ff4d8d','Rosa'),('#f472b6','Rosa claro'),('#a855f7','Morado'),('#6366f1','Indigo'),('#3b82f6','Azul'),('#06b6d4','Cyan'),('#10b981','Verde'),('#f59e0b','Ambar'),('#ef4444','Rojo'),('#f97316','Naranja')] %}
+            <button class="pf2-accent-btn accent-btn" data-color="{{ color }}" onclick="setAccent('{{ color }}')" style="background:{{ color }}" title="{{ label }}" aria-label="Acento {{ label }}"></button>
             {% endfor %}
           </div>
         </div>
@@ -1876,17 +1876,13 @@ function pf2SetTheme(mode, btn) {
 }
 
 function setAccent(color) {
-  document.documentElement.style.setProperty('--accent', color);
-  // Sistema centralizado de acentos
-  document.documentElement.style.setProperty('--accent-hover', color + 'cc');
-  document.documentElement.style.setProperty('--accent-soft',  color + '22');
-  document.documentElement.style.setProperty('--accent-border', color + '66');
-  localStorage.setItem('accent', color);
-  document.querySelectorAll('.accent-btn, .pf2-accent-btn').forEach(b => {
-    const active = b.dataset.color === color;
-    b.style.borderColor = active ? 'var(--text)' : 'transparent';
-    b.classList.toggle('pf2-active', active);
-  });
+  // Usa applyAccent de dashboard.js para derivar todas las variables
+  if (typeof setAccentAndSave === 'function') {
+    setAccentAndSave(color);
+  } else {
+    localStorage.setItem('accent', color);
+    applyAccent(color);
+  }
 }
 
 function guardarPref(key, value) {
@@ -2193,17 +2189,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const toggleDark = document.getElementById('toggle-dark');
   if (toggleDark) toggleDark.checked = document.body.classList.contains('dark-mode');
 
-  // Acento (default: rosa Familia App)
-  const accent = localStorage.getItem('accent') || '#f472b6';
-  document.documentElement.style.setProperty('--accent', accent);
-  document.documentElement.style.setProperty('--accent-hover', accent + 'cc');
-  document.documentElement.style.setProperty('--accent-soft',  accent + '22');
-  document.documentElement.style.setProperty('--accent-border', accent + '66');
-  document.querySelectorAll('.accent-btn,.pf2-accent-btn').forEach(b => {
-    const active = b.dataset.color === accent;
-    b.style.borderColor = active ? 'var(--text)' : 'transparent';
-    b.classList.toggle('pf2-active', active);
-  });
+  // Acento: re-aplicar para marcar el botón activo en la grid
+  applyAccent(localStorage.getItem('accent') || '#ff4d8d');
 
   // Notificaciones
   ['notif_posts','notif_eventos','notif_sonido'].forEach(k => {
