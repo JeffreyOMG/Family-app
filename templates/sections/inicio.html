@@ -2738,9 +2738,24 @@ body.dark-mode .post-badge-privado { background: rgba(139,92,246,.2); color: #a7
 .noticia-meta { font-size: 11px; color: var(--text3); }
 
 /* ── PARTIDOS DE HOY (pah-) ── */
-/* Mobile card: reemplaza el countdown; visible solo en ≤900px */
-.pah-mobile-card { display: none; margin-bottom: 14px; }
-@media (max-width: 900px) { .pah-mobile-card { display: block; } }
+/* Mobile card: dentro del feed-col — SIEMPRE oculto en desktop */
+.pah-mobile-card {
+  display: none !important;
+  margin-bottom: 14px;
+}
+/* Mostrar en móvil/tablet cuando el right-panel desaparece (≤900px)  */
+@media (max-width: 900px) {
+  .pah-mobile-card { display: block !important; }
+}
+/* En el layout de 1 columna que activa style.css a 768px, también mostrar */
+@media (max-width: 768px) {
+  .pah-mobile-card { display: block !important; }
+}
+/* Widget desktop: solo visible cuando el right-panel existe */
+#pah-widget-desktop { display: block; }
+@media (max-width: 900px) {
+  #pah-widget-desktop { display: none !important; }
+}
 /* Body del widget: pequeño padding inferior para respirar */
 .pah-body { padding-bottom: 2px; }
 

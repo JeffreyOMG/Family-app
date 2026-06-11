@@ -4541,6 +4541,7 @@ body.dark-mode .cruce-num {
   .inicio-layout { display: flex !important; flex-direction: column !important; gap: 0; }
   .feed-col, .side-col { width: 100% !important; max-width: 100%; }
   .side-col { display: none; } /* ocultar sidebar derecho en mobile */
+  .right-panel { display: none !important; } /* ocultar right-panel en mobile */
 
   .post-card { border-radius: 12px !important; margin-bottom: 12px; }
   .post-actions { gap: 10px; }

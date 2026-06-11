@@ -240,7 +240,18 @@ def _to_fecha_texto(iso: Optional[str]) -> str:
 
 
 def _normalize_game(raw: dict, idx: int = 0) -> dict:
-    """Transforma un objeto de la API externa al esquema canónico."""
+    """Transforma un objeto de la API externa al esquema canónico.
+
+    Compatible con worldcup26.ir que usa:
+      - home_team_name_en / away_team_name_en  para nombres
+      - home_team_id / away_team_id            para IDs de equipo
+      - home_score / away_score                para marcador (string "0")
+      - local_date = "06/11/2026 13:00"        para fecha
+      - time_elapsed = "notstarted"/"halftime"/"fulltime"
+      - finished = "TRUE"/"FALSE"              para estado
+      - group = "A" … "L"                      para grupo
+      - type = "group"/"r32"/"r16"/"qf"/"sf"/"final"
+    """
 
     # ── Equipos ──────────────────────────────────────────────────────────────
     home = (raw.get("home_team") or raw.get("home") or {})
@@ -251,10 +262,11 @@ def _normalize_game(raw: dict, idx: int = 0) -> dict:
     if isinstance(away, str):
         away = {"name": away}
 
-    local    = (home.get("name") or home.get("team") or "TBD").strip()
-    visitante = (away.get("name") or away.get("team") or "TBD").strip()
-    cod_l    = home.get("code") or home.get("flag") or _country_code(local)
-    cod_v    = away.get("code") or away.get("flag") or _country_code(visitante)
+    # worldcup26.ir usa home_team_name_en / away_team_name_en directamente
+    local     = (raw.get("home_team_name_en") or home.get("name") or home.get("team") or "TBD").strip()
+    visitante = (raw.get("away_team_name_en") or away.get("name") or away.get("team") or "TBD").strip()
+    cod_l     = home.get("code") or home.get("flag") or _country_code(local)
+    cod_v     = away.get("code") or away.get("flag") or _country_code(visitante)
 
     # ── Marcador ─────────────────────────────────────────────────────────────
     score = raw.get("score") or raw.get("scores") or {}
@@ -262,6 +274,7 @@ def _normalize_game(raw: dict, idx: int = 0) -> dict:
         gl = score.get("home") if score.get("home") is not None else score.get("home_score")
         gv = score.get("away") if score.get("away") is not None else score.get("away_score")
     else:
+        # worldcup26.ir: home_score / away_score como strings ("0")
         gl = raw.get("home_score") or raw.get("goals_home")
         gv = raw.get("away_score") or raw.get("goals_away")
 
@@ -274,24 +287,73 @@ def _normalize_game(raw: dict, idx: int = 0) -> dict:
     except (TypeError, ValueError):
         gv = None
 
-    # ── Estado / fase ────────────────────────────────────────────────────────
-    status_raw = str(raw.get("status") or raw.get("state") or "scheduled")
-    estado     = _normalize_status(status_raw)
-    bloqueado  = estado == "finalizado"
+    # ── Estado — worldcup26.ir usa time_elapsed + finished ───────────────────
+    time_elapsed = str(raw.get("time_elapsed") or "").lower().strip()
+    finished_raw = str(raw.get("finished") or "").upper().strip()
 
+    if finished_raw == "TRUE":
+        estado = "finalizado"
+    elif time_elapsed in ("halftime", "first half", "second half", "extra time",
+                          "penalty", "in progress"):
+        estado = "en_curso"
+    elif time_elapsed and time_elapsed not in ("notstarted", "not started", ""):
+        # Cualquier otro valor no vacío y no "notstarted" → en curso
+        estado = "en_curso"
+    else:
+        # Fallback: campo status estándar
+        status_raw = str(raw.get("status") or raw.get("state") or "scheduled")
+        estado = _normalize_status(status_raw)
+
+    bloqueado = estado == "finalizado"
+
+    # ── Fase / tipo ───────────────────────────────────────────────────────────
+    # worldcup26.ir usa "type": "group" | "r32" | "r16" | "qf" | "sf" | "third" | "final"
+    type_raw  = str(raw.get("type") or "").lower()
     phase_raw = str(raw.get("round") or raw.get("phase") or raw.get("stage") or "")
-    fase      = _normalize_phase(phase_raw)
+
+    _TYPE_MAP = {
+        "group":  "Grupos",
+        "r32":    "Dieciseisavos",
+        "r16":    "Octavos",
+        "qf":     "Cuartos",
+        "sf":     "Semifinal",
+        "third":  "Tercer puesto",
+        "3rd":    "Tercer puesto",
+        "final":  "Final",
+    }
+    fase = _TYPE_MAP.get(type_raw) or _normalize_phase(phase_raw) or "Grupos"
 
     grupo = None
+    # worldcup26.ir: grupo viene en campo "group" = "A"…"L" o "R32", "R16", etc.
+    grupo_raw = str(raw.get("group") or raw.get("group_name") or "")
     if fase == "Grupos":
-        grupo_raw = str(raw.get("group") or raw.get("group_name") or "")
         m = re.search(r"[A-L]", grupo_raw.upper())
         grupo = m.group(0) if m else None
 
-    # ── Fecha ────────────────────────────────────────────────────────────────
-    date_raw  = str(raw.get("date") or raw.get("datetime") or raw.get("kickoff") or "")
-    time_raw  = str(raw.get("time") or raw.get("kickoff_time") or "")
-    if date_raw and time_raw and "T" not in date_raw:
+    # ── Fecha — worldcup26.ir usa local_date = "MM/DD/YYYY HH:MM" ────────────
+    date_raw = str(
+        raw.get("local_date") or          # worldcup26.ir: "06/11/2026 13:00"
+        raw.get("date") or
+        raw.get("datetime") or
+        raw.get("kickoff") or
+        ""
+    )
+    time_raw = str(raw.get("time") or raw.get("kickoff_time") or "")
+
+    # Normalizar "MM/DD/YYYY HH:MM" → "YYYY-MM-DDTHH:MM"
+    if date_raw and "/" in date_raw and "T" not in date_raw:
+        try:
+            parts = date_raw.strip().split(" ")
+            date_part = parts[0]   # "06/11/2026"
+            time_part = parts[1] if len(parts) > 1 else (time_raw or "00:00")
+            md = date_part.split("/")
+            if len(md) == 3:
+                # MM/DD/YYYY
+                date_raw = f"{md[2]}-{md[0].zfill(2)}-{md[1].zfill(2)}T{time_part}"
+        except Exception:
+            pass
+
+    if date_raw and time_raw and "T" not in date_raw and "/" not in date_raw:
         date_raw = f"{date_raw}T{time_raw}"
     fecha_iso = _parse_iso(date_raw)
 
@@ -299,7 +361,7 @@ def _normalize_game(raw: dict, idx: int = 0) -> dict:
     fecha_texto_raw = str(raw.get("fecha_texto") or raw.get("date_text") or "")
     fecha_texto     = fecha_texto_raw if fecha_texto_raw else _to_fecha_texto(fecha_iso)
 
-    # ── Sede ─────────────────────────────────────────────────────────────────
+    # ── Sede — worldcup26.ir no tiene nombre de estadio en /get/games ────────
     venue = raw.get("venue") or raw.get("stadium") or raw.get("city") or ""
     if isinstance(venue, dict):
         venue = venue.get("name") or venue.get("stadium") or ""
