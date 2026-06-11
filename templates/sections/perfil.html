@@ -921,14 +921,21 @@
 
 /* ─── MODALES: BASE ─────────────────────────────────────────────────── */
 .pf2-modal-overlay {
-  position: fixed; inset: 0; z-index: 3000;
+  position: fixed;
+  top: 0; left: 0;
+  width: 100vw; height: 100vh;
+  z-index: 99999;
   display: flex; align-items: center; justify-content: center;
   padding: 20px;
-  background: rgba(0,0,0,.6);
+  background: rgba(0,0,0,.65);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   opacity: 0; pointer-events: none;
   transition: opacity .28s cubic-bezier(.4,0,.2,1);
+  box-sizing: border-box;
+  /* Forzar que salga de cualquier stacking context padre */
+  transform: none !important;
+  will-change: opacity;
 }
 .pf2-modal-overlay.pf2-open {
   opacity: 1; pointer-events: all;
@@ -938,13 +945,15 @@
   border: 1px solid var(--border);
   border-radius: 22px;
   width: 100%; max-width: 680px;
-  max-height: 90vh;
+  max-height: 88vh;
+  height: auto;
   display: flex; flex-direction: column;
   overflow: hidden;
   transform: translateY(24px) scale(.97);
   transition: transform .28s cubic-bezier(.34,1.56,.64,1), opacity .25s;
   opacity: 0;
-  box-shadow: 0 24px 64px rgba(0,0,0,.3);
+  box-shadow: 0 24px 64px rgba(0,0,0,.45);
+  position: relative;
 }
 .pf2-modal-overlay.pf2-open .pf2-modal {
   transform: translateY(0) scale(1);
@@ -978,8 +987,13 @@
 
 /* Modal Body */
 .pf2-modal-body {
-  flex: 1; overflow-y: auto; padding: 20px;
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 20px;
   scrollbar-width: thin;
+  -webkit-overflow-scrolling: touch;
+  min-height: 0; /* crucial para que flex + overflow funcione */
 }
 
 /* Modal Footer */
@@ -1177,6 +1191,8 @@
 .pf2-ajustes-content {
   flex: 1; overflow-y: auto; padding: 20px;
   scrollbar-width: thin;
+  min-height: 0;
+  -webkit-overflow-scrolling: touch;
 }
 .pf2-aj-sec { display: none; }
 .pf2-aj-sec.active { display: block; }
@@ -1485,9 +1501,8 @@
     max-width: 100%;
     width: 100%;
     border-radius: 22px 22px 0 0;
-    max-height: 96dvh;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
+    max-height: 92dvh;
+    /* El flex-column + min-height:0 garantiza scroll interno */
   }
   .pf2-modal-body {
     overflow-y: auto;
@@ -1496,7 +1511,6 @@
   .pf2-modal-overlay.pf2-open .pf2-modal {
     transform: translateY(0) scale(1);
   }
-  /* Ajustes: nav horizontal en mobile */
   .pf2-ajustes-layout { flex-direction: column; }
   .pf2-ajustes-nav {
     width: 100%; flex-direction: row;
@@ -1579,21 +1593,32 @@ const _PF_LOADED = { publicaciones: false, mundial: false, galeria: false, segui
 function pf2AbrirModal(id) {
   const el = document.getElementById(id);
   if (!el) return;
+  // Teleportar al body para escapar cualquier stacking context padre
+  if (el.parentElement !== document.body) {
+    el._pfOrigParent = el.parentElement;
+    el._pfOrigNext   = el.nextSibling;
+    document.body.appendChild(el);
+  }
   el.style.display = 'flex';
-  // Force reflow para animación
-  void el.offsetWidth;
+  void el.offsetWidth; // force reflow para animación
   el.classList.add('pf2-open');
-  el.setAttribute('aria-hidden','false');
+  el.setAttribute('aria-hidden', 'false');
   document.body.style.overflow = 'hidden';
 }
 function pf2CerrarModal(id) {
   const el = document.getElementById(id);
   if (!el) return;
   el.classList.remove('pf2-open');
-  el.setAttribute('aria-hidden','true');
+  el.setAttribute('aria-hidden', 'true');
   el.addEventListener('transitionend', () => {
     el.style.display = 'none';
     document.body.style.overflow = '';
+    // Devolver al lugar original si fue teleportado
+    if (el._pfOrigParent) {
+      el._pfOrigParent.insertBefore(el, el._pfOrigNext || null);
+      delete el._pfOrigParent;
+      delete el._pfOrigNext;
+    }
   }, { once: true });
 }
 function pf2AbrirModalEditar() {
