@@ -183,27 +183,9 @@
         </button>
       </div>
 
-      <!-- COUNTDOWN FIFA -->
-      <div class="countdown-card cd-fifa">
-        <div class="cd-fifa-top">
-          <span class="cd-fifa-emoji">⚽</span>
-          <div class="cd-fifa-info">
-            <div class="cd-fifa-titulo">Inauguración del  Mundial FIFA 2026</div>
-            <div class="cd-fifa-sub">11 de junio · México · USA · Canadá</div>
-          </div>
-        </div>
-        <div class="cd-nums">
-          <div class="cd-unit"><span class="cd-num" id="cd-dias">--</span><span class="cd-lbl">Días</span></div>
-          <span class="cd-sep">:</span>
-          <div class="cd-unit"><span class="cd-num" id="cd-horas">--</span><span class="cd-lbl">Horas</span></div>
-          <span class="cd-sep">:</span>
-          <div class="cd-unit"><span class="cd-num" id="cd-min">--</span><span class="cd-lbl">Min</span></div>
-          <span class="cd-sep">:</span>
-          <div class="cd-unit"><span class="cd-num" id="cd-seg">--</span><span class="cd-lbl">Seg</span></div>
-        </div>
-      </div>
 
-      <!-- ⚽ PARTIDOS DE HOY — MÓVIL (solo visible en mobile, debajo del contador) -->
+
+      <!-- ⚽ PARTIDOS DE HOY — MÓVIL (reemplaza el contador; visible en ≤900px) -->
       <div class="panel-card pah-mobile-card" id="pah-widget-mobile">
         <div class="panel-header">
           <h3>⚽ Partidos de Hoy</h3>
@@ -1177,88 +1159,6 @@ body.dark-mode {
 .feed-tab.active::after { opacity: 1; }
 .feed-tab:hover { color: var(--text); background: var(--ac-hover); }
 
-/* ── COUNTDOWN ── */
-.countdown-card {
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  padding: 12px 16px;
-  margin-bottom: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-/* ── FIFA COUNTDOWN ── */
-.cd-fifa {
-  background: linear-gradient(135deg, #0a2e1a 0%, #1a5c32 50%, #0d3d20 100%);
-  border: 1px solid rgba(255,255,255,.12) !important;
-  box-shadow: 0 4px 20px rgba(0,100,40,.25);
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 10px;
-}
-.cd-fifa-top {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  width: 100%;
-}
-.cd-fifa-emoji {
-  font-size: 1.8rem;
-  line-height: 1;
-  flex-shrink: 0;
-  filter: drop-shadow(0 2px 6px rgba(0,0,0,.4));
-}
-.cd-fifa-info { flex: 1; min-width: 0; }
-.cd-fifa-titulo {
-  font-size: .85rem;
-  font-weight: 800;
-  color: #fff;
-  letter-spacing: .01em;
-  text-shadow: 0 1px 4px rgba(0,0,0,.3);
-}
-.cd-fifa-sub {
-  font-size: .68rem;
-  color: rgba(255,255,255,.65);
-  margin-top: 1px;
-}
-.cd-fifa .cd-nums { width: 100%; justify-content: space-between; gap: 2px; }
-.cd-fifa .cd-unit {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  background: rgba(255,255,255,.1);
-  border: 1px solid rgba(255,255,255,.15);
-  border-radius: 10px;
-  padding: 6px 4px;
-  backdrop-filter: blur(4px);
-}
-.cd-fifa .cd-num {
-  font-size: 1.3rem;
-  font-weight: 900;
-  color: #fff;
-  font-variant-numeric: tabular-nums;
-  line-height: 1;
-  text-shadow: 0 1px 4px rgba(0,0,0,.3);
-}
-.cd-fifa .cd-lbl {
-  font-size: .55rem;
-  color: rgba(255,255,255,.6);
-  text-transform: uppercase;
-  letter-spacing: .08em;
-  margin-top: 2px;
-}
-.cd-fifa .cd-sep {
-  font-size: 1rem;
-  font-weight: 800;
-  color: rgba(255,255,255,.4);
-  padding-bottom: 6px;
-  flex-shrink: 0;
-}
-
 /* ── VISIBILIDAD en composer ── */
 .mc-visibilidad-row {
   display: flex;
@@ -1313,12 +1213,7 @@ body.dark-mode .mc-vis-btn#mc-vis-privada.active { background: rgba(139,92,246,.
 }
 body.dark-mode .post-badge-privado { background: rgba(139,92,246,.2); color: #a78bfa; }
 
-.cd-label-top { font-size: 11.5px; font-weight: 600; color: var(--text2); letter-spacing: .2px; }
-.cd-nums { display: flex; align-items: center; gap: 4px; }
-.cd-unit { display: flex; flex-direction: column; align-items: center; min-width: 36px; }
-.cd-num { font-size: 20px; font-weight: 800; color: var(--text); font-variant-numeric: tabular-nums; line-height: 1.1; }
-.cd-lbl { font-size: 9px; color: var(--text3); text-transform: uppercase; letter-spacing: .6px; margin-top: 1px; }
-.cd-sep { font-size: 16px; font-weight: 700; color: var(--text3); padding-bottom: 8px; }
+
 
 /* ── COMPOSE CARD ── */
 .compose-card {
@@ -2843,9 +2738,11 @@ body.dark-mode .post-badge-privado { background: rgba(139,92,246,.2); color: #a7
 .noticia-meta { font-size: 11px; color: var(--text3); }
 
 /* ── PARTIDOS DE HOY (pah-) ── */
-/* Mobile card: visible solo en ≤900px dentro del feed */
-.pah-mobile-card { display: none; margin-bottom: 0; }
+/* Mobile card: reemplaza el countdown; visible solo en ≤900px */
+.pah-mobile-card { display: none; margin-bottom: 14px; }
 @media (max-width: 900px) { .pah-mobile-card { display: block; } }
+/* Body del widget: pequeño padding inferior para respirar */
+.pah-body { padding-bottom: 2px; }
 
 /* Skeleton loader */
 .pah-loading { padding: 10px 16px 6px; display: flex; flex-direction: column; gap: 8px; }
@@ -3548,10 +3445,7 @@ body.dark-mode .post-badge-privado { background: rgba(139,92,246,.2); color: #a7
   .feed-tab span:not(.material-symbols-outlined) { display: none; }
 }
 @media (max-width: 480px) {
-  .countdown-card { flex-direction: column; align-items: flex-start; gap: 8px; }
-  .cd-num { font-size: 18px; }
-  .cd-fifa .cd-num { font-size: 1.15rem; }
-  .cd-fifa-titulo { font-size: .8rem; }
+
   .compose-av { width: 34px !important; height: 34px !important; }
   .mc-publish-btn { padding: 7px 16px; font-size: 13px; }
   .mc-visibilidad-row { padding: 6px 10px 5px; }
@@ -7827,31 +7721,42 @@ async function cargarMasPosts(btn) {
     return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
 
+  // FIX: base correcta 0x1F1E6 = Regional Indicator A (no 0x1F1E0 que genera caracteres rotos)
   function _bandera(codigo) {
-    if (!codigo) return '🏳️';
-    // Convierte código ISO de 2 letras a emoji de bandera
-    return codigo.toUpperCase().split('').map(c =>
-      String.fromCodePoint(0x1F1E0 - 65 + c.charCodeAt(0))
-    ).join('');
+    if (!codigo || codigo.length < 2) return '🏳️';
+    try {
+      return codigo.toUpperCase().split('').map(c =>
+        String.fromCodePoint(0x1F1E6 + c.charCodeAt(0) - 65)
+      ).join('');
+    } catch (_) { return '🏳️'; }
   }
 
   function _hora(fechaIso) {
     if (!fechaIso) return '';
     try {
       const d = new Date(fechaIso);
-      return d.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', hour12: true });
-    } catch (_) { return ''; }
+      // FIX: 'es-CO' no existe en Safari/iOS; usar 'es' con fallback manual
+      return d.toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit', hour12: true });
+    } catch (_) {
+      try {
+        const d = new Date(fechaIso);
+        let h = d.getHours(), m = d.getMinutes();
+        const ap = h >= 12 ? 'PM' : 'AM';
+        h = h % 12 || 12;
+        return h + ':' + String(m).padStart(2, '0') + ' ' + ap;
+      } catch (_) { return ''; }
+    }
   }
 
-  // ── Renderizadores de estado ──────────────────────────────────────────────
+  // ── State renderer ───────────────────────────────────────────────────────
 
   function _setEstado(sufijo, estado) {
-    // estado: 'loading' | 'error' | 'vacio' | 'lista'
     const loading = document.getElementById('pah-loading-' + sufijo);
     const error   = document.getElementById('pah-error-'   + sufijo);
     const vacio   = document.getElementById('pah-vacio-'   + sufijo);
     const lista   = document.getElementById('pah-lista-'   + sufijo);
-    if (!loading) return;
+    // FIX: guardar todos los elementos, no solo loading
+    if (!loading || !error || !vacio || !lista) return;
     loading.style.display = estado === 'loading' ? '' : 'none';
     error  .style.display = estado === 'error'   ? '' : 'none';
     vacio  .style.display = estado === 'vacio'   ? '' : 'none';
@@ -7860,14 +7765,14 @@ async function cargarMasPosts(btn) {
 
   function _renderPartido(p) {
     const estado = (p.estado || '').toLowerCase();
-    const enVivo     = estado === 'en_vivo'   || estado === 'en vivo'  || estado === 'live';
-    const finalizado = estado === 'finalizado'|| estado === 'finished' || estado === 'bloqueado' || p.bloqueado;
-    const proximo    = !enVivo && !finalizado;
+    // FIX: API devuelve 'en_curso' (no 'en_vivo' ni 'live')
+    const enVivo     = estado === 'en_curso' || estado === 'en_vivo' || estado === 'live';
+    // FIX: no usar p.bloqueado como criterio extra de finalizado
+    const finalizado = estado === 'finalizado' || estado === 'finished';
 
-    // Badge
     let badge = '';
     if (enVivo) {
-      const min = p.minuto ? `⏱️ ${_esc(p.minuto)}'` : '⏱️ En curso';
+      const min = p.minuto ? `⏱️ ${_esc(String(p.minuto))}'` : '⏱️ En curso';
       badge = `<span class="pah-badge pah-badge--live">EN VIVO</span>
                <span class="pah-meta">${min}</span>`;
     } else if (finalizado) {
@@ -7877,10 +7782,9 @@ async function cargarMasPosts(btn) {
       badge = `<span class="pah-badge pah-badge--proximo">🕒 ${hora || _esc(p.fecha_texto || 'Próximo')}</span>`;
     }
 
-    // Marcador
     const tieneScore = (enVivo || finalizado) &&
-                       (p.goles_local !== null && p.goles_local !== undefined) &&
-                       (p.goles_visit !== null && p.goles_visit !== undefined);
+                       p.goles_local !== null && p.goles_local !== undefined &&
+                       p.goles_visit !== null && p.goles_visit !== undefined;
 
     const banLocal = _bandera(p.codigo_local);
     const banVisit = _bandera(p.codigo_visit);
@@ -7894,9 +7798,9 @@ async function cargarMasPosts(btn) {
             <span class="pah-team-name">${_esc(p.local)}</span>
           </div>
           <div class="pah-score">
-            <span class="pah-score-num">${_esc(p.goles_local)}</span>
+            <span class="pah-score-num">${_esc(String(p.goles_local))}</span>
             <span class="pah-score-sep">-</span>
-            <span class="pah-score-num">${_esc(p.goles_visit)}</span>
+            <span class="pah-score-num">${_esc(String(p.goles_visit))}</span>
           </div>
           <div class="pah-team pah-team--right">
             <span>${banVisit}</span>
@@ -7929,29 +7833,39 @@ async function cargarMasPosts(btn) {
     lista.innerHTML = partidos.map(_renderPartido).join('');
   }
 
-  // ── Prioridad y filtrado ──────────────────────────────────────────────────
-
+  // FIX: prioridad incluye 'en_curso' (estado real de la API)
   function _ordenar(partidos) {
     const prio = (p) => {
       const e = (p.estado || '').toLowerCase();
-      if (e === 'en_vivo' || e === 'en vivo' || e === 'live') return 0;
-      if (!p.bloqueado && e !== 'finalizado' && e !== 'finished') return 1;
-      return 2;
+      if (e === 'en_curso' || e === 'en_vivo' || e === 'live') return 0;   // EN VIVO primero
+      if (e === 'programado' || e === 'upcoming' || e === 'scheduled')     return 1;   // Próximos
+      return 2;                                                              // Finalizados
     };
     return [...partidos].sort((a, b) => prio(a) - prio(b)).slice(0, 3);
   }
 
-  // ── Fetch y renderizado ───────────────────────────────────────────────────
+  // ── Fetch ────────────────────────────────────────────────────────────────
 
   async function cargarPartidosHoy() {
     try {
       const res = await fetch('/api/mundial/partidos-hoy');
+
+      // DEBUG: log de respuesta para diagnóstico
+      console.log('[PAH] HTTP', res.status, res.url);
+
       if (!res.ok) throw new Error('HTTP ' + res.status);
       const json = await res.json();
 
-      if (!json.ok || !Array.isArray(json.data)) throw new Error('Respuesta inválida');
+      // DEBUG: inspección del payload
+      console.log('[PAH] ok=', json.ok, '| partidos recibidos:', Array.isArray(json.data) ? json.data.length : 'no-array');
+      if (Array.isArray(json.data) && json.data.length > 0) {
+        console.log('[PAH] primer partido:', JSON.stringify(json.data[0]));
+      }
+
+      if (!json.ok || !Array.isArray(json.data)) throw new Error('Respuesta inválida del servidor');
 
       const partidos = _ordenar(json.data);
+      console.log('[PAH] partidos a renderizar:', partidos.length, partidos.map(p => p.estado + ':' + p.local + 'vs' + p.visitante));
 
       ['desktop', 'mobile'].forEach(suf => {
         if (partidos.length === 0) {
@@ -7962,7 +7876,7 @@ async function cargarMasPosts(btn) {
         }
       });
     } catch (err) {
-      console.warn('[PAH] Error al cargar partidos:', err);
+      console.error('[PAH] Error al cargar partidos:', err.message, err);
       ['desktop', 'mobile'].forEach(suf => _setEstado(suf, 'error'));
     }
   }
@@ -7970,12 +7884,10 @@ async function cargarMasPosts(btn) {
   // ── Init ─────────────────────────────────────────────────────────────────
 
   document.addEventListener('DOMContentLoaded', () => {
-    // Mostrar loading en ambos widgets
     _setEstado('desktop', 'loading');
     _setEstado('mobile',  'loading');
     cargarPartidosHoy();
-    // Refresco cada 2 minutos si hay partido en vivo
-    setInterval(cargarPartidosHoy, 120_000);
+    setInterval(cargarPartidosHoy, 120_000); // refresco cada 2 min
   });
 })();
 

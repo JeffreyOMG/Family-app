@@ -169,8 +169,6 @@ window.addEventListener('DOMContentLoaded', () => {
   _syncFab(target);
 
   initTheme();
-  iniciarCountdown();
-
   applyAccent(localStorage.getItem('accent') || '#ff4d8d');
 
   initPublicarAjax();
@@ -201,30 +199,6 @@ window.addEventListener('load', () => {
 function toggleSidebar() {
   $('sidebar')?.classList.toggle('open');
   $('overlay')?.classList.toggle('active');
-}
-
-// ─────────────────────────────
-// COUNTDOWN (Configurado en Zona Horaria de Oregon - PDT)
-// ─────────────────────────────
-function iniciarCountdown() {
-  // 10:30 AM en Oregon equivale a las 12:30 PM en Colombia
-  // El sufijo -07:00 asegura que la fecha se interprete en horario del Pacífico
-  const meta = new Date('2026-06-11T10:30:00-07:00').getTime(); 
-  
-  function tick() {
-    const diff = meta - Date.now();
-    if (diff <= 0) {
-      [$('cd-dias'), $('cd-horas'), $('cd-min'), $('cd-seg')].forEach(el => { if (el) el.textContent = '00'; });
-      return;
-    }
-    const pad = n => String(n).padStart(2, '0');
-    if ($('cd-dias'))  $('cd-dias').textContent  = pad(Math.floor(diff / 86400000));
-    if ($('cd-horas')) $('cd-horas').textContent = pad(Math.floor((diff % 86400000) / 3600000));
-    if ($('cd-min'))   $('cd-min').textContent   = pad(Math.floor((diff % 3600000) / 60000));
-    if ($('cd-seg'))   $('cd-seg').textContent   = pad(Math.floor((diff % 60000) / 1000));
-  }
-  tick();
-  setInterval(tick, 1000);
 }
 
 
