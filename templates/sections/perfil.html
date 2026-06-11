@@ -5,23 +5,28 @@
   ══════════════════════════════════════════════════════ -->
   <div class="pf2-cover-wrap">
     <!-- Portada -->
-    <div class="pf2-cover" id="pf2-cover">
+    <div class="pf2-cover" id="pf2-cover" onclick="pf2AbrirLightbox('cover')">
       <div class="pf2-cover-gradient"></div>
       {% if usuario.portada %}
       <img src="{{ usuario.portada }}" class="pf2-cover-img" id="pf2-cover-img" alt="Portada">
       {% else %}
       <div class="pf2-cover-placeholder" id="pf2-cover-img"></div>
       {% endif %}
+      <!-- Botón cambiar portada directo en hero -->
+      <label class="pf2-cover-change-btn" title="Cambiar portada" onclick="event.stopPropagation()">
+        <span class="material-symbols-outlined">add_a_photo</span>
+        <input type="file" accept="image/*" id="pf-portada-direct" style="display:none;" onchange="autoGuardarPortada(this)">
+      </label>
     </div>
 
     <!-- Avatar flotando sobre la portada -->
     <div class="pf2-avatar-area">
       <div class="pf2-avatar-wrap">
         {% if usuario.foto %}
-        <img src="{{ usuario.foto }}" id="preview-foto-perfil" class="pf2-avatar user-avatar-img" alt="{{ usuario.nombre }}">
+        <img src="{{ usuario.foto }}" id="preview-foto-perfil" class="pf2-avatar user-avatar-img" alt="{{ usuario.nombre }}" onclick="pf2AbrirLightbox('avatar')">
         <div class="pf2-avatar-letter" id="pf-avatar-letter" style="display:none;">{{ usuario.nombre[0]|upper }}</div>
         {% else %}
-        <img src="" id="preview-foto-perfil" class="pf2-avatar user-avatar-img" style="display:none;" alt="{{ usuario.nombre }}">
+        <img src="" id="preview-foto-perfil" class="pf2-avatar user-avatar-img" style="display:none;" alt="{{ usuario.nombre }}" onclick="pf2AbrirLightbox('avatar')">
         <div class="pf2-avatar-letter" id="pf-avatar-letter">{{ usuario.nombre[0]|upper }}</div>
         {% endif %}
         <!-- Botón cambiar foto rápido (click en avatar) -->
@@ -73,9 +78,13 @@
       <strong id="stat-posts">{{ usuario_posts }}</strong>
       <span>Publicaciones</span>
     </div>
-    <div class="pf2-stat pf2-stat-div">
-      <strong id="stat-seguidores">{{ usuario.total_seguidores if usuario.total_seguidores is defined else '—' }}</strong>
+    <div class="pf2-stat pf2-stat-div" id="stat-seg-wrap" style="cursor:pointer;" onclick="pfCambiarTabById('seguidores')">
+      <strong id="stat-seguidores">—</strong>
       <span>Seguidores</span>
+    </div>
+    <div class="pf2-stat pf2-stat-div" id="stat-sig-wrap" style="cursor:pointer;" onclick="pfCambiarTabById('siguiendo')">
+      <strong id="stat-siguiendo">—</strong>
+      <span>Siguiendo</span>
     </div>
     <div class="pf2-stat pf2-stat-div">
       <strong id="stat-likes">{{ usuario_likes }}</strong>
@@ -104,6 +113,14 @@
         <span class="material-symbols-outlined">photo_library</span>
         <span class="pf2-tab-lbl">Galería</span>
       </button>
+      <button class="pf2-tab" data-tab="seguidores" onclick="pfCambiarTab(this,'seguidores')">
+        <span class="material-symbols-outlined">group</span>
+        <span class="pf2-tab-lbl">Seguidores</span>
+      </button>
+      <button class="pf2-tab" data-tab="siguiendo" onclick="pfCambiarTab(this,'siguiendo')">
+        <span class="material-symbols-outlined">person_check</span>
+        <span class="pf2-tab-lbl">Siguiendo</span>
+      </button>
     </nav>
 
     <div class="pf2-tab-panel active" id="pf-tab-publicaciones">
@@ -119,6 +136,48 @@
     <div class="pf2-tab-panel" id="pf-tab-galeria">
       <div id="pf-galeria-grid" class="pf-galeria-grid">
         <div class="pf2-loading"><span class="material-symbols-outlined pf-spin">progress_activity</span>Cargando galería…</div>
+      </div>
+    </div>
+
+    <!-- TAB: SEGUIDORES -->
+    <div class="pf2-tab-panel" id="pf-tab-seguidores">
+      <div class="pf2-social-panel">
+        <div class="pf2-social-search-wrap">
+          <span class="material-symbols-outlined pf2-social-search-icon">search</span>
+          <input type="text" id="pf-search-seguidores" class="pf2-social-search"
+                 placeholder="Buscar seguidores…"
+                 oninput="pfFiltrarSocial('seguidores')">
+        </div>
+        <div id="pf-lista-seguidores" class="pf2-social-lista">
+          <div class="pf2-loading"><span class="material-symbols-outlined pf-spin">progress_activity</span>Cargando seguidores…</div>
+        </div>
+        <div id="pf-mas-seguidores" class="pf2-load-more-wrap" style="display:none;">
+          <button class="pf2-load-more-btn" onclick="pfMostrarMas('seguidores')">
+            <span class="material-symbols-outlined">expand_more</span>
+            Ver más
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB: SIGUIENDO -->
+    <div class="pf2-tab-panel" id="pf-tab-siguiendo">
+      <div class="pf2-social-panel">
+        <div class="pf2-social-search-wrap">
+          <span class="material-symbols-outlined pf2-social-search-icon">search</span>
+          <input type="text" id="pf-search-siguiendo" class="pf2-social-search"
+                 placeholder="Buscar siguiendo…"
+                 oninput="pfFiltrarSocial('siguiendo')">
+        </div>
+        <div id="pf-lista-siguiendo" class="pf2-social-lista">
+          <div class="pf2-loading"><span class="material-symbols-outlined pf-spin">progress_activity</span>Cargando siguiendo…</div>
+        </div>
+        <div id="pf-mas-siguiendo" class="pf2-load-more-wrap" style="display:none;">
+          <button class="pf2-load-more-btn" onclick="pfMostrarMas('siguiendo')">
+            <span class="material-symbols-outlined">expand_more</span>
+            Ver más
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -430,7 +489,7 @@
           <div class="pf2-aj-divider"></div>
           <div class="pf2-aj-label">Color de acento</div>
           <div class="pf2-accent-grid">
-            {% for color in ['#ffd700','#4fc3f7','#a78bfa','#4ade80','#f87171','#fb923c','#f472b6','#34d399'] %}
+            {% for color in ['#f472b6','#ffd700','#4fc3f7','#a78bfa','#4ade80','#f87171','#fb923c','#34d399'] %}
             <button class="pf2-accent-btn accent-btn" data-color="{{ color }}" onclick="setAccent('{{ color }}')" style="background:{{ color }}" aria-label="Acento {{ color }}"></button>
             {% endfor %}
           </div>
@@ -590,9 +649,37 @@
 
 
 <!-- ═══════════════════════════════════════════════════════════════════
+     LIGHTBOX: VISOR DE FOTO / PORTADA
+═══════════════════════════════════════════════════════════════════ -->
+<div id="pf2-lightbox" onclick="pf2CerrarLightbox()" role="dialog" aria-modal="true" aria-label="Visor de imagen">
+  <button class="pf2-lb-close" onclick="pf2CerrarLightbox()" title="Cerrar">
+    <span class="material-symbols-outlined">close</span>
+  </button>
+  <img id="pf2-lb-img" src="" alt="Imagen ampliada" draggable="false">
+  <div class="pf2-lb-hint" id="pf2-lb-hint">Pellizca o usa la rueda para hacer zoom · Toca fuera para cerrar</div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════════════════
      ESTILOS
 ═══════════════════════════════════════════════════════════════════ -->
 <style>
+/* ─── BOTÓN CAMBIAR PORTADA (hero) ──────────────────────────────────── */
+.pf2-cover-change-btn {
+  position: absolute; bottom: 12px; right: 12px; z-index: 4;
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 7px 14px; border-radius: 20px;
+  background: rgba(0,0,0,.45); color: #fff;
+  border: 1.5px solid rgba(255,255,255,.35);
+  font-size: .78rem; font-weight: 600; font-family: inherit;
+  cursor: pointer;
+  backdrop-filter: blur(6px);
+  opacity: 0;
+  transition: opacity .2s, background .15s;
+}
+.pf2-cover:hover .pf2-cover-change-btn { opacity: 1; }
+.pf2-cover-change-btn .material-symbols-outlined { font-size: 17px; }
+
 /* ─── RESET local ─────────────────────────────────────────────────── */
 #sec-perfil * { box-sizing: border-box; }
 
@@ -825,16 +912,23 @@
   animation: pf2-shimmer 1.4s ease infinite;
 }
 
+/* ─── CSS VARIABLES: ACCENT SYSTEM ────────────────────────────────── */
+:root {
+  --accent-hover: color-mix(in srgb, var(--accent) 80%, white);
+  --accent-soft:  color-mix(in srgb, var(--accent) 14%, transparent);
+  --accent-border: color-mix(in srgb, var(--accent) 40%, transparent);
+}
+
 /* ─── MODALES: BASE ─────────────────────────────────────────────────── */
 .pf2-modal-overlay {
   position: fixed; inset: 0; z-index: 3000;
   display: flex; align-items: center; justify-content: center;
-  padding: 16px;
-  background: rgba(0,0,0,.55);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  padding: 20px;
+  background: rgba(0,0,0,.6);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   opacity: 0; pointer-events: none;
-  transition: opacity .25s cubic-bezier(.4,0,.2,1);
+  transition: opacity .28s cubic-bezier(.4,0,.2,1);
 }
 .pf2-modal-overlay.pf2-open {
   opacity: 1; pointer-events: all;
@@ -842,8 +936,8 @@
 .pf2-modal {
   background: var(--card);
   border: 1px solid var(--border);
-  border-radius: 20px;
-  width: 100%; max-width: 540px;
+  border-radius: 22px;
+  width: 100%; max-width: 680px;
   max-height: 90vh;
   display: flex; flex-direction: column;
   overflow: hidden;
@@ -856,8 +950,8 @@
   transform: translateY(0) scale(1);
   opacity: 1;
 }
-.pf2-modal-sm  { max-width: 420px; }
-.pf2-modal-lg  { max-width: 600px; }
+.pf2-modal-sm  { max-width: 660px; }
+.pf2-modal-lg  { max-width: 980px; }
 
 /* Modal Header */
 .pf2-modal-header {
@@ -1053,7 +1147,7 @@
 .pf2-avatar-edit-cam .material-symbols-outlined { font-size: 13px; color: var(--text2); }
 
 /* ─── AJUSTES MODAL ─────────────────────────────────────────────────── */
-.pf2-modal-ajustes { max-width: 680px; }
+.pf2-modal-ajustes { max-width: 1100px; }
 .pf2-ajustes-layout {
   display: flex; gap: 0;
   padding: 0 !important;
@@ -1249,7 +1343,73 @@
 .pf2-pr.ok { color: #4ade80; }
 .pf2-pr.ok .material-symbols-outlined { opacity: 1; color: #4ade80; }
 
-/* ─── ANIMATIONS ─────────────────────────────────────────────────────── */
+/* ─── SOCIAL: SEGUIDORES / SIGUIENDO ───────────────────────────────── */
+.pf2-social-panel { display: flex; flex-direction: column; gap: 0; }
+.pf2-social-search-wrap { position: relative; margin-bottom: 14px; }
+.pf2-social-search-icon {
+  position: absolute; left: 11px; top: 50%; transform: translateY(-50%);
+  font-size: 18px; color: var(--text3); pointer-events: none;
+}
+.pf2-social-search {
+  width: 100%; padding: 9px 14px 9px 36px;
+  border: 1.5px solid var(--border); border-radius: 40px;
+  background: var(--bg2); color: var(--text);
+  font-family: inherit; font-size: .88rem; outline: none;
+  box-sizing: border-box;
+  transition: border-color .18s, box-shadow .18s;
+}
+.pf2-social-search:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 15%, transparent);
+}
+.pf2-social-lista { display: flex; flex-direction: column; gap: 2px; }
+.pf2-social-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 8px; border-radius: 10px;
+  cursor: pointer; transition: background .15s;
+  border: none; background: transparent;
+  width: 100%; text-align: left;
+  font-family: inherit; color: inherit;
+}
+.pf2-social-item:hover { background: var(--bg2); }
+.pf2-social-item:active { background: color-mix(in srgb, var(--accent) 8%, transparent); }
+.pf2-social-item + .pf2-social-item { border-top: 1px solid var(--border); }
+.pf2-social-avatar {
+  width: 44px; height: 44px; border-radius: 50%;
+  object-fit: cover; flex-shrink: 0;
+  border: 2px solid var(--border);
+}
+.pf2-social-letra {
+  width: 44px; height: 44px; border-radius: 50%;
+  background: var(--accent); color: #000;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.1rem; font-weight: 700; flex-shrink: 0;
+  border: 2px solid transparent;
+}
+.pf2-social-info { flex: 1; min-width: 0; }
+.pf2-social-nombre {
+  font-weight: 600; font-size: .9rem; color: var(--text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin: 0;
+}
+.pf2-social-usuario { font-size: .78rem; color: var(--text3); margin: 1px 0 0; }
+.pf2-social-chevron { font-size: 18px; color: var(--text3); flex-shrink: 0; }
+.pf2-social-empty {
+  text-align: center; padding: 32px 20px;
+  color: var(--text3); font-size: .88rem;
+}
+.pf2-social-empty .material-symbols-outlined {
+  font-size: 40px; display: block; margin-bottom: 8px; color: var(--border);
+}
+.pf2-load-more-wrap { display: flex; justify-content: center; padding-top: 14px; }
+.pf2-load-more-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 22px; border-radius: 40px;
+  border: 1.5px solid var(--border);
+  background: var(--card); color: var(--text);
+  font-family: inherit; font-size: .85rem; font-weight: 600;
+  cursor: pointer; transition: background .15s, border-color .15s;
+}
+.pf2-load-more-btn:hover { border-color: var(--accent); color: var(--accent); }
 @keyframes pf2-fadein { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
 @keyframes pf-spin    { to { transform: rotate(360deg); } }
 .pf-spin { display: inline-block; animation: pf-spin .8s linear infinite; }
@@ -1307,30 +1467,103 @@
   .pf2-stat:nth-child(3) { border-left: 1px solid var(--border); }
   .pf2-form-grid { grid-template-columns: 1fr; }
   .pf2-full { grid-column: auto; }
-  /* Modal fullscreen en móvil */
-  .pf2-modal-overlay { padding: 0; align-items: flex-end; }
-  .pf2-modal {
-    max-width: 100%; border-radius: 24px 24px 0 0;
-    max-height: 96vh;
-    transform: translateY(40px);
+}
+@media (max-width: 380px) {
+  .pf-galeria-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* ─── MOBILE FULLSCREEN MODALS ──────────────────────────────────────── */
+@media (max-width: 600px) {
+  .pf2-modal-overlay {
+    padding: 0;
+    align-items: flex-end;
   }
-  .pf2-modal-overlay.pf2-open .pf2-modal { transform: translateY(0) scale(1); }
-  /* Ajustes: layout vertical en móvil */
+  .pf2-modal,
+  .pf2-modal-sm,
+  .pf2-modal-lg,
+  .pf2-modal-ajustes {
+    max-width: 100%;
+    width: 100%;
+    border-radius: 22px 22px 0 0;
+    max-height: 96dvh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .pf2-modal-body {
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .pf2-modal-overlay.pf2-open .pf2-modal {
+    transform: translateY(0) scale(1);
+  }
+  /* Ajustes: nav horizontal en mobile */
   .pf2-ajustes-layout { flex-direction: column; }
   .pf2-ajustes-nav {
-    width: 100%; flex-direction: row; overflow-x: auto;
+    width: 100%; flex-direction: row;
     border-right: none; border-bottom: 1px solid var(--border);
     padding: 8px; gap: 4px;
-    scrollbar-width: none;
+    scrollbar-width: none; overflow-x: auto;
   }
   .pf2-ajustes-nav::-webkit-scrollbar { display: none; }
   .pf2-aj-navbtn { flex-direction: column; gap: 4px; padding: 8px 10px; font-size: .72rem; white-space: nowrap; border-radius: 8px; }
   .pf2-aj-navbtn span:not(.material-symbols-outlined) { display: none; }
   .pf2-theme-options { flex-direction: column; gap: 8px; }
 }
-@media (max-width: 380px) {
-  .pf-galeria-grid { grid-template-columns: repeat(2, 1fr); }
+
+/* ─── LIGHTBOX VISOR DE IMAGEN ──────────────────────────────────────── */
+#pf2-lightbox {
+  position: fixed; inset: 0; z-index: 9999;
+  background: rgba(0,0,0,.94);
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; pointer-events: none;
+  transition: opacity .28s ease;
+  cursor: zoom-out;
+  touch-action: none;
 }
+#pf2-lightbox.pf2-lb-open {
+  opacity: 1; pointer-events: all;
+}
+#pf2-lightbox img {
+  max-width: 90vw;
+  max-height: 90dvh;
+  border-radius: 12px;
+  object-fit: contain;
+  box-shadow: 0 20px 80px rgba(0,0,0,.6);
+  cursor: zoom-in;
+  transition: transform .2s ease;
+  transform-origin: center center;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+.pf2-lb-close {
+  position: fixed; top: 18px; right: 18px;
+  width: 44px; height: 44px; border-radius: 50%;
+  background: rgba(255,255,255,.12);
+  border: 1.5px solid rgba(255,255,255,.25);
+  color: #fff; font-size: 22px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; z-index: 10000;
+  transition: background .15s, transform .15s;
+  backdrop-filter: blur(6px);
+}
+.pf2-lb-close:hover { background: rgba(255,255,255,.22); transform: scale(1.08); }
+.pf2-lb-hint {
+  position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%);
+  background: rgba(255,255,255,.1);
+  border: 1px solid rgba(255,255,255,.18);
+  color: rgba(255,255,255,.8);
+  font-size: .75rem; padding: 6px 14px; border-radius: 20px;
+  backdrop-filter: blur(6px);
+  pointer-events: none;
+  transition: opacity .4s;
+}
+/* Cursor clickable en avatar y portada */
+.pf2-avatar-clickable,
+.pf2-cover-clickable { cursor: zoom-in !important; }
+.pf2-cover { cursor: zoom-in; }
+.pf2-avatar { cursor: zoom-in; }
+.pf2-avatar-letter { cursor: default; }
+
 </style>
 
 
@@ -1340,7 +1573,7 @@
 <script>
 // ─── DATOS DE PERFIL ───────────────────────────────────────────────────
 const _PF_UID = {{ usuario.id }};
-const _PF_LOADED = { publicaciones: false, mundial: false, galeria: false };
+const _PF_LOADED = { publicaciones: false, mundial: false, galeria: false, seguidores: false, siguiendo: false };
 
 // ─── MODAL SYSTEM ──────────────────────────────────────────────────────
 function pf2AbrirModal(id) {
@@ -1408,12 +1641,21 @@ function pfCambiarTab(btn, tab) {
     if (tab === 'publicaciones') pfCargarPosts();
     else if (tab === 'mundial')  pfCargarMundial();
     else if (tab === 'galeria')  pfCargarGaleria();
+    else if (tab === 'seguidores') pfCargarSocial('seguidores');
+    else if (tab === 'siguiendo')  pfCargarSocial('siguiendo');
   }
+}
+
+function pfCambiarTabById(tab) {
+  const btn = document.querySelector(`.pf2-tab[data-tab="${tab}"]`);
+  if (btn) pfCambiarTab(btn, tab);
 }
 (function pfInit() {
   _PF_LOADED.publicaciones = false;
   pfCargarPosts();
   _PF_LOADED.publicaciones = true;
+  // Cargar contadores de seguidores/siguiendo
+  pfCargarContadoresSocial();
 })();
 
 // ─── CARGA DE POSTS ────────────────────────────────────────────────────
@@ -1554,6 +1796,10 @@ function pf2SetTheme(mode, btn) {
 
 function setAccent(color) {
   document.documentElement.style.setProperty('--accent', color);
+  // Sistema centralizado de acentos
+  document.documentElement.style.setProperty('--accent-hover', color + 'cc');
+  document.documentElement.style.setProperty('--accent-soft',  color + '22');
+  document.documentElement.style.setProperty('--accent-border', color + '66');
   localStorage.setItem('accent', color);
   document.querySelectorAll('.accent-btn, .pf2-accent-btn').forEach(b => {
     const active = b.dataset.color === color;
@@ -1845,9 +2091,12 @@ document.addEventListener('DOMContentLoaded', () => {
   const toggleDark = document.getElementById('toggle-dark');
   if (toggleDark) toggleDark.checked = document.body.classList.contains('dark-mode');
 
-  // Acento
-  const accent = localStorage.getItem('accent') || '#ffd700';
+  // Acento (default: rosa Familia App)
+  const accent = localStorage.getItem('accent') || '#f472b6';
   document.documentElement.style.setProperty('--accent', accent);
+  document.documentElement.style.setProperty('--accent-hover', accent + 'cc');
+  document.documentElement.style.setProperty('--accent-soft',  accent + '22');
+  document.documentElement.style.setProperty('--accent-border', accent + '66');
   document.querySelectorAll('.accent-btn,.pf2-accent-btn').forEach(b => {
     const active = b.dataset.color === accent;
     b.style.borderColor = active ? 'var(--text)' : 'transparent';
@@ -1870,8 +2119,279 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 
+// ─── CONTADORES SEGUIDORES / SIGUIENDO (carga al iniciar) ─────────────
+async function pfCargarContadoresSocial() {
+  try {
+    const [rSeg, rSig] = await Promise.all([
+      fetch('/api/seguidores/' + _PF_UID),
+      fetch('/api/siguiendo/'  + _PF_UID)
+    ]);
+    const [dSeg, dSig] = await Promise.all([rSeg.json(), rSig.json()]);
+    const elSeg = document.getElementById('stat-seguidores');
+    const elSig = document.getElementById('stat-siguiendo');
+    if (elSeg && dSeg.ok) elSeg.textContent = (dSeg.seguidores || []).length;
+    if (elSig && dSig.ok) elSig.textContent = (dSig.siguiendo  || []).length;
+  } catch(e) {
+    // silencioso
+  }
+}
+
+// ─── SOCIAL: SEGUIDORES / SIGUIENDO ───────────────────────────────────
+const _PF_PAGE_SIZE = 15;
+const _pfSocial = {
+  seguidores: { todos: [], visibles: 0, filtro: '' },
+  siguiendo:  { todos: [], visibles: 0, filtro: '' },
+};
+
+async function pfCargarSocial(tipo) {
+  const listaEl = document.getElementById(`pf-lista-${tipo}`);
+  const masEl   = document.getElementById(`pf-mas-${tipo}`);
+  if (!listaEl) return;
+  listaEl.innerHTML = `<div class="pf2-loading"><span class="material-symbols-outlined pf-spin">progress_activity</span>Cargando…</div>`;
+  if (masEl) masEl.style.display = 'none';
+  try {
+    const endpoint = tipo === 'seguidores' ? `/api/seguidores/${_PF_UID}` : `/api/siguiendo/${_PF_UID}`;
+    const res  = await fetch(endpoint);
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error || 'Error');
+    const lista = tipo === 'seguidores' ? data.seguidores : data.siguiendo;
+    _pfSocial[tipo].todos    = lista || [];
+    _pfSocial[tipo].visibles = 0;
+    _pfSocial[tipo].filtro   = '';
+    const searchEl = document.getElementById(`pf-search-${tipo}`);
+    if (searchEl) searchEl.value = '';
+    _pfRenderSocial(tipo);
+    // Actualizar contador en el stat
+    const countEl = document.getElementById(tipo === 'seguidores' ? 'stat-seguidores' : 'stat-siguiendo');
+    if (countEl) countEl.textContent = _pfSocial[tipo].todos.length;
+  } catch(err) {
+    listaEl.innerHTML = `<div class="pf2-social-empty"><span class="material-symbols-outlined">wifi_off</span>No se pudo cargar la lista.</div>`;
+  }
+}
+
+function _pfFiltrados(tipo) {
+  const q = (_pfSocial[tipo].filtro || '').toLowerCase().trim();
+  if (!q) return _pfSocial[tipo].todos;
+  return _pfSocial[tipo].todos.filter(u =>
+    (u.nombre  || '').toLowerCase().includes(q) ||
+    (u.usuario || '').toLowerCase().includes(q)
+  );
+}
+
+function _pfRenderSocial(tipo) {
+  const listaEl = document.getElementById(`pf-lista-${tipo}`);
+  const masEl   = document.getElementById(`pf-mas-${tipo}`);
+  if (!listaEl) return;
+  const filtrados = _pfFiltrados(tipo);
+  if (!filtrados.length) {
+    const esVacio = !_pfSocial[tipo].todos.length;
+    const iconV   = tipo === 'seguidores' ? 'group_off' : 'person_off';
+    const msgV    = tipo === 'seguidores' ? 'Aún no tienes seguidores.' : 'No sigues a nadie todavía.';
+    listaEl.innerHTML = `<div class="pf2-social-empty"><span class="material-symbols-outlined">${esVacio ? iconV : 'search_off'}</span>${esVacio ? msgV : 'No se encontraron usuarios.'}</div>`;
+    if (masEl) masEl.style.display = 'none';
+    return;
+  }
+  const hasta = Math.min(_pfSocial[tipo].visibles + _PF_PAGE_SIZE, filtrados.length);
+  _pfSocial[tipo].visibles = hasta;
+  listaEl.innerHTML = filtrados.slice(0, hasta).map(u => _pfSocialItemHTML(u)).join('');
+  if (masEl) masEl.style.display = hasta < filtrados.length ? '' : 'none';
+}
+
+function _pfSocialItemHTML(u) {
+  const inicial = (u.nombre || 'U')[0].toUpperCase();
+  const avatar  = u.foto
+    ? `<img class="pf2-social-avatar" src="${_pfEsc(u.foto)}" alt="" loading="lazy">`
+    : `<div class="pf2-social-letra">${inicial}</div>`;
+  return `<button class="pf2-social-item" onclick="verPerfil && verPerfil('${_pfEsc(u.usuario)}','perfil')">
+      ${avatar}
+      <div class="pf2-social-info">
+        <p class="pf2-social-nombre">${_pfEsc(u.nombre)}</p>
+        <p class="pf2-social-usuario">@${_pfEsc(u.usuario)}</p>
+      </div>
+      <span class="material-symbols-outlined pf2-social-chevron">chevron_right</span>
+    </button>`;
+}
+
+function pfFiltrarSocial(tipo) {
+  const searchEl = document.getElementById(`pf-search-${tipo}`);
+  if (!searchEl) return;
+  _pfSocial[tipo].filtro   = searchEl.value;
+  _pfSocial[tipo].visibles = 0;
+  _pfRenderSocial(tipo);
+}
+
+function pfMostrarMas(tipo) {
+  _pfRenderSocial(tipo);
+}
+
 // ─── ESCAPE XSS ───────────────────────────────────────────────────────
 function _pfEsc(str) {
   return (str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
+
+// ─── PORTADA: GUARDADO DIRECTO (igual que foto de perfil) ─────────────
+async function autoGuardarPortada(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const blobUrl = URL.createObjectURL(file);
+  // Preview instantáneo
+  const coverImg = document.getElementById('pf2-cover-img');
+  if (coverImg) {
+    if (coverImg.tagName === 'IMG') {
+      coverImg.src = blobUrl;
+    } else {
+      // Era placeholder, convertir a img
+      const img = document.createElement('img');
+      img.src = blobUrl;
+      img.className = 'pf2-cover-img';
+      img.id = 'pf2-cover-img';
+      img.alt = 'Portada';
+      coverImg.replaceWith(img);
+    }
+  }
+  // Preview en modal editar
+  const editPrev = document.getElementById('pf2-cover-preview');
+  if (editPrev) {
+    editPrev.style.backgroundImage = `url(${blobUrl})`;
+    editPrev.style.backgroundSize = 'cover';
+    editPrev.style.backgroundPosition = 'center';
+  }
+  const btn = input.closest('label');
+  if (btn) btn.style.pointerEvents = 'none';
+  const fd = new FormData();
+  fd.append('portada', file, 'portada.jpg');
+  // Necesitamos enviar campos mínimos requeridos
+  const formPerfil = document.getElementById('pf2-form-editar');
+  if (formPerfil) {
+    ['nombre','gmail'].forEach(name => {
+      const el = formPerfil.querySelector('[name="' + name + '"]');
+      if (el) fd.append(name, el.value);
+    });
+  }
+  try {
+    const res  = await fetch('/actualizar_perfil', { method:'POST', headers:{'X-Requested-With':'XMLHttpRequest'}, body: fd });
+    const data = await res.json().catch(()=>({}));
+    if (res.ok && data.ok !== false) {
+      if (data.portada) {
+        const ci = document.getElementById('pf2-cover-img');
+        if (ci && ci.tagName === 'IMG') ci.src = data.portada;
+      }
+      mostrarToast('🖼️ Portada actualizada');
+    } else {
+      mostrarToast('❌ ' + (data.error || 'Error al guardar portada'), 'error');
+    }
+  } catch(err) {
+    mostrarToast('❌ Error de conexión', 'error');
+  }
+  if (btn) btn.style.pointerEvents = '';
+  input.value = '';
+}
+
+// ─── LIGHTBOX (zoom de foto de perfil y portada) ─────────────────────
+(function() {
+  let _lbScale = 1, _lbDragging = false, _lbLast = {x:0,y:0}, _lbOrig = {x:0,y:0};
+  let _lbPinchDist = null;
+  let _lbType = 'avatar';
+
+  function _lbImg() { return document.getElementById('pf2-lb-img'); }
+  function _lbBox() { return document.getElementById('pf2-lightbox'); }
+
+  window.pf2AbrirLightbox = function(type) {
+    _lbType = type;
+    let src = '';
+    if (type === 'avatar') {
+      const av = document.getElementById('preview-foto-perfil');
+      if (!av || !av.src || av.style.display === 'none') return; // sin foto, no abrir
+      src = av.src;
+    } else if (type === 'cover') {
+      const ci = document.getElementById('pf2-cover-img');
+      if (!ci || ci.tagName !== 'IMG') return; // sin portada, no abrir
+      src = ci.src;
+    }
+    if (!src || src.startsWith('blob:') === false && src.length < 5) return;
+    _lbScale = 1;
+    _lbDragging = false;
+    const img = _lbImg();
+    img.style.transform = 'scale(1) translate(0,0)';
+    img.src = src;
+    const lb = _lbBox();
+    lb.style.display = 'flex';
+    void lb.offsetWidth;
+    lb.classList.add('pf2-lb-open');
+    document.body.style.overflow = 'hidden';
+    // Ocultar hint después de 3s
+    const hint = document.getElementById('pf2-lb-hint');
+    if (hint) { hint.style.opacity = '1'; setTimeout(() => hint.style.opacity = '0', 3000); }
+  };
+
+  window.pf2CerrarLightbox = function() {
+    const lb = _lbBox();
+    lb.classList.remove('pf2-lb-open');
+    lb.addEventListener('transitionend', () => {
+      lb.style.display = 'none';
+      document.body.style.overflow = '';
+    }, { once: true });
+  };
+
+  // Wheel zoom
+  document.addEventListener('wheel', function(e) {
+    const lb = _lbBox();
+    if (!lb.classList.contains('pf2-lb-open')) return;
+    e.preventDefault();
+    _lbScale = Math.min(5, Math.max(1, _lbScale - e.deltaY * 0.002));
+    _lbImg().style.transform = `scale(${_lbScale})`;
+  }, { passive: false });
+
+  // Click en imagen no cierra (solo en backdrop cierra)
+  document.getElementById('pf2-lb-img') && (() => {
+    const img = document.getElementById('pf2-lb-img');
+    img.addEventListener('click', e => e.stopPropagation());
+    // Double click zoom
+    img.addEventListener('dblclick', () => {
+      _lbScale = _lbScale > 1 ? 1 : 2.5;
+      img.style.transform = `scale(${_lbScale})`;
+    });
+  })();
+
+  // Touch pinch zoom
+  const lbEl = document.getElementById('pf2-lightbox');
+  if (lbEl) {
+    lbEl.addEventListener('touchstart', e => {
+      if (e.touches.length === 2) {
+        const dx = e.touches[0].clientX - e.touches[1].clientX;
+        const dy = e.touches[0].clientY - e.touches[1].clientY;
+        _lbPinchDist = Math.hypot(dx, dy);
+      }
+    }, { passive: true });
+    lbEl.addEventListener('touchmove', e => {
+      if (e.touches.length === 2 && _lbPinchDist) {
+        e.preventDefault();
+        const dx = e.touches[0].clientX - e.touches[1].clientX;
+        const dy = e.touches[0].clientY - e.touches[1].clientY;
+        const newDist = Math.hypot(dx, dy);
+        _lbScale = Math.min(5, Math.max(1, _lbScale * (newDist / _lbPinchDist)));
+        _lbPinchDist = newDist;
+        _lbImg().style.transform = `scale(${_lbScale})`;
+      }
+    }, { passive: false });
+    lbEl.addEventListener('touchend', () => { _lbPinchDist = null; }, { passive: true });
+  }
+
+  // ESC para cerrar
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && _lbBox().classList.contains('pf2-lb-open')) pf2CerrarLightbox();
+  });
+
+  // Init después del DOM
+  document.addEventListener('DOMContentLoaded', () => {
+    const img = document.getElementById('pf2-lb-img');
+    if (img) {
+      img.addEventListener('click', e => e.stopPropagation());
+      img.addEventListener('dblclick', () => {
+        _lbScale = _lbScale > 1 ? 1 : 2.5;
+        img.style.transform = `scale(${_lbScale})`;
+      });
+    }
+  });
+})();
 </script>
