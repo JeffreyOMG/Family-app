@@ -19,7 +19,7 @@ def admin_required(f):
 def panel():
     con = get_db()
     usuarios = con.execute(
-        "SELECT id, nombre, usuario, gmail, rol, fecha FROM usuarios ORDER BY fecha DESC"
+        "SELECT id, nombre, usuario, gmail, rol, fecha, COALESCE(verified, FALSE) AS verified FROM usuarios ORDER BY fecha DESC"
     ).fetchall()
     return render_template("admin/panel.html", usuarios=usuarios,
                            usuario={"nombre": session["nombre"], "rol": session["rol"], "foto": ""})

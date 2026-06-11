@@ -109,6 +109,8 @@
     .act-btn--ban:hover { background: rgba(234,179,8,.1); }
     .act-btn--unban{ color: var(--accent); border-color: rgba(124,106,247,.4); }
     .act-btn--unban:hover { background: rgba(124,106,247,.1); }
+    .act-btn--verified-on{ color: #1d9bf0; border-color: rgba(29,155,240,.4); }
+    .act-btn--verified-on:hover { background: rgba(29,155,240,.08); }
     .act-btn--del  { color: var(--red); border-color: rgba(239,68,68,.4); }
     .act-btn--del:hover { background: rgba(239,68,68,.1); }
 
@@ -197,7 +199,15 @@
         <div class="user-cell">
           <div class="u-avatar">{{ u.nombre[0]|upper }}</div>
           <div>
-            <div class="u-name">{{ u.nombre }}</div>
+            <div class="u-name" style="display:flex;align-items:center;gap:4px;">
+              {{ u.nombre }}
+              {% if u.get('verified') %}
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 100 100" style="flex-shrink:0;pointer-events:none;" title="Verificado">
+                <path d="M 50.00,5.00 L 61.12,15.76 L 76.45,13.59 L 79.12,28.84 L 92.80,36.09 L 86.00,50.00 L 92.80,63.91 L 79.12,71.16 L 76.45,86.41 L 61.12,84.24 L 50.00,95.00 L 38.88,84.24 L 23.55,86.41 L 20.88,71.16 L 7.20,63.91 L 14.00,50.00 L 7.20,36.09 L 20.88,28.84 L 23.55,13.59 L 38.88,15.76 Z" fill="#1d9bf0"/>
+                <polyline points="30,52 44,66 70,38" stroke="#fff" stroke-width="9" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+              </svg>
+              {% endif %}
+            </div>
             <div class="u-sub">@{{ u.usuario }}</div>
           </div>
         </div>
@@ -238,12 +248,26 @@
           <button class="act-btn act-btn--del" onclick="eliminar({{ u.id }}, '{{ u.nombre }}')">
             <span class="material-symbols-outlined">delete</span>
           </button>
-          <button class="act-btn {% if u.get('verified') %}act-btn--unban{% else %}act-btn--save{% endif %}"
+          {% if u.get('verified') %}
+          <button class="act-btn act-btn--verified-on"
                   onclick="toggleVerificado({{ u.id }}, this)"
-                  title="{% if u.get('verified') %}Quitar verificación{% else %}Verificar usuario{% endif %}">
-            <span class="material-symbols-outlined">{% if u.get('verified') %}verified_user{% else %}person_check{% endif %}</span>
-            {% if u.get('verified') %}Verificado{% else %}Verificar{% endif %}
+                  title="Quitar verificación"
+                  data-verified="1">
+            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 100 100" style="flex-shrink:0">
+              <path d="M 50.00,5.00 L 61.12,15.76 L 76.45,13.59 L 79.12,28.84 L 92.80,36.09 L 86.00,50.00 L 92.80,63.91 L 79.12,71.16 L 76.45,86.41 L 61.12,84.24 L 50.00,95.00 L 38.88,84.24 L 23.55,86.41 L 20.88,71.16 L 7.20,63.91 L 14.00,50.00 L 7.20,36.09 L 20.88,28.84 L 23.55,13.59 L 38.88,15.76 Z" fill="currentColor"/>
+              <polyline points="30,52 44,66 70,38" stroke="#fff" stroke-width="9" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+            </svg>
+            Quitar
           </button>
+          {% else %}
+          <button class="act-btn act-btn--save"
+                  onclick="toggleVerificado({{ u.id }}, this)"
+                  title="Verificar usuario"
+                  data-verified="0">
+            <span class="material-symbols-outlined">verified</span>
+            Verificar
+          </button>
+          {% endif %}
         </div>
       </td>
     </tr>
@@ -376,14 +400,35 @@ async function banear(uid, accion) {
 async function toggleVerificado(uid, btn) {
   const r = await post('/admin/toggle_verified', { uid });
   if (r.ok) {
-    btn.innerHTML = r.verified
-      ? '<span class="material-symbols-outlined">verified_user</span> Verificado'
-      : '<span class="material-symbols-outlined">person_check</span> Verificar';
-    btn.className = r.verified
-      ? 'act-btn act-btn--unban'
-      : 'act-btn act-btn--save';
-    btn.title = r.verified ? 'Quitar verificación' : 'Verificar usuario';
-    mostrarMensaje(r.msg);
+    const badgeSVG = `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 100 100" style="flex-shrink:0">
+      <path d="M 50.00,5.00 L 61.12,15.76 L 76.45,13.59 L 79.12,28.84 L 92.80,36.09 L 86.00,50.00 L 92.80,63.91 L 79.12,71.16 L 76.45,86.41 L 61.12,84.24 L 50.00,95.00 L 38.88,84.24 L 23.55,86.41 L 20.88,71.16 L 7.20,63.91 L 14.00,50.00 L 7.20,36.09 L 20.88,28.84 L 23.55,13.59 L 38.88,15.76 Z" fill="currentColor"/>
+      <polyline points="30,52 44,66 70,38" stroke="#fff" stroke-width="9" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    </svg>`;
+    if (r.verified) {
+      btn.innerHTML = badgeSVG + ' Quitar';
+      btn.className = 'act-btn act-btn--verified-on';
+      btn.title = 'Quitar verificación';
+      // Also add badge to the name cell in same row
+      const row = btn.closest('tr');
+      const nameDiv = row.querySelector('.u-name');
+      if (nameDiv && !nameDiv.querySelector('svg')) {
+        const svgEl = document.createElementNS('http://www.w3.org/2000/svg','svg');
+        svgEl.setAttribute('width','14'); svgEl.setAttribute('height','14');
+        svgEl.setAttribute('viewBox','0 0 100 100');
+        svgEl.style.cssText='flex-shrink:0;pointer-events:none;';
+        svgEl.innerHTML = '<path d="M 50.00,5.00 L 61.12,15.76 L 76.45,13.59 L 79.12,28.84 L 92.80,36.09 L 86.00,50.00 L 92.80,63.91 L 79.12,71.16 L 76.45,86.41 L 61.12,84.24 L 50.00,95.00 L 38.88,84.24 L 23.55,86.41 L 20.88,71.16 L 7.20,63.91 L 14.00,50.00 L 7.20,36.09 L 20.88,28.84 L 23.55,13.59 L 38.88,15.76 Z" fill="#1d9bf0"/><polyline points="30,52 44,66 70,38" stroke="#fff" stroke-width="9" stroke-linecap="round" stroke-linejoin="round" fill="none"/>';
+        nameDiv.appendChild(svgEl);
+      }
+    } else {
+      btn.innerHTML = '<span class="material-symbols-outlined">verified</span> Verificar';
+      btn.className = 'act-btn act-btn--save';
+      btn.title = 'Verificar usuario';
+      // Remove badge from name cell
+      const row = btn.closest('tr');
+      const nameDiv = row.querySelector('.u-name');
+      if (nameDiv) { const s = nameDiv.querySelector('svg'); if (s) s.remove(); }
+    }
+    showToast(r.msg || (r.verified ? 'Usuario verificado' : 'Verificación quitada'));
   }
 }
 
