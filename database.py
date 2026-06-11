@@ -168,6 +168,11 @@ _TABLES = [
     """ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS es_nuevo BOOLEAN DEFAULT TRUE""",
     # Columna para solicitud de pago al mundial (NULL=no solicitó, 'pendiente', 'aprobado', 'rechazado')
     """ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS mundial_pagado TEXT DEFAULT NULL""",
+    # Columnas de perfil extendido
+    """ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS portada TEXT""",
+    """ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS ciudad TEXT""",
+    """ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS sitio_web TEXT""",
+    """ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS fecha_nacimiento DATE""",
     """CREATE TABLE IF NOT EXISTS publicaciones (
         id SERIAL PRIMARY KEY, usuario_id INTEGER NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
         texto TEXT DEFAULT '', media TEXT DEFAULT '', media_tipo TEXT DEFAULT '',

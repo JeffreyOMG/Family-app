@@ -158,14 +158,6 @@ def actualizar_perfil():
     fecha_nacimiento = request.form.get("fecha_nacimiento", "").strip() or None
     con              = get_db()
 
-    # Migración segura: agregar columnas si no existen
-    for col_def in ["portada TEXT", "ciudad TEXT", "sitio_web TEXT", "fecha_nacimiento DATE"]:
-        try:
-            con.execute(f"ALTER TABLE usuarios ADD COLUMN {col_def}")
-            con.commit()
-        except Exception:
-            pass  # columna ya existe
-
     # ── Foto de perfil ────────────────────────────────────────────────
     foto_url  = None
     foto_file = request.files.get("foto_perfil")
