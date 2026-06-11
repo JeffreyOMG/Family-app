@@ -703,7 +703,7 @@
   background: linear-gradient(135deg, var(--accent) 0%, rgba(0,0,0,.4) 100%);
 }
 .pf2-cover-img {
-  width: 100%; height: 100%; object-fit: cover; display: block;
+  width: 100%; height: 100%; object-fit: cover; object-position: center; display: block;
 }
 .pf2-cover-placeholder {
   width: 100%; height: 100%;
@@ -1040,10 +1040,13 @@
   border: 1.5px solid var(--border);
   border-radius: 12px;
   padding: 10px 13px;
-  font-size: .9rem; font-family: inherit;
+  font-size: 16px; font-family: inherit;
   background: var(--bg2); color: var(--text);
   width: 100%;
+  min-height: 48px;
   transition: border-color .15s, box-shadow .15s;
+  -webkit-appearance: none;
+  box-sizing: border-box;
 }
 .pf2-input:focus {
   outline: none;
@@ -1490,32 +1493,159 @@
 .pf-galeria-video-badge { position: absolute; bottom: 4px; right: 4px; background: rgba(0,0,0,.55); border-radius: 4px; padding: 2px 5px; }
 .pf-galeria-video-badge .material-symbols-outlined { font-size: 14px; color: #fff; }
 
-/* ─── RESPONSIVE ─────────────────────────────────────────────────────── */
-@media (max-width: 600px) {
-  .pf2-cover { height: 140px; }
-  .pf2-avatar { width: 78px; height: 78px; }
-  .pf2-avatar-letter { width: 78px; height: 78px; font-size: 30px; }
-  .pf2-avatar-wrap { margin-top: -38px; }
-  .pf2-nombre { font-size: 1.1rem; }
-  .pf2-identity { flex-direction: column; }
-  .pf2-actions { width: 100%; }
-  .pf2-btn-edit { flex: 1; justify-content: center; }
-  .pf2-stats-row { flex-wrap: wrap; }
-  .pf2-stat { flex: 1 1 50%; }
-  .pf2-stat:nth-child(3) { border-left: 1px solid var(--border); }
-  .pf2-form-grid { grid-template-columns: 1fr; }
-  .pf2-full { grid-column: auto; }
+/* ════════════════════════════════════════════════════════
+   RESPONSIVE — PERFIL PROPIO
+   Breakpoints: 430 / 390 / 375 / 360 / 320
+   ════════════════════════════════════════════════════════ */
+
+/* ── Tablet y escritorio: ya se ve bien, pequeños refinamientos ── */
+@media (max-width: 768px) {
+  .pf2-cover { border-radius: 14px 14px 0 0; }
+  .pf2-avatar-area { border-radius: 0 0 14px 14px; }
+  .pf2-stats-row { border-radius: 0 0 10px 10px; }
 }
-@media (max-width: 380px) {
+
+/* ── Móvil grande (≤ 480px) ── */
+@media (max-width: 480px) {
+  /* Portada */
+  .pf2-cover {
+    height: 130px;
+    border-radius: 12px 12px 0 0;
+  }
+
+  /* Avatar */
+  .pf2-avatar-area {
+    padding: 0 14px 16px;
+    border-radius: 0 0 12px 12px;
+    gap: 10px;
+  }
+  .pf2-avatar-wrap { margin-top: -42px; }
+  .pf2-avatar,
+  .pf2-avatar-letter {
+    width: 84px;
+    height: 84px;
+    font-size: 32px;
+    border-width: 3px;
+  }
+  .pf2-avatar-cam {
+    width: 26px; height: 26px;
+    bottom: 2px; right: 2px;
+  }
+
+  /* Identidad: columna completa */
+  .pf2-identity {
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+    padding-top: 8px;
+    min-width: 0;
+  }
+  .pf2-names { min-width: 0; width: 100%; }
+  .pf2-nombre {
+    font-size: 1.15rem;
+    word-break: break-word;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+  .pf2-usuario { font-size: .82rem; }
+  .pf2-bio {
+    font-size: .85rem;
+    margin-bottom: 6px;
+    word-break: break-word;
+  }
+  .pf2-info-pills { gap: 5px; }
+  .pf2-pill { font-size: .74rem; padding: 3px 8px; }
+
+  /* Botones: fila completa, táctiles */
+  .pf2-actions {
+    width: 100%;
+    gap: 8px;
+  }
+  .pf2-btn-edit {
+    flex: 1;
+    justify-content: center;
+    padding: 10px 14px;
+    font-size: .84rem;
+    min-height: 42px;
+    border-radius: 22px;
+  }
+  .pf2-btn-settings {
+    width: 42px; height: 42px;
+    flex-shrink: 0;
+  }
+
+  /* Estadísticas: fila scrollable en lugar de grid roto */
+  .pf2-stats-row {
+    overflow-x: auto;
+    scrollbar-width: none;
+    flex-wrap: nowrap;
+    border-radius: 0 0 10px 10px;
+    -webkit-overflow-scrolling: touch;
+  }
+  .pf2-stats-row::-webkit-scrollbar { display: none; }
+  .pf2-stat {
+    flex: 0 0 auto;
+    min-width: 72px;
+    padding: 12px 10px;
+  }
+  .pf2-stat strong { font-size: 1rem; }
+  .pf2-stat span { font-size: .66rem; }
+
+  /* Tabs */
+  .pf2-tabs-wrap { border-radius: 10px; }
+  .pf2-tab { padding: 12px 8px; font-size: .78rem; }
+  .pf2-tab-panel { padding: 12px; }
+
+  /* Galería */
+  .pf-galeria-grid { grid-template-columns: repeat(3, 1fr); }
+}
+
+/* ── Móvil pequeño (≤ 390px) ── */
+@media (max-width: 390px) {
+  .pf2-cover { height: 115px; }
+  .pf2-avatar-wrap { margin-top: -38px; }
+  .pf2-avatar, .pf2-avatar-letter {
+    width: 76px; height: 76px;
+    font-size: 29px;
+  }
+  .pf2-nombre { font-size: 1.05rem; }
+  .pf2-stat { min-width: 64px; padding: 11px 8px; }
+}
+
+/* ── Móvil muy pequeño (≤ 360px) ── */
+@media (max-width: 360px) {
+  .pf2-cover { height: 105px; }
+  .pf2-avatar-area { padding: 0 12px 14px; }
+  .pf2-avatar-wrap { margin-top: -34px; }
+  .pf2-avatar, .pf2-avatar-letter {
+    width: 68px; height: 68px;
+    font-size: 26px;
+  }
+  .pf2-nombre { font-size: .98rem; }
+  .pf2-btn-edit { font-size: .8rem; padding: 9px 10px; }
   .pf-galeria-grid { grid-template-columns: repeat(2, 1fr); }
 }
 
-/* ─── MOBILE FULLSCREEN MODALS ──────────────────────────────────────── */
+/* ── Formularios del modal: siempre 1 columna en móvil ── */
 @media (max-width: 600px) {
+  .pf2-form-grid { grid-template-columns: 1fr; }
+  .pf2-full { grid-column: auto; }
+}
+
+/* ════════════════════════════════════════════════════════
+   MODAL EDITAR PERFIL — MOBILE FULLSCREEN
+   ════════════════════════════════════════════════════════ */
+@media (max-width: 600px) {
+
+  /* Overlay: sheet desde abajo */
   .pf2-modal-overlay {
     padding: 0;
     align-items: flex-end;
   }
+
+  /* Modal: ocupa casi toda la pantalla, bordes redondeados arriba */
   .pf2-modal,
   .pf2-modal-sm,
   .pf2-modal-lg,
@@ -1523,29 +1653,108 @@
     max-width: 100%;
     width: 100%;
     border-radius: 22px 22px 0 0;
-    max-height: 92dvh;
-    height: 92dvh;            /* altura fija para habilitar scroll */
+    max-height: 94dvh;
+    height: 94dvh;
     display: flex;
     flex-direction: column;
+    /* Animación entrada desde abajo */
+    transform: translateY(100%);
+    transition: transform .3s cubic-bezier(.32,1,.24,1);
   }
+  .pf2-modal-overlay.pf2-open .pf2-modal,
+  .pf2-modal-overlay.pf2-open .pf2-modal-sm,
+  .pf2-modal-overlay.pf2-open .pf2-modal-lg,
+  .pf2-modal-overlay.pf2-open .pf2-modal-ajustes {
+    transform: translateY(0);
+  }
+
+  /* Header: sticky, siempre visible */
+  .pf2-modal-header {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: var(--card);
+    border-bottom: 1px solid var(--border);
+    border-radius: 22px 22px 0 0;
+    flex-shrink: 0;
+    padding: 16px 16px 14px;
+  }
+
+  /* Body: scroll interno, no scroll de página */
   .pf2-modal-body {
     flex: 1;
     overflow-y: auto;
+    overflow-x: hidden;
     -webkit-overflow-scrolling: touch;
-    min-height: 0;             /* necesario para scroll en flexbox */
+    min-height: 0;
+    padding: 16px;
   }
-  /* El <form> también debe participar en el flex para que el footer sea visible */
+
+  /* Footer: sticky al fondo */
+  .pf2-modal-footer {
+    position: sticky;
+    bottom: 0;
+    z-index: 10;
+    background: var(--card);
+    border-top: 1px solid var(--border);
+    flex-shrink: 0;
+    padding: 12px 16px;
+    padding-bottom: max(12px, env(safe-area-inset-bottom));
+    display: flex;
+    gap: 10px;
+  }
+  .pf2-modal-footer button {
+    flex: 1;
+    min-height: 48px;
+    font-size: .95rem;
+    border-radius: 14px;
+  }
+
+  /* Form: participa en flex para que footer sea visible */
   .pf2-modal-lg > form,
   .pf2-modal-sm > form {
     flex: 1;
     min-height: 0;
     overflow: hidden;
-  }
-  .pf2-modal-overlay.pf2-open .pf2-modal {
-    transform: translateY(0) scale(1);
+    display: flex;
+    flex-direction: column;
   }
 
-  /* Ajustes: nav horizontal scrollable + contenido scrollable */
+  /* Inputs táctiles: mínimo 48px, font-size 16px evita zoom iOS */
+  .pf2-modal-body input[type="text"],
+  .pf2-modal-body input[type="email"],
+  .pf2-modal-body input[type="url"],
+  .pf2-modal-body input[type="date"],
+  .pf2-modal-body input[type="password"],
+  .pf2-modal-body textarea,
+  .pf2-modal-body select {
+    min-height: 48px;
+    font-size: 16px !important;
+    border-radius: 12px;
+    padding: 12px 14px;
+  }
+  .pf2-modal-body textarea {
+    min-height: 90px;
+    resize: none;
+  }
+  .pf2-form-label { font-size: .82rem; margin-bottom: 5px; }
+
+  /* Portada en modal: altura correcta */
+  .pf2-edit-cover-wrap { height: 110px; border-radius: 10px; }
+  .pf2-edit-cover-img,
+  .pf2-edit-cover-placeholder { border-radius: 10px; }
+
+  /* Avatar en modal */
+  .pf2-avatar-edit-wrap {
+    width: 72px; height: 72px;
+  }
+  .pf2-avatar-edit-img,
+  .pf2-avatar-edit-letter {
+    width: 72px; height: 72px;
+    font-size: 28px;
+  }
+
+  /* Ajustes: nav horizontal scrollable */
   .pf2-ajustes-layout {
     flex-direction: column;
     overflow: hidden;
@@ -1553,18 +1762,27 @@
     flex: 1;
   }
   .pf2-ajustes-nav {
-    width: 100%; flex-direction: row;
-    border-right: none; border-bottom: 1px solid var(--border);
-    padding: 6px 8px; gap: 4px;
-    scrollbar-width: none; overflow-x: auto;
+    width: 100%;
+    flex-direction: row;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+    padding: 6px 8px;
+    gap: 4px;
+    scrollbar-width: none;
+    overflow-x: auto;
     flex-shrink: 0;
+    -webkit-overflow-scrolling: touch;
   }
   .pf2-ajustes-nav::-webkit-scrollbar { display: none; }
   .pf2-aj-navbtn {
-    flex-direction: column; gap: 3px;
-    padding: 7px 12px; font-size: .68rem;
-    white-space: nowrap; border-radius: 8px;
+    flex-direction: column;
+    gap: 3px;
+    padding: 8px 12px;
+    font-size: .68rem;
+    white-space: nowrap;
+    border-radius: 10px;
     flex-shrink: 0;
+    min-height: 52px;
   }
   .pf2-aj-navbtn span:not(.material-symbols-outlined) { display: block; }
   .pf2-ajustes-content {

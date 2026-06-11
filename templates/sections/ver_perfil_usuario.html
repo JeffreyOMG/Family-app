@@ -780,20 +780,105 @@ body.dark-mode .vp-follow-btn.siguiendo:hover {
   background: color-mix(in srgb, var(--accent) 25%, transparent);
 }
 
-/* Responsive */
+/* ════════════════════════════════════════════════════════
+   RESPONSIVE — VER PERFIL (OTROS USUARIOS)
+   Breakpoints: 480 / 390 / 360 / 320
+   ════════════════════════════════════════════════════════ */
+
 @media (max-width: 480px) {
-  .vp-banner { height: 120px; margin-bottom: -40px; }
-  .vp-header-card { padding: 50px 16px 16px !important; }
-  .vp-avatar-wrap { top: -38px; left: 16px; }
-  .vp-avatar-img, .vp-avatar-letter { width: 76px; height: 76px; font-size: 28px; }
-  .vp-nombre { font-size: 1.1rem; }
-  .vp-stats-grid { grid-template-columns: repeat(3, 1fr); gap: 8px; }
-  .vp-stat { padding: 12px 6px; }
+  /* Banner/portada */
+  .vp-banner {
+    height: 120px;
+    margin-bottom: -46px;
+    border-radius: 12px;
+  }
+
+  /* Header card */
+  .vp-header-card {
+    padding: 56px 14px 16px !important;
+    border-radius: 12px;
+  }
+
+  /* Avatar */
+  .vp-avatar-wrap { top: -42px; left: 14px; }
+  .vp-avatar-img,
+  .vp-avatar-letter {
+    width: 80px; height: 80px;
+    font-size: 30px;
+    border-width: 3px;
+  }
+
+  /* Nombre */
+  .vp-nombre {
+    font-size: 1.1rem;
+    word-break: break-word;
+  }
+  .vp-nombre-row {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .vp-usuario-text { font-size: .82rem; }
+  .vp-bio { font-size: .85rem; }
+
+  /* Botones: ancho completo, táctiles */
+  .vp-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 10px;
+  }
+  .vp-btn-follow,
+  .vp-btn-msg {
+    flex: 1;
+    min-height: 42px;
+    justify-content: center;
+    font-size: .85rem;
+    border-radius: 22px;
+  }
+
+  /* Estadísticas: scroll horizontal suave */
+  .vp-stats-grid {
+    display: flex;
+    overflow-x: auto;
+    scrollbar-width: none;
+    gap: 0;
+    -webkit-overflow-scrolling: touch;
+    margin-top: 10px;
+    margin-bottom: 10px;
+  }
+  .vp-stats-grid::-webkit-scrollbar { display: none; }
+  .vp-stat {
+    flex: 0 0 auto;
+    min-width: 72px;
+    padding: 12px 8px;
+    border-radius: 10px;
+    text-align: center;
+  }
   .vp-stat strong { font-size: .95rem; }
+  .vp-stat span { font-size: .66rem; }
+
+  /* Tabs */
+  .vp-tabs-wrap { border-radius: 10px; margin-top: 6px; }
+  .vp-tab-btn { padding: 12px 6px; font-size: .78rem; }
+  .vp-tab-panel { padding: 12px; }
 }
 
+/* ── Móvil pequeño (≤ 390px) ── */
+@media (max-width: 390px) {
+  .vp-banner { height: 105px; margin-bottom: -40px; }
+  .vp-header-card { padding: 50px 12px 14px !important; }
+  .vp-avatar-wrap { top: -38px; left: 12px; }
+  .vp-avatar-img, .vp-avatar-letter { width: 72px; height: 72px; font-size: 27px; }
+  .vp-nombre { font-size: 1rem; }
+  .vp-stat { min-width: 64px; }
+}
+
+/* ── Muy pequeño (≤ 340px) ── */
 @media (max-width: 340px) {
-  .vp-stats-grid { grid-template-columns: repeat(2, 1fr); }
+  .vp-banner { height: 92px; }
+  .vp-avatar-img, .vp-avatar-letter { width: 64px; height: 64px; font-size: 24px; }
+  .vp-nombre { font-size: .92rem; }
+  .vp-stat { min-width: 56px; padding: 10px 6px; }
 }
 
 /* ── PESTAÑAS PERFIL PÚBLICO ── */
@@ -809,7 +894,11 @@ body.dark-mode .vp-follow-btn.siguiendo:hover {
   display: flex;
   border-bottom: 1px solid var(--border);
   background: var(--bg2);
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
 }
+.vp-tabs-nav::-webkit-scrollbar { display: none; }
 .vp-tab-btn {
   flex: 1;
   display: flex;
