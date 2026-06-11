@@ -29,10 +29,12 @@ from routes.cajitas        import cajitas_bp
 from routes.admin          import admin_bp          # ← NUEVO
 from routes.seguidores     import seguidores_bp     # ← FASE 3.1
 from routes.notificaciones import notif_bp           # ← Notificaciones
+from routes.mundial_api    import mundial_api_bp     # ← API Mundial 2026
 
 for bp in [auth_bp, dash_bp, posts_bp, fin_bp, perfil_bp,
            galeria_bp, mundial_bp, buscar_bp, eventos_bp, ajustes_bp,
-           amigo_bp, cajitas_bp, admin_bp, seguidores_bp, notif_bp]:
+           amigo_bp, cajitas_bp, admin_bp, seguidores_bp, notif_bp,
+           mundial_api_bp]:
     app.register_blueprint(bp)
 
 with app.app_context():
