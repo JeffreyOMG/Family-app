@@ -203,6 +203,28 @@
         </div>
       </div>
 
+      <!-- ⚽ PARTIDOS DE HOY — MÓVIL (solo visible en mobile, debajo del contador) -->
+      <div class="panel-card pah-mobile-card" id="pah-widget-mobile">
+        <div class="panel-header">
+          <h3>⚽ Partidos de Hoy</h3>
+        </div>
+        <div class="pah-body">
+          <div class="pah-loading" id="pah-loading-mobile">
+            <div class="pah-skeleton"></div>
+            <div class="pah-skeleton pah-skeleton--short"></div>
+          </div>
+          <div class="panel-empty pah-error" id="pah-error-mobile" style="display:none;">
+            <span class="material-symbols-outlined">wifi_off</span>
+            <p>No se pudo cargar</p>
+          </div>
+          <div class="panel-empty pah-vacio" id="pah-vacio-mobile" style="display:none;">
+            <span class="material-symbols-outlined">sports_soccer</span>
+            <p>Sin partidos hoy</p>
+          </div>
+          <div class="noticias-list" id="pah-lista-mobile" style="display:none;"></div>
+        </div>
+      </div>
+
       <!-- COMPOSER TRIGGER -->
       <div class="compose-card" onclick="abrirComposer()" role="button" tabindex="0">
         <div class="compose-row">
@@ -441,6 +463,33 @@
             <p>Sin noticias por ahora</p>
           </div>
         {% endif %}
+      </div>
+
+      <!-- ⚽ PARTIDOS DE HOY — DESKTOP (solo visible en right-panel) -->
+      <div class="panel-card" id="pah-widget-desktop">
+        <div class="panel-header">
+          <h3>⚽ Partidos de Hoy</h3>
+        </div>
+        <div id="pah-body-desktop" class="pah-body">
+          <!-- Estado: loading -->
+          <div class="pah-loading" id="pah-loading-desktop">
+            <div class="pah-skeleton"></div>
+            <div class="pah-skeleton pah-skeleton--short"></div>
+            <div class="pah-skeleton"></div>
+          </div>
+          <!-- Estado: error -->
+          <div class="panel-empty pah-error" id="pah-error-desktop" style="display:none;">
+            <span class="material-symbols-outlined">wifi_off</span>
+            <p>No se pudo cargar</p>
+          </div>
+          <!-- Estado: sin partidos -->
+          <div class="panel-empty pah-vacio" id="pah-vacio-desktop" style="display:none;">
+            <span class="material-symbols-outlined">sports_soccer</span>
+            <p>Sin partidos hoy</p>
+          </div>
+          <!-- Lista de partidos -->
+          <div class="noticias-list" id="pah-lista-desktop" style="display:none;"></div>
+        </div>
       </div>
 
     </aside>
@@ -2792,6 +2841,70 @@ body.dark-mode .post-badge-privado { background: rgba(139,92,246,.2); color: #a7
 .dot-def  { background: var(--text3); }
 .noticia-titulo { font-size: 13px; font-weight: 600; color: var(--text); line-height: 1.4; margin-bottom: 2px; }
 .noticia-meta { font-size: 11px; color: var(--text3); }
+
+/* ── PARTIDOS DE HOY (pah-) ── */
+/* Mobile card: visible solo en ≤900px dentro del feed */
+.pah-mobile-card { display: none; margin-bottom: 0; }
+@media (max-width: 900px) { .pah-mobile-card { display: block; } }
+
+/* Skeleton loader */
+.pah-loading { padding: 10px 16px 6px; display: flex; flex-direction: column; gap: 8px; }
+.pah-skeleton {
+  height: 38px; border-radius: 10px;
+  background: linear-gradient(90deg, var(--bg2) 25%, var(--border) 50%, var(--bg2) 75%);
+  background-size: 200% 100%;
+  animation: pah-shimmer 1.4s infinite;
+}
+.pah-skeleton--short { height: 28px; width: 70%; }
+@keyframes pah-shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+
+/* Ítem de partido — hereda de noticia-item */
+.pah-item {
+  display: flex; flex-direction: column; gap: 4px;
+  padding: 10px 10px; border-bottom: 1px solid var(--border);
+  transition: background .15s; border-radius: 8px; cursor: default;
+}
+.pah-item:last-child { border-bottom: none; }
+.pah-item:hover { background: var(--bg2); }
+
+/* Badge de estado */
+.pah-badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 10px; font-weight: 800; letter-spacing: .05em;
+  text-transform: uppercase; padding: 2px 7px;
+  border-radius: 20px; align-self: flex-start; margin-bottom: 2px;
+}
+.pah-badge--live {
+  color: #fff; background: #dc2626;
+  animation: pah-pulse 1.6s ease-in-out infinite;
+}
+.pah-badge--live::before { content: '🔴'; font-size: 9px; }
+@keyframes pah-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(220,38,38,.4); }
+  50%       { box-shadow: 0 0 0 5px rgba(220,38,38,0); }
+}
+.pah-badge--proximo { color: var(--text2); background: var(--bg2); border: 1px solid var(--border); }
+.pah-badge--final   { color: #16a34a; background: rgba(22,163,74,.12); }
+
+/* Fila del marcador */
+.pah-match-row {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 6px; font-size: 13px; font-weight: 600; color: var(--text);
+  line-height: 1.3;
+}
+.pah-team { flex: 1; display: flex; align-items: center; gap: 5px; min-width: 0; }
+.pah-team--right { flex-direction: row-reverse; text-align: right; }
+.pah-team-name { font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pah-score { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+.pah-score-num { font-size: 15px; font-weight: 900; color: var(--text); min-width: 14px; text-align: center; }
+.pah-score-sep { color: var(--text3); font-weight: 700; }
+.pah-score-vs   { font-size: 11px; font-weight: 700; color: var(--text3); padding: 0 2px; }
+
+/* Pie del ítem (minuto / hora / sede) */
+.pah-meta {
+  font-size: 11px; color: var(--text3);
+  display: flex; align-items: center; gap: 4px; padding-left: 2px;
+}
 
 /* ── BOTTOM NAV — no local overrides; global style.css handles the pill ── */
 .bnav-label { display: none !important; }
@@ -7701,5 +7814,169 @@ async function cargarMasPosts(btn) {
     btn.innerHTML = origHTML;
   }
 }
+
+/* ════════════════════════════════════════
+   ⚽ WIDGET PARTIDOS DE HOY (pah)
+   ════════════════════════════════════════ */
+(function () {
+  'use strict';
+
+  // ── Helpers ──────────────────────────────────────────────────────────────
+
+  function _esc(s) {
+    return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  function _bandera(codigo) {
+    if (!codigo) return '🏳️';
+    // Convierte código ISO de 2 letras a emoji de bandera
+    return codigo.toUpperCase().split('').map(c =>
+      String.fromCodePoint(0x1F1E0 - 65 + c.charCodeAt(0))
+    ).join('');
+  }
+
+  function _hora(fechaIso) {
+    if (!fechaIso) return '';
+    try {
+      const d = new Date(fechaIso);
+      return d.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', hour12: true });
+    } catch (_) { return ''; }
+  }
+
+  // ── Renderizadores de estado ──────────────────────────────────────────────
+
+  function _setEstado(sufijo, estado) {
+    // estado: 'loading' | 'error' | 'vacio' | 'lista'
+    const loading = document.getElementById('pah-loading-' + sufijo);
+    const error   = document.getElementById('pah-error-'   + sufijo);
+    const vacio   = document.getElementById('pah-vacio-'   + sufijo);
+    const lista   = document.getElementById('pah-lista-'   + sufijo);
+    if (!loading) return;
+    loading.style.display = estado === 'loading' ? '' : 'none';
+    error  .style.display = estado === 'error'   ? '' : 'none';
+    vacio  .style.display = estado === 'vacio'   ? '' : 'none';
+    lista  .style.display = estado === 'lista'   ? '' : 'none';
+  }
+
+  function _renderPartido(p) {
+    const estado = (p.estado || '').toLowerCase();
+    const enVivo     = estado === 'en_vivo'   || estado === 'en vivo'  || estado === 'live';
+    const finalizado = estado === 'finalizado'|| estado === 'finished' || estado === 'bloqueado' || p.bloqueado;
+    const proximo    = !enVivo && !finalizado;
+
+    // Badge
+    let badge = '';
+    if (enVivo) {
+      const min = p.minuto ? `⏱️ ${_esc(p.minuto)}'` : '⏱️ En curso';
+      badge = `<span class="pah-badge pah-badge--live">EN VIVO</span>
+               <span class="pah-meta">${min}</span>`;
+    } else if (finalizado) {
+      badge = `<span class="pah-badge pah-badge--final">✅ FINAL</span>`;
+    } else {
+      const hora = _hora(p.fecha_iso);
+      badge = `<span class="pah-badge pah-badge--proximo">🕒 ${hora || _esc(p.fecha_texto || 'Próximo')}</span>`;
+    }
+
+    // Marcador
+    const tieneScore = (enVivo || finalizado) &&
+                       (p.goles_local !== null && p.goles_local !== undefined) &&
+                       (p.goles_visit !== null && p.goles_visit !== undefined);
+
+    const banLocal = _bandera(p.codigo_local);
+    const banVisit = _bandera(p.codigo_visit);
+
+    let matchRow = '';
+    if (tieneScore) {
+      matchRow = `
+        <div class="pah-match-row">
+          <div class="pah-team">
+            <span>${banLocal}</span>
+            <span class="pah-team-name">${_esc(p.local)}</span>
+          </div>
+          <div class="pah-score">
+            <span class="pah-score-num">${_esc(p.goles_local)}</span>
+            <span class="pah-score-sep">-</span>
+            <span class="pah-score-num">${_esc(p.goles_visit)}</span>
+          </div>
+          <div class="pah-team pah-team--right">
+            <span>${banVisit}</span>
+            <span class="pah-team-name">${_esc(p.visitante)}</span>
+          </div>
+        </div>`;
+    } else {
+      matchRow = `
+        <div class="pah-match-row">
+          <div class="pah-team">
+            <span>${banLocal}</span>
+            <span class="pah-team-name">${_esc(p.local)}</span>
+          </div>
+          <div class="pah-score">
+            <span class="pah-score-vs">vs</span>
+          </div>
+          <div class="pah-team pah-team--right">
+            <span>${banVisit}</span>
+            <span class="pah-team-name">${_esc(p.visitante)}</span>
+          </div>
+        </div>`;
+    }
+
+    return `<div class="pah-item">${badge}${matchRow}</div>`;
+  }
+
+  function _poblarLista(sufijo, partidos) {
+    const lista = document.getElementById('pah-lista-' + sufijo);
+    if (!lista) return;
+    lista.innerHTML = partidos.map(_renderPartido).join('');
+  }
+
+  // ── Prioridad y filtrado ──────────────────────────────────────────────────
+
+  function _ordenar(partidos) {
+    const prio = (p) => {
+      const e = (p.estado || '').toLowerCase();
+      if (e === 'en_vivo' || e === 'en vivo' || e === 'live') return 0;
+      if (!p.bloqueado && e !== 'finalizado' && e !== 'finished') return 1;
+      return 2;
+    };
+    return [...partidos].sort((a, b) => prio(a) - prio(b)).slice(0, 3);
+  }
+
+  // ── Fetch y renderizado ───────────────────────────────────────────────────
+
+  async function cargarPartidosHoy() {
+    try {
+      const res = await fetch('/api/mundial/partidos-hoy');
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const json = await res.json();
+
+      if (!json.ok || !Array.isArray(json.data)) throw new Error('Respuesta inválida');
+
+      const partidos = _ordenar(json.data);
+
+      ['desktop', 'mobile'].forEach(suf => {
+        if (partidos.length === 0) {
+          _setEstado(suf, 'vacio');
+        } else {
+          _poblarLista(suf, partidos);
+          _setEstado(suf, 'lista');
+        }
+      });
+    } catch (err) {
+      console.warn('[PAH] Error al cargar partidos:', err);
+      ['desktop', 'mobile'].forEach(suf => _setEstado(suf, 'error'));
+    }
+  }
+
+  // ── Init ─────────────────────────────────────────────────────────────────
+
+  document.addEventListener('DOMContentLoaded', () => {
+    // Mostrar loading en ambos widgets
+    _setEstado('desktop', 'loading');
+    _setEstado('mobile',  'loading');
+    cargarPartidosHoy();
+    // Refresco cada 2 minutos si hay partido en vivo
+    setInterval(cargarPartidosHoy, 120_000);
+  });
+})();
 
 </script>
