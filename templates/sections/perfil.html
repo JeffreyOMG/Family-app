@@ -959,6 +959,11 @@
 .pf2-modal-ajustes {
   height: 80vh;
 }
+/* Modal editar: altura fija para que el footer siempre sea visible */
+.pf2-modal-lg {
+  max-height: 88vh;
+  height: 88vh;
+}
 .pf2-modal-overlay.pf2-open .pf2-modal {
   transform: translateY(0) scale(1);
   opacity: 1;
@@ -1945,11 +1950,18 @@ document.getElementById('pf2-form-editar').addEventListener('submit', async func
 
   const fd = new FormData(this);
 
-  // Comprimir foto si hay
+  // Comprimir foto de perfil si hay
   const fotoFile = fd.get('foto_perfil');
   if (fotoFile && fotoFile.size > 0) {
     const compressed = await _comprimirImagen(fotoFile);
     fd.set('foto_perfil', compressed, 'perfil.jpg');
+  }
+
+  // Comprimir portada si hay
+  const portadaFile = fd.get('portada');
+  if (portadaFile && portadaFile.size > 0) {
+    const compressed = await _comprimirImagen(portadaFile, 1600, 0.85);
+    fd.set('portada', compressed, 'portada.jpg');
   }
 
   try {
@@ -1968,6 +1980,20 @@ document.getElementById('pf2-form-editar').addEventListener('submit', async func
       const bioEl = document.getElementById('pf2-bio-texto');
       if (bioEl) { bioEl.textContent = bio || 'Sin biografía aún.'; bioEl.classList.toggle('pf2-bio-empty', !bio); }
       if (data.foto) _aplicarFotoGlobal(data.foto);
+      // Actualizar portada en el hero si el servidor devolvió una nueva
+      if (data.portada) {
+        const coverImg = document.getElementById('pf2-cover-img');
+        if (coverImg) {
+          if (coverImg.tagName === 'IMG') {
+            coverImg.src = data.portada;
+          } else {
+            const img = document.createElement('img');
+            img.src = data.portada; img.className = 'pf2-cover-img';
+            img.id = 'pf2-cover-img'; img.alt = 'Portada';
+            coverImg.replaceWith(img);
+          }
+        }
+      }
       pf2ActualizarPills(ciudad, web);
       pf2CerrarModal('pf2-modal-editar');
       mostrarToast('✅ Perfil actualizado');

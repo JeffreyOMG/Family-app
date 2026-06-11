@@ -45,7 +45,6 @@ def api_usuario(nombre_usuario):
             "total_posts":     total_posts,
             "total_likes":     total_likes,
             "total_puntos":    int(total_puntos),
-            # ── FASE 3.2: datos de seguidores ──
             "total_seguidores": contar_seguidores(uid),
             "total_siguiendo":  contar_siguiendo(uid),
             "yo_lo_sigo":       esta_siguiendo(mi_uid, uid),
@@ -144,17 +143,31 @@ def api_perfil_galeria(uid):
         })
     return jsonify({"ok": True, "items": items})
 
+
+# ─── ACTUALIZAR PERFIL (foto + portada + datos) ───────────────────────────────
 @perfil_bp.route("/actualizar_perfil", methods=["POST"])
 def actualizar_perfil():
     if "uid" not in session:
         return (jsonify({"ok": False}), 401) if _is_ajax() else redirect("/")
-    uid    = session["uid"]
-    nombre = request.form.get("nombre", "").strip()
-    gmail  = request.form.get("gmail", "").strip()
-    bio    = request.form.get("bio", "").strip()
-    con    = get_db()
+    uid              = session["uid"]
+    nombre           = request.form.get("nombre", "").strip()
+    gmail            = request.form.get("gmail", "").strip()
+    bio              = request.form.get("bio", "").strip()
+    ciudad           = request.form.get("ciudad", "").strip()
+    sitio_web        = request.form.get("sitio_web", "").strip()
+    fecha_nacimiento = request.form.get("fecha_nacimiento", "").strip() or None
+    con              = get_db()
 
-    foto_url = None
+    # Migración segura: agregar columnas si no existen
+    for col_def in ["portada TEXT", "ciudad TEXT", "sitio_web TEXT", "fecha_nacimiento DATE"]:
+        try:
+            con.execute(f"ALTER TABLE usuarios ADD COLUMN {col_def}")
+            con.commit()
+        except Exception:
+            pass  # columna ya existe
+
+    # ── Foto de perfil ────────────────────────────────────────────────
+    foto_url  = None
     foto_file = request.files.get("foto_perfil")
     if foto_file and foto_file.filename:
         url, _ = subir_a_cloudinary(foto_file, folder="familia/perfiles")
@@ -162,27 +175,52 @@ def actualizar_perfil():
             foto_url = url
         else:
             if _is_ajax():
-                return jsonify({"ok": False, "error": "No se pudo subir la foto. Verifica las credenciales de Cloudinary."}), 500
+                return jsonify({"ok": False, "error": "No se pudo subir la foto de perfil."}), 500
             return redirect("/dashboard")
 
-    if foto_url:
-        con.execute(
-            "UPDATE usuarios SET nombre=%s, gmail=%s, bio=%s, foto=%s WHERE id=%s",
-            (nombre, gmail, bio, foto_url, uid)
-        )
-    else:
-        con.execute(
-            "UPDATE usuarios SET nombre=%s, gmail=%s, bio=%s WHERE id=%s",
-            (nombre, gmail, bio, uid)
-        )
-        row = con.execute("SELECT foto FROM usuarios WHERE id=%s", (uid,)).fetchone()
-        if row:
+    # ── Portada ───────────────────────────────────────────────────────
+    portada_url  = None
+    portada_file = request.files.get("portada")
+    if portada_file and portada_file.filename:
+        url, _ = subir_a_cloudinary(portada_file, folder="familia/portadas")
+        if url:
+            portada_url = url
+        else:
+            if _is_ajax():
+                return jsonify({"ok": False, "error": "No se pudo subir la portada."}), 500
+            return redirect("/dashboard")
+
+    # ── Conservar valores actuales si no se subió algo nuevo ──────────
+    row = con.execute("SELECT foto, portada FROM usuarios WHERE id=%s", (uid,)).fetchone()
+    if row:
+        if not foto_url:
             foto_url = row["foto"]
+        if not portada_url:
+            try:
+                portada_url = row["portada"]
+            except Exception:
+                portada_url = None
+
+    # ── Guardar todo ──────────────────────────────────────────────────
+    con.execute(
+        """UPDATE usuarios
+           SET nombre=%s, gmail=%s, bio=%s, foto=%s, portada=%s,
+               ciudad=%s, sitio_web=%s, fecha_nacimiento=%s
+           WHERE id=%s""",
+        (nombre, gmail, bio, foto_url, portada_url,
+         ciudad, sitio_web, fecha_nacimiento, uid)
+    )
     con.commit()
     session["nombre"] = nombre
     if _is_ajax():
-        return jsonify({"ok": True, "nombre": nombre, "foto": foto_url})
+        return jsonify({
+            "ok":      True,
+            "nombre":  nombre,
+            "foto":    foto_url    or "",
+            "portada": portada_url or "",
+        })
     return redirect("/dashboard")
+
 
 @perfil_bp.route("/cambiar_password", methods=["POST"])
 def cambiar_password():
