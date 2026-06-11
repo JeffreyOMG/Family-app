@@ -35,39 +35,54 @@
     <!-- PERFIL REAL (oculto hasta cargar) -->
     <div id="vp-perfil" style="display:none;">
 
-      <!-- BANNER -->
-      <div class="vp-banner" id="vp-banner" onclick="vpAbrirLightbox('portada')" title="Ver portada" style="cursor:zoom-in;"></div>
-
-      <!-- AVATAR + INFO PRINCIPAL -->
-      <div class="vp-header-card content-card">
-        <div class="vp-avatar-wrap">
-          <img id="vp-foto" class="vp-avatar-img" src="" alt="" style="display:none;cursor:zoom-in;" onclick="vpAbrirLightbox('foto')">
-          <div id="vp-letra" class="user-avatar vp-avatar-letter"></div>
+      <!-- PORTADA + AVATAR (estructura unificada igual que perfil propio) -->
+      <div class="vp-cover-wrap">
+        <div class="vp-banner" id="vp-banner" onclick="vpAbrirLightbox('portada')" title="Ver portada">
+          <div class="vp-cover-gradient"></div>
         </div>
-        <div class="vp-info-wrap">
-          <div class="vp-nombre-row">
-            <h2 id="vp-nombre" class="vp-nombre"></h2>
-            <span id="vp-rol-badge" class="vp-rol-badge"></span>
+        <div class="vp-avatar-area">
+          <div class="vp-avatar-wrap">
+            <img id="vp-foto" class="vp-avatar-img" src="" alt="" style="display:none;cursor:zoom-in;" onclick="vpAbrirLightbox('foto')">
+            <div id="vp-letra" class="user-avatar vp-avatar-letter"></div>
           </div>
-          <p id="vp-usuario" class="vp-usuario-text"></p>
-          <p id="vp-bio" class="vp-bio"></p>
-          <p id="vp-fecha" class="vp-fecha">
-            <span class="material-symbols-outlined">calendar_today</span>
-            <span id="vp-fecha-txt"></span>
-          </p>
+          <div class="vp-identity">
+            <div class="vp-names">
+              <div class="vp-nombre-row">
+                <h2 id="vp-nombre" class="vp-nombre"></h2>
+              </div>
+              <div class="vp-meta-row">
+                <span id="vp-usuario" class="vp-usuario-text"></span>
+                <span id="vp-rol-badge" class="vp-rol-badge"></span>
+              </div>
+              <p id="vp-bio" class="vp-bio"></p>
+              <div class="vp-pills" id="vp-pills">
+                <span id="vp-pill-ciudad" class="vp-pill" style="display:none;">
+                  <span class="material-symbols-outlined">location_on</span>
+                  <span id="vp-ciudad-txt"></span>
+                </span>
+                <a id="vp-pill-web" class="vp-pill vp-pill-link" href="#" target="_blank" rel="noopener" style="display:none;">
+                  <span class="material-symbols-outlined">link</span>
+                  <span id="vp-web-txt"></span>
+                </a>
+                <span id="vp-pill-fecha" class="vp-pill" style="display:none;">
+                  <span class="material-symbols-outlined">calendar_month</span>
+                  <span id="vp-fecha-txt"></span>
+                </span>
+              </div>
+            </div>
+            <!-- Botón Seguir -->
+            <div id="vp-follow-wrap" style="display:none;" class="vp-follow-actions">
+              <button id="vp-follow-btn" class="vp-follow-btn" onclick="vpToggleSeguir()">
+                <span class="material-symbols-outlined" id="vp-follow-icon">person_add</span>
+                <span id="vp-follow-label">Seguir</span>
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
       <!-- ESTADÍSTICAS -->
       <div id="vp-stats" class="vp-stats-grid"></div>
-
-      <!-- FASE 3.2: Botón Seguir / Siguiendo (solo para perfiles ajenos) -->
-      <div id="vp-follow-wrap" style="display:none;" class="vp-follow-wrap">
-        <button id="vp-follow-btn" class="vp-follow-btn" onclick="vpToggleSeguir()">
-          <span class="material-symbols-outlined" id="vp-follow-icon">person_add</span>
-          <span id="vp-follow-label">Seguir</span>
-        </button>
-      </div>
 
       <!-- PESTAÑAS DE CONTENIDO -->
       <div class="vp-tabs-wrap">
@@ -286,58 +301,58 @@
   color: var(--accent);
 }
 
-/* Banner */
+/* ── PORTADA + AVATAR AREA (misma estructura que perfil propio) ── */
+.vp-cover-wrap {
+  border-radius: 18px;
+  overflow: visible;
+  position: relative;
+  margin-bottom: 10px;
+}
+
+/* Portada */
 .vp-banner {
   width: 100%;
-  height: 160px;
-  border-radius: var(--r2);
+  height: 200px;
+  border-radius: 18px 18px 0 0;
   background: linear-gradient(135deg, var(--accent) 0%, #a855f7 60%, #3b82f6 100%);
-  margin-bottom: 0;
+  background-size: cover;
+  background-position: center;
   position: relative;
   overflow: hidden;
+  cursor: zoom-in;
 }
 
-.vp-banner::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background:
-    radial-gradient(ellipse at 20% 50%, rgba(255,255,255,.15) 0%, transparent 60%),
-    radial-gradient(ellipse at 80% 20%, rgba(255,255,255,.12) 0%, transparent 50%);
+.vp-cover-gradient {
+  position: absolute; inset: 0; z-index: 1;
+  background: linear-gradient(to bottom, transparent 40%, rgba(0,0,0,.3) 100%);
+  pointer-events: none;
 }
 
-.vp-banner::after {
-  content: '';
-  position: absolute;
-  bottom: -20px; left: -20px; right: -20px;
-  height: 80px;
-  background: inherit;
-  filter: blur(20px);
-  opacity: .3;
-}
-
-/* Header card */
-.vp-header-card {
-  padding: 0 20px 20px !important;
-  position: relative;
+/* Área avatar + info */
+.vp-avatar-area {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 0 0 18px 18px;
   margin-top: -2px;
-  border-radius: 0 0 var(--r2) var(--r2) !important;
+  padding: 0 20px 20px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  align-items: flex-start;
+  position: relative;
   z-index: 1;
 }
 
 /* Avatar */
 .vp-avatar-wrap {
   position: relative;
-  top: auto;
-  left: auto;
-  margin-top: -44px;
-  margin-bottom: 10px;
-  display: inline-block;
+  margin-top: -46px;
+  flex-shrink: 0;
 }
 
 .vp-avatar-img {
-  width: 88px;
-  height: 88px;
+  width: 92px;
+  height: 92px;
   border-radius: 50%;
   object-fit: cover;
   border: 4px solid var(--card);
@@ -346,8 +361,8 @@
 }
 
 .vp-avatar-letter {
-  width: 88px;
-  height: 88px;
+  width: 92px;
+  height: 92px;
   font-size: 36px;
   border-radius: 50%;
   border: 4px solid var(--card);
@@ -357,30 +372,47 @@
   justify-content: center;
 }
 
-/* Info */
-.vp-info-wrap { padding-top: 4px; }
+/* Identidad */
+.vp-identity {
+  flex: 1;
+  min-width: 180px;
+  padding-top: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+.vp-names { flex: 1; min-width: 160px; }
 
 .vp-nombre-row {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   flex-wrap: wrap;
-  margin-bottom: 2px;
+  margin-bottom: 4px;
 }
 
 .vp-nombre {
   font-size: 1.3rem;
-  font-weight: 700;
+  font-weight: 800;
   color: var(--text);
   margin: 0;
+  line-height: 1.2;
+}
+
+.vp-meta-row {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  margin-bottom: 7px;
 }
 
 .vp-rol-badge {
-  padding: 3px 10px;
+  padding: 2px 9px;
   border-radius: 20px;
-  font-size: .72rem;
+  font-size: .68rem;
   font-weight: 700;
-  letter-spacing: .3px;
+  text-transform: uppercase;
+  letter-spacing: .04em;
 }
 
 .vp-rol-badge.admin {
@@ -399,67 +431,79 @@
 }
 
 .vp-usuario-text {
-  font-size: .88rem;
-  color: var(--text2);
-  margin: 0 0 8px;
+  font-size: .85rem;
+  color: var(--text3);
 }
 
 .vp-bio {
-  font-size: .9rem;
-  color: var(--text);
+  font-size: .88rem;
+  color: var(--text2);
   line-height: 1.5;
-  margin: 0 0 10px;
+  margin: 0 0 8px;
   display: none;
 }
 
 .vp-bio.visible { display: block; }
 
-.vp-fecha {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  font-size: .8rem;
-  color: var(--text3);
-  margin: 0;
+/* Pills (ciudad, web, fecha) */
+.vp-pills { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+.vp-pill {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: .76rem; color: var(--text3);
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 20px; padding: 3px 10px;
 }
+.vp-pill .material-symbols-outlined { font-size: 13px; }
+.vp-pill-link { color: var(--accent); text-decoration: none; }
+.vp-pill-link:hover { text-decoration: underline; }
 
-.vp-fecha .material-symbols-outlined { font-size: 15px; }
+/* Botón Seguir en la sección de acciones */
+.vp-follow-actions {
+  flex-shrink: 0;
+  padding-top: 10px;
+}
 
 /* Stats */
 .vp-stats-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
-  margin-top: 12px;
+  display: flex;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
   margin-bottom: 12px;
 }
 
 .vp-stat {
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: 12px;
+  flex: 1;
   padding: 14px 8px;
   text-align: center;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
+  gap: 3px;
+  border-right: 1px solid var(--border);
+  cursor: default;
+  transition: background .15s;
 }
+.vp-stat:hover { background: var(--bg2); }
+.vp-stat:last-child { border-right: none; }
 
 .vp-stat .material-symbols-outlined {
-  font-size: 22px;
+  font-size: 20px;
   color: var(--accent);
 }
 
 .vp-stat strong {
   font-size: 1.1rem;
-  font-weight: 700;
+  font-weight: 800;
   color: var(--text);
+  line-height: 1;
 }
 
 .vp-stat span:last-child {
-  font-size: .7rem;
+  font-size: .68rem;
   color: var(--text3);
+  text-align: center;
 }
 
 /* ── FASE 3.2: Botón Seguir ───────────────────────────────── */
@@ -790,68 +834,58 @@ body.dark-mode .vp-follow-btn.siguiendo:hover {
    Breakpoints: 480 / 390 / 360 / 320
    ════════════════════════════════════════════════════════ */
 
+@media (max-width: 768px) {
+  .vp-banner { height: 160px; border-radius: 14px 14px 0 0; }
+  .vp-avatar-area { border-radius: 0 0 14px 14px; }
+}
+
 @media (max-width: 480px) {
-  /* Banner/portada */
-  .vp-banner {
-    height: 120px;
-    border-radius: 12px 12px 0 0;
-  }
+  /* Portada */
+  .vp-banner { height: 130px; border-radius: 12px 12px 0 0; }
 
-  /* Header card */
-  .vp-header-card {
-    padding: 0 14px 18px !important;
-    border-radius: 0 0 12px 12px !important;
-    margin-bottom: 10px;
+  /* Avatar area */
+  .vp-avatar-area {
+    padding: 0 14px 18px;
+    border-radius: 0 0 12px 12px;
+    gap: 12px;
   }
-
-  /* Avatar */
-  .vp-avatar-wrap { margin-top: -42px; margin-bottom: 10px; }
-  .vp-avatar-img,
-  .vp-avatar-letter {
-    width: 80px; height: 80px;
+  .vp-avatar-wrap { margin-top: -42px; }
+  .vp-avatar-img, .vp-avatar-letter {
+    width: 82px; height: 82px;
     font-size: 30px;
     border-width: 3px;
   }
 
-  /* Nombre */
-  .vp-nombre {
-    font-size: 1.1rem;
-    word-break: break-word;
+  /* Identidad: columna completa */
+  .vp-identity {
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+    padding-top: 8px;
+    min-width: 0;
   }
-  .vp-nombre-row {
-    flex-wrap: wrap;
-    gap: 6px;
-  }
+  .vp-names { min-width: 0; width: 100%; }
+  .vp-nombre { font-size: 1.1rem; word-break: break-word; }
+  .vp-meta-row { flex-wrap: wrap; gap: 6px; }
   .vp-usuario-text { font-size: .82rem; }
   .vp-bio { font-size: .85rem; }
+  .vp-pills { gap: 5px; margin-top: 6px; }
+  .vp-pill { font-size: .74rem; padding: 4px 10px; }
 
-  /* Botones: ancho completo, táctiles */
-  .vp-actions {
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
-    margin-top: 10px;
-  }
-  .vp-btn-follow,
-  .vp-btn-msg {
-    flex: 1;
-    min-height: 44px;
-    justify-content: center;
-    font-size: .85rem;
-    border-radius: 22px;
-  }
+  /* Follow button full width */
+  .vp-follow-actions { width: 100%; padding-top: 4px; }
+  .vp-follow-btn { width: 100%; justify-content: center; min-height: 44px; }
 
-  /* Estadísticas: scroll horizontal suave */
+  /* Stats */
   .vp-stats-grid {
     display: flex;
     overflow-x: auto;
     scrollbar-width: none;
     gap: 0;
     -webkit-overflow-scrolling: touch;
-    margin-top: 12px;
-    margin-bottom: 12px;
     border-radius: 12px;
     overflow: hidden;
+    margin-bottom: 12px;
   }
   .vp-stats-grid::-webkit-scrollbar { display: none; }
   .vp-stat {
@@ -859,7 +893,6 @@ body.dark-mode .vp-follow-btn.siguiendo:hover {
     min-width: 76px;
     padding: 14px 8px;
     border-radius: 0;
-    text-align: center;
     border-right: 1px solid var(--border);
   }
   .vp-stat:last-child { border-right: none; }
@@ -872,19 +905,16 @@ body.dark-mode .vp-follow-btn.siguiendo:hover {
   .vp-tab-panel { padding: 14px; }
 }
 
-/* ── Móvil pequeño (≤ 390px) ── */
 @media (max-width: 390px) {
-  .vp-banner { height: 105px; border-radius: 12px 12px 0 0; }
-  .vp-header-card { padding: 0 12px 14px !important; }
+  .vp-banner { height: 115px; }
   .vp-avatar-wrap { margin-top: -38px; }
-  .vp-avatar-img, .vp-avatar-letter { width: 72px; height: 72px; font-size: 27px; }
+  .vp-avatar-img, .vp-avatar-letter { width: 74px; height: 74px; font-size: 27px; }
   .vp-nombre { font-size: 1rem; }
-  .vp-stat { min-width: 64px; }
+  .vp-stat { min-width: 66px; }
 }
 
-/* ── Muy pequeño (≤ 340px) ── */
 @media (max-width: 340px) {
-  .vp-banner { height: 92px; }
+  .vp-banner { height: 100px; }
   .vp-avatar-img, .vp-avatar-letter { width: 64px; height: 64px; font-size: 24px; }
   .vp-nombre { font-size: .92rem; }
   .vp-stat { min-width: 56px; padding: 10px 6px; }
@@ -1118,12 +1148,40 @@ function _renderVerPerfil(u) {
     }
   }
 
+  // Ciudad
+  const ciudadPill = document.getElementById('vp-pill-ciudad');
+  const ciudadTxt  = document.getElementById('vp-ciudad-txt');
+  if (ciudadPill && ciudadTxt) {
+    if (u.ciudad && u.ciudad.trim()) {
+      ciudadTxt.textContent = u.ciudad;
+      ciudadPill.style.display = '';
+    } else {
+      ciudadPill.style.display = 'none';
+    }
+  }
+
+  // Sitio web
+  const webPill = document.getElementById('vp-pill-web');
+  const webTxt  = document.getElementById('vp-web-txt');
+  if (webPill && webTxt) {
+    if (u.sitio_web && u.sitio_web.trim()) {
+      let url = u.sitio_web.trim();
+      webTxt.textContent = url.replace(/^https?:\/\//, '');
+      webPill.href = url.startsWith('http') ? url : 'https://' + url;
+      webPill.style.display = '';
+    } else {
+      webPill.style.display = 'none';
+    }
+  }
+
   // Fecha de registro
+  const fechaPill  = document.getElementById('vp-pill-fecha');
   const fechaTxtEl = document.getElementById('vp-fecha-txt');
   if (fechaTxtEl && u.fecha) {
     const d = new Date(u.fecha);
     const meses = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
-    fechaTxtEl.textContent = `Se unió en ${meses[d.getMonth()]} ${d.getFullYear()}`;
+    fechaTxtEl.textContent = `Desde ${meses[d.getMonth()]} ${d.getFullYear()}`;
+    if (fechaPill) fechaPill.style.display = '';
   }
 
   // Stats
