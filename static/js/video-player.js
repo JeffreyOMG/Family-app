@@ -883,7 +883,7 @@
 
     observer.observe(wrap);
 
-    /* ─── badge fade ─── */
+    /* ─── badge fadee ─── */
     setTimeout(() => { badge.style.opacity = '0.6'; }, 2500);
 
     updatePlayBtn();
