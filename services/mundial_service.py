@@ -19,7 +19,7 @@ import logging
 import os
 import threading
 import time
-from datetime import datetime, date
+from datetime import datetime, date, timezone, timedelta
 from typing import Any, Optional
 from urllib.error import URLError
 from urllib.request import urlopen, Request
@@ -131,6 +131,8 @@ _COUNTRY_CODE: dict[str, str] = {
     "hungría":         "hu", "romania":      "ro", "rumanía":        "ro",
     "albania":         "al", "greece":       "gr", "grecia":         "gr",
     "norway":          "no", "noruega":      "no",
+    "bosnia and herzegovina": "ba", "bosnia":  "ba", "bosnia y herzegovina": "ba",
+    "cape verde": "cv", "cabo verde": "cv", "curacao": "cw", "curaçao": "cw", "curazao": "cw",
     # África
     "morocco":         "ma", "marruecos":     "ma", "senegal":        "sn",
     "nigeria":         "ng", "cameroon":      "cm", "camerún":        "cm",
@@ -554,20 +556,34 @@ def get_all_games(force_refresh: bool = False) -> tuple[list[dict], str]:
 
 # ─── Helpers de filtrado ──────────────────────────────────────────────────────
 
+_TZ_BOGOTA = timezone(timedelta(hours=-5))  # Colombia / Perú (sin DST)
+
+
 def _today_str() -> str:
-    return date.today().isoformat()   # "2026-06-11"
+    """Fecha actual en zona Colombia/Perú (UTC-5), no la fecha local del servidor."""
+    return datetime.now(_TZ_BOGOTA).date().isoformat()
+
+
+def _fecha_iso_to_bogota_date(iso: str) -> Optional[str]:
+    """Convierte un fecha_iso (en UTC) a la fecha (YYYY-MM-DD) en zona Bogotá/Lima."""
+    try:
+        dt = datetime.fromisoformat(iso.replace("Z", "+00:00"))
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt.astimezone(_TZ_BOGOTA).date().isoformat()
+    except Exception:
+        return None
 
 
 def _game_is_today(game: dict) -> bool:
     iso = game.get("fecha_iso")
     if iso:
-        try:
-            return iso[:10] == _today_str()
-        except Exception:
-            pass
+        bog_date = _fecha_iso_to_bogota_date(iso)
+        if bog_date is not None:
+            return bog_date == _today_str()
     # Heurística sobre fecha_texto en español ("Dom. 28 jun, 15:00")
     texto = game.get("fecha_texto", "")
-    today = date.today()
+    today = datetime.now(_TZ_BOGOTA).date()
     months_es = ["ene", "feb", "mar", "abr", "may", "jun",
                  "jul", "ago", "sep", "oct", "nov", "dic"]
     m = re.search(r"(\d{1,2})\s+([a-záéíóú]+)", texto.lower())
@@ -584,10 +600,9 @@ def _game_is_today(game: dict) -> bool:
 def _game_is_upcoming(game: dict) -> bool:
     iso = game.get("fecha_iso")
     if iso:
-        try:
-            return iso[:10] > _today_str()
-        except Exception:
-            pass
+        bog_date = _fecha_iso_to_bogota_date(iso)
+        if bog_date is not None:
+            return bog_date > _today_str()
     return game.get("estado") == "programado" and not _game_is_today(game)
 
 
