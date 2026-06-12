@@ -103,6 +103,10 @@
             <span class="material-symbols-outlined">person_check</span>
             <span class="vp-tab-label">Siguiendo</span>
           </button>
+          <button class="vp-tab-btn" data-tab="pronosticos" onclick="vpCambiarTab(this,'pronosticos')">
+            <span class="material-symbols-outlined">sports_soccer</span>
+            <span class="vp-tab-label">Pronósticos</span>
+          </button>
         </div>
 
         <!-- TAB: PUBLICACIONES -->
@@ -169,6 +173,16 @@
                 <span class="material-symbols-outlined">expand_more</span>
                 Ver más
               </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB: PRONÓSTICOS CALIFICADOS -->
+        <div class="vp-tab-panel" id="vp-tab-pronosticos">
+          <div id="vp-pronosticos-contenido">
+            <div class="vp-tab-loading">
+              <span class="material-symbols-outlined vp-spin">progress_activity</span>
+              Cargando pronósticos…
             </div>
           </div>
         </div>
@@ -1042,6 +1056,208 @@ body.dark-mode .vp-follow-btn.siguiendo:hover {
 /* Spinner */
 @keyframes vp-spin { to { transform: rotate(360deg); } }
 .vp-spin { display: inline-block; animation: vp-spin .8s linear infinite; }
+
+/* ── PRONÓSTICOS CALIFICADOS ─────────────────────────────────────── */
+.vp-prono-resumen {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 16px;
+  margin-bottom: 14px;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.vp-prono-resumen-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.vp-prono-resumen-titulo {
+  font-size: .78rem;
+  color: var(--text3);
+  font-weight: 500;
+}
+.vp-prono-resumen-valor {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: var(--accent);
+  line-height: 1;
+}
+.vp-prono-resumen-partidos {
+  font-size: .76rem;
+  color: var(--text3);
+  text-align: right;
+}
+
+.vp-prono-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.vp-prono-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transition: border-color .15s;
+}
+.vp-prono-card:hover { border-color: color-mix(in srgb, var(--accent) 40%, var(--border)); }
+
+/* Encabezado del partido */
+.vp-prono-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.vp-prono-fase-badge {
+  font-size: .66rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  padding: 2px 8px;
+  border-radius: 20px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  color: var(--text3);
+  white-space: nowrap;
+}
+.vp-prono-fase-badge.grupos { background: rgba(59,130,246,.1); color: #3b82f6; border-color: rgba(59,130,246,.25); }
+.vp-prono-fase-badge.r16    { background: rgba(168,85,247,.1); color: #a855f7; border-color: rgba(168,85,247,.25); }
+.vp-prono-fase-badge.octavos{ background: rgba(249,115,22,.1); color: #f97316; border-color: rgba(249,115,22,.25); }
+.vp-prono-fase-badge.cuartos{ background: rgba(234,179,8,.1);  color: #ca8a04; border-color: rgba(234,179,8,.25); }
+.vp-prono-fase-badge.semis  { background: rgba(239,68,68,.1);  color: #ef4444; border-color: rgba(239,68,68,.25); }
+.vp-prono-fase-badge.final  { background: rgba(255,215,0,.15); color: #b45309; border-color: rgba(255,215,0,.4); }
+
+/* Puntos badge */
+.vp-prono-pts {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: .82rem;
+  font-weight: 800;
+  padding: 3px 10px;
+  border-radius: 20px;
+  white-space: nowrap;
+}
+.vp-prono-pts.pts-3, .vp-prono-pts.pts-4 {
+  background: rgba(34,197,94,.12);
+  color: #16a34a;
+  border: 1px solid rgba(34,197,94,.3);
+}
+.vp-prono-pts.pts-1 {
+  background: rgba(59,130,246,.1);
+  color: #2563eb;
+  border: 1px solid rgba(59,130,246,.25);
+}
+.vp-prono-pts.pts-0 {
+  background: rgba(239,68,68,.08);
+  color: #ef4444;
+  border: 1px solid rgba(239,68,68,.2);
+}
+
+/* Fila de equipos */
+.vp-prono-equipos {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 6px;
+  text-align: center;
+}
+.vp-prono-equipo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+.vp-prono-bandera {
+  width: 28px;
+  height: 20px;
+  object-fit: cover;
+  border-radius: 3px;
+  border: 1px solid var(--border);
+}
+.vp-prono-equipo-nombre {
+  font-size: .75rem;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 90px;
+}
+.vp-prono-vs { font-size: .7rem; color: var(--text3); font-weight: 500; }
+
+/* Filas de marcadores */
+.vp-prono-scores {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.vp-prono-score-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.vp-prono-score-label {
+  font-size: .71rem;
+  color: var(--text3);
+  min-width: 90px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.vp-prono-score-label .material-symbols-outlined { font-size: 13px; }
+.vp-prono-score-value {
+  font-size: .88rem;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: .03em;
+}
+.vp-prono-score-value.exact { color: #16a34a; }
+.vp-prono-score-value.winner { color: #2563eb; }
+.vp-prono-score-value.miss { color: #ef4444; }
+
+/* Penal info */
+.vp-prono-penales-row {
+  font-size: .72rem;
+  color: var(--text3);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding-top: 2px;
+}
+.vp-prono-penales-row .material-symbols-outlined { font-size: 13px; }
+.vp-prono-penales-row strong { color: var(--text2); }
+
+/* Estado vacío */
+.vp-prono-empty {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--text3);
+}
+.vp-prono-empty .material-symbols-outlined {
+  font-size: 44px;
+  display: block;
+  margin-bottom: 10px;
+  opacity: .35;
+}
+.vp-prono-empty p { font-size: .88rem; margin: 0; line-height: 1.5; }
+
+@media (max-width: 480px) {
+  .vp-prono-equipo-nombre { max-width: 70px; font-size: .7rem; }
+  .vp-prono-bandera { width: 24px; height: 17px; }
+  .vp-prono-card { padding: 10px 11px; }
+}
 </style>
 
 <script>
@@ -1254,6 +1470,7 @@ function _renderVerPerfil(u) {
   _vpLoaded.galeria = false;
   _vpLoaded.seguidores = false;
   _vpLoaded.siguiendo  = false;
+  _vpLoaded.pronosticos = false;
 
   // Resetear a pestaña Publicaciones y cargar
   document.querySelectorAll('.vp-tab-btn').forEach((b,i) => b.classList.toggle('active', i===0));
@@ -1262,6 +1479,8 @@ function _renderVerPerfil(u) {
     '<div class="vp-tab-loading"><span class="material-symbols-outlined vp-spin">progress_activity</span>Cargando publicaciones…</div>';
 document.getElementById('vp-galeria-grid').innerHTML =
     '<div class="vp-tab-loading"><span class="material-symbols-outlined vp-spin">progress_activity</span>Cargando galería…</div>';
+  const _pronoCont = document.getElementById('vp-pronosticos-contenido');
+  if (_pronoCont) _pronoCont.innerHTML = '<div class="vp-tab-loading"><span class="material-symbols-outlined vp-spin">progress_activity</span>Cargando pronósticos…</div>';
 
   _vpLoaded.publicaciones = true;
   vpCargarPosts(u.id);
@@ -1327,7 +1546,7 @@ async function vpToggleSeguir() {
 // ─── PESTAÑAS DEL PERFIL PÚBLICO ─────────────────────────────────────────────
 
 let _vpUidActual = null;
-const _vpLoaded = { publicaciones: false, galeria: false, seguidores: false, siguiendo: false };
+const _vpLoaded = { publicaciones: false, galeria: false, seguidores: false, siguiendo: false, pronosticos: false };
 
 function vpCambiarTab(btn, tab) {
   document.querySelectorAll('.vp-tab-btn').forEach(b => b.classList.remove('active'));
@@ -1340,6 +1559,7 @@ function vpCambiarTab(btn, tab) {
     else if (tab === 'galeria')  vpCargarGaleria(_vpUidActual);
     else if (tab === 'seguidores') vpCargarSocial('seguidores', _vpUidActual);
     else if (tab === 'siguiendo')  vpCargarSocial('siguiendo',  _vpUidActual);
+    else if (tab === 'pronosticos') vpCargarPronosticos(_vpUidActual);
   }
 }
 
@@ -1388,8 +1608,138 @@ async function vpCargarPosts(uid) {
 }
 
 
+// ─── PRONÓSTICOS CALIFICADOS ─────────────────────────────────────────────────
+
+const _VP_FASE_LABELS = {
+  grupos:  'Grupo',
+  r16:     'Ronda 32',
+  octavos: 'Octavos',
+  cuartos: 'Cuartos',
+  semis:   'Semis',
+  final:   'Final',
+};
+
+function _vpPuntosClase(pts) {
+  if (pts >= 3) return 'pts-' + pts;
+  if (pts === 1) return 'pts-1';
+  return 'pts-0';
+}
+
+function _vpScoreClase(pred_l, pred_v, res_l, res_v) {
+  if (pred_l === res_l && pred_v === res_v) return 'exact';
+  const pred_g = pred_l > pred_v ? 'L' : pred_l < pred_v ? 'V' : 'E';
+  const res_g  = res_l  > res_v  ? 'L' : res_l  < res_v  ? 'V' : 'E';
+  if (pred_g === res_g) return 'winner';
+  return 'miss';
+}
+
+function _vpBanderaHTML(codigo, nombre) {
+  if (!codigo || codigo === 'xx') return '<span style="font-size:1.1rem;">🌍</span>';
+  return '<img class="vp-prono-bandera" src="/static/banderas/' + _vpEscape(codigo) + '.png" alt="' + _vpEscape(nombre) + '" onerror="this.style.display='none'">';
+}
+
+async function vpCargarPronosticos(uid) {
+  const cont = document.getElementById('vp-pronosticos-contenido');
+  if (!cont) return;
+  cont.innerHTML = '<div class="vp-tab-loading"><span class="material-symbols-outlined vp-spin">progress_activity</span>Cargando pronósticos…</div>';
+
+  try {
+    const r = await fetch('/api/perfil/pronosticos_calificados/' + uid, {
+      headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    });
+    const d = await r.json();
+
+    if (!d.ok) throw new Error(d.error || 'Error');
+
+    if (!d.pronosticos || !d.pronosticos.length) {
+      cont.innerHTML = \`
+        <div class="vp-prono-empty">
+          <span class="material-symbols-outlined">sports_soccer</span>
+          <p>Aún no hay partidos puntuados.<br>Los pronósticos aparecerán aquí una vez que el sistema califique los resultados.</p>
+        </div>\`;
+      return;
+    }
+
+    const resumen = \`
+      <div class="vp-prono-resumen">
+        <div class="vp-prono-resumen-info">
+          <span class="vp-prono-resumen-titulo">Puntos acumulados</span>
+          <span class="vp-prono-resumen-valor">\${d.total_puntos} pts</span>
+        </div>
+        <span class="vp-prono-resumen-partidos">\${d.total_partidos} partido\${d.total_partidos !== 1 ? 's' : ''} calificado\${d.total_partidos !== 1 ? 's' : ''}</span>
+      </div>\`;
+
+    const tarjetas = d.pronosticos.map(p => {
+      const faseLabel = _VP_FASE_LABELS[p.fase] || p.fase;
+      const grupoBadge = (p.fase === 'grupos' && p.grupo) ? ' · Grupo ' + _vpEscape(p.grupo) : '';
+      const ptsClase = _vpPuntosClase(p.puntos);
+      const ptsLabel = p.puntos === 1 ? '1 pto' : p.puntos + ' pts';
+      const ptsIco   = p.puntos >= 3 ? 'check_circle' : p.puntos === 1 ? 'remove_circle' : 'cancel';
+
+      const scoreClase = _vpScoreClase(p.pred_local, p.pred_vis, p.res_local, p.res_vis);
+      const marcadorPred = (p.pred_local !== null && p.pred_local !== undefined ? p.pred_local : '?') + ' - ' + (p.pred_vis !== null && p.pred_vis !== undefined ? p.pred_vis : '?');
+      const marcadorReal = (p.res_local !== null && p.res_local !== undefined ? p.res_local : '?') + ' - ' + (p.res_vis !== null && p.res_vis !== undefined ? p.res_vis : '?');
+
+      let penalesHTML = '';
+      if (p.res_penales) {
+        const acertoPen = p.pred_penales && p.pred_penales === p.res_penales;
+        penalesHTML = \`
+          <div class="vp-prono-penales-row">
+            <span class="material-symbols-outlined">sports</span>
+            Penales: <strong>\${_vpEscape(p.res_penales)}</strong>
+            \${p.pred_penales
+              ? '· Tu pronóstico: <strong>' + _vpEscape(p.pred_penales) + '</strong> ' + (acertoPen ? '✓' : '✗')
+              : '· Sin pronóstico de penales'}
+          </div>\`;
+      }
+
+      return \`
+        <div class="vp-prono-card">
+          <div class="vp-prono-header">
+            <span class="vp-prono-fase-badge \${_vpEscape(p.fase)}">\${_vpEscape(faseLabel)}\${grupoBadge}</span>
+            <span class="vp-prono-pts \${ptsClase}">
+              <span class="material-symbols-outlined" style="font-size:14px;">\${ptsIco}</span>
+              \${ptsLabel}
+            </span>
+          </div>
+          <div class="vp-prono-equipos">
+            <div class="vp-prono-equipo">
+              \${_vpBanderaHTML(p.codigo_local, p.local)}
+              <span class="vp-prono-equipo-nombre" title="\${_vpEscape(p.local)}">\${_vpEscape(p.local) || '?'}</span>
+            </div>
+            <span class="vp-prono-vs">vs</span>
+            <div class="vp-prono-equipo">
+              \${_vpBanderaHTML(p.codigo_visitante, p.visitante)}
+              <span class="vp-prono-equipo-nombre" title="\${_vpEscape(p.visitante)}">\${_vpEscape(p.visitante) || '?'}</span>
+            </div>
+          </div>
+          <div class="vp-prono-scores">
+            <div class="vp-prono-score-row">
+              <span class="vp-prono-score-label">
+                <span class="material-symbols-outlined">history</span> Resultado
+              </span>
+              <span class="vp-prono-score-value">\${_vpEscape(marcadorReal)}</span>
+            </div>
+            <div class="vp-prono-score-row">
+              <span class="vp-prono-score-label">
+                <span class="material-symbols-outlined">sports_soccer</span> Tu pronóstico
+              </span>
+              <span class="vp-prono-score-value \${scoreClase}">\${_vpEscape(marcadorPred)}</span>
+            </div>
+          </div>
+          \${penalesHTML}
+        </div>\`;
+    }).join('');
+
+    cont.innerHTML = resumen + '<div class="vp-prono-lista">' + tarjetas + '</div>';
+
+  } catch(e) {
+    cont.innerHTML = '<div class="vp-prono-empty"><span class="material-symbols-outlined">wifi_off</span><p>No se pudieron cargar los pronósticos.</p></div>';
+  }
+}
+
+
 async function vpCargarGaleria(uid) {
-  const cont = document.getElementById('vp-galeria-grid');
   if (!cont) return;
   cont.innerHTML = '<div class="vp-tab-loading"><span class="material-symbols-outlined vp-spin">progress_activity</span>Cargando…</div>';
   try {

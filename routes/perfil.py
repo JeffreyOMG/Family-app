@@ -131,6 +131,136 @@ def api_perfil_mundial(uid):
     return jsonify({"ok": True, "pronosticos": pronosticos, "total_puntos": total_puntos})
 
 
+# ─── API: pronósticos CALIFICADOS del usuario (grupos + eliminación) ──────────
+@perfil_bp.route("/api/perfil/pronosticos_calificados/<int:uid>")
+def api_perfil_pronosticos_calificados(uid):
+    """
+    Devuelve ÚNICAMENTE pronósticos ya calificados por el sistema de la polla:
+    - partidos_mundial con bloqueado=1 y resultado registrado (goles no NULL)
+    - partidos_eliminacion con bloqueado=1 y resultado registrado (goles no NULL)
+    Los puntos provienen directamente de las columnas 'puntos' ya calculadas
+    por el sistema de admin_resultado / admin_resultado_eli — misma fuente que
+    el ranking y la tabla de posiciones.
+    Se ordenan de más reciente a más antiguo (por id DESC).
+    """
+    if "uid" not in session:
+        return jsonify({"ok": False, "error": "No autenticado"}), 401
+
+    con = get_db()
+
+    def _split_equipo(s):
+        """Extrae nombre y código de 'Nombre | COD' o 'Nombre'."""
+        if s and "|" in s:
+            n, c = s.split("|", 1)
+            return n.strip(), c.strip()
+        return (s or "").strip(), "xx"
+
+    pronosticos = []
+
+    # ── 1. Fase de grupos: pronosticos + partidos_mundial ───────────────────
+    rows_grupos = con.execute("""
+        SELECT
+            pr.goles_local   AS pred_local,
+            pr.goles_visitante AS pred_vis,
+            pr.puntos,
+            pm.id            AS partido_id,
+            pm.local         AS equipo_local,
+            pm.visitante     AS equipo_visitante,
+            pm.goles_local   AS res_local,
+            pm.goles_visitante AS res_vis,
+            pm.grupo
+        FROM pronosticos pr
+        JOIN partidos_mundial pm ON pm.id = pr.partido_id
+        WHERE pr.usuario_id = %s
+          AND pm.bloqueado  = 1
+          AND pm.goles_local    IS NOT NULL
+          AND pm.goles_visitante IS NOT NULL
+    """, (uid,)).fetchall()
+
+    for r in rows_grupos:
+        ln, lc = _split_equipo(r["equipo_local"])
+        vn, vc = _split_equipo(r["equipo_visitante"])
+        pronosticos.append({
+            "partido_id":        r["partido_id"],
+            "fase":              "grupos",
+            "grupo":             r["grupo"] or "",
+            "local":             ln,
+            "visitante":         vn,
+            "codigo_local":      lc,
+            "codigo_visitante":  vc,
+            "pred_local":        r["pred_local"],
+            "pred_vis":          r["pred_vis"],
+            "pred_penales":      None,
+            "res_local":         r["res_local"],
+            "res_vis":           r["res_vis"],
+            "res_penales":       None,
+            "puntos":            r["puntos"] or 0,
+        })
+
+    # ── 2. Fase eliminatoria: pronosticos_eli + partidos_eliminacion ────────
+    rows_eli = con.execute("""
+        SELECT
+            pr.goles_local       AS pred_local,
+            pr.goles_visit       AS pred_vis,
+            pr.penales_ganador   AS pred_penales,
+            pr.puntos,
+            pe.id                AS partido_id,
+            pe.fase,
+            pe.eq_local          AS equipo_local,
+            pe.eq_visit          AS equipo_visitante,
+            pe.cod_local,
+            pe.cod_visit,
+            pe.goles_local       AS res_local,
+            pe.goles_visit       AS res_vis,
+            pe.penales_ganador   AS res_penales
+        FROM pronosticos_eli pr
+        JOIN partidos_eliminacion pe ON pe.id = pr.partido_id
+        WHERE pr.usuario_id = %s
+          AND pe.bloqueado  = 1
+          AND pe.goles_local  IS NOT NULL
+          AND pe.goles_visit  IS NOT NULL
+    """, (uid,)).fetchall()
+
+    for r in rows_eli:
+        pronosticos.append({
+            "partido_id":        r["partido_id"],
+            "fase":              r["fase"] or "eliminacion",
+            "grupo":             "",
+            "local":             r["equipo_local"] or "",
+            "visitante":         r["equipo_visitante"] or "",
+            "codigo_local":      r["cod_local"] or "xx",
+            "codigo_visitante":  r["cod_visit"] or "xx",
+            "pred_local":        r["pred_local"],
+            "pred_vis":          r["pred_vis"],
+            "pred_penales":      r["pred_penales"],
+            "res_local":         r["res_local"],
+            "res_vis":           r["res_vis"],
+            "res_penales":       r["res_penales"],
+            "puntos":            r["puntos"] or 0,
+        })
+
+    # Ordenar: eliminatorias primero (ids mayores), luego grupos; dentro de cada
+    # tipo, por partido_id DESC (más reciente primero).
+    def _orden(p):
+        # fases en orden descendente de importancia/recencia
+        orden_fase = {
+            "final": 0, "semis": 1, "cuartos": 2,
+            "octavos": 3, "r16": 4, "grupos": 5,
+        }
+        return (orden_fase.get(p["fase"], 9), -p["partido_id"])
+
+    pronosticos.sort(key=_orden)
+
+    total_puntos = sum(p["puntos"] for p in pronosticos)
+
+    return jsonify({
+        "ok": True,
+        "pronosticos": pronosticos,
+        "total_puntos": total_puntos,
+        "total_partidos": len(pronosticos),
+    })
+
+
 # ─── API: galería del usuario ─────────────────────────────────────────────────
 @perfil_bp.route("/api/perfil/galeria/<int:uid>")
 def api_perfil_galeria(uid):
