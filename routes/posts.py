@@ -498,8 +498,12 @@ def fijar_admin(post_id):
         con.commit()
         return jsonify({"ok": True, "fijado_admin": False})
     else:
-        # Solo puede haber uno fijado por admin a la vez
-        con.execute("UPDATE publicaciones SET fijado_admin=FALSE WHERE fijado_admin=TRUE")
+        # Contar cuántos ya están fijados por admin
+        count_fijados = con.execute(
+            "SELECT COUNT(*) FROM publicaciones WHERE fijado_admin=TRUE"
+        ).fetchone()[0]
+        if count_fijados >= 3:
+            return jsonify({"ok": False, "error": "Ya hay 3 publicaciones fijadas. Desfija una antes de fijar otra."})
         con.execute("UPDATE publicaciones SET fijado_admin=TRUE WHERE id=%s", (post_id,))
         con.commit()
         return jsonify({"ok": True, "fijado_admin": True})
