@@ -7921,22 +7921,30 @@ async function cargarMasPosts(btn) {
     const enVivo     = estado === 'en_curso' || estado === 'en_vivo' || estado === 'live';
     const finalizado = estado === 'finalizado' || estado === 'finished';
 
+    const golesLocal = (p.goles_local !== null && p.goles_local !== undefined) ? String(p.goles_local) : null;
+    const golesVisit = (p.goles_visit !== null && p.goles_visit !== undefined) ? String(p.goles_visit) : null;
+    const sinMarcador = golesLocal === null || golesVisit === null;
+
     let badge = '';
     if (enVivo) {
       const min = p.minuto ? `⏱️ ${_esc(String(p.minuto))}'` : '⏱️ En curso';
       badge = `<span class="pah-badge pah-badge--live">EN VIVO</span>
                <span class="pah-meta">${min}</span>`;
     } else if (finalizado) {
-      badge = `<span class="pah-badge pah-badge--final">✅ FINAL</span>`;
+      if (sinMarcador) {
+        // La fuente marca el partido como finalizado pero no entregó marcador.
+        // Evitar mostrar "? - ?": indicar que el resultado aún no está disponible.
+        badge = `<span class="pah-badge pah-badge--proximo">⏳ Resultado pendiente</span>`;
+      } else {
+        badge = `<span class="pah-badge pah-badge--final">✅ FINAL</span>`;
+      }
     } else {
       const hora = _hora(p.fecha_iso);
       badge = `<span class="pah-badge pah-badge--proximo">🕒 ${hora || _esc(p.fecha_texto || 'Próximo')}</span>`;
     }
 
-    // Mostrar marcador: si el partido está en curso o finalizado, mostrar goles (o "?" si son null)
-    const mostrarScore = enVivo || finalizado;
-    const golesLocal = (p.goles_local !== null && p.goles_local !== undefined) ? String(p.goles_local) : '?';
-    const golesVisit = (p.goles_visit !== null && p.goles_visit !== undefined) ? String(p.goles_visit) : '?';
+    // Mostrar marcador solo si tenemos goles reales; si no, mostrar "vs"
+    const mostrarScore = (enVivo || finalizado) && !sinMarcador;
 
     const banLocal = _bandera(p.codigo_local);
     const banVisit = _bandera(p.codigo_visit);
@@ -7950,9 +7958,9 @@ async function cargarMasPosts(btn) {
             <span class="pah-team-name">${_esc(p.local)}</span>
           </div>
           <div class="pah-score">
-            <span class="pah-score-num${finalizado && golesLocal !== '?' && golesVisit !== '?' && Number(golesLocal) > Number(golesVisit) ? ' pah-score-win' : ''}">${_esc(golesLocal)}</span>
+            <span class="pah-score-num${finalizado && Number(golesLocal) > Number(golesVisit) ? ' pah-score-win' : ''}">${_esc(golesLocal)}</span>
             <span class="pah-score-sep">-</span>
-            <span class="pah-score-num${finalizado && golesLocal !== '?' && golesVisit !== '?' && Number(golesVisit) > Number(golesLocal) ? ' pah-score-win' : ''}">${_esc(golesVisit)}</span>
+            <span class="pah-score-num${finalizado && Number(golesVisit) > Number(golesLocal) ? ' pah-score-win' : ''}">${_esc(golesVisit)}</span>
           </div>
           <div class="pah-team pah-team--right">
             <span>${banVisit}</span>

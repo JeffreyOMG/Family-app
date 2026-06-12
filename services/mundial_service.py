@@ -200,6 +200,64 @@ _PHASE_MAP = {
 }
 
 
+# ─── Offsets horarios de los 16 estadios del Mundial 2026 (UTC, junio/julio) ──
+# IMPORTANTE: "local_date" de worldcup26.ir es la HORA LOCAL DEL ESTADIO,
+# SIN indicador de zona — NO es UTC. Para convertir correctamente a
+# Colombia/Perú (UTC-5) hay que restar el offset real de cada estadio.
+# En junio-julio 2026: EE.UU./Canadá están en horario de verano (DST);
+# México NO observa DST.
+#   ET (Nueva York, Filadelfia, Atlanta, Miami, Boston)        → UTC-4
+#   CT (Dallas, Houston, Kansas City, Monterrey*, Guadalajara*) → UTC-5
+#       (*México: CT real es UTC-6, pero México no aplica DST,
+#        así que en verano EE.UU.-CT(-5) ≠ México-CT(-6))
+#   MT (Arizona/Denver — no aplica aquí)                        → UTC-6
+#   PT (Los Ángeles, Seattle, San Francisco, Vancouver)         → UTC-7
+#   México Central (CDMX, Guadalajara, Monterrey)               → UTC-6 (todo el año)
+_STADIUM_UTC_OFFSET: dict[str, int] = {
+    # ── Estados Unidos ──
+    "MetLife Stadium":            -4,  # East Rutherford, NJ (ET, DST)
+    "AT&T Stadium":                -5,  # Dallas, TX (CT, DST)
+    "SoFi Stadium":                -7,  # Los Angeles, CA (PT, DST)
+    "Hard Rock Stadium":           -4,  # Miami, FL (ET, DST)
+    "Mercedes-Benz Stadium":       -4,  # Atlanta, GA (ET, DST)
+    "NRG Stadium":                 -5,  # Houston, TX (CT, DST)
+    "Lincoln Financial Field":     -4,  # Philadelphia, PA (ET, DST)
+    "Levi's Stadium":              -7,  # San Francisco/Santa Clara, CA (PT, DST)
+    "Lumen Field":                 -7,  # Seattle, WA (PT, DST)
+    "Gillette Stadium":            -4,  # Boston/Foxborough, MA (ET, DST)
+    "Arrowhead Stadium":           -5,  # Kansas City, MO (CT, DST)
+    # ── México (sin DST) ──
+    "Estadio Azteca":              -6,  # Ciudad de México
+    "Estadio Akron":               -6,  # Guadalajara
+    "Estadio BBVA":                -6,  # Monterrey
+    # ── Canadá ──
+    "BC Place":                    -7,  # Vancouver, BC (PT, DST)
+    "BMO Field":                   -4,  # Toronto, ON (ET, DST)
+}
+
+# Mapa stadium_id (worldcup26.ir) → nombre de estadio. Orden documentado en
+# el README del proyecto (11 EE.UU. + 3 México + 2 Canadá = 16 sedes).
+_STADIUM_ID_NAME: dict[str, str] = {
+    "1":  "Estadio Azteca",
+    "2":  "Estadio Akron",
+    "3":  "Estadio BBVA",
+    "4":  "BC Place",
+    "5":  "BMO Field",
+    "6":  "MetLife Stadium",
+    "7":  "AT&T Stadium",
+    "8":  "SoFi Stadium",
+    "9":  "Hard Rock Stadium",
+    "10": "Mercedes-Benz Stadium",
+    "11": "NRG Stadium",
+    "12": "Lincoln Financial Field",
+    "13": "Levi's Stadium",
+    "14": "Lumen Field",
+    "15": "Gillette Stadium",
+    "16": "Arrowhead Stadium",
+}
+
+
+
 def _country_code(name: str) -> str:
     return _COUNTRY_CODE.get(name.strip().lower(), "xx")
 
@@ -354,7 +412,8 @@ def _normalize_game(raw: dict, idx: int = 0) -> dict:
     )
     time_raw = str(raw.get("time") or raw.get("kickoff_time") or "")
 
-    # Normalizar "MM/DD/YYYY HH:MM" → "YYYY-MM-DDTHH:MM:00Z" (UTC explícito)
+    # Normalizar "MM/DD/YYYY HH:MM" → fecha/hora local del estadio (sin TZ aún)
+    stadium_local_dt: Optional[datetime] = None
     if date_raw and "/" in date_raw and "T" not in date_raw:
         try:
             parts = date_raw.strip().split(" ")
@@ -362,17 +421,32 @@ def _normalize_game(raw: dict, idx: int = 0) -> dict:
             time_part = parts[1] if len(parts) > 1 else (time_raw or "00:00")
             md = date_part.split("/")
             if len(md) == 3:
-                # MM/DD/YYYY → YYYY-MM-DDTHH:MM:00Z
-                date_raw = f"{md[2]}-{md[0].zfill(2)}-{md[1].zfill(2)}T{time_part}:00Z"
+                # MM/DD/YYYY HH:MM → hora LOCAL del estadio (NO es UTC todavía)
+                naive_str = f"{md[2]}-{md[0].zfill(2)}-{md[1].zfill(2)}T{time_part}:00"
+                stadium_local_dt = datetime.strptime(naive_str, "%Y-%m-%dT%H:%M:%S")
         except Exception:
-            pass
+            stadium_local_dt = None
 
-    if date_raw and time_raw and "T" not in date_raw and "/" not in date_raw:
-        date_raw = f"{date_raw}T{time_raw}"
-    # Si ya tiene Z, _parse_iso lo maneja; si no, agregar Z para marcar como UTC
-    if date_raw and not date_raw.endswith("Z") and "+" not in date_raw:
-        date_raw = date_raw + "Z"
-    fecha_iso = _parse_iso(date_raw)
+    if stadium_local_dt is not None:
+        # ── Convertir hora local del estadio → UTC real usando el offset
+        #    del estadio (ver _STADIUM_UTC_OFFSET). Esto es lo que estaba
+        #    fallando: antes se le pegaba 'Z' directamente a la hora del
+        #    estadio, tratándola como si ya fuera UTC.
+        stadium_id  = str(raw.get("stadium_id") or "")
+        stadium_nom = _STADIUM_ID_NAME.get(stadium_id)
+        offset_h    = _STADIUM_UTC_OFFSET.get(stadium_nom, -6)  # fallback: México Central
+        utc_dt = stadium_local_dt - timedelta(hours=offset_h)
+        fecha_iso = utc_dt.isoformat() + "Z"
+    else:
+        if date_raw and time_raw and "T" not in date_raw and "/" not in date_raw:
+            date_raw = f"{date_raw}T{time_raw}"
+        # Si ya tiene Z o indicador de zona, _parse_iso lo maneja tal cual.
+        # Si no tiene zona y no pudimos determinar el estadio, se asume UTC
+        # (mejor esfuerzo; puede no coincidir exactamente con Colombia/Perú).
+        if date_raw and not date_raw.endswith("Z") and "+" not in date_raw:
+            date_raw = date_raw + "Z"
+        fecha_iso = _parse_iso(date_raw)
+
 
     # Texto legible en español (si hay)
     fecha_texto_raw = str(raw.get("fecha_texto") or raw.get("date_text") or "")
