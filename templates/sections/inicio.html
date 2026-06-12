@@ -7,13 +7,6 @@
     <span>📌 Fijado por el administrador</span>
   </div>
   {% elif p.get('fijado') %}
-<article class="post-card{% if p.get('fijado_admin') %} post-card--admin-pin{% endif %}" id="post-{{ p.id }}" data-fijado="{{ 'true' if p.get('fijado') else 'false' }}" data-fijado-admin="{{ 'true' if p.get('fijado_admin') else 'false' }}">
-  {% if p.get('fijado_admin') %}
-  <div class="post-pin-banner post-pin-banner--admin">
-    <span class="material-symbols-outlined">push_pin</span>
-    <span>📌 Fijado por el administrador</span>
-  </div>
-  {% elif p.get('fijado') %}
   <div class="post-pin-banner">
     <span class="material-symbols-outlined">push_pin</span>
     <span>Publicación fijada</span>
@@ -6221,14 +6214,6 @@ async function pmAccion(accion) {
               banner.innerHTML = '<span class="material-symbols-outlined">push_pin</span><span>📌 Fijado por el administrador</span>';
               card.insertBefore(banner, card.firstChild);
             }
-            // Agregar banner al post fijado
-            let banner = card.querySelector('.post-pin-banner--admin');
-            if (!banner) {
-              banner = document.createElement('div');
-              banner.className = 'post-pin-banner post-pin-banner--admin';
-              banner.innerHTML = '<span class="material-symbols-outlined">push_pin</span><span>📌 Fijado por el administrador</span>';
-              card.insertBefore(banner, card.firstChild);
-            }
             card.dataset.fijadoAdmin = 'true';
             card.classList.add('post-card--admin-pin');
             // Mover al tope del feed
@@ -6240,17 +6225,10 @@ async function pmAccion(accion) {
             card.querySelector('.post-pin-banner--admin')?.remove();
             card.dataset.fijadoAdmin = 'false';
             card.classList.remove('post-card--admin-pin');
-            // Quitar banner del post desfijado
-            card.querySelector('.post-pin-banner--admin')?.remove();
-            card.dataset.fijadoAdmin = 'false';
-            card.classList.remove('post-card--admin-pin');
             mostrarToast('Publicación desfijada para todos');
           }
           _pmFijadoAdmin = data.fijado_admin;
         }
-        // Actualizar etiqueta del botón en el menú
-        const adminPinLbl = document.getElementById('pm-admin-pin-label');
-        if (adminPinLbl) adminPinLbl.textContent = data.fijado_admin ? 'Desfijar para todos' : 'Fijar para todos';
         // Actualizar etiqueta del botón en el menú
         const adminPinLbl = document.getElementById('pm-admin-pin-label');
         if (adminPinLbl) adminPinLbl.textContent = data.fijado_admin ? 'Desfijar para todos' : 'Fijar para todos';
@@ -8042,24 +8020,7 @@ async function cargarMasPosts(btn) {
     if (!modal) return;
     modal.style.display = 'flex';
     document.body.style.overflow = 'hidden';
-    modal.style.display = 'flex';
-    document.body.style.overflow = 'hidden';
     const lista = document.getElementById('pah-lista-modal');
-    if (lista) {
-      if (window._pahTodosPartidos && window._pahTodosPartidos.length) {
-        lista.innerHTML = window._pahTodosPartidos.map(_renderPartido).join('');
-      } else {
-        // Datos no cargados aún → cargarlos
-        lista.innerHTML = '<div class="pah-loading" style="padding:16px;"><div class="pah-skeleton"></div><div class="pah-skeleton pah-skeleton--short"></div></div>';
-        cargarPartidosHoy().then(() => {
-          if (window._pahTodosPartidos) {
-            lista.innerHTML = window._pahTodosPartidos.length
-              ? window._pahTodosPartidos.map(_renderPartido).join('')
-              : '<div class="panel-empty pah-vacio" style="display:block;"><span class="material-symbols-outlined">sports_soccer</span><p>Sin partidos hoy</p></div>';
-          }
-        });
-      }
-    }
     if (lista) {
       if (window._pahTodosPartidos && window._pahTodosPartidos.length) {
         lista.innerHTML = window._pahTodosPartidos.map(_renderPartido).join('');
@@ -8159,16 +8120,6 @@ async function cargarMasPosts(btn) {
       if (modal && modal.style.display === 'flex') {
         const lista = document.getElementById('pah-lista-modal');
         if (lista && todos.length) lista.innerHTML = todos.map(_renderPartido).join('');
-      }
-          if (btn) btn.style.display = 'flex';
-        }
-      });
-
-      // Si el modal ya está abierto, actualizar su contenido también
-      const modal = document.getElementById('pah-modal');
-      if (modal && modal.style.display === 'flex') {
-        const lista = document.getElementById('pah-lista-modal');
-        if (lista) lista.innerHTML = todos.map(_renderPartido).join('');
       }
     } catch (err) {
       console.error('[PAH] Error al cargar partidos:', err.message, err);
