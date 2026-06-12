@@ -451,7 +451,7 @@
             <p>Sin partidos hoy</p>
           </div>
           <div class="noticias-list" id="pah-lista-desktop" style="display:none;"></div>
-          <button class="pah-ver-mas-btn" id="pah-ver-mas-desktop" style="display:none;border-top:1px solid var(--border);" onclick="abrirModalPartidos()">
+          <button class="pah-ver-mas-btn" id="pah-ver-mas-desktop" style="display:none;" onclick="abrirModalPartidos()">
             Ver todos los partidos <span class="material-symbols-outlined" style="font-size:14px;vertical-align:middle;">expand_more</span>
           </button>
         </div>
@@ -465,11 +465,10 @@
         </div>
         {% if noticias_recientes %}
           <div class="noticias-list">
-            {% for n in noticias_recientes[:2] %}
-            <div class="noticia-item">
-            <div class="noticia-item">
+            {% for n in noticias_recientes[:3] %}
+            <div class="noticia-item" onclick="irSeccion('noticias')">
               <div class="noticia-dot {% if n.categoria == 'finanzas' %}dot-ok{% elif n.categoria in ['galeria','galería'] %}dot-info{% elif n.categoria == 'mundial' %}dot-warn{% else %}dot-def{% endif %}"></div>
-              <div>
+              <div class="noticia-body">
                 <p class="noticia-titulo">{{ n.titulo }}</p>
                 <span class="noticia-meta">{{ n.fecha[:10] }} · {{ n.categoria|capitalize if n.categoria else 'General' }}</span>
               </div>
@@ -2569,7 +2568,7 @@ body.dark-mode .post-badge-privado { background: rgba(139,92,246,.2); color: #a7
 /* ── RIGHT PANEL ── */
 .right-panel { display: flex; flex-direction: column; gap: 14px; position: sticky; top: 76px; max-height: calc(100vh - 92px); overflow-y: auto; overflow-x: hidden; padding-right: 2px; scrollbar-width: none; }
 .right-panel::-webkit-scrollbar { display: none; }
-.panel-card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
+.panel-card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; display: flex; flex-direction: column; }
 .panel-header {
   display: flex;
   align-items: center;
@@ -2751,16 +2750,17 @@ body.dark-mode .post-badge-privado { background: rgba(139,92,246,.2); color: #a7
 .panel-empty .material-symbols-outlined { font-size: 28px; display: block; margin-bottom: 6px; opacity: .4; }
 .panel-empty p { font-size: 12.5px; }
 
-.noticias-list { padding: 6px 10px; }
-.noticia-item { display: flex; align-items: flex-start; gap: 10px; padding: 9px 6px; border-bottom: 1px solid var(--border); cursor: pointer; border-radius: 8px; transition: background .15s; }
+.noticias-list { padding: 4px 0; }
+.noticia-item { display: flex; align-items: center; gap: 10px; padding: 8px 14px; border-bottom: 1px solid var(--border); cursor: pointer; transition: background .15s; }
 .noticia-item:hover { background: var(--bg2); }
 .noticia-item:last-child { border-bottom: none; }
-.noticia-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: 4px; }
+.noticia-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; margin-top: 1px; }
 .dot-ok   { background: #16a34a; }
 .dot-info { background: var(--ac); }
 .dot-warn { background: #d97706; }
 .dot-def  { background: var(--text3); }
-.noticia-titulo { font-size: 13px; font-weight: 600; color: var(--text); line-height: 1.4; margin-bottom: 2px; }
+.noticia-body { flex: 1; min-width: 0; }
+.noticia-titulo { font-size: 12.5px; font-weight: 600; color: var(--text); line-height: 1.35; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .noticia-meta { font-size: 11px; color: var(--text3); }
 
 /* ── PARTIDOS DE HOY (pah-) ── */
@@ -2784,7 +2784,7 @@ body.dark-mode .post-badge-privado { background: rgba(139,92,246,.2); color: #a7
 }
 /* Body del widget: pequeño padding inferior para respirar */
 /* ── PARTIDOS DE HOY WIDGET ─────────────────────────────── */
-.pah-body { padding-bottom: 2px; }
+.pah-body { padding-bottom: 0; display: flex; flex-direction: column; }
 
 /* Header especial con badge Mundial */
 .pah-panel-header { position: relative; }
@@ -2885,11 +2885,11 @@ body.dark-mode .post-badge-privado { background: rgba(139,92,246,.2); color: #a7
 /* Botón Ver más */
 .pah-ver-mas-btn {
   display: flex; align-items: center; justify-content: center; gap: 4px;
-  width: 100%; padding: 8px 12px; margin-top: 2px;
+  width: 100%; padding: 9px 12px; margin-top: 0;
   background: none; border: none; border-top: 1px solid var(--border);
   color: var(--accent); font-size: 12px; font-weight: 700;
   cursor: pointer; transition: background .15s; letter-spacing: .02em;
-  text-transform: uppercase;
+  text-transform: uppercase; flex-shrink: 0;
 }
 .pah-ver-mas-btn:hover { background: var(--bg2); }
 
