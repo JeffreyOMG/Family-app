@@ -1,4 +1,4 @@
-from flask import Blueprint, request, session, redirect, render_template
+from flask import Blueprint, request, session, redirect, render_template, jsonify
 from database import get_db
 from routes.dashboard import get_ctx
 
@@ -48,3 +48,133 @@ def buscar():
         "seccion_activa": "buscador",
     })
     return render_template("dashboard.html", **ctx)
+
+
+@buscar_bp.route("/api/buscar/pronosticos")
+def api_buscar_pronosticos():
+    """Devuelve pronósticos de partidos YA finalizados (bloqueados con resultado oficial).
+    Parámetros opcionales: q (nombre usuario), fecha (YYYY-MM-DD o parte del grupo).
+    Solo muestra pronósticos con puntos calculados para evitar copias.
+    """
+    if "uid" not in session:
+        return jsonify({"ok": False, "msg": "No autenticado"}), 401
+
+    q     = request.args.get("q", "").strip()
+    fecha = request.args.get("fecha", "").strip()
+    con   = get_db()
+
+    # ── Fase de grupos ──────────────────────────────────────────────────────
+    sql_grupos = """
+        SELECT
+            u.nombre        AS usuario_nombre,
+            u.foto          AS usuario_foto,
+            u.usuario       AS usuario_handle,
+            pm.grupo        AS grupo,
+            pm.local        AS local,
+            pm.visitante    AS visitante,
+            pm.goles_local  AS res_local,
+            pm.goles_visitante AS res_visit,
+            pr.goles_local  AS p_local,
+            pr.goles_visitante AS p_vis,
+            pr.puntos       AS puntos,
+            pm.fecha        AS fecha_partido
+        FROM pronosticos pr
+        JOIN usuarios u       ON u.id  = pr.usuario_id
+        JOIN partidos_mundial pm ON pm.id = pr.partido_id
+        WHERE pm.bloqueado = 1
+          AND pm.goles_local IS NOT NULL
+          AND pm.goles_visitante IS NOT NULL
+          AND pr.puntos IS NOT NULL
+    """
+    params_g = []
+    if q:
+        sql_grupos += " AND (u.nombre LIKE %s OR u.usuario LIKE %s)"
+        params_g += [f"%{q}%", f"%{q}%"]
+    if fecha:
+        sql_grupos += " AND (pm.fecha LIKE %s OR pm.grupo = %s)"
+        params_g += [f"%{fecha}%", fecha.upper()]
+    sql_grupos += " ORDER BY pm.id, u.nombre"
+
+    # ── Fase eliminatoria ───────────────────────────────────────────────────
+    sql_eli = """
+        SELECT
+            u.nombre        AS usuario_nombre,
+            u.foto          AS usuario_foto,
+            u.usuario       AS usuario_handle,
+            'Eliminatoria'  AS grupo,
+            pe.eq_local     AS local,
+            pe.eq_visit     AS visitante,
+            pe.goles_local  AS res_local,
+            pe.goles_visit  AS res_visit,
+            pe_pr.goles_local  AS p_local,
+            pe_pr.goles_visit  AS p_vis,
+            pe_pr.puntos    AS puntos,
+            pe.fecha        AS fecha_partido
+        FROM pronosticos_eli pe_pr
+        JOIN usuarios u             ON u.id  = pe_pr.usuario_id
+        JOIN partidos_eliminacion pe ON pe.id = pe_pr.partido_id
+        WHERE pe.bloqueado = 1
+          AND pe.goles_local IS NOT NULL
+          AND pe.goles_visit IS NOT NULL
+          AND pe_pr.puntos IS NOT NULL
+    """
+    params_e = []
+    if q:
+        sql_eli += " AND (u.nombre LIKE %s OR u.usuario LIKE %s)"
+        params_e += [f"%{q}%", f"%{q}%"]
+    if fecha:
+        sql_eli += " AND pe.fecha LIKE %s"
+        params_e += [f"%{fecha}%"]
+    sql_eli += " ORDER BY pe.id, u.nombre"
+
+    def _split(s):
+        if s and "|" in s:
+            return s.split("|", 1)[0].strip()
+        return (s or "").strip()
+
+    resultados = []
+    for r in con.execute(sql_grupos, params_g).fetchall():
+        resultados.append({
+            "usuario_nombre":  r["usuario_nombre"],
+            "usuario_foto":    r["usuario_foto"],
+            "usuario_handle":  r["usuario_handle"],
+            "grupo":           r["grupo"],
+            "local":           _split(r["local"]),
+            "visitante":       _split(r["visitante"]),
+            "res_local":       r["res_local"],
+            "res_visit":       r["res_visit"],
+            "p_local":         r["p_local"],
+            "p_vis":           r["p_vis"],
+            "puntos":          r["puntos"],
+            "fecha_partido":   str(r["fecha_partido"] or ""),
+            "fase":            "Grupos",
+        })
+    for r in con.execute(sql_eli, params_e).fetchall():
+        resultados.append({
+            "usuario_nombre":  r["usuario_nombre"],
+            "usuario_foto":    r["usuario_foto"],
+            "usuario_handle":  r["usuario_handle"],
+            "grupo":           r["grupo"],
+            "local":           _split(r["local"]),
+            "visitante":       _split(r["visitante"]),
+            "res_local":       r["res_local"],
+            "res_visit":       r["res_visit"],
+            "p_local":         r["p_local"],
+            "p_vis":           r["p_vis"],
+            "puntos":          r["puntos"],
+            "fecha_partido":   str(r["fecha_partido"] or ""),
+            "fase":            "Eliminatoria",
+        })
+
+    # Fechas únicas disponibles para el filtro
+    fechas_sql = """
+        SELECT DISTINCT DATE(pm.fecha) AS f FROM partidos_mundial
+        WHERE bloqueado=1 AND goles_local IS NOT NULL
+        UNION
+        SELECT DISTINCT DATE(pe.fecha) FROM partidos_eliminacion pe
+        WHERE bloqueado=1 AND goles_local IS NOT NULL
+        ORDER BY f
+    """
+    fechas = [str(row["f"]) for row in con.execute(fechas_sql).fetchall() if row["f"]]
+
+    return jsonify({"ok": True, "data": resultados, "fechas": fechas})

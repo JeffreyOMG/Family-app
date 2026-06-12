@@ -53,6 +53,11 @@
         <span class="material-symbols-outlined">photo_library</span>
         Galería
       </button>
+      <!-- TAB PRONÓSTICOS -->
+      <button type="button" class="bus-chip" id="bus-chip-pron" onclick="togglePronTab()">
+        <span class="material-symbols-outlined">sports_soccer</span>
+        Pronósticos
+      </button>
     </div>
   </form>
 
@@ -95,6 +100,38 @@
       <p>Aún no hay fotos ni videos. ¡Sube el primero! 📷</p>
     </div>
     {% endif %}
+  </div>
+
+  <!-- PANEL PRONÓSTICOS -->
+  <div id="bus-pron-panel" style="display:none;">
+    <div class="bus-pron-search-wrap">
+      <div class="bus-search-wrap" style="margin-bottom:10px;">
+        <span class="material-symbols-outlined bus-search-icon">person_search</span>
+        <input type="text" id="pron-input-q" class="bus-search-input"
+          placeholder="Buscar pronósticos de todos..."
+          autocomplete="off"
+          oninput="debounceSearchPron()">
+        <button type="button" class="bus-clear-btn" id="pron-clear-btn" style="display:none;" onclick="limpiarPronSearch()">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </div>
+      <div class="pron-fechas-wrap" id="pron-fechas-wrap">
+        <button class="pron-fecha-chip active" data-fecha="" onclick="selFechaPron(this, '')">Todas</button>
+      </div>
+    </div>
+    <div id="pron-loading" style="display:none;">
+      <div class="pron-skeleton-list">
+        <div class="pron-sk-item"><div class="pron-sk-av skeleton"></div><div class="pron-sk-body"><div class="pron-sk-line skeleton"></div><div class="pron-sk-line pron-sk-short skeleton"></div></div></div>
+        <div class="pron-sk-item"><div class="pron-sk-av skeleton"></div><div class="pron-sk-body"><div class="pron-sk-line skeleton"></div><div class="pron-sk-line pron-sk-short skeleton"></div></div></div>
+        <div class="pron-sk-item"><div class="pron-sk-av skeleton"></div><div class="pron-sk-body"><div class="pron-sk-line skeleton"></div><div class="pron-sk-line pron-sk-short skeleton"></div></div></div>
+      </div>
+    </div>
+    <div id="pron-results"></div>
+    <div id="pron-empty" style="display:none;" class="bus-empty">
+      <div class="bus-empty-icon"><span class="material-symbols-outlined">sports_soccer</span></div>
+      <h3>Sin pronósticos</h3>
+      <p>No hay pronósticos calificados para mostrar aún.</p>
+    </div>
   </div>
 
   <!-- PANEL RESULTADOS -->
@@ -499,6 +536,7 @@ function toggleGaleriaTab() {
     document.getElementById('chip-todo').classList.add('active');
   } else {
     // Abrir galería
+    _cerrarPronPanel();
     panel.style.display = 'block';
     resPanel.style.display = 'none';
     chipGal.classList.add('active');
@@ -539,3 +577,269 @@ function busAbrirGaleria() {
   setTimeout(function() { inp.click(); }, 50);
 }
 </script>
+
+<!-- ══ PANEL PRONÓSTICOS — estilos ══════════════════════════════════════ -->
+<style>
+.bus-pron-search-wrap { margin-bottom: 14px; }
+.pron-fechas-wrap {
+  display: flex; flex-wrap: wrap; gap: 6px;
+  padding: 4px 0 8px;
+}
+.pron-fecha-chip {
+  padding: 5px 13px; border-radius: 20px; font-size: 12px; font-weight: 600;
+  border: 1px solid var(--border); background: var(--card); color: var(--text2);
+  cursor: pointer; transition: all .15s; white-space: nowrap;
+}
+.pron-fecha-chip.active {
+  background: var(--accent); border-color: var(--accent); color: #fff;
+}
+.pron-fecha-chip:hover:not(.active) { background: var(--bg2); }
+
+/* Skeleton */
+.pron-skeleton-list { display: flex; flex-direction: column; gap: 8px; }
+.pron-sk-item { display: flex; gap: 10px; align-items: center; padding: 10px 14px; background: var(--card); border-radius: 12px; border: 1px solid var(--border); }
+.pron-sk-av { width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0; }
+.pron-sk-body { flex: 1; display: flex; flex-direction: column; gap: 6px; }
+.pron-sk-line { height: 12px; border-radius: 6px; }
+.pron-sk-short { width: 55%; }
+.skeleton { background: linear-gradient(90deg, var(--bg2) 25%, var(--border) 50%, var(--bg2) 75%); background-size: 200% 100%; animation: sk-shimmer 1.4s infinite; }
+@keyframes sk-shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+
+/* Card partido */
+.pron-partido-group {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 14px; overflow: hidden; margin-bottom: 14px;
+}
+.pron-partido-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 14px 8px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg2);
+}
+.pron-partido-title { font-size: 13px; font-weight: 700; color: var(--text); }
+.pron-partido-resultado {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 14px; font-weight: 900; color: var(--text);
+}
+.pron-partido-score {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 8px; padding: 3px 10px;
+  font-size: 15px; font-weight: 900;
+}
+.pron-grupo-badge {
+  font-size: 10px; font-weight: 700; padding: 2px 8px;
+  border-radius: 10px; background: rgba(var(--accent-rgb,20,184,166),.12);
+  color: var(--accent); border: 1px solid rgba(var(--accent-rgb,20,184,166),.25);
+}
+.pron-fecha-badge { font-size: 11px; color: var(--text3); }
+
+/* Fila de usuario */
+.pron-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 14px; border-bottom: 1px solid var(--border);
+  transition: background .15s; cursor: default;
+}
+.pron-row:last-child { border-bottom: none; }
+.pron-row:hover { background: var(--bg2); }
+.pron-av-img { width: 30px; height: 30px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
+.pron-av-letter {
+  width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0;
+  background: var(--accent); color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 700;
+}
+.pron-user-info { flex: 1; min-width: 0; }
+.pron-user-name { font-size: 13px; font-weight: 600; color: var(--text); }
+.pron-user-handle { font-size: 11px; color: var(--text3); }
+.pron-pred {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 13px; font-weight: 700;
+}
+.pron-pred-score {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 7px; padding: 2px 8px; font-size: 13px; font-weight: 800;
+}
+.pron-pts {
+  font-size: 11px; font-weight: 800; padding: 2px 7px;
+  border-radius: 10px; min-width: 28px; text-align: center;
+}
+.pron-pts-3 { background: rgba(22,163,74,.15); color: #16a34a; }
+.pron-pts-1 { background: rgba(234,179,8,.15);  color: #ca8a04; }
+.pron-pts-0 { background: rgba(239,68,68,.12);  color: #dc2626; }
+.pron-pts-4 { background: rgba(99,102,241,.15); color: #6366f1; }
+</style>
+
+<!-- ══ PANEL PRONÓSTICOS — JS ════════════════════════════════════════════ -->
+<script>
+(function() {
+  let _pronData  = null;  // cache de todos los pronósticos
+  let _fechaAct  = '';    // filtro fecha activo
+  let _queryAct  = '';    // filtro nombre activo
+  let _pronTimer = null;
+
+  function _cerrarOtrosPaneles() {
+    document.getElementById('bus-galeria-panel').style.display = 'none';
+    document.getElementById('bus-resultados-panel').style.display = 'none';
+    document.querySelectorAll('.bus-chip').forEach(c => c.classList.remove('active'));
+  }
+
+  window._cerrarPronPanel = function() {
+    document.getElementById('bus-pron-panel').style.display = 'none';
+    document.getElementById('bus-chip-pron').classList.remove('active');
+  };
+
+  window.togglePronTab = function() {
+    const panel = document.getElementById('bus-pron-panel');
+    const isOpen = panel.style.display !== 'none';
+    if (isOpen) {
+      panel.style.display = 'none';
+      document.getElementById('bus-chip-pron').classList.remove('active');
+      document.getElementById('bus-resultados-panel').style.display = '';
+      document.querySelectorAll('.bus-chip').forEach(c => c.classList.remove('active'));
+      document.getElementById('chip-todo').classList.add('active');
+    } else {
+      _cerrarOtrosPaneles();
+      panel.style.display = 'block';
+      document.getElementById('bus-chip-pron').classList.add('active');
+      if (!_pronData) _cargarPron();
+      else _renderPron();
+    }
+  };
+
+  window.selFechaPron = function(btn, fecha) {
+    document.querySelectorAll('.pron-fecha-chip').forEach(c => c.classList.remove('active'));
+    btn.classList.add('active');
+    _fechaAct = fecha;
+    _renderPron();
+  };
+
+  window.debounceSearchPron = function() {
+    clearTimeout(_pronTimer);
+    _pronTimer = setTimeout(() => {
+      const q = document.getElementById('pron-input-q').value.trim();
+      document.getElementById('pron-clear-btn').style.display = q ? 'flex' : 'none';
+      _queryAct = q;
+      _renderPron();
+    }, 280);
+  };
+
+  window.limpiarPronSearch = function() {
+    document.getElementById('pron-input-q').value = '';
+    document.getElementById('pron-clear-btn').style.display = 'none';
+    _queryAct = '';
+    _renderPron();
+  };
+
+  async function _cargarPron() {
+    document.getElementById('pron-loading').style.display = 'block';
+    document.getElementById('pron-results').innerHTML = '';
+    document.getElementById('pron-empty').style.display = 'none';
+    try {
+      const res  = await fetch('/api/buscar/pronosticos');
+      const json = await res.json();
+      if (!json.ok) throw new Error(json.msg);
+      _pronData = json.data;
+      _poblarFechas(json.fechas || []);
+      _renderPron();
+    } catch(e) {
+      document.getElementById('pron-loading').style.display = 'none';
+      document.getElementById('pron-results').innerHTML =
+        `<div class="bus-empty"><div class="bus-empty-icon"><span class="material-symbols-outlined">wifi_off</span></div><h3>Error al cargar</h3><p>${e.message}</p></div>`;
+    }
+  }
+
+  function _poblarFechas(fechas) {
+    const wrap = document.getElementById('pron-fechas-wrap');
+    wrap.innerHTML = '<button class="pron-fecha-chip active" data-fecha="" onclick="selFechaPron(this,\'\')">Todas</button>';
+    fechas.forEach(f => {
+      const d = new Date(f + 'T00:00:00');
+      const label = d.toLocaleDateString('es-CO', { day:'numeric', month:'short' });
+      const btn = document.createElement('button');
+      btn.className = 'pron-fecha-chip';
+      btn.dataset.fecha = f;
+      btn.textContent = label;
+      btn.onclick = function() { selFechaPron(this, f); };
+      wrap.appendChild(btn);
+    });
+  }
+
+  function _renderPron() {
+    document.getElementById('pron-loading').style.display = 'none';
+    if (!_pronData) return;
+
+    let data = _pronData;
+
+    // Filtro por nombre/handle
+    if (_queryAct) {
+      const q = _queryAct.toLowerCase();
+      data = data.filter(r =>
+        r.usuario_nombre.toLowerCase().includes(q) ||
+        r.usuario_handle.toLowerCase().includes(q)
+      );
+    }
+
+    // Filtro por fecha
+    if (_fechaAct) {
+      data = data.filter(r => r.fecha_partido && r.fecha_partido.startsWith(_fechaAct));
+    }
+
+    if (!data.length) {
+      document.getElementById('pron-results').innerHTML = '';
+      document.getElementById('pron-empty').style.display = 'block';
+      return;
+    }
+    document.getElementById('pron-empty').style.display = 'none';
+
+    // Agrupar por partido (local vs visitante + resultado)
+    const partidos = {};
+    data.forEach(r => {
+      const key = `${r.local}|${r.visitante}|${r.res_local}-${r.res_visit}|${r.fecha_partido}`;
+      if (!partidos[key]) partidos[key] = { info: r, rows: [] };
+      partidos[key].rows.push(r);
+    });
+
+    const esc = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+    let html = '';
+    Object.values(partidos).forEach(({ info, rows }) => {
+      const ptsClass = p => p >= 4 ? 'pron-pts-4' : p === 3 ? 'pron-pts-3' : p === 1 ? 'pron-pts-1' : 'pron-pts-0';
+      const rowsHtml = rows.map(r => {
+        const av = r.usuario_foto
+          ? `<img src="${esc(r.usuario_foto)}" class="pron-av-img" onerror="this.outerHTML='<div class=pron-av-letter>${esc(r.usuario_nombre[0]?.toUpperCase()||'?')}</div>'">`
+          : `<div class="pron-av-letter">${esc(r.usuario_nombre[0]?.toUpperCase()||'?')}</div>`;
+        return `<div class="pron-row">
+          ${av}
+          <div class="pron-user-info">
+            <div class="pron-user-name">${esc(r.usuario_nombre)}</div>
+            <div class="pron-user-handle">@${esc(r.usuario_handle)}</div>
+          </div>
+          <div class="pron-pred">
+            <span class="pron-pred-score">${r.p_local ?? '?'} - ${r.p_vis ?? '?'}</span>
+            <span class="pron-pts ${ptsClass(r.puntos)}">${r.puntos ?? 0} pts</span>
+          </div>
+        </div>`;
+      }).join('');
+
+      const fechaLabel = info.fecha_partido ? `<span class="pron-fecha-badge">${esc(info.fecha_partido.slice(0,10))}</span>` : '';
+      html += `<div class="pron-partido-group">
+        <div class="pron-partido-header">
+          <div>
+            <div class="pron-partido-title">${esc(info.local)} vs ${esc(info.visitante)}</div>
+            <div style="display:flex;gap:6px;align-items:center;margin-top:3px;">
+              <span class="pron-grupo-badge">${esc(info.grupo)} · ${esc(info.fase)}</span>
+              ${fechaLabel}
+            </div>
+          </div>
+          <div class="pron-partido-resultado">
+            <span class="pron-partido-score">${info.res_local} - ${info.res_visit}</span>
+          </div>
+        </div>
+        ${rowsHtml}
+      </div>`;
+    });
+
+    document.getElementById('pron-results').innerHTML = html;
+  }
+})();
+</script>
+
