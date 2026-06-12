@@ -667,8 +667,8 @@ self.addEventListener('notificationclick', e => {
   to   { transform: rotate(360deg); }
 }
 
-/* Solo se muestra en móvil */
-@media (min-width: 769px) {
+/* Solo se muestra en pantallas con touch (tablets, móviles, etc) */
+@media (min-width: 1400px) {
   #ptr-indicator { display: none !important; }
 }
 </style>
@@ -685,7 +685,7 @@ self.addEventListener('notificationclick', e => {
 (function () {
   'use strict';
 
-  if (window.innerWidth > 768) return; // Solo móvil
+  if (window.innerWidth >= 1400) return; // Solo hasta pantallas muy grandes
 
   var PTR_THRESHOLD   = 80;   // px que hay que bajar para activar
   var PTR_MAX_PULL    = 120;  // máximo desplazamiento visual
@@ -791,7 +791,7 @@ self.addEventListener('notificationclick', e => {
 
   /* ── Resize: desactivar si rotan a landscape > 768px ── */
   window.addEventListener('resize', function () {
-    if (window.innerWidth > 768) {
+    if (window.innerWidth >= 1400) {
       resetIndicator();
     }
   }, { passive: true });
