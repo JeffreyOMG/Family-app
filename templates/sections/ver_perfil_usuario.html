@@ -1634,8 +1634,8 @@ function _vpScoreClase(pred_l, pred_v, res_l, res_v) {
 }
 
 function _vpBanderaHTML(codigo, nombre) {
-  if (!codigo || codigo === 'xx') return '<span style="font-size:1.1rem;">🌍</span>';
-  return '<img class="vp-prono-bandera" src="/static/banderas/' + _vpEscape(codigo) + '.png" alt="' + _vpEscape(nombre) + '" onerror="this.style.display='none'">';
+  if (!codigo || codigo === 'xx') return '<span class="vp-prono-flag-fallback">⚽</span>';
+  return '<img class="vp-prono-bandera" src="/static/banderas/' + _vpEscape(codigo) + '.png" alt="' + _vpEscape(nombre) + '">';
 }
 
 async function vpCargarPronosticos(uid) {
