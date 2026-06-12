@@ -1610,13 +1610,9 @@ async function vpCargarPosts(uid) {
 
 // ─── PRONÓSTICOS CALIFICADOS ─────────────────────────────────────────────────
 
-const _VP_FASE_LABELS = {
-  grupos:  'Grupo',
-  r16:     'Ronda 32',
-  octavos: 'Octavos',
-  cuartos: 'Cuartos',
-  semis:   'Semis',
-  final:   'Final',
+var _VP_FASE_LABELS = {
+  grupos: 'Grupo', r16: 'Ronda 32', octavos: 'Octavos',
+  cuartos: 'Cuartos', semis: 'Semis', final: 'Final'
 };
 
 function _vpPuntosClase(pts) {
@@ -1627,114 +1623,105 @@ function _vpPuntosClase(pts) {
 
 function _vpScoreClase(pred_l, pred_v, res_l, res_v) {
   if (pred_l === res_l && pred_v === res_v) return 'exact';
-  const pred_g = pred_l > pred_v ? 'L' : pred_l < pred_v ? 'V' : 'E';
-  const res_g  = res_l  > res_v  ? 'L' : res_l  < res_v  ? 'V' : 'E';
-  if (pred_g === res_g) return 'winner';
-  return 'miss';
+  var pred_g = pred_l > pred_v ? 'L' : pred_l < pred_v ? 'V' : 'E';
+  var res_g  = res_l  > res_v  ? 'L' : res_l  < res_v  ? 'V' : 'E';
+  return pred_g === res_g ? 'winner' : 'miss';
 }
 
 function _vpBanderaHTML(codigo, nombre) {
-  if (!codigo || codigo === 'xx') return '<span class="vp-prono-flag-fallback">⚽</span>';
+  if (!codigo || codigo === 'xx') return '<span class="vp-prono-flag-fallback">\u26BD</span>';
   return '<img class="vp-prono-bandera" src="/static/banderas/' + _vpEscape(codigo) + '.png" alt="' + _vpEscape(nombre) + '">';
 }
 
+function _vpPronoPtsHTML(puntos) {
+  var cls = _vpPuntosClase(puntos);
+  var lbl = puntos === 1 ? '1 pto' : puntos + ' pts';
+  var ico = puntos >= 3 ? 'check_circle' : puntos === 1 ? 'remove_circle' : 'cancel';
+  return '<span class="vp-prono-pts ' + cls + '">'
+    + '<span class="material-symbols-outlined" style="font-size:14px;">' + ico + '</span>'
+    + lbl + '</span>';
+}
+
+function _vpPronoTarjeta(p) {
+  var faseLabel = _VP_FASE_LABELS[p.fase] || p.fase;
+  var grupoBadge = (p.fase === 'grupos' && p.grupo) ? ' \u00B7 Grupo ' + _vpEscape(p.grupo) : '';
+  var scoreClase = _vpScoreClase(p.pred_local, p.pred_vis, p.res_local, p.res_vis);
+  var predL = (p.pred_local !== null && p.pred_local !== undefined) ? p.pred_local : '?';
+  var predV = (p.pred_vis   !== null && p.pred_vis   !== undefined) ? p.pred_vis   : '?';
+  var resL  = (p.res_local  !== null && p.res_local  !== undefined) ? p.res_local  : '?';
+  var resV  = (p.res_vis    !== null && p.res_vis    !== undefined) ? p.res_vis    : '?';
+  var marcPred = predL + ' - ' + predV;
+  var marcReal = resL  + ' - ' + resV;
+
+  var penalesHTML = '';
+  if (p.res_penales) {
+    var acertoPen = p.pred_penales && p.pred_penales === p.res_penales;
+    var penPred = p.pred_penales
+      ? '\u00B7 Tu pron\u00F3stico: <strong>' + _vpEscape(p.pred_penales) + '</strong> ' + (acertoPen ? '\u2713' : '\u2717')
+      : '\u00B7 Sin pron\u00F3stico de penales';
+    penalesHTML = '<div class="vp-prono-penales-row">'
+      + '<span class="material-symbols-outlined">sports</span>'
+      + 'Penales: <strong>' + _vpEscape(p.res_penales) + '</strong> ' + penPred
+      + '</div>';
+  }
+
+  return '<div class="vp-prono-card">'
+    + '<div class="vp-prono-header">'
+      + '<span class="vp-prono-fase-badge ' + _vpEscape(p.fase) + '">' + _vpEscape(faseLabel) + grupoBadge + '</span>'
+      + _vpPronoPtsHTML(p.puntos)
+    + '</div>'
+    + '<div class="vp-prono-equipos">'
+      + '<div class="vp-prono-equipo">'
+        + _vpBanderaHTML(p.codigo_local, p.local)
+        + '<span class="vp-prono-equipo-nombre" title="' + _vpEscape(p.local) + '">' + (_vpEscape(p.local) || '?') + '</span>'
+      + '</div>'
+      + '<span class="vp-prono-vs">vs</span>'
+      + '<div class="vp-prono-equipo">'
+        + _vpBanderaHTML(p.codigo_visitante, p.visitante)
+        + '<span class="vp-prono-equipo-nombre" title="' + _vpEscape(p.visitante) + '">' + (_vpEscape(p.visitante) || '?') + '</span>'
+      + '</div>'
+    + '</div>'
+    + '<div class="vp-prono-scores">'
+      + '<div class="vp-prono-score-row">'
+        + '<span class="vp-prono-score-label"><span class="material-symbols-outlined">history</span> Resultado</span>'
+        + '<span class="vp-prono-score-value">' + _vpEscape(String(marcReal)) + '</span>'
+      + '</div>'
+      + '<div class="vp-prono-score-row">'
+        + '<span class="vp-prono-score-label"><span class="material-symbols-outlined">sports_soccer</span> Tu pron\u00F3stico</span>'
+        + '<span class="vp-prono-score-value ' + scoreClase + '">' + _vpEscape(String(marcPred)) + '</span>'
+      + '</div>'
+    + '</div>'
+    + penalesHTML
+    + '</div>';
+}
+
 async function vpCargarPronosticos(uid) {
-  const cont = document.getElementById('vp-pronosticos-contenido');
+  var cont = document.getElementById('vp-pronosticos-contenido');
   if (!cont) return;
-  cont.innerHTML = '<div class="vp-tab-loading"><span class="material-symbols-outlined vp-spin">progress_activity</span>Cargando pronósticos…</div>';
-
+  cont.innerHTML = '<div class="vp-tab-loading"><span class="material-symbols-outlined vp-spin">progress_activity</span>Cargando pron\u00F3sticos\u2026</div>';
   try {
-    const r = await fetch('/api/perfil/pronosticos_calificados/' + uid, {
-      headers: { 'X-Requested-With': 'XMLHttpRequest' }
-    });
-    const d = await r.json();
-
+    var r = await fetch('/api/perfil/pronosticos_calificados/' + uid, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+    var d = await r.json();
     if (!d.ok) throw new Error(d.error || 'Error');
-
     if (!d.pronosticos || !d.pronosticos.length) {
-      cont.innerHTML = \`
-        <div class="vp-prono-empty">
-          <span class="material-symbols-outlined">sports_soccer</span>
-          <p>Aún no hay partidos puntuados.<br>Los pronósticos aparecerán aquí una vez que el sistema califique los resultados.</p>
-        </div>\`;
+      cont.innerHTML = '<div class="vp-prono-empty">'
+        + '<span class="material-symbols-outlined">sports_soccer</span>'
+        + '<p>A\u00FAn no hay partidos puntuados.<br>Los pron\u00F3sticos aparecer\u00E1n aqu\u00ED una vez que el sistema califique los resultados.</p>'
+        + '</div>';
       return;
     }
-
-    const resumen = \`
-      <div class="vp-prono-resumen">
-        <div class="vp-prono-resumen-info">
-          <span class="vp-prono-resumen-titulo">Puntos acumulados</span>
-          <span class="vp-prono-resumen-valor">\${d.total_puntos} pts</span>
-        </div>
-        <span class="vp-prono-resumen-partidos">\${d.total_partidos} partido\${d.total_partidos !== 1 ? 's' : ''} calificado\${d.total_partidos !== 1 ? 's' : ''}</span>
-      </div>\`;
-
-    const tarjetas = d.pronosticos.map(p => {
-      const faseLabel = _VP_FASE_LABELS[p.fase] || p.fase;
-      const grupoBadge = (p.fase === 'grupos' && p.grupo) ? ' · Grupo ' + _vpEscape(p.grupo) : '';
-      const ptsClase = _vpPuntosClase(p.puntos);
-      const ptsLabel = p.puntos === 1 ? '1 pto' : p.puntos + ' pts';
-      const ptsIco   = p.puntos >= 3 ? 'check_circle' : p.puntos === 1 ? 'remove_circle' : 'cancel';
-
-      const scoreClase = _vpScoreClase(p.pred_local, p.pred_vis, p.res_local, p.res_vis);
-      const marcadorPred = (p.pred_local !== null && p.pred_local !== undefined ? p.pred_local : '?') + ' - ' + (p.pred_vis !== null && p.pred_vis !== undefined ? p.pred_vis : '?');
-      const marcadorReal = (p.res_local !== null && p.res_local !== undefined ? p.res_local : '?') + ' - ' + (p.res_vis !== null && p.res_vis !== undefined ? p.res_vis : '?');
-
-      let penalesHTML = '';
-      if (p.res_penales) {
-        const acertoPen = p.pred_penales && p.pred_penales === p.res_penales;
-        penalesHTML = \`
-          <div class="vp-prono-penales-row">
-            <span class="material-symbols-outlined">sports</span>
-            Penales: <strong>\${_vpEscape(p.res_penales)}</strong>
-            \${p.pred_penales
-              ? '· Tu pronóstico: <strong>' + _vpEscape(p.pred_penales) + '</strong> ' + (acertoPen ? '✓' : '✗')
-              : '· Sin pronóstico de penales'}
-          </div>\`;
-      }
-
-      return \`
-        <div class="vp-prono-card">
-          <div class="vp-prono-header">
-            <span class="vp-prono-fase-badge \${_vpEscape(p.fase)}">\${_vpEscape(faseLabel)}\${grupoBadge}</span>
-            <span class="vp-prono-pts \${ptsClase}">
-              <span class="material-symbols-outlined" style="font-size:14px;">\${ptsIco}</span>
-              \${ptsLabel}
-            </span>
-          </div>
-          <div class="vp-prono-equipos">
-            <div class="vp-prono-equipo">
-              \${_vpBanderaHTML(p.codigo_local, p.local)}
-              <span class="vp-prono-equipo-nombre" title="\${_vpEscape(p.local)}">\${_vpEscape(p.local) || '?'}</span>
-            </div>
-            <span class="vp-prono-vs">vs</span>
-            <div class="vp-prono-equipo">
-              \${_vpBanderaHTML(p.codigo_visitante, p.visitante)}
-              <span class="vp-prono-equipo-nombre" title="\${_vpEscape(p.visitante)}">\${_vpEscape(p.visitante) || '?'}</span>
-            </div>
-          </div>
-          <div class="vp-prono-scores">
-            <div class="vp-prono-score-row">
-              <span class="vp-prono-score-label">
-                <span class="material-symbols-outlined">history</span> Resultado
-              </span>
-              <span class="vp-prono-score-value">\${_vpEscape(marcadorReal)}</span>
-            </div>
-            <div class="vp-prono-score-row">
-              <span class="vp-prono-score-label">
-                <span class="material-symbols-outlined">sports_soccer</span> Tu pronóstico
-              </span>
-              <span class="vp-prono-score-value \${scoreClase}">\${_vpEscape(marcadorPred)}</span>
-            </div>
-          </div>
-          \${penalesHTML}
-        </div>\`;
-    }).join('');
-
+    var partsStr = d.total_partidos + ' partido' + (d.total_partidos !== 1 ? 's' : '') + ' calificado' + (d.total_partidos !== 1 ? 's' : '');
+    var resumen = '<div class="vp-prono-resumen">'
+      + '<div class="vp-prono-resumen-info">'
+        + '<span class="vp-prono-resumen-titulo">Puntos acumulados</span>'
+        + '<span class="vp-prono-resumen-valor">' + d.total_puntos + ' pts</span>'
+      + '</div>'
+      + '<span class="vp-prono-resumen-partidos">' + partsStr + '</span>'
+      + '</div>';
+    var tarjetas = d.pronosticos.map(_vpPronoTarjeta).join('');
     cont.innerHTML = resumen + '<div class="vp-prono-lista">' + tarjetas + '</div>';
-
   } catch(e) {
-    cont.innerHTML = '<div class="vp-prono-empty"><span class="material-symbols-outlined">wifi_off</span><p>No se pudieron cargar los pronósticos.</p></div>';
+    cont.innerHTML = '<div class="vp-prono-empty"><span class="material-symbols-outlined">wifi_off</span><p>No se pudieron cargar los pron\u00F3sticos.</p></div>';
   }
 }
 
