@@ -8067,8 +8067,14 @@ async function cargarMasPosts(btn) {
       if (!res.ok) throw new Error('HTTP ' + res.status);
       const json = await res.json();
 
+      // Leer el intervalo de polling que recomienda el servidor
+      // (20s live · 60s hoy · 120s sin partidos hoy)
+      const serverTtl = parseInt(res.headers.get('X-Poll-Interval') || '120', 10);
+      _pollInterval = (isNaN(serverTtl) || serverTtl < 5 ? 120 : serverTtl) * 1000;
+      _schedulePoll(_pollInterval);
+
       // DEBUG: inspección del payload
-      console.log('[PAH] ok=', json.ok, '| partidos recibidos:', Array.isArray(json.data) ? json.data.length : 'no-array');
+      console.log('[PAH] ok=', json.ok, '| partidos recibidos:', Array.isArray(json.data) ? json.data.length : 'no-array', '| próximo poll en', _pollInterval/1000 + 's');
       if (Array.isArray(json.data) && json.data.length > 0) {
         console.log('[PAH] primer partido:', JSON.stringify(json.data[0]));
       }
@@ -8133,16 +8139,31 @@ async function cargarMasPosts(btn) {
     } catch (err) {
       console.error('[PAH] Error al cargar partidos:', err.message, err);
       ['desktop', 'mobile'].forEach(suf => _setEstado(suf, 'error'));
+      // Reintentar en 30s si hay error de red, no dejar morir el polling
+      _schedulePoll(30_000);
     }
   }
 
   // ── Init ─────────────────────────────────────────────────────────────────
 
+  // Polling adaptativo según X-Poll-Interval devuelto por el servidor:
+  //   20 s  → hay un partido EN VIVO (actualización casi en tiempo real)
+  //   60 s  → hay partidos hoy pero ninguno en curso
+  //  120 s  → sin partidos hoy (valor por defecto)
+  let _pollTimer = null;
+  let _pollInterval = 120_000; // ms — se ajusta tras cada respuesta
+
+  function _schedulePoll(intervalMs) {
+    if (_pollTimer) clearTimeout(_pollTimer);
+    _pollTimer = setTimeout(() => {
+      cargarPartidosHoy();
+    }, intervalMs);
+  }
+
   document.addEventListener('DOMContentLoaded', () => {
     _setEstado('desktop', 'loading');
     _setEstado('mobile',  'loading');
     cargarPartidosHoy();
-    setInterval(cargarPartidosHoy, 120_000); // refresco cada 2 min
   });
 })();
 

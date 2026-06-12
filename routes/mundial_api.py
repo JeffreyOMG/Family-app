@@ -5,9 +5,14 @@ Blueprint con los endpoints REST del Mundial 2026.
 
 Endpoints:
   GET /api/mundial/partidos-hoy          Partidos del día actual
+  GET /api/mundial/en-vivo               Solo partidos en curso (marcador en tiempo real)
   GET /api/mundial/proximos[?limit=N]    Próximos N partidos (default 10)
   GET /api/mundial/partido/<int:id>      Detalle de un partido por ID
   POST /api/mundial/cache/invalidar      Fuerza recarga (solo admin)
+
+Cabecera X-Poll-Interval:
+  Todos los endpoints incluyen esta cabecera indicando al cliente
+  cada cuántos segundos debe refrescar (20s live, 60s hoy, 120s normal).
 
 Formato de respuesta consistente:
   {
@@ -16,9 +21,6 @@ Formato de respuesta consistente:
     "meta":  { "fuente": str, "generado": str, "ttl_segundos": int },
     "error": str | null     # solo cuando ok=False
   }
-
-Autenticación: todos los endpoints requieren sesión activa (uid en session),
-igual que el resto del proyecto. El endpoint de invalidación requiere rol admin.
 """
 
 import logging
@@ -27,9 +29,11 @@ from flask import Blueprint, jsonify, session, request as flask_request
 
 from services.mundial_service import (
     get_partidos_hoy,
+    get_en_vivo,
     get_proximos,
     get_partido,
     invalidate_cache,
+    get_live_ttl,
     CACHE_TTL_SECONDS,
 )
 
@@ -44,17 +48,21 @@ def _now_iso() -> str:
     return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
-def _ok(data, fuente: str) -> tuple:
-    return jsonify({
+def _ok(data, fuente: str):
+    """Respuesta 200 con cabecera X-Poll-Interval dinámica."""
+    ttl = get_live_ttl()
+    resp = jsonify({
         "ok":    True,
         "data":  data,
         "meta":  {
             "fuente":        fuente,
             "generado":      _now_iso(),
-            "ttl_segundos":  CACHE_TTL_SECONDS,
+            "ttl_segundos":  ttl,
         },
         "error": None,
-    }), 200
+    })
+    resp.headers["X-Poll-Interval"] = str(ttl)
+    return resp, 200
 
 
 def _err(message: str, status: int = 500) -> tuple:
@@ -85,8 +93,7 @@ def _require_admin():
     if not uid:
         return _err("No autenticado", 401)
     con = get_db()
-    # Usa '?' (SQLite). Si el proyecto migra a PostgreSQL, cambiar a '%s'.
-    row = con.execute("SELECT rol FROM usuarios WHERE id=?", (uid,)).fetchone()
+    row = con.execute("SELECT rol FROM usuarios WHERE id=%s", (uid,)).fetchone()
     if not row or row["rol"] != "admin":
         return _err("Acceso denegado — se requiere rol admin", 403)
     return None
@@ -98,31 +105,9 @@ def _require_admin():
 def api_partidos_hoy():
     """
     GET /api/mundial/partidos-hoy
-    Devuelve los partidos que se juegan en la fecha actual.
-
-    Respuesta 200:
-      {
-        "ok": true,
-        "data": [
-          {
-            "id": 73,
-            "fase": "Dieciseisavos",
-            "grupo": null,
-            "local": "Uruguay",
-            "visitante": "Colombia",
-            "codigo_local": "uy",
-            "codigo_visit": "co",
-            "goles_local": null,
-            "goles_visit": null,
-            "bloqueado": false,
-            "fecha_texto": "Dom. 28 jun, 15:00",
-            "fecha_iso": "2026-06-28T15:00:00",
-            "sede": "SoFi Stadium, Los Angeles",
-            "estado": "programado"
-          }
-        ],
-        "meta": { "fuente": "external", "generado": "...", "ttl_segundos": 120 }
-      }
+    Partidos del día en zona Bogotá/Lima (UTC-5).
+    Incluye en_curso, programados y finalizados del día.
+    La cabecera X-Poll-Interval indica cada cuántos segundos refrescar.
     """
     guard = _require_auth()
     if guard:
@@ -137,14 +122,32 @@ def api_partidos_hoy():
         return _err(f"Error interno: {exc}")
 
 
+@mundial_api_bp.route("/en-vivo", methods=["GET"])
+def api_en_vivo():
+    """
+    GET /api/mundial/en-vivo
+    Solo los partidos con estado 'en_curso' en este momento.
+    Siempre intenta obtener datos frescos cuando hay partidos en curso.
+    Devuelve lista vacía (no error) si no hay ningún partido vivo.
+    """
+    guard = _require_auth()
+    if guard:
+        return guard
+
+    try:
+        partidos, fuente = get_en_vivo()
+        logger.info(f"en-vivo → {len(partidos)} en curso (fuente={fuente})")
+        return _ok(partidos, fuente)
+    except Exception as exc:
+        logger.exception("Error inesperado en en-vivo")
+        return _err(f"Error interno: {exc}")
+
+
 @mundial_api_bp.route("/proximos", methods=["GET"])
 def api_proximos():
     """
     GET /api/mundial/proximos[?limit=N]
-    Devuelve los próximos N partidos sin disputar ordenados por fecha (default 10).
-
-    Query params:
-      limit  int  1-50  (default 10)
+    Próximos N partidos sin disputar ordenados por fecha (default 10, max 50).
     """
     guard = _require_auth()
     if guard:
@@ -171,9 +174,7 @@ def api_proximos():
 def api_partido_detalle(partido_id: int):
     """
     GET /api/mundial/partido/<id>
-    Devuelve el detalle de un partido específico por su ID.
-
-    Respuesta 404 si no existe el partido.
+    Detalle de un partido por ID. 404 si no existe.
     """
     guard = _require_auth()
     if guard:
@@ -195,9 +196,8 @@ def api_partido_detalle(partido_id: int):
 @mundial_api_bp.route("/cache/invalidar", methods=["POST"])
 def api_invalidar_cache():
     """
-    POST /api/mundial/cache/invalidar
+    POST /api/mundial/cache/invalidar  (solo admin)
     Invalida la caché para forzar recarga inmediata desde la API externa.
-    Solo accesible para usuarios con rol 'admin'.
     """
     guard = _require_admin()
     if guard:

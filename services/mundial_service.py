@@ -140,6 +140,8 @@ _COUNTRY_CODE: dict[str, str] = {
     "ivory coast":     "ci", "cote d'ivoire": "ci", "mali":          "ml",
     "south africa":    "za", "tunisia":       "tn", "túnez":          "tn",
     "algeria":         "dz", "argelia":       "dz", "dr congo":       "cd",
+    "democratic republic of the congo": "cd", "congo dr": "cd",
+    "rd congo":        "cd", "congo":         "cd",
     # Asia
     "japan":           "jp", "japón":         "jp", "south korea":    "kr",
     "corea del sur":   "kr", "iran":          "ir", "iraq":           "iq",
@@ -214,46 +216,46 @@ _PHASE_MAP = {
 #   PT (Los Ángeles, Seattle, San Francisco, Vancouver)         → UTC-7
 #   México Central (CDMX, Guadalajara, Monterrey)               → UTC-6 (todo el año)
 _STADIUM_UTC_OFFSET: dict[str, int] = {
-    # ── Estados Unidos ──
-    "MetLife Stadium":            -4,  # East Rutherford, NJ (ET, DST)
-    "AT&T Stadium":                -5,  # Dallas, TX (CT, DST)
-    "SoFi Stadium":                -7,  # Los Angeles, CA (PT, DST)
-    "Hard Rock Stadium":           -4,  # Miami, FL (ET, DST)
-    "Mercedes-Benz Stadium":       -4,  # Atlanta, GA (ET, DST)
-    "NRG Stadium":                 -5,  # Houston, TX (CT, DST)
-    "Lincoln Financial Field":     -4,  # Philadelphia, PA (ET, DST)
-    "Levi's Stadium":              -7,  # San Francisco/Santa Clara, CA (PT, DST)
-    "Lumen Field":                 -7,  # Seattle, WA (PT, DST)
-    "Gillette Stadium":            -4,  # Boston/Foxborough, MA (ET, DST)
-    "Arrowhead Stadium":           -5,  # Kansas City, MO (CT, DST)
-    # ── México (sin DST) ──
-    "Estadio Azteca":              -6,  # Ciudad de México
-    "Estadio Akron":               -6,  # Guadalajara
-    "Estadio BBVA":                -6,  # Monterrey
+    # ── Estados Unidos (horario de verano jun-jul 2026) ──
+    "MetLife Stadium":                  -4,  # East Rutherford, NJ  (ET/DST)
+    "AT&T Stadium":                     -5,  # Dallas/Arlington, TX (CT/DST)
+    "SoFi Stadium":                     -7,  # Los Angeles, CA      (PT/DST)
+    "Hard Rock Stadium":                -4,  # Miami Gardens, FL    (ET/DST)
+    "Mercedes-Benz Stadium":            -4,  # Atlanta, GA          (ET/DST)
+    "NRG Stadium":                      -5,  # Houston, TX          (CT/DST)
+    "Lincoln Financial Field":          -4,  # Philadelphia, PA     (ET/DST)
+    "Levi's Stadium":                   -7,  # Santa Clara, CA      (PT/DST)
+    "Lumen Field":                      -7,  # Seattle, WA          (PT/DST)
+    "Gillette Stadium":                 -4,  # Foxborough/Boston, MA (ET/DST)
+    "GEHA Field at Arrowhead Stadium":  -5,  # Kansas City, MO      (CT/DST)
+    # ── México (sin DST, UTC-6 permanente) ──
+    "Estadio Azteca":                   -6,  # Ciudad de México
+    "Estadio Akron":                    -6,  # Guadalajara (Zapopan)
+    "Estadio BBVA":                     -6,  # Monterrey (Guadalupe)
     # ── Canadá ──
-    "BC Place":                    -7,  # Vancouver, BC (PT, DST)
-    "BMO Field":                   -4,  # Toronto, ON (ET, DST)
+    "BC Place":                         -7,  # Vancouver, BC        (PT/DST)
+    "BMO Field":                        -4,  # Toronto, ON          (ET/DST)
 }
 
-# Mapa stadium_id (worldcup26.ir) → nombre de estadio. Orden documentado en
-# el README del proyecto (11 EE.UU. + 3 México + 2 Canadá = 16 sedes).
+# Mapa stadium_id (worldcup26.ir) → nombre de estadio.
+# FUENTE: football.stadiums.json auditado el 11/06/2026.
 _STADIUM_ID_NAME: dict[str, str] = {
     "1":  "Estadio Azteca",
     "2":  "Estadio Akron",
     "3":  "Estadio BBVA",
-    "4":  "BC Place",
-    "5":  "BMO Field",
-    "6":  "MetLife Stadium",
-    "7":  "AT&T Stadium",
-    "8":  "SoFi Stadium",
-    "9":  "Hard Rock Stadium",
-    "10": "Mercedes-Benz Stadium",
-    "11": "NRG Stadium",
-    "12": "Lincoln Financial Field",
-    "13": "Levi's Stadium",
-    "14": "Lumen Field",
-    "15": "Gillette Stadium",
-    "16": "Arrowhead Stadium",
+    "4":  "AT&T Stadium",                    # Dallas/Arlington, TX  ← corregido
+    "5":  "NRG Stadium",                     # Houston, TX           ← corregido
+    "6":  "GEHA Field at Arrowhead Stadium", # Kansas City, MO       ← corregido
+    "7":  "Mercedes-Benz Stadium",           # Atlanta, GA           ← corregido
+    "8":  "Hard Rock Stadium",               # Miami Gardens, FL     ← corregido
+    "9":  "Gillette Stadium",                # Foxborough/Boston, MA ← corregido
+    "10": "Lincoln Financial Field",         # Philadelphia, PA      ← corregido
+    "11": "MetLife Stadium",                 # East Rutherford, NJ   ← corregido
+    "12": "BMO Field",                       # Toronto, ON           ← corregido
+    "13": "BC Place",                        # Vancouver, BC         ← corregido
+    "14": "Lumen Field",                     # Seattle, WA           (ya era correcto)
+    "15": "Levi's Stadium",                  # Santa Clara, CA       ← corregido
+    "16": "SoFi Stadium",                    # Los Angeles, CA       ← corregido
 }
 
 
@@ -463,6 +465,29 @@ def _normalize_game(raw: dict, idx: int = 0) -> dict:
         venue = venue.get("name") or venue.get("stadium") or ""
     sede = str(venue).strip()
 
+    # ── Minuto / tiempo transcurrido (para badge EN VIVO) ────────────────────
+    # Si time_elapsed es un número o "45+2" lo exponemos como "minuto".
+    # Si es un texto descriptivo ('halftime', etc.) lo mapeamos a una etiqueta legible.
+    _ELAPSED_LABEL: dict[str, str] = {
+        "halftime":    "ET",       # Entre tiempos
+        "half time":   "ET",
+        "first half":  "1T",
+        "second half": "2T",
+        "extra time":  "P.E.",     # Prórroga / extra time
+        "penalty":     "Pen.",
+        "penalties":   "Pen.",
+        "in progress": "En curso",
+    }
+    minuto: Optional[str] = None
+    if estado == "en_curso" and time_elapsed:
+        if time_elapsed in _ELAPSED_LABEL:
+            minuto = _ELAPSED_LABEL[time_elapsed]
+        else:
+            # Puede ser "45", "67", "90+3", etc.
+            import re as _re
+            if _re.match(r"^\d+", time_elapsed):
+                minuto = time_elapsed
+
     # is not None guard: id=0 is falsy but valid; must not fall through to match_id
     _id_raw = raw.get("id") if raw.get("id") is not None else raw.get("match_id")
     return {
@@ -480,6 +505,7 @@ def _normalize_game(raw: dict, idx: int = 0) -> dict:
         "fecha_iso":    fecha_iso,
         "sede":         sede,
         "estado":       estado,
+        "minuto":       minuto,     # "45'", "ET", "2T", None si no aplica
     }
 
 
@@ -600,12 +626,10 @@ def get_all_games(force_refresh: bool = False) -> tuple[list[dict], str]:
     Devuelve (lista_partidos, fuente).
     fuente ∈ {"cache", "external", "fallback"}
 
-    Estrategia:
-      1. Caché en memoria con TTL.
-      2. API externa con reintentos (protegida por _fetch_lock para evitar
-         thundering herd: si N requests llegan con caché fría, solo uno
-         hace el fetch externo; los demás esperan y usan el resultado).
-      3. Fallback a datos locales (mundial_bracket.py).
+    TTL dinámico:
+      - Partidos en curso → 20 s  (actualización casi en tiempo real)
+      - Solo partidos de hoy sin live → 60 s
+      - Sin partidos hoy → 120 s (valor estático CACHE_TTL_SECONDS)
     """
     if not force_refresh:
         cached = _cache.get("all_games")
@@ -623,7 +647,9 @@ def get_all_games(force_refresh: bool = False) -> tuple[list[dict], str]:
 
         try:
             games = _fetch_external()
-            _cache.set("all_games", games, ttl=CACHE_TTL_SECONDS)
+            ttl = _dynamic_ttl(games)
+            _cache.set("all_games", games, ttl=ttl)
+            logger.info(f"Cache actualizado — TTL={ttl}s")
             return games, "external"
         except RuntimeError as exc:
             logger.error(f"Usando fallback local. Razón: {exc}")
@@ -636,6 +662,11 @@ def get_all_games(force_refresh: bool = False) -> tuple[list[dict], str]:
 # ─── Helpers de filtrado ──────────────────────────────────────────────────────
 
 _TZ_BOGOTA = timezone(timedelta(hours=-5))  # Colombia / Perú (sin DST)
+
+# TTLs en segundos según estado del torneo
+_TTL_LIVE    = int(os.getenv("MUNDIAL_TTL_LIVE",    "20"))   # partidos en curso
+_TTL_HOY     = int(os.getenv("MUNDIAL_TTL_HOY",     "60"))   # hay partidos hoy (sin live)
+_TTL_NORMAL  = CACHE_TTL_SECONDS                              # sin partidos hoy (2 min)
 
 
 def _today_str() -> str:
@@ -652,6 +683,11 @@ def _fecha_iso_to_bogota_date(iso: str) -> Optional[str]:
         return dt.astimezone(_TZ_BOGOTA).date().isoformat()
     except Exception:
         return None
+
+
+def _game_is_live(game: dict) -> bool:
+    """True si el partido está en curso ahora mismo."""
+    return game.get("estado") == "en_curso"
 
 
 def _game_is_today(game: dict) -> bool:
@@ -685,12 +721,50 @@ def _game_is_upcoming(game: dict) -> bool:
     return game.get("estado") == "programado" and not _game_is_today(game)
 
 
+def _dynamic_ttl(games: list[dict]) -> int:
+    """
+    Calcula el TTL óptimo según el estado actual del torneo:
+      - Hay partidos EN CURSO        → _TTL_LIVE   (20 s)
+      - Hay partidos HOY sin live    → _TTL_HOY    (60 s)
+      - Sin partidos hoy             → _TTL_NORMAL (120 s)
+    """
+    if any(_game_is_live(g) for g in games):
+        return _TTL_LIVE
+    if any(_game_is_today(g) for g in games):
+        return _TTL_HOY
+    return _TTL_NORMAL
+
+
 # ─── API pública del servicio ─────────────────────────────────────────────────
 
 def get_partidos_hoy() -> tuple[list[dict], str]:
-    """Partidos que se juegan hoy (fecha ISO o heurística de texto)."""
+    """
+    Partidos que se juegan hoy en zona Bogotá/Lima (UTC-5).
+    Incluye en_curso, programados y finalizados del día.
+    El campo 'minuto' está presente cuando el partido es en_curso.
+    """
     games, source = get_all_games()
-    return [g for g in games if _game_is_today(g)], source
+    hoy = [g for g in games if _game_is_today(g)]
+    return hoy, source
+
+
+def get_en_vivo() -> tuple[list[dict], str]:
+    """
+    Solo los partidos con estado 'en_curso' en este momento.
+    Siempre fuerza refresco de caché cuando hay partidos en curso,
+    para que el frontend reciba el marcador más reciente disponible.
+    """
+    # Primero verificamos con caché normal
+    games, source = get_all_games()
+    live = [g for g in games if _game_is_live(g)]
+
+    # Si hay partidos vivos y la fuente era caché, forzamos refresh
+    # para no servir datos potencialmente desactualizados
+    if live and source == "cache":
+        games, source = get_all_games(force_refresh=True)
+        live = [g for g in games if _game_is_live(g)]
+
+    return live, source
 
 
 def get_proximos(limit: int = 10) -> tuple[list[dict], str]:
@@ -706,6 +780,25 @@ def get_partido(partido_id: int) -> tuple[Optional[dict], str]:
     games, source = get_all_games()
     match = next((g for g in games if g["id"] == partido_id), None)
     return match, source
+
+
+def get_live_ttl() -> int:
+    """
+    Devuelve el TTL activo del caché según el estado del torneo.
+    El frontend lo usa para saber cada cuántos segundos refrescar.
+    """
+    games_cached = _cache.get("all_games")
+    if games_cached is None:
+        return _TTL_NORMAL
+    return _dynamic_ttl(games_cached)
+
+
+def hay_partidos_en_vivo() -> bool:
+    """Retorna True si existe al menos un partido en_curso ahora mismo."""
+    games_cached = _cache.get("all_games")
+    if games_cached is None:
+        return False
+    return any(_game_is_live(g) for g in games_cached)
 
 
 def invalidate_cache() -> None:
