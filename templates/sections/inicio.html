@@ -389,8 +389,8 @@
           {% set miembros_reales = miembros | selectattr('rol', 'in', ['miembro', 'admin']) | list %}
           {% set invitados_lista = miembros | selectattr('rol', 'equalto', 'invitado') | list %}
 
-          {# Mostrar hasta 4 en total: primero miembros/admin, luego invitados #}
-          {% set preview = (miembros_reales + invitados_lista)[:4] %}
+          {# Mostrar hasta 3 en total: primero miembros/admin, luego invitados #}
+          {% set preview = (miembros_reales + invitados_lista)[:3] %}
 
           {% if miembros_reales %}
           <div class="usuarios-grupo-label">
@@ -2884,13 +2884,14 @@ body.dark-mode .post-badge-privado { background: rgba(139,92,246,.2); color: #a7
 
 /* Botón Ver más */
 .pah-ver-mas-btn {
-  display: flex; align-items: center; justify-content: center; gap: 4px;
-  width: 100%; padding: 9px 12px; margin-top: 0;
+  display: flex; align-items: center; justify-content: center; gap: 5px;
+  width: 100%; padding: 11px 12px; margin-top: 0;
   background: none; border: none; border-top: 1px solid var(--border);
-  color: var(--accent); font-size: 12px; font-weight: 700;
-  cursor: pointer; transition: background .15s; letter-spacing: .02em;
+  color: var(--accent); font-size: 13px; font-weight: 700;
+  cursor: pointer; transition: background .15s; letter-spacing: .04em;
   text-transform: uppercase; flex-shrink: 0;
 }
+.pah-ver-mas-btn .material-symbols-outlined { font-size: 16px !important; }
 .pah-ver-mas-btn:hover { background: var(--bg2); }
 
 /* Modal overlay */
@@ -8019,6 +8020,10 @@ async function cargarMasPosts(btn) {
   function abrirModalPartidos() {
     const modal = document.getElementById('pah-modal');
     if (!modal) return;
+    // Mover al body para escapar cualquier stacking context
+    if (modal.parentElement !== document.body) {
+      document.body.appendChild(modal);
+    }
     modal.style.display = 'flex';
     document.body.style.overflow = 'hidden';
     const lista = document.getElementById('pah-lista-modal');
