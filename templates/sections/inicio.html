@@ -197,6 +197,7 @@
           <span class="pah-world-cup-badge">Mundial 2026</span>
         </div>
         <div class="pah-body">
+          <div id="pah-fallback-banner" style="display:none;background:#fef3c7;border:1px solid #f59e0b;border-radius:8px;padding:8px 12px;margin-bottom:8px;font-size:12px;color:#92400e;text-align:center;">⚠️ Mostrando horarios — marcadores en vivo no disponibles ahora mismo</div>
           <div class="pah-loading" id="pah-loading-mobile">
             <div class="pah-skeleton"></div>
             <div class="pah-skeleton pah-skeleton--short"></div>
@@ -8073,10 +8074,24 @@ async function cargarMasPosts(btn) {
       _pollInterval = (isNaN(serverTtl) || serverTtl < 5 ? 120 : serverTtl) * 1000;
       _schedulePoll(_pollInterval);
 
+      const fuente = json.meta?.fuente || 'desconocida';
+
       // DEBUG: inspección del payload
-      console.log('[PAH] ok=', json.ok, '| partidos recibidos:', Array.isArray(json.data) ? json.data.length : 'no-array', '| próximo poll en', _pollInterval/1000 + 's');
+      console.log('[PAH] ok=', json.ok,
+        '| partidos recibidos:', Array.isArray(json.data) ? json.data.length : 'no-array',
+        '| fuente:', fuente,
+        '| próximo poll en', _pollInterval/1000 + 's');
       if (Array.isArray(json.data) && json.data.length > 0) {
         console.log('[PAH] primer partido:', JSON.stringify(json.data[0]));
+      }
+
+      // Aviso visual si estamos usando datos locales (API externa caída)
+      const bannerEl = document.getElementById('pah-fallback-banner');
+      if (fuente === 'fallback') {
+        console.warn('[PAH] ⚠️ Usando datos locales — worldcup26.ir no disponible. Scores en 0-0.');
+        if (bannerEl) bannerEl.style.display = 'block';
+      } else {
+        if (bannerEl) bannerEl.style.display = 'none';
       }
 
       if (!json.ok || !Array.isArray(json.data)) throw new Error('Respuesta inválida del servidor');
