@@ -77,9 +77,9 @@ def api_buscar_pronosticos():
             pr.goles_local  AS p_local,
             pr.goles_visitante AS p_vis,
             pr.puntos       AS puntos,
-            pm.fecha        AS fecha_partido
+            pm.id           AS partido_id
         FROM pronosticos pr
-        JOIN usuarios u       ON u.id  = pr.usuario_id
+        JOIN usuarios u          ON u.id  = pr.usuario_id
         JOIN partidos_mundial pm ON pm.id = pr.partido_id
         WHERE pm.bloqueado = 1
           AND pm.goles_local IS NOT NULL
@@ -91,8 +91,8 @@ def api_buscar_pronosticos():
         sql_grupos += " AND (u.nombre LIKE %s OR u.usuario LIKE %s)"
         params_g += [f"%{q}%", f"%{q}%"]
     if fecha:
-        sql_grupos += " AND (pm.fecha LIKE %s OR pm.grupo = %s)"
-        params_g += [f"%{fecha}%", fecha.upper()]
+        sql_grupos += " AND pm.grupo = %s"
+        params_g += [fecha.upper()]
     sql_grupos += " ORDER BY pm.id, u.nombre"
 
     # ── Fase eliminatoria ───────────────────────────────────────────────────
@@ -101,7 +101,7 @@ def api_buscar_pronosticos():
             u.nombre        AS usuario_nombre,
             u.foto          AS usuario_foto,
             u.usuario       AS usuario_handle,
-            'Eliminatoria'  AS grupo,
+            pe.fase         AS grupo,
             pe.eq_local     AS local,
             pe.eq_visit     AS visitante,
             pe.goles_local  AS res_local,
@@ -109,9 +109,9 @@ def api_buscar_pronosticos():
             pe_pr.goles_local  AS p_local,
             pe_pr.goles_visit  AS p_vis,
             pe_pr.puntos    AS puntos,
-            pe.fecha        AS fecha_partido
+            pe.id           AS partido_id
         FROM pronosticos_eli pe_pr
-        JOIN usuarios u             ON u.id  = pe_pr.usuario_id
+        JOIN usuarios u              ON u.id  = pe_pr.usuario_id
         JOIN partidos_eliminacion pe ON pe.id = pe_pr.partido_id
         WHERE pe.bloqueado = 1
           AND pe.goles_local IS NOT NULL
@@ -146,7 +146,7 @@ def api_buscar_pronosticos():
             "p_local":         r["p_local"],
             "p_vis":           r["p_vis"],
             "puntos":          r["puntos"],
-            "fecha_partido":   str(r["fecha_partido"] or ""),
+            "partido_id":      r["partido_id"],
             "fase":            "Grupos",
         })
     for r in con.execute(sql_eli, params_e).fetchall():
@@ -162,19 +162,16 @@ def api_buscar_pronosticos():
             "p_local":         r["p_local"],
             "p_vis":           r["p_vis"],
             "puntos":          r["puntos"],
-            "fecha_partido":   str(r["fecha_partido"] or ""),
+            "partido_id":      r["partido_id"],
             "fase":            "Eliminatoria",
         })
 
-    # Fechas únicas disponibles para el filtro
-    fechas_sql = """
-        SELECT DISTINCT DATE(pm.fecha) AS f FROM partidos_mundial
+    # Grupos disponibles para el filtro (solo fase de grupos con resultados)
+    grupos_sql = """
+        SELECT DISTINCT grupo FROM partidos_mundial
         WHERE bloqueado=1 AND goles_local IS NOT NULL
-        UNION
-        SELECT DISTINCT DATE(pe.fecha) FROM partidos_eliminacion pe
-        WHERE bloqueado=1 AND goles_local IS NOT NULL
-        ORDER BY f
+        ORDER BY grupo
     """
-    fechas = [str(row["f"]) for row in con.execute(fechas_sql).fetchall() if row["f"]]
+    grupos = [row["grupo"] for row in con.execute(grupos_sql).fetchall()]
 
-    return jsonify({"ok": True, "data": resultados, "fechas": fechas})
+    return jsonify({"ok": True, "data": resultados, "fechas": grupos})

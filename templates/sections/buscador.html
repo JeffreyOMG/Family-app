@@ -748,19 +748,26 @@ function busAbrirGaleria() {
     }
   }
 
-  function _poblarFechas(fechas) {
+  function _poblarFechas(grupos) {
     const wrap = document.getElementById('pron-fechas-wrap');
-    wrap.innerHTML = '<button class="pron-fecha-chip active" data-fecha="" onclick="selFechaPron(this,\'\')">Todas</button>';
-    fechas.forEach(f => {
-      const d = new Date(f + 'T00:00:00');
-      const label = d.toLocaleDateString('es-CO', { day:'numeric', month:'short' });
+    wrap.innerHTML = '<button class="pron-fecha-chip active" data-fecha="" onclick="selFechaPron(this,\'\')">Todos</button>';
+    grupos.forEach(g => {
       const btn = document.createElement('button');
       btn.className = 'pron-fecha-chip';
-      btn.dataset.fecha = f;
-      btn.textContent = label;
-      btn.onclick = function() { selFechaPron(this, f); };
+      btn.dataset.fecha = g;
+      btn.textContent = 'Grupo ' + g;
+      btn.onclick = function() { selFechaPron(this, g); };
       wrap.appendChild(btn);
     });
+    // Chip eliminatoria si hay datos
+    if (_pronData && _pronData.some(r => r.fase === 'Eliminatoria')) {
+      const btn = document.createElement('button');
+      btn.className = 'pron-fecha-chip';
+      btn.dataset.fecha = '__eli__';
+      btn.textContent = 'Eliminatoria';
+      btn.onclick = function() { selFechaPron(this, '__eli__'); };
+      wrap.appendChild(btn);
+    }
   }
 
   function _renderPron() {
@@ -778,9 +785,13 @@ function busAbrirGaleria() {
       );
     }
 
-    // Filtro por fecha
+    // Filtro por grupo/fase
     if (_fechaAct) {
-      data = data.filter(r => r.fecha_partido && r.fecha_partido.startsWith(_fechaAct));
+      if (_fechaAct === '__eli__') {
+        data = data.filter(r => r.fase === 'Eliminatoria');
+      } else {
+        data = data.filter(r => r.grupo === _fechaAct);
+      }
     }
 
     if (!data.length) {
@@ -820,7 +831,7 @@ function busAbrirGaleria() {
         </div>`;
       }).join('');
 
-      const fechaLabel = info.fecha_partido ? `<span class="pron-fecha-badge">${esc(info.fecha_partido.slice(0,10))}</span>` : '';
+      const fechaLabel = '';
       html += `<div class="pron-partido-group">
         <div class="pron-partido-header">
           <div>
