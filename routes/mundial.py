@@ -1350,6 +1350,216 @@ def admin_resultado_eli():
     return _back()
 
 
+@mundial_bp.route("/api/ranking_mundial_v2")
+def ranking_mundial_v2():
+    """
+    Ranking con 3 categorías (global/grupos/eliminatorias),
+    cambio de posición (▲▼—) y métricas de participación.
+    """
+    if "uid" not in session:
+        return jsonify({}), 401
+
+    con = get_db()
+    try:
+        _ensure_eliminacion_table(con)
+    except Exception:
+        pass
+    _ensure_ranking_tables(con)
+
+    # ── Totales de partidos por tipo ─────────────────────────────────────
+    total_grupos = con.execute(
+        "SELECT COUNT(*) AS n FROM partidos_mundial"
+    ).fetchone()["n"]
+    total_eli = con.execute(
+        "SELECT COUNT(*) AS n FROM partidos_eliminacion"
+    ).fetchone()["n"]
+    total_global = total_grupos + total_eli
+
+    # ── Query única agregada por usuario ────────────────────────────────────
+    rows = con.execute("""
+        SELECT u.id, u.nombre, u.usuario, u.foto,
+               COALESCE(g.puntos,0)    AS pts_g,
+               COALESCE(g.exactos,0)   AS ex_g,
+               COALESCE(g.ganadores,0) AS gan_g,
+               COALESCE(g.pronosticos,0) AS pron_g,
+               COALESCE(e.puntos,0)    AS pts_e,
+               COALESCE(e.exactos,0)   AS ex_e,
+               COALESCE(e.ganadores,0) AS gan_e,
+               COALESCE(e.penales,0)   AS pen_e,
+               COALESCE(e.pronosticos,0) AS pron_e
+        FROM usuarios u
+        LEFT JOIN (
+            SELECT usuario_id,
+                   SUM(puntos)                          AS puntos,
+                   COUNT(CASE WHEN puntos=3  THEN 1 END) AS exactos,
+                   COUNT(CASE WHEN puntos=1  THEN 1 END) AS ganadores,
+                   COUNT(*)                              AS pronosticos
+            FROM pronosticos GROUP BY usuario_id
+        ) g ON g.usuario_id = u.id
+        LEFT JOIN (
+            SELECT usuario_id,
+                   SUM(puntos)                             AS puntos,
+                   COUNT(CASE WHEN puntos IN(3,4) THEN 1 END) AS exactos,
+                   COUNT(CASE WHEN puntos=1  THEN 1 END)   AS ganadores,
+                   COUNT(CASE WHEN puntos=4  THEN 1 END)   AS penales,
+                   COUNT(*)                                AS pronosticos
+            FROM pronosticos_eli GROUP BY usuario_id
+        ) e ON e.usuario_id = u.id
+    """).fetchall()
+
+    # ── Construir los 3 rankings ─────────────────────────────────────────
+    def _rank(lst, key_pts, key_pen, key_ex, key_gan, key_nom, key_id):
+        sorted_lst = sorted(lst, key=lambda r: (
+            -r[key_pts], -r[key_pen], -r[key_ex], -r[key_gan],
+            r[key_nom].lower(), r[key_id]
+        ))
+        # Asignar posición (empates comparten posición)
+        result = []
+        for i, r in enumerate(sorted_lst):
+            if i == 0:
+                pos = 1
+            else:
+                prev = result[-1]
+                same = (
+                    r[key_pts] == prev["_pts"] and
+                    r[key_pen] == prev["_pen"] and
+                    r[key_ex]  == prev["_ex"]  and
+                    r[key_gan] == prev["_gan"]
+                )
+                pos = prev["posicion"] if same else i + 1
+            result.append({**dict(r), "posicion": pos,
+                           "_pts": r[key_pts], "_pen": r[key_pen],
+                           "_ex": r[key_ex], "_gan": r[key_gan]})
+        return result
+
+    # Global
+    for r in rows:
+        r = dict(r)
+    raw = [dict(r) for r in rows]
+    for r in raw:
+        r["pts_global"] = r["pts_g"] + r["pts_e"]
+        r["pen_global"] = r["pen_e"]
+        r["ex_global"]  = r["ex_g"] + r["ex_e"]
+        r["gan_global"] = r["gan_g"] + r["gan_e"]
+        r["pron_global"]= r["pron_g"] + r["pron_e"]
+
+    ranking_global_list = _rank(raw, "pts_global", "pen_global", "ex_global", "gan_global", "nombre", "id")
+    ranking_grupos_list  = _rank(raw, "pts_g",      "pen_e",      "ex_g",      "gan_g",      "nombre", "id")
+    ranking_eli_list     = _rank(raw, "pts_e",      "pen_e",      "ex_e",      "gan_e",      "nombre", "id")
+
+    # ── Cargar snapshot anterior para calcular cambios ───────────────────
+    def _load_snapshot(categoria):
+        row = con.execute(
+            "SELECT datos FROM ranking_snapshot WHERE categoria=%s", (categoria,)
+        ).fetchone()
+        if not row:
+            return {}
+        import json
+        try:
+            return {int(k): v for k, v in json.loads(row["datos"]).items()}
+        except Exception:
+            return {}
+
+    snap_global = _load_snapshot("global")
+    snap_grupos = _load_snapshot("grupos")
+    snap_eli    = _load_snapshot("eliminatorias")
+
+    def _apply_cambio(ranking_list, snapshot):
+        result = []
+        for r in ranking_list:
+            uid_r = r["id"]
+            prev = snapshot.get(uid_r)
+            if prev is None:
+                cambio = 0
+            else:
+                cambio = prev - r["posicion"]  # positivo = subió
+            result.append({**r, "cambio": cambio})
+        return result
+
+    ranking_global_list = _apply_cambio(ranking_global_list, snap_global)
+    ranking_grupos_list  = _apply_cambio(ranking_grupos_list,  snap_grupos)
+    ranking_eli_list     = _apply_cambio(ranking_eli_list,     snap_eli)
+
+    # ── Guardar nuevo snapshot y historial ────────────────────────────────
+    import json
+    def _save_snapshot(categoria, ranking_list):
+        datos = json.dumps({r["id"]: r["posicion"] for r in ranking_list})
+        con.execute("""
+            INSERT INTO ranking_snapshot(categoria, datos, actualizado)
+            VALUES(%s, %s, NOW())
+            ON CONFLICT(categoria) DO UPDATE
+            SET datos=%s, actualizado=NOW()
+        """, (categoria, datos, datos))
+
+    def _save_historial(categoria, ranking_list):
+        datos = json.dumps([{
+            "id": r["id"], "nombre": r["nombre"],
+            "posicion": r["posicion"], "puntos": r.get("pts_global", r.get("pts_g", r.get("pts_e", 0)))
+        } for r in ranking_list])
+        con.execute("""
+            INSERT INTO ranking_historial(categoria, datos, creado)
+            VALUES(%s, %s, NOW())
+        """, (categoria, datos))
+        # Limpiar registros > 7 días
+        con.execute("""
+            DELETE FROM ranking_historial
+            WHERE creado < NOW() - INTERVAL '7 days'
+        """)
+
+    _save_snapshot("global",        ranking_global_list)
+    _save_snapshot("grupos",        ranking_grupos_list)
+    _save_snapshot("eliminatorias", ranking_eli_list)
+    _save_historial("global",        ranking_global_list)
+    con.commit()
+
+    # ── Formatear respuesta ───────────────────────────────────────────────
+    def _fmt(lst, pts_key, pron_key, total):
+        out = []
+        for r in lst:
+            uid_r = r["id"]
+            out.append({
+                "id":       uid_r,
+                "nombre":   r["nombre"],
+                "usuario":  r.get("usuario", ""),
+                "foto":     r.get("foto", ""),
+                "puntos":   r[pts_key],
+                "penales":  r.get("pen_global", r.get("pen_e", 0)),
+                "exactos":  r.get("ex_global", r.get("ex_g", r.get("ex_e", 0))),
+                "ganadores":r.get("gan_global", r.get("gan_g", r.get("gan_e", 0))),
+                "posicion": r["posicion"],
+                "cambio":   r["cambio"],
+                "pronosticos_hechos": r[pron_key],
+                "total_partidos": total,
+            })
+        return out
+
+    return jsonify({
+        "ranking_global": _fmt(ranking_global_list, "pts_global", "pron_global", total_global),
+        "ranking_grupos":  _fmt(ranking_grupos_list,  "pts_g",      "pron_g",      total_grupos),
+        "ranking_eli":     _fmt(ranking_eli_list,     "pts_e",      "pron_e",      total_eli),
+    })
+
+
+def _ensure_ranking_tables(con):
+    """Crea las tablas ranking_snapshot y ranking_historial si no existen."""
+    con.execute("""
+        CREATE TABLE IF NOT EXISTS ranking_snapshot (
+            categoria   TEXT PRIMARY KEY,
+            datos       TEXT NOT NULL,
+            actualizado TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        )
+    """)
+    con.execute("""
+        CREATE TABLE IF NOT EXISTS ranking_historial (
+            id        SERIAL PRIMARY KEY,
+            categoria TEXT NOT NULL,
+            datos     TEXT NOT NULL,
+            creado    TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        )
+    """)
+    con.commit()
+
+
 @mundial_bp.route("/api/ranking_global")
 def ranking_global():
     if "uid" not in session:

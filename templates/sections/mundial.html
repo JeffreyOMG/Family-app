@@ -1593,34 +1593,365 @@
   </div>
 
   <!-- ════════════════════════════════════════
-       TAB: RANKING
+       TAB: RANKING v2 — VERSIÓN FINAL
   ════════════════════════════════════════ -->
   <div id="mtab-ranking" class="mtab" style="display:none;">
+
+    <style>
+      /* ── Sub-tabs ─────────────────────────────────────── */
+      .rkv2__tabs {
+        display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap;
+      }
+      .rkv2__tab-btn {
+        flex: 1; min-width: 90px; padding: 9px 10px;
+        background: rgba(255,255,255,.06);
+        border: 1.5px solid rgba(255,255,255,.1);
+        border-radius: 10px;
+        color: rgba(255,255,255,.55);
+        font-family: 'DM Sans', sans-serif; font-size: .82rem;
+        cursor: pointer; transition: background .18s, border-color .18s, color .18s;
+        display: flex; align-items: center; justify-content: center; gap: 5px;
+        white-space: nowrap;
+      }
+      .rkv2__tab-btn.active {
+        background: rgba(245,197,24,.12);
+        border-color: rgba(245,197,24,.45);
+        color: #f5c518; font-weight: 600;
+      }
+      .rkv2__tab-btn:hover:not(.active) {
+        background: rgba(255,255,255,.1); color: rgba(255,255,255,.8);
+      }
+      .rkv2__panel { display: none; }
+      .rkv2__panel.active { display: block; }
+
+      /* ── Tabla ────────────────────────────────────────── */
+      .rkv2__wrap { overflow-x: auto; }
+      .rkv2__table {
+        width: 100%; border-collapse: collapse;
+        font-family: 'DM Sans', sans-serif; font-size: .84rem;
+      }
+      .rkv2__table th {
+        text-align: left; font-size: .68rem; letter-spacing: .04em;
+        color: rgba(255,255,255,.32); font-weight: 500;
+        padding: 5px 6px 9px;
+        border-bottom: 1px solid rgba(255,255,255,.08);
+        text-transform: uppercase; white-space: nowrap;
+      }
+      .rkv2__table th.th-r { text-align: right; }
+      .rkv2__table td {
+        padding: 9px 6px;
+        border-bottom: 1px solid rgba(255,255,255,.05);
+        vertical-align: middle;
+        transition: background .35s;
+      }
+      .rkv2__table tr:last-child td { border-bottom: none; }
+
+      /* Fila del usuario actual */
+      .rkv2__table tr.rkv2__yo td {
+        background: rgba(245,197,24,.07);
+      }
+
+      /* ── Top 3 highlight ──────────────────────────────── */
+      .rkv2__table tr[data-pos="1"] td { background: rgba(245,197,24,.10); }
+      .rkv2__table tr[data-pos="2"] td { background: rgba(200,200,200,.06); }
+      .rkv2__table tr[data-pos="3"] td { background: rgba(205,127,50,.07); }
+      .rkv2__table tr[data-pos="1"]:hover td { background: rgba(245,197,24,.16); }
+      .rkv2__table tr[data-pos="2"]:hover td { background: rgba(200,200,200,.11); }
+      .rkv2__table tr[data-pos="3"]:hover td { background: rgba(205,127,50,.13); }
+
+      /* Flash de highlight cuando cambia posición */
+      @keyframes rkv2-flash-up   { 0%{background:rgba(76,175,80,.22)}  100%{background:transparent} }
+      @keyframes rkv2-flash-down { 0%{background:rgba(239,83,80,.18)}  100%{background:transparent} }
+      .rkv2__flash-up   td { animation: rkv2-flash-up   .9s ease-out forwards; }
+      .rkv2__flash-down td { animation: rkv2-flash-down .9s ease-out forwards; }
+
+      /* ── Posición + indicador ─────────────────────────── */
+      .rkv2__pos-cell {
+        display: flex; align-items: center; gap: 3px;
+        min-width: 42px; white-space: nowrap;
+      }
+      .rkv2__pos-num {
+        font-family: 'Bebas Neue', monospace; font-size: .95rem;
+        min-width: 16px; text-align: right;
+        color: rgba(255,255,255,.62);
+      }
+      .rkv2__cambio {
+        font-size: .64rem; font-weight: 700;
+        padding: 1px 3px; border-radius: 4px;
+        white-space: nowrap; line-height: 1.45;
+      }
+      .rkv2__cambio--up   { color: #4caf50; background: rgba(76,175,80,.14); }
+      .rkv2__cambio--down { color: #ef5350; background: rgba(239,83,80,.14); }
+      .rkv2__cambio--eq   { color: rgba(255,255,255,.22); font-size: .68rem; }
+
+      /* ── Jugador ──────────────────────────────────────── */
+      .rkv2__player {
+        display: flex; align-items: center; gap: 7px; min-width: 110px;
+      }
+      .rkv2__avatar {
+        width: 26px; height: 26px; border-radius: 50%; object-fit: cover;
+        background: rgba(255,255,255,.08); flex-shrink: 0;
+        display: flex; align-items: center; justify-content: center; font-size: .8rem;
+      }
+      .rkv2__player-name { font-weight: 500; line-height: 1.2; }
+      .rkv2__yo-badge { color: #f5c518; font-size: .66rem; margin-left: 3px; }
+
+      /* Top 3 nombres más grandes */
+      tr[data-pos="1"] .rkv2__player-name { font-size: .92rem; color: #f5c518; }
+      tr[data-pos="2"] .rkv2__player-name { font-size: .9rem; color: rgba(255,255,255,.92); }
+      tr[data-pos="3"] .rkv2__player-name { font-size: .88rem; color: rgba(205,127,50,.95); }
+
+      /* ── Puntos ───────────────────────────────────────── */
+      .rkv2__pts {
+        font-family: 'Bebas Neue', sans-serif; font-size: 1.05rem;
+        color: #f5c518; text-align: right;
+      }
+      tr[data-pos="1"] .rkv2__pts { font-size: 1.2rem; }
+
+      /* ── Participación ────────────────────────────────── */
+      .rkv2__part {
+        font-size: .72rem; color: rgba(255,255,255,.38);
+        white-space: nowrap;
+      }
+      .rkv2__part-bar {
+        display: block; height: 3px; border-radius: 2px;
+        background: rgba(255,255,255,.1); margin-top: 3px;
+        overflow: hidden;
+      }
+      .rkv2__part-fill {
+        display: block; height: 100%; border-radius: 2px;
+        background: rgba(245,197,24,.5);
+        transition: width .4s;
+      }
+
+      /* ── Medallas grandes ─────────────────────────────── */
+      .rkv2__medal { font-size: .95rem; line-height: 1; }
+      tr[data-pos="1"] .rkv2__medal { font-size: 1.1rem; filter: drop-shadow(0 0 6px rgba(245,197,24,.7)); }
+      tr[data-pos="2"] .rkv2__medal { font-size: 1.05rem; filter: drop-shadow(0 0 4px rgba(200,200,200,.5)); }
+      tr[data-pos="3"] .rkv2__medal { font-size: 1.05rem; filter: drop-shadow(0 0 4px rgba(205,127,50,.5)); }
+
+      /* ── Loading ──────────────────────────────────────── */
+      .rkv2__loading {
+        text-align: center; padding: 32px;
+        color: rgba(255,255,255,.38); font-size: .85rem;
+        display: flex; align-items: center; justify-content: center; gap: 8px;
+      }
+
+      /* ── Responsive ───────────────────────────────────── */
+      @media (max-width: 480px) {
+        .rkv2__table th, .rkv2__table td { padding: 8px 4px; }
+        .rkv2__player { min-width: 90px; }
+        .rkv2__part-bar { display: none; }
+      }
+    </style>
+
     <div class="content-card">
-      <h3>Ranking Global</h3>
-      <div id="ranking-body">
-        {% if ranking_mundial %}
-        <table>
-          <thead><tr><th>#</th><th>Jugador</th><th>Pts</th><th>Penales</th><th>Exactos</th><th>Ganadores</th></tr></thead>
-          <tbody>
-            {% for r in ranking_mundial %}
-            <tr{% if r.id == usuario.id %} class="ranking-yo"{% endif %}>
-              <td>{% if loop.index==1 %}<i class="fa-solid fa-trophy" style="color:#f5c518;"></i>{% elif loop.index==2 %}<i class="fa-solid fa-medal" style="color:#b0b8c1;"></i>{% elif loop.index==3 %}<i class="fa-solid fa-medal" style="color:#cd7f32;"></i>{% else %}{{ loop.index }}{% endif %}</td>
-              <td>{{ r.nombre }}</td>
-              <td class="highlight">{{ r.puntos }}</td>
-              <td>{{ r.penales }}</td>
-              <td>{{ r.exactos }}</td>
-              <td>{{ r.ganadores }}</td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-        {% else %}
-        <p style="opacity:.5;text-align:center;padding:20px;">Sin datos aún</p>
-        {% endif %}
+      <div class="rkv2__tabs">
+        <button class="rkv2__tab-btn active" onclick="rkv2Tab('global', this)">🌍 Global</button>
+        <button class="rkv2__tab-btn" onclick="rkv2Tab('grupos', this)">⚽ Grupos</button>
+        <button class="rkv2__tab-btn" onclick="rkv2Tab('eli', this)">🏆 Eliminatorias</button>
+      </div>
+
+      <div class="rkv2__panel active" id="rkv2-panel-global">
+        <div class="rkv2__loading"><span class="material-symbols-outlined rotating">sports_soccer</span> Cargando…</div>
+      </div>
+      <div class="rkv2__panel" id="rkv2-panel-grupos">
+        <div class="rkv2__loading"><span class="material-symbols-outlined rotating">sports_soccer</span> Cargando…</div>
+      </div>
+      <div class="rkv2__panel" id="rkv2-panel-eli">
+        <div class="rkv2__loading"><span class="material-symbols-outlined rotating">sports_soccer</span> Cargando…</div>
       </div>
     </div>
   </div>
+
+  <script>
+  // ══════════════════════════════════════════
+  // RANKING V2 — VERSIÓN FINAL
+  // ══════════════════════════════════════════
+  const _MI_ID_RKV2 = {{ usuario.id }};
+
+  // Cache de datos y hashes por tab para diff inteligente
+  let _rkv2Cache    = null;
+  let _rkv2Hashes   = { global: '', grupos: '', eli: '' };
+
+  // ── Cambio de sub-tab (sin re-fetch) ────────────────────────────────
+  function rkv2Tab(tab, btn) {
+    document.querySelectorAll('.rkv2__tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.rkv2__panel').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('rkv2-panel-' + tab).classList.add('active');
+    if (_rkv2Cache) _rkv2RenderIfChanged(tab, _rkv2Cache, false);
+  }
+
+  // ── Carga desde API ─────────────────────────────────────────────────
+  async function _rkv2Load() {
+    try {
+      const res = await fetch('/api/ranking_mundial_v2');
+      if (!res.ok) return;
+      const data = await res.json();
+      const prevCache = _rkv2Cache;
+      _rkv2Cache = data;
+      // Render los 3 tabs: con animación solo si ya había datos antes (no primer render)
+      const animate = !!prevCache;
+      ['global', 'grupos', 'eli'].forEach(tab => _rkv2RenderIfChanged(tab, data, animate));
+    } catch(e) { console.warn('rkv2 load error', e); }
+  }
+
+  // ── Render con diff: solo actualiza si los datos cambiaron ──────────
+  function _rkv2RenderIfChanged(tab, data, animate) {
+    const keyMap = { global: 'ranking_global', grupos: 'ranking_grupos', eli: 'ranking_eli' };
+    const rows = data[keyMap[tab]] || [];
+    // Hash rápido: posiciones + puntos de todos los usuarios
+    const newHash = rows.map(r => `${r.id}:${r.posicion}:${r.puntos}:${r.cambio}`).join('|');
+    if (newHash === _rkv2Hashes[tab]) return;  // nada cambió → no tocar el DOM
+    _rkv2Hashes[tab] = newHash;
+    _rkv2Render(tab, rows, animate);
+  }
+
+  // ── Render completo de un panel ──────────────────────────────────────
+  function _rkv2Render(tab, rows, animate) {
+    const panel = document.getElementById('rkv2-panel-' + tab);
+    if (!panel) return;
+
+    if (!rows.length) {
+      panel.innerHTML = '<p style="opacity:.5;text-align:center;padding:24px;">Sin datos aún</p>';
+      return;
+    }
+
+    const showPen = tab !== 'grupos';
+
+    // Calcular max pronosticos para la barra de participación
+    const maxPron = Math.max(...rows.map(r => r.total_partidos), 1);
+
+    // Si ya existe la tabla, hacer diff fila a fila (evitar re-render completo)
+    const existingTbody = panel.querySelector('.rkv2__table tbody');
+    if (existingTbody && panel.querySelectorAll('tr[data-uid]').length === rows.length) {
+      _rkv2DiffUpdate(panel, rows, showPen, maxPron, animate);
+      return;
+    }
+
+    // Primera vez: render completo
+    panel.innerHTML = `
+      <div class="rkv2__wrap">
+        <table class="rkv2__table">
+          <thead><tr>
+            <th>#</th>
+            <th>Jugador</th>
+            <th class="th-r">Pts</th>
+            ${showPen ? '<th class="th-r" title="Penales acertados">Pen</th>' : ''}
+            <th class="th-r" title="Marcadores exactos">⚽</th>
+            <th class="th-r" title="Pronósticos hechos / Total">Part.</th>
+          </tr></thead>
+          <tbody>
+            ${rows.map(r => _rkv2RowHTML(r, showPen, maxPron)).join('')}
+          </tbody>
+        </table>
+      </div>`;
+  }
+
+  // ── Diff inteligente: actualiza solo filas que cambiaron ─────────────
+  function _rkv2DiffUpdate(panel, rows, showPen, maxPron, animate) {
+    const tbody = panel.querySelector('.rkv2__table tbody');
+    if (!tbody) return;
+
+    rows.forEach(r => {
+      const tr = tbody.querySelector(`tr[data-uid="${r.id}"]`);
+      if (!tr) return;
+
+      const prevPos   = parseInt(tr.dataset.prevpos  || tr.dataset.pos);
+      const prevPts   = parseInt(tr.dataset.prevpts  || tr.dataset.pts);
+      const prevCambio = parseInt(tr.dataset.prevcambio || '0');
+
+      const posChanged = prevPos !== r.posicion;
+      const ptsChanged = prevPts !== r.puntos;
+
+      if (!posChanged && !ptsChanged && prevCambio === r.cambio) return;  // fila sin cambios
+
+      // Reemplazar contenido de la fila con nuevos datos
+      const newRow = document.createElement('tr');
+      newRow.innerHTML = _rkv2RowHTML(r, showPen, maxPron);
+      const built = newRow.firstElementChild;  // el <tr> real del HTML generado
+
+      // Transferir el innerHTML generado al tr existente
+      tr.innerHTML = built ? built.innerHTML : '';
+      tr.dataset.uid      = r.id;
+      tr.dataset.pos      = r.posicion;
+      tr.dataset.pts      = r.puntos;
+      tr.dataset.prevpos  = r.posicion;
+      tr.dataset.prevpts  = r.puntos;
+      tr.dataset.prevcambio = r.cambio;
+      tr.setAttribute('data-pos', r.posicion);
+      if (r.id == _MI_ID_RKV2) tr.classList.add('rkv2__yo');
+      else tr.classList.remove('rkv2__yo');
+
+      // Animación de flash si cambió posición (solo en polling, no al tab inicial)
+      if (animate && posChanged) {
+        tr.classList.remove('rkv2__flash-up', 'rkv2__flash-down');
+        void tr.offsetWidth;  // force reflow
+        tr.classList.add(r.cambio > 0 ? 'rkv2__flash-up' : 'rkv2__flash-down');
+        // Quitar clase después de la animación
+        setTimeout(() => tr.classList.remove('rkv2__flash-up', 'rkv2__flash-down'), 950);
+      }
+    });
+
+    // Re-ordenar filas en el DOM según nueva posición (orden por índice en rows array)
+    rows.forEach(r => {
+      const tr = tbody.querySelector(`tr[data-uid="${r.id}"]`);
+      if (tr) tbody.appendChild(tr);  // mueve al final según el orden del array ya ordenado
+    });
+  }
+
+  // ── HTML de una fila ─────────────────────────────────────────────────
+  function _rkv2RowHTML(r, showPen, maxPron) {
+    const esYo = (+r.id === +_MI_ID_RKV2);
+
+    // Medalla
+    let medalHTML;
+    if (r.posicion === 1)      medalHTML = '<span class="rkv2__medal">🥇</span>';
+    else if (r.posicion === 2) medalHTML = '<span class="rkv2__medal">🥈</span>';
+    else if (r.posicion === 3) medalHTML = '<span class="rkv2__medal">🥉</span>';
+    else medalHTML = `<span class="rkv2__pos-num">${r.posicion}</span>`;
+
+    // Indicador de cambio
+    let cambioHTML;
+    if (r.cambio > 0)
+      cambioHTML = `<span class="rkv2__cambio rkv2__cambio--up" title="Subió ${r.cambio} posición(es)">▲${r.cambio}</span>`;
+    else if (r.cambio < 0)
+      cambioHTML = `<span class="rkv2__cambio rkv2__cambio--down" title="Bajó ${Math.abs(r.cambio)} posición(es)">▼${Math.abs(r.cambio)}</span>`;
+    else
+      cambioHTML = `<span class="rkv2__cambio rkv2__cambio--eq" title="Sin cambio">—</span>`;
+
+    // Avatar
+    const avatarHTML = r.foto
+      ? `<img class="rkv2__avatar" src="${_esc(r.foto)}" alt="" loading="lazy">`
+      : `<div class="rkv2__avatar">👤</div>`;
+
+    // Barra de participación
+    const pct = r.total_partidos > 0
+      ? Math.round(r.pronosticos_hechos / r.total_partidos * 100)
+      : 0;
+    const partHTML = `
+      <span class="rkv2__part">${r.pronosticos_hechos}/${r.total_partidos}</span>
+      <span class="rkv2__part-bar"><span class="rkv2__part-fill" style="width:${pct}%"></span></span>`;
+
+    const clases = [esYo ? 'rkv2__yo' : ''].filter(Boolean).join(' ');
+
+    return `<tr class="${clases}" data-uid="${r.id}" data-pos="${r.posicion}" data-pts="${r.puntos}" data-prevcambio="${r.cambio}">
+      <td><div class="rkv2__pos-cell">${medalHTML}${cambioHTML}</div></td>
+      <td><div class="rkv2__player">
+        ${avatarHTML}
+        <div>
+          <span class="rkv2__player-name">${_esc(r.nombre)}</span>
+          ${esYo ? '<span class="rkv2__yo-badge">(tú)</span>' : ''}
+        </div>
+      </div></td>
+      <td class="rkv2__pts">${r.puntos}</td>
+      ${showPen ? `<td style="text-align:right;opacity:.62;font-size:.81rem;">${r.penales}</td>` : ''}
+      <td style="text-align:right;opacity:.62;font-size:.81rem;">${r.exactos}</td>
+      <td style="min-width:52px;">${partHTML}</td>
+    </tr>`;
+  }
+  </script>
 
   <!-- ════════════════════════════════════════
        TAB: ADMIN
@@ -1733,7 +2064,7 @@ function mundialTab(tab, btn) {
 
 function _cargarTab(tab) {
   if (tab === 'grupos')   _refreshMundialDatos('grupos');
-  if (tab === 'ranking')  _refreshMundialDatos('ranking');
+  if (tab === 'ranking')  { _refreshMundialDatos('ranking'); _rkv2Load(); }
   if (tab === 'bracket')  { _loadBracket(); _loadAdminTerceros(); }
   if (tab === 'partidos') _loadEliminacion(_rondaActivaPron !== 'grupos-pron' ? _rondaActivaPron : null);
   if (tab === 'admin')    _loadAdminEli();
@@ -1818,7 +2149,7 @@ async function _refreshMundialDatos(tab) {
       }
       _renderGrupos(data.partidos, data.tabla);
     }
-    if (tab === 'ranking') _renderRanking(data.ranking);
+    if (tab === 'ranking') _rkv2Load();
   } catch(e) { console.warn('refresh error', e); }
 }
 
@@ -1941,20 +2272,6 @@ function _renderGrupos(partidos, tabla) {
 }
 
 const _MI_ID = {{ usuario.id }};
-
-function _renderRanking(ranking) {
-  const tbody = document.querySelector('#mtab-ranking table tbody');
-  if (!tbody) return;
-  tbody.innerHTML = ranking.map((r, i) => `
-    <tr${+r.id === +_MI_ID ? ' class="ranking-yo"' : ''}>
-      <td>${i===0?'<i class="fa-solid fa-trophy" style="color:#f5c518;"></i>':i===1?'<i class="fa-solid fa-medal" style="color:#b0b8c1;"></i>':i===2?'<i class="fa-solid fa-medal" style="color:#cd7f32;"></i>':i+1}</td>
-      <td>${_esc(r.nombre)}</td>
-      <td><strong>${r.puntos}</strong></td>
-      <td>${r.penales||0}</td>
-      <td>${r.exactos}</td>
-      <td>${r.ganadores}</td>
-    </tr>`).join('');
-}
 
 // ══════════════════════════════════════════
 // FASE ELIMINATORIA — PRONÓSTICOS
@@ -3074,7 +3391,7 @@ async function _refreshTodo(silencioso = true) {
       _renderGrupos(mundialData.partidos, mundialData.tabla);
     }
     if (_tabActivo === 'ranking') {
-      _renderRanking(mundialData.ranking);
+      _rkv2Load();
     }
     if (_tabActivo === 'bracket') {
       // Re-renderizar si cambió eli, bracket (clasificados) o grupos
