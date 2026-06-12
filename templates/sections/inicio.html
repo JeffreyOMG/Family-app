@@ -451,7 +451,7 @@
             <p>Sin partidos hoy</p>
           </div>
           <div class="noticias-list" id="pah-lista-desktop" style="display:none;"></div>
-          <button class="pah-ver-mas-btn" id="pah-ver-mas-desktop" style="display:none;" onclick="abrirModalPartidos()">
+          <button class="pah-ver-mas-btn" id="pah-ver-mas-desktop" style="display:none;border-top:1px solid var(--border);" onclick="abrirModalPartidos()">
             Ver todos los partidos <span class="material-symbols-outlined" style="font-size:14px;vertical-align:middle;">expand_more</span>
           </button>
         </div>
@@ -465,7 +465,8 @@
         </div>
         {% if noticias_recientes %}
           <div class="noticias-list">
-            {% for n in noticias_recientes %}
+            {% for n in noticias_recientes[:2] %}
+            <div class="noticia-item">
             <div class="noticia-item">
               <div class="noticia-dot {% if n.categoria == 'finanzas' %}dot-ok{% elif n.categoria in ['galeria','galería'] %}dot-info{% elif n.categoria == 'mundial' %}dot-warn{% else %}dot-def{% endif %}"></div>
               <div>
@@ -8111,7 +8112,10 @@ async function cargarMasPosts(btn) {
           _poblarLista(suf, preview);
           _setEstado(suf, 'lista');
           const btn = document.getElementById('pah-ver-mas-' + suf);
-          if (btn) btn.style.display = 'flex';
+          if (btn) {
+            btn.style.cssText = btn.style.cssText.replace('display: none;','') ;
+            btn.style.display = 'flex';
+          }
         }
       });
 
