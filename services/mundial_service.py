@@ -333,8 +333,13 @@ def _normalize_game(raw: dict, idx: int = 0) -> dict:
     cod_v     = away.get("code") or away.get("flag") or _country_code(visitante)
 
     # ── Marcador ─────────────────────────────────────────────────────────────
-    score = raw.get("score") or raw.get("scores") or {}
-    if isinstance(score, dict):
+    # worldcup26.ir NO envía "score"/"scores"; usa home_score/away_score en la
+    # raíz del objeto. Si "score"/"scores" no existen, raw.get(...) devuelve
+    # None y "score = {} " (dict vacío) — antes esto entraba al branch dict
+    # y nunca llegaba a leer home_score/away_score de la raíz. Corregido:
+    # solo usar el branch dict si score/scores REALMENTE vino como dict no vacío.
+    score = raw.get("score") or raw.get("scores")
+    if isinstance(score, dict) and score:
         gl = score.get("home") if score.get("home") is not None else score.get("home_score")
         gv = score.get("away") if score.get("away") is not None else score.get("away_score")
     else:
