@@ -465,7 +465,7 @@
         </div>
         {% if noticias_recientes %}
           <div class="noticias-list">
-            {% for n in noticias_recientes[:3] %}
+            {% for n in noticias_recientes[:2] %}
             <div class="noticia-item" onclick="irSeccion('noticias')">
               <div class="noticia-dot {% if n.categoria == 'finanzas' %}dot-ok{% elif n.categoria in ['galeria','galería'] %}dot-info{% elif n.categoria == 'mundial' %}dot-warn{% else %}dot-def{% endif %}"></div>
               <div class="noticia-body">
@@ -8113,7 +8113,7 @@ async function cargarMasPosts(btn) {
           _setEstado(suf, 'lista');
           const btn = document.getElementById('pah-ver-mas-' + suf);
           if (btn) {
-            btn.style.cssText = btn.style.cssText.replace('display: none;','') ;
+            btn.removeAttribute('style');
             btn.style.display = 'flex';
           }
         }
