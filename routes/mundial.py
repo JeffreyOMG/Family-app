@@ -1560,6 +1560,26 @@ def _ensure_ranking_tables(con):
     con.commit()
 
 
+@mundial_bp.route("/api/admin/ranking_eli_toggle", methods=["POST"])
+def ranking_eli_toggle():
+    if "uid" not in session:
+        return jsonify({}), 401
+    con = get_db()
+    # Verificar que es admin
+    u = con.execute("SELECT rol FROM usuarios WHERE id=%s", (session["uid"],)).fetchone()
+    if not u or u["rol"] != "admin":
+        return jsonify({}), 403
+    row = con.execute("SELECT valor FROM config WHERE clave='ranking_eli_visible'").fetchone()
+    current = row and row["valor"] == "1"
+    new_val = "0" if current else "1"
+    con.execute("""
+        INSERT INTO config(clave, valor) VALUES('ranking_eli_visible', %s)
+        ON CONFLICT(clave) DO UPDATE SET valor=%s
+    """, (new_val, new_val))
+    con.commit()
+    return jsonify({"visible": new_val == "1"})
+
+
 @mundial_bp.route("/api/ranking_global")
 def ranking_global():
     if "uid" not in session:

@@ -6,6 +6,15 @@ dash_bp = Blueprint("dashboard", __name__)
 
 POSTS_PER_PAGE = 10
 
+def _get_ranking_eli_visible(con):
+    try:
+        row = con.execute(
+            "SELECT valor FROM config WHERE clave=%s", ("ranking_eli_visible",)
+        ).fetchone()
+        return bool(row and row["valor"] == "1")
+    except Exception:
+        return False
+
 def _get_poll_for_post(con, post_id, uid):
     from routes.posts import _get_poll
     return _get_poll(con, post_id, uid)
@@ -352,6 +361,7 @@ def get_ctx(uid, con, extra=None):
         partidos_jugados_por_grupo=partidos_jugados_por_grupo,
         partidos_por_grupo=partidos_por_grupo,
         ranking_mundial=ranking_mundial,
+        ranking_eli_visible=_get_ranking_eli_visible(con),
         usuario_aportes=total_aportes,
         usuario_posts=usuario_posts,
         usuario_likes=usuario_likes,
