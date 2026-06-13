@@ -1809,15 +1809,30 @@
   function _rkv2RenderIfChanged(tab, data, animate) {
     const keyMap = { global: 'ranking_global', grupos: 'ranking_grupos', eli: 'ranking_eli' };
     const rows = data[keyMap[tab]] || [];
-    // Hash rápido: posiciones + puntos de todos los usuarios
-    const newHash = rows.map(r => `${r.id}:${r.posicion}:${r.puntos}:${r.cambio}`).join('|');
-    if (newHash === _rkv2Hashes[tab]) return;  // nada cambió → no tocar el DOM
+    const newHash = rows.map(r => `${r.id}:${r.posicion}:${r.puntos}:${r.cambio}:${r.ganadores}`).join('|');
+    if (newHash === _rkv2Hashes[tab]) return;  // nada cambió → no tocar DOM
+    // Guardar qué usuarios cambiaron de posición para animarlos después del render
+    const cambiosPosicion = {};
+    if (animate) {
+      const panel = document.getElementById('rkv2-panel-' + tab);
+      if (panel) {
+        rows.forEach(r => {
+          const tr = panel.querySelector(`tr[data-uid="${r.id}"]`);
+          if (tr) {
+            const prevPos = parseInt(tr.dataset.pos || '0');
+            if (prevPos && prevPos !== r.posicion) {
+              cambiosPosicion[r.id] = r.cambio > 0 ? 'up' : 'down';
+            }
+          }
+        });
+      }
+    }
     _rkv2Hashes[tab] = newHash;
-    _rkv2Render(tab, rows, animate);
+    _rkv2Render(tab, rows, cambiosPosicion);
   }
 
-  // ── Render completo de un panel ──────────────────────────────────────
-  function _rkv2Render(tab, rows, animate) {
+  // ── Render completo (siempre limpio, sin diff de filas) ──────────────
+  function _rkv2Render(tab, rows, cambiosPosicion) {
     const panel = document.getElementById('rkv2-panel-' + tab);
     if (!panel) return;
 
@@ -1826,19 +1841,9 @@
       return;
     }
 
-    const showPen = tab !== 'grupos';
+    const showPen  = tab !== 'grupos';
+    const maxPron  = Math.max(...rows.map(r => r.total_partidos), 1);
 
-    // Calcular max pronosticos para la barra de participación
-    const maxPron = Math.max(...rows.map(r => r.total_partidos), 1);
-
-    // Si ya existe la tabla, hacer diff fila a fila (evitar re-render completo)
-    const existingTbody = panel.querySelector('.rkv2__table tbody');
-    if (existingTbody && panel.querySelectorAll('tr[data-uid]').length === rows.length) {
-      _rkv2DiffUpdate(panel, rows, showPen, maxPron, animate);
-      return;
-    }
-
-    // Primera vez: render completo
     panel.innerHTML = `
       <div class="rkv2__wrap">
         <table class="rkv2__table">
@@ -1856,58 +1861,16 @@
           </tbody>
         </table>
       </div>`;
-  }
 
-  // ── Diff inteligente: actualiza solo filas que cambiaron ─────────────
-  function _rkv2DiffUpdate(panel, rows, showPen, maxPron, animate) {
-    const tbody = panel.querySelector('.rkv2__table tbody');
-    if (!tbody) return;
-
-    rows.forEach(r => {
-      const tr = tbody.querySelector(`tr[data-uid="${r.id}"]`);
-      if (!tr) return;
-
-      const prevPos   = parseInt(tr.dataset.prevpos  || tr.dataset.pos);
-      const prevPts   = parseInt(tr.dataset.prevpts  || tr.dataset.pts);
-      const prevCambio = parseInt(tr.dataset.prevcambio || '0');
-
-      const posChanged = prevPos !== r.posicion;
-      const ptsChanged = prevPts !== r.puntos;
-
-      if (!posChanged && !ptsChanged && prevCambio === r.cambio) return;  // fila sin cambios
-
-      // Reemplazar contenido de la fila con nuevos datos
-      const newRow = document.createElement('tr');
-      newRow.innerHTML = _rkv2RowHTML(r, showPen, maxPron);
-      const built = newRow.firstElementChild;  // el <tr> real del HTML generado
-
-      // Transferir el innerHTML generado al tr existente
-      tr.innerHTML = built ? built.innerHTML : '';
-      tr.dataset.uid      = r.id;
-      tr.dataset.pos      = r.posicion;
-      tr.dataset.pts      = r.puntos;
-      tr.dataset.prevpos  = r.posicion;
-      tr.dataset.prevpts  = r.puntos;
-      tr.dataset.prevcambio = r.cambio;
-      tr.setAttribute('data-pos', r.posicion);
-      if (r.id == _MI_ID_RKV2) tr.classList.add('rkv2__yo');
-      else tr.classList.remove('rkv2__yo');
-
-      // Animación de flash si cambió posición (solo en polling, no al tab inicial)
-      if (animate && posChanged) {
-        tr.classList.remove('rkv2__flash-up', 'rkv2__flash-down');
-        void tr.offsetWidth;  // force reflow
-        tr.classList.add(r.cambio > 0 ? 'rkv2__flash-up' : 'rkv2__flash-down');
-        // Quitar clase después de la animación
+    // Aplicar animaciones post-render si hubo cambios de posición
+    if (cambiosPosicion && Object.keys(cambiosPosicion).length) {
+      Object.entries(cambiosPosicion).forEach(([uid, dir]) => {
+        const tr = panel.querySelector(`tr[data-uid="${uid}"]`);
+        if (!tr) return;
+        tr.classList.add(dir === 'up' ? 'rkv2__flash-up' : 'rkv2__flash-down');
         setTimeout(() => tr.classList.remove('rkv2__flash-up', 'rkv2__flash-down'), 950);
-      }
-    });
-
-    // Re-ordenar filas en el DOM según nueva posición (orden por índice en rows array)
-    rows.forEach(r => {
-      const tr = tbody.querySelector(`tr[data-uid="${r.id}"]`);
-      if (tr) tbody.appendChild(tr);  // mueve al final según el orden del array ya ordenado
-    });
+      });
+    }
   }
 
   // ── HTML de una fila ─────────────────────────────────────────────────
