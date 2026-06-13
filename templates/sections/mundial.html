@@ -1925,7 +1925,22 @@
     </tr>`;
   }
 
-  // ── Admin: habilitar/deshabilitar tab Eliminatorias ─────────────────
+  // ── Admin: reiniciar tracking de posiciones ──────────────────────────
+  async function resetSnapshotRanking(btn) {
+    if (!confirm('¿Reiniciar el tracking de ▲▼? Los cambios se calcularán desde cero en el próximo ciclo.')) return;
+    btn.disabled = true;
+    try {
+      const res = await fetch('/api/admin/ranking_snapshot_reset', { method: 'POST' });
+      if (res.ok) {
+        btn.textContent = '✓ Reiniciado';
+        btn.style.color = '#4caf50';
+        // Forzar recarga del ranking para que tome el nuevo estado
+        _rkv2Hashes = { global: '', grupos: '', eli: '' };
+        await _rkv2Load();
+        setTimeout(() => { btn.textContent = 'Reiniciar'; btn.style.color = ''; btn.disabled = false; }, 2000);
+      }
+    } catch(e) { btn.disabled = false; }
+  }
   async function toggleRankingEli(btn) {
     btn.disabled = true;
     try {
@@ -1968,6 +1983,15 @@
           style="padding:5px 14px;border-radius:8px;border:1.5px solid;font-size:.78rem;font-weight:600;cursor:pointer;transition:all .18s;
                  {% if ranking_eli_visible %}background:rgba(76,175,80,.15);border-color:rgba(76,175,80,.5);color:#4caf50;{% else %}background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.15);color:rgba(255,255,255,.45);{% endif %}">
           {% if ranking_eli_visible %}✓ Habilitado{% else %}✗ Deshabilitado{% endif %}
+        </button>
+      </div>
+      <!-- Reset snapshot de posiciones -->
+      <div style="display:flex;align-items:center;gap:10px;margin:8px 0 4px;padding:10px 14px;background:rgba(255,255,255,.04);border-radius:10px;border:1px solid rgba(255,255,255,.08);">
+        <span class="material-symbols-outlined" style="font-size:1.1rem;opacity:.6;">restart_alt</span>
+        <span style="font-size:.82rem;opacity:.75;flex:1;">Reiniciar tracking ▲▼ de posiciones</span>
+        <button onclick="resetSnapshotRanking(this)"
+          style="padding:5px 14px;border-radius:8px;border:1.5px solid rgba(255,255,255,.15);font-size:.78rem;font-weight:600;cursor:pointer;background:rgba(255,255,255,.05);color:rgba(255,255,255,.55);transition:all .18s;">
+          Reiniciar
         </button>
       </div>
 

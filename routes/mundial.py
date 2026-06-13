@@ -1483,6 +1483,29 @@ def ranking_mundial_v2():
     # ── Guardar nuevo snapshot y historial ────────────────────────────────
     import json
     def _save_snapshot(categoria, ranking_list):
+        """Solo actualiza el snapshot si han pasado al menos 5 minutos desde el último,
+        o si es la primera vez. Así el cambio de posición es real entre ciclos."""
+        # Verificar cuándo fue el último guardado
+        last = con.execute(
+            "SELECT actualizado FROM ranking_snapshot WHERE categoria=%s", (categoria,)
+        ).fetchone()
+        if last:
+            from datetime import datetime, timezone
+            try:
+                # actualizado puede venir como string o datetime
+                ts = last["actualizado"]
+                if isinstance(ts, str):
+                    ts = datetime.fromisoformat(ts.replace("Z", "+00:00"))
+                # Si tiene timezone, usar UTC; si no, asumir UTC
+                if ts.tzinfo is None:
+                    from datetime import timezone
+                    ts = ts.replace(tzinfo=timezone.utc)
+                ahora = datetime.now(timezone.utc)
+                diff = (ahora - ts).total_seconds()
+                if diff < 300:  # menos de 5 minutos → no actualizar
+                    return
+            except Exception:
+                pass  # si falla la comparación, igual guarda
         datos = json.dumps({r["id"]: r["posicion"] for r in ranking_list})
         con.execute("""
             INSERT INTO ranking_snapshot(categoria, datos, actualizado)
@@ -1558,6 +1581,20 @@ def _ensure_ranking_tables(con):
         )
     """)
     con.commit()
+
+
+@mundial_bp.route("/api/admin/ranking_snapshot_reset", methods=["POST"])
+def ranking_snapshot_reset():
+    """Admin: borra snapshots para que el tracking de cambios empiece limpio."""
+    if "uid" not in session:
+        return jsonify({}), 401
+    con = get_db()
+    u = con.execute("SELECT rol FROM usuarios WHERE id=%s", (session["uid"],)).fetchone()
+    if not u or u["rol"] != "admin":
+        return jsonify({}), 403
+    con.execute("DELETE FROM ranking_snapshot")
+    con.commit()
+    return jsonify({"ok": True})
 
 
 @mundial_bp.route("/api/admin/ranking_eli_toggle", methods=["POST"])
