@@ -108,18 +108,31 @@
   /* ── RESPONSIVE FIXTURE ── */
   @media (max-width:600px) {
     .mwfix-header { padding:10px 12px; }
-    .mwfix-equipo { font-size:.78rem; }
-    .mwfix-gol { font-size:.88rem; }
-    .mwfix-hora { min-width:38px;font-size:.72rem; }
-    .mwfix-meta { min-width:48px; }
+    .mwfix-partido {
+      flex-wrap:wrap; padding:10px;gap:6px 7px;
+    }
+    .mwfix-hora { min-width:34px;font-size:.7rem; }
+    .mwfix-equipos { flex:1 1 auto; min-width:0; }
+    .mwfix-equipo { font-size:.76rem;gap:4px; }
+    .mwfix-gol { font-size:.85rem;min-width:12px; }
+    .mwfix-marcador { padding:3px 7px;gap:3px; }
     .mwfix-bandera { width:18px;height:13px; }
-    .mwfix-partido { padding:9px 8px;gap:7px; }
+    .mwfix-meta {
+      flex-direction:row;align-items:center;justify-content:space-between;
+      width:100%;min-width:0;order:99;
+      padding-top:6px;border-top:1px solid var(--border);
+      margin-left:42px; /* alinear con equipos, deja espacio de la hora */
+    }
+    .mwfix-fase, .mwfix-estadio { text-align:left;max-width:none; }
+    .mwfix-estadio { text-align:right; }
     .mwfix-notif-btn span:last-child { display:none; }
   }
   @media (max-width:380px) {
-    .mwfix-equipo { font-size:.72rem; }
-    .mwfix-marcador { padding:3px 7px; }
-    .mwfix-meta { display:none; }
+    .mwfix-equipo { font-size:.7rem; }
+    .mwfix-marcador { padding:3px 6px; }
+    .mwfix-meta { margin-left:0;font-size:.6rem; }
+    .mwfix-fase { font-size:.62rem; }
+    .mwfix-estadio { font-size:.58rem; }
   }
 </style>
 
@@ -2275,28 +2288,28 @@
       }
     });
 
-    // Filtrar partidos dentro de cada grupo y conservar solo grupos con resultados
-    const gruposConResultados = [];
+    // Filtrar partidos dentro de cada grupo y marcar cuáles tienen resultados
     grupos.forEach(g => {
-      const visibles = g.partidos.filter(p => _mwfixCoincide(p, _mwfixFiltroActual, hoy, semanaLimite));
-      if (visibles.length > 0) gruposConResultados.push({ ...g, visibles });
+      g.visibles = g.partidos.filter(p => _mwfixCoincide(p, _mwfixFiltroActual, hoy, semanaLimite));
+      g.tieneResultados = g.visibles.length > 0;
     });
+    const gruposConResultados = grupos.filter(g => g.tieneResultados);
 
     // Mostrar solo los primeros N grupos (días) según paginación
-    gruposConResultados.forEach((g, i) => {
-      const mostrarGrupo = i < _mwfixDiasVisibles;
+    let idx = 0;
+    grupos.forEach(g => {
+      if (!g.tieneResultados) {
+        g.sep.style.display = 'none';
+        g.partidos.forEach(p => p.style.display = 'none');
+        return;
+      }
+      const mostrarGrupo = idx < _mwfixDiasVisibles;
       g.sep.style.display = mostrarGrupo ? '' : 'none';
       g.partidos.forEach(p => {
         const visible = mostrarGrupo && g.visibles.includes(p);
         p.style.display = visible ? '' : 'none';
       });
-    });
-    // Ocultar grupos sin resultados por completo
-    grupos.forEach(g => {
-      if (!gruposConResultados.includes(g)) {
-        g.sep.style.display = 'none';
-        g.partidos.forEach(p => p.style.display = 'none');
-      }
+      idx++;
     });
 
     // Botón "Ver más"
