@@ -757,10 +757,20 @@ def get_partidos_hoy() -> tuple[list[dict], str]:
     """
     Partidos que se juegan hoy en zona Bogotá/Lima (UTC-5).
     Incluye en_curso, programados y finalizados del día.
+    Ordenados: en_curso primero, luego programados por hora, luego finalizados.
     El campo 'minuto' está presente cuando el partido es en_curso.
     """
     games, source = get_all_games()
     hoy = [g for g in games if _game_is_today(g)]
+
+    def _prio(g: dict) -> tuple:
+        estado = g.get("estado", "")
+        if estado == "en_curso":   p = 0
+        elif estado == "programado": p = 1
+        else:                        p = 2  # finalizado
+        return (p, g.get("fecha_iso") or "")
+
+    hoy.sort(key=_prio)
     return hoy, source
 
 

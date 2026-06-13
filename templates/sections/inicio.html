@@ -8013,7 +8013,14 @@ async function cargarMasPosts(btn) {
       if (e === 'programado' || e === 'upcoming' || e === 'scheduled')     return 1;
       return 2;
     };
-    return [...partidos].sort((a, b) => prio(a) - prio(b));
+    return [...partidos].sort((a, b) => {
+      const pd = prio(a) - prio(b);
+      if (pd !== 0) return pd;
+      // Mismo estado → ordenar por fecha_iso ascendente (el más próximo primero)
+      const fa = a.fecha_iso || '';
+      const fb = b.fecha_iso || '';
+      return fa < fb ? -1 : fa > fb ? 1 : 0;
+    });
   }
 
   // ── Modal ────────────────────────────────────────────────────────────────
@@ -8178,7 +8185,8 @@ async function cargarMasPosts(btn) {
   document.addEventListener('DOMContentLoaded', () => {
     _setEstado('desktop', 'loading');
     _setEstado('mobile',  'loading');
-    cargarPartidosHoy();
+    // Lanzar fetch sin bloquear el hilo principal
+    setTimeout(cargarPartidosHoy, 0);
   });
 })();
 
