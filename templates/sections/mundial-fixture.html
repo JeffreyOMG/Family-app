@@ -84,8 +84,8 @@
   }
   .mwfix-local  { justify-content:flex-end;text-align:right; }
   .mwfix-visitante { justify-content:flex-start;text-align:left; }
-  .mwfix-bandera { width:22px;height:16px;object-fit:cover;border-radius:2px;flex-shrink:0;
-    image-rendering:-webkit-optimize-contrast;image-rendering:crisp-edges; }
+  .mwfix-bandera { width:24px;height:18px;object-fit:contain;border-radius:0;flex-shrink:0;
+    image-rendering:auto; }
 
   .mwfix-marcador {
     display:flex;align-items:center;gap:4px;
@@ -112,7 +112,7 @@
     .mwfix-gol { font-size:.88rem; }
     .mwfix-hora { min-width:38px;font-size:.72rem; }
     .mwfix-meta { min-width:48px; }
-    .mwfix-bandera { width:16px;height:11px; }
+    .mwfix-bandera { width:18px;height:13px; }
     .mwfix-partido { padding:9px 8px;gap:7px; }
     .mwfix-notif-btn span:last-child { display:none; }
   }
@@ -146,9 +146,9 @@
 
     <!-- Filtros rápidos -->
     <div class="mwfix-filtros">
-      <button class="mwfix-filtro active" onclick="mwfixFiltrar('todos', this)">Todos</button>
       <button class="mwfix-filtro" onclick="mwfixFiltrar('hoy', this)">Hoy</button>
-      <button class="mwfix-filtro" onclick="mwfixFiltrar('proximos', this)">Próximos</button>
+      <button class="mwfix-filtro" onclick="mwfixFiltrar('semana', this)">Semana</button>
+      <button class="mwfix-filtro active" onclick="mwfixFiltrar('todos', this)">Todos</button>
       <button class="mwfix-filtro" onclick="mwfixFiltrar('jugados', this)">Jugados</button>
     </div>
 
@@ -2179,7 +2179,10 @@
       {% endif %}
     </div>
 
-<script>
+    <div id="mwfix-vermas-wrap" style="display:flex;justify-content:center;margin-top:14px;">
+      <button id="mwfix-vermas" class="mwfix-filtro" onclick="mwfixVerMas()">Ver más</button>
+    </div>
+
 <script>
 /* ═══════════════════════════════════════════════
    FIXTURE MUNDIAL — Filtros + Notificaciones
@@ -2240,37 +2243,91 @@
     }
   };
 
-  window.mwfixFiltrar = function(filtro, btn) {
-    // Actualizar botón activo
-    document.querySelectorAll('.mwfix-filtro').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
+  const MWFIX_DIAS_POR_PAGINA = 5;
+  let _mwfixFiltroActual = 'todos';
+  let _mwfixDiasVisibles = MWFIX_DIAS_POR_PAGINA;
 
+  function _mwfixCoincide(el, filtro, hoy, semanaLimite) {
+    const fecha  = el.dataset.fecha  || '';
+    const estado = el.dataset.estado || '';
+    if (filtro === 'hoy')    return fecha === hoy;
+    if (filtro === 'semana') return fecha >= hoy && fecha <= semanaLimite;
+    if (filtro === 'jugados') return estado === 'jugado';
+    // 'todos' → todo excepto los ya jugados
+    return estado !== 'jugado';
+  }
+
+  function _mwfixRenderizar() {
     const hoy = new Date().toISOString().slice(0, 10);
-    document.querySelectorAll('.mwfix-partido').forEach(el => {
-      const fecha  = el.dataset.fecha  || '';
-      const estado = el.dataset.estado || '';
-      let mostrar = true;
-      if (filtro === 'hoy')      mostrar = fecha === hoy;
-      if (filtro === 'proximos') mostrar = estado === 'proximo';
-      if (filtro === 'jugados')  mostrar = estado === 'jugado';
-      el.style.display = mostrar ? '' : 'none';
-    });
-    // Ocultar separadores de día vacíos
-    document.querySelectorAll('.mwfix-dia-sep').forEach(sep => {
-      let sig = sep.nextElementSibling;
-      let tieneVisible = false;
-      while (sig && !sig.classList.contains('mwfix-dia-sep')) {
-        if (sig.classList.contains('mwfix-partido') && sig.style.display !== 'none')
-          tieneVisible = true;
-        sig = sig.nextElementSibling;
+    const limite = new Date();
+    limite.setDate(limite.getDate() + 7);
+    const semanaLimite = limite.toISOString().slice(0, 10);
+
+    // Agrupar partidos por su separador de día (en orden de documento)
+    const grupos = [];
+    let grupoActual = null;
+    document.querySelectorAll('#mwfix-lista > *').forEach(el => {
+      if (el.classList.contains('mwfix-dia-sep')) {
+        grupoActual = { sep: el, partidos: [] };
+        grupos.push(grupoActual);
+      } else if (el.classList.contains('mwfix-partido') && grupoActual) {
+        grupoActual.partidos.push(el);
       }
-      sep.style.display = tieneVisible ? '' : 'none';
     });
+
+    // Filtrar partidos dentro de cada grupo y conservar solo grupos con resultados
+    const gruposConResultados = [];
+    grupos.forEach(g => {
+      const visibles = g.partidos.filter(p => _mwfixCoincide(p, _mwfixFiltroActual, hoy, semanaLimite));
+      if (visibles.length > 0) gruposConResultados.push({ ...g, visibles });
+    });
+
+    // Mostrar solo los primeros N grupos (días) según paginación
+    gruposConResultados.forEach((g, i) => {
+      const mostrarGrupo = i < _mwfixDiasVisibles;
+      g.sep.style.display = mostrarGrupo ? '' : 'none';
+      g.partidos.forEach(p => {
+        const visible = mostrarGrupo && g.visibles.includes(p);
+        p.style.display = visible ? '' : 'none';
+      });
+    });
+    // Ocultar grupos sin resultados por completo
+    grupos.forEach(g => {
+      if (!gruposConResultados.includes(g)) {
+        g.sep.style.display = 'none';
+        g.partidos.forEach(p => p.style.display = 'none');
+      }
+    });
+
+    // Botón "Ver más"
+    const btnWrap = document.getElementById('mwfix-vermas-wrap');
+    if (btnWrap) {
+      btnWrap.style.display = gruposConResultados.length > _mwfixDiasVisibles ? 'flex' : 'none';
+    }
+  }
+
+  window.mwfixVerMas = function() {
+    _mwfixDiasVisibles += MWFIX_DIAS_POR_PAGINA;
+    _mwfixRenderizar();
   };
 
-  // Inicializar al cargar
-  document.addEventListener('DOMContentLoaded', function() {
+  window.mwfixFiltrar = function(filtro, btn) {
+    document.querySelectorAll('.mwfix-filtro').forEach(b => b.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+    _mwfixFiltroActual = filtro;
+    _mwfixDiasVisibles = MWFIX_DIAS_POR_PAGINA;
+    _mwfixRenderizar();
+  };
+
+  // Inicializar al cargar (robusto si el script corre después de DOMContentLoaded)
+  function _mwfixInit() {
     mwfixActualizarUI(mwfixGetEstado());
-  });
+    _mwfixRenderizar();
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', _mwfixInit);
+  } else {
+    _mwfixInit();
+  }
 })();
 </script>
