@@ -1614,9 +1614,9 @@
         white-space: nowrap;
       }
       .rkv2__tab-btn.active {
-        background: rgba(245,197,24,.12);
-        border-color: rgba(245,197,24,.45);
-        color: #f5c518; font-weight: 600;
+        background: var(--accent-soft, rgba(255,77,141,.12));
+        border-color: var(--accent-border, rgba(255,77,141,.45));
+        color: var(--accent, #ff4d8d); font-weight: 600;
       }
       .rkv2__tab-btn:hover:not(.active) {
         background: rgba(255,255,255,.1); color: rgba(255,255,255,.8);
@@ -1648,7 +1648,7 @@
 
       /* Fila del usuario actual */
       .rkv2__table tr.rkv2__yo td {
-        background: rgba(245,197,24,.07);
+        background: var(--accent-soft, rgba(255,77,141,.08));
       }
 
       /* ── Top 3 highlight ──────────────────────────────── */
@@ -1694,7 +1694,7 @@
         display: flex; align-items: center; justify-content: center; font-size: .8rem;
       }
       .rkv2__player-name { font-weight: 500; line-height: 1.2; }
-      .rkv2__yo-badge { color: #f5c518; font-size: .66rem; margin-left: 3px; }
+      .rkv2__yo-badge { color: var(--accent, #ff4d8d); font-size: .66rem; margin-left: 3px; }
 
       /* Top 3 nombres más grandes */
       tr[data-pos="1"] .rkv2__player-name { font-size: .92rem; color: #f5c518; }
@@ -1720,7 +1720,8 @@
       }
       .rkv2__part-fill {
         display: block; height: 100%; border-radius: 2px;
-        background: rgba(245,197,24,.5);
+        background: var(--accent, #ff4d8d);
+        opacity: .45;
         transition: width .4s;
       }
 
@@ -1749,7 +1750,14 @@
       <div class="rkv2__tabs">
         <button class="rkv2__tab-btn active" onclick="rkv2Tab('global', this)">🌍 Global</button>
         <button class="rkv2__tab-btn" onclick="rkv2Tab('grupos', this)">⚽ Grupos</button>
-        <button class="rkv2__tab-btn" onclick="rkv2Tab('eli', this)">🏆 Eliminatorias</button>
+        {% if ranking_eli_visible or usuario.rol == 'admin' %}
+        <button class="rkv2__tab-btn" onclick="rkv2Tab('eli', this)" id="rkv2-btn-eli">
+          🏆 Eliminatorias
+          {% if usuario.rol == 'admin' and not ranking_eli_visible %}
+          <span style="font-size:.6rem;opacity:.5;margin-left:3px;">(oculto)</span>
+          {% endif %}
+        </button>
+        {% endif %}
       </div>
 
       <div class="rkv2__panel active" id="rkv2-panel-global">
@@ -1840,6 +1848,7 @@
             <th class="th-r">Pts</th>
             ${showPen ? '<th class="th-r" title="Penales acertados">Pen</th>' : ''}
             <th class="th-r" title="Marcadores exactos">⚽</th>
+            <th class="th-r" title="Ganador acertado">✓</th>
             <th class="th-r" title="Pronósticos hechos / Total">Part.</th>
           </tr></thead>
           <tbody>
@@ -1948,8 +1957,28 @@
       <td class="rkv2__pts">${r.puntos}</td>
       ${showPen ? `<td style="text-align:right;opacity:.62;font-size:.81rem;">${r.penales}</td>` : ''}
       <td style="text-align:right;opacity:.62;font-size:.81rem;">${r.exactos}</td>
+      <td style="text-align:right;opacity:.62;font-size:.81rem;">${r.ganadores}</td>
       <td style="min-width:52px;">${partHTML}</td>
     </tr>`;
+  }
+
+  // ── Admin: habilitar/deshabilitar tab Eliminatorias ─────────────────
+  async function toggleRankingEli(btn) {
+    btn.disabled = true;
+    try {
+      const res = await fetch('/api/admin/ranking_eli_toggle', { method: 'POST' });
+      if (!res.ok) { btn.disabled = false; return; }
+      const data = await res.json();
+      const on = data.visible;
+      btn.textContent       = on ? '✓ Habilitado' : '✗ Deshabilitado';
+      btn.style.background  = on ? 'rgba(76,175,80,.15)'  : 'rgba(255,255,255,.05)';
+      btn.style.borderColor = on ? 'rgba(76,175,80,.5)'   : 'rgba(255,255,255,.15)';
+      btn.style.color       = on ? '#4caf50'               : 'rgba(255,255,255,.45)';
+      const eliTab = document.getElementById('rkv2-btn-eli');
+      if (on && !eliTab) { location.reload(); return; }
+      if (eliTab) eliTab.style.display = on ? '' : 'none';
+    } catch(e) { console.warn('toggle eli error', e); }
+    btn.disabled = false;
   }
   </script>
 
@@ -1965,6 +1994,18 @@
           <div class="admin-mundial-title">Panel Admin</div>
           <div class="admin-mundial-sub">Registra resultados de grupos y fases eliminatorias</div>
         </div>
+      </div>
+
+      <!-- Toggle: ranking eliminatorias visible -->
+      <div style="display:flex;align-items:center;gap:10px;margin:14px 0 4px;padding:10px 14px;background:rgba(255,255,255,.04);border-radius:10px;border:1px solid rgba(255,255,255,.08);">
+        <span class="material-symbols-outlined" style="font-size:1.1rem;opacity:.6;">visibility</span>
+        <span style="font-size:.82rem;opacity:.75;flex:1;">Ranking Eliminatorias visible para todos</span>
+        <button id="btn-toggle-eli-rank"
+          onclick="toggleRankingEli(this)"
+          style="padding:5px 14px;border-radius:8px;border:1.5px solid;font-size:.78rem;font-weight:600;cursor:pointer;transition:all .18s;
+                 {% if ranking_eli_visible %}background:rgba(76,175,80,.15);border-color:rgba(76,175,80,.5);color:#4caf50;{% else %}background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.15);color:rgba(255,255,255,.45);{% endif %}">
+          {% if ranking_eli_visible %}✓ Habilitado{% else %}✗ Deshabilitado{% endif %}
+        </button>
       </div>
 
       <!-- Sub-tabs admin -->
