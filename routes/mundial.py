@@ -1472,52 +1472,52 @@ def ranking_mundial_v2():
     snap_grupos = _load_snapshot("grupos")
     snap_eli    = _load_snapshot("eliminatorias")
 
-    def _apply_cambio(ranking_list, snapshot, pts_key):
-        """Si los puntos cambiaron → calcula nuevo cambio de posición.
-           Si no cambiaron → devuelve el cambio guardado (permanente)."""
+    def _apply_cambio(ranking_list, snapshot):
+        """Calcula ▲▼— para TODOS los usuarios de forma consistente.
+
+        - Si la posición de CUALQUIER usuario cambió respecto al snapshot
+          anterior (reshuffle real), se recalcula `cambio` para TODOS
+          (incluyendo quienes no se movieron, que reciben '—' = 0).
+        - Si nadie se movió, se conserva el `cambio` guardado de la última
+          vez (persistente) para todos.
+        - Usuarios nuevos (sin snapshot previo) reciben cambio = 0.
+        """
+        # ¿Hubo algún movimiento real de posición desde el snapshot?
+        hubo_cambio = False
+        for r in ranking_list:
+            prev = snapshot.get(r["id"])
+            if prev is not None and prev.get("pos_actual") != r["posicion"]:
+                hubo_cambio = True
+                break
+
         result = []
         for r in ranking_list:
-            uid   = r["id"]
-            prev  = snapshot.get(uid)
-            pts_now = r.get(pts_key, 0)
+            prev = snapshot.get(r["id"])
             if prev is None:
-                # Primera vez: sin cambio
+                # Usuario nuevo: sin historial, sin cambio
                 cambio = 0
-            elif prev.get("pts", pts_now) != pts_now:
-                # Puntos cambiaron → recalcular usando posición anterior guardada
-                cambio = prev.get("pos_antes", r["posicion"]) - r["posicion"]
+            elif hubo_cambio:
+                # Reshuffle real: recalcular para TODOS contra la posición
+                # que tenían en el snapshot anterior
+                cambio = prev.get("pos_actual", r["posicion"]) - r["posicion"]
             else:
-                # Puntos igual → mantener cambio guardado (no sobrescribir)
+                # Nadie se movió: mantener el cambio guardado (persistente)
                 cambio = prev.get("cambio", 0)
             result.append({**r, "cambio": cambio})
         return result
 
-    ranking_global_list = _apply_cambio(ranking_global_list, snap_global, "pts_global")
-    ranking_grupos_list  = _apply_cambio(ranking_grupos_list,  snap_grupos, "pts_g")
-    ranking_eli_list     = _apply_cambio(ranking_eli_list,     snap_eli,    "pts_e")
+    ranking_global_list = _apply_cambio(ranking_global_list, snap_global)
+    ranking_grupos_list  = _apply_cambio(ranking_grupos_list,  snap_grupos)
+    ranking_eli_list     = _apply_cambio(ranking_eli_list,     snap_eli)
 
-    # ── Guardar snapshot: solo actualiza pts/pos_antes cuando cambian puntos ──
-    def _save_snapshot(categoria, ranking_list, pts_key):
-        prev_snap = {"global": snap_global, "grupos": snap_grupos, "eliminatorias": snap_eli}[categoria]
+    # ── Guardar snapshot: posición actual + cambio (persistente) ─────────
+    def _save_snapshot(categoria, ranking_list):
         nuevos = {}
         for r in ranking_list:
-            uid     = r["id"]
-            pts_now = r.get(pts_key, 0)
-            prev    = prev_snap.get(uid, {})
-            if prev.get("pts", pts_now) != pts_now:
-                # Puntos cambiaron: guardar nueva posición, pts nuevos y cambio recalculado
-                nuevos[uid] = {
-                    "pts":       pts_now,
-                    "pos_antes": prev.get("pos_antes", r["posicion"]),  # guarda dónde estaba antes
-                    "cambio":    r["cambio"],
-                }
-            else:
-                # Puntos igual: conservar todo lo guardado, solo actualizar cambio si ya había
-                nuevos[uid] = {
-                    "pts":       pts_now,
-                    "pos_antes": prev.get("pos_antes", r["posicion"]),
-                    "cambio":    prev.get("cambio", 0),
-                }
+            nuevos[r["id"]] = {
+                "pos_actual": r["posicion"],
+                "cambio":     r["cambio"],
+            }
         datos = json.dumps(nuevos)
         con.execute("""
             INSERT INTO ranking_snapshot(categoria, datos, actualizado)
@@ -1540,9 +1540,9 @@ def ranking_mundial_v2():
             WHERE creado < NOW() - INTERVAL '7 days'
         """)
 
-    _save_snapshot("global",        ranking_global_list, "pts_global")
-    _save_snapshot("grupos",        ranking_grupos_list,  "pts_g")
-    _save_snapshot("eliminatorias", ranking_eli_list,     "pts_e")
+    _save_snapshot("global",        ranking_global_list)
+    _save_snapshot("grupos",        ranking_grupos_list)
+    _save_snapshot("eliminatorias", ranking_eli_list)
     _save_historial("global",        ranking_global_list)
     con.commit()
 

@@ -2087,13 +2087,10 @@
   {% endif %}
 
   <!-- ════════════════════════════════════════
-       TAB: FIXTURE/CALENDARIO MUNDIAL (cargado dinámicamente)
+       TAB: FIXTURE/CALENDARIO MUNDIAL
   ════════════════════════════════════════ -->
-  <div id="mtab-fixture" class="mtab" style="display:none;" data-src="/static/sections/mundial-fixture.html">
-    <div class="mwfix-loading">
-      <span class="material-symbols-outlined rotating">sports_soccer</span>
-      Cargando calendario...
-    </div>
+  <div id="mtab-fixture" class="mtab" style="display:none;">
+    {% include "sections/mundial-fixture.html" %}
   </div>
 </section>
 
@@ -2119,57 +2116,6 @@ function _cargarTab(tab) {
   if (tab === 'bracket')  { _loadBracket(); _loadAdminTerceros(); }
   if (tab === 'partidos') _loadEliminacion(_rondaActivaPron !== 'grupos-pron' ? _rondaActivaPron : null);
   if (tab === 'admin')    _loadAdminEli();
-  if (tab === 'fixture')  _loadFixtureFragment();
-}
-
-let _fixtureCargado = false;
-function _loadFixtureFragment() {
-  const cont = document.getElementById('mtab-fixture');
-  if (_fixtureCargado || !cont) return;
-  const src = cont.getAttribute('data-src');
-  fetch(src)
-    .then(r => {
-      if (!r.ok) throw new Error('HTTP ' + r.status);
-      return r.text();
-    })
-    .then(html => {
-      _fixtureCargado = true;
-      // Parsear en un contenedor temporal para no bloquear el hilo principal
-      const tmp = document.createElement('div');
-      tmp.innerHTML = html;
-
-      // Mover <style> y <script> al documento de inmediato (son livianos)
-      tmp.querySelectorAll('style').forEach(s => document.head.appendChild(s));
-      const scripts = [...tmp.querySelectorAll('script')];
-      scripts.forEach(s => s.remove());
-
-      // Vaciar el contenedor y obtener el resto del markup como nodos
-      cont.innerHTML = '';
-      const nodes = [...tmp.childNodes];
-
-      // Insertar nodos en lotes pequeños para mantener la UI fluida
-      let i = 0;
-      const BATCH = 15;
-      function pintarLote() {
-        const fin = Math.min(i + BATCH, nodes.length);
-        for (; i < fin; i++) cont.appendChild(nodes[i]);
-        if (i < nodes.length) {
-          requestAnimationFrame(pintarLote);
-        } else {
-          // Ejecutar scripts al final, cuando todo el markup ya está en el DOM
-          scripts.forEach(old => {
-            const s = document.createElement('script');
-            if (old.src) s.src = old.src; else s.textContent = old.textContent;
-            document.body.appendChild(s);
-          });
-        }
-      }
-      requestAnimationFrame(pintarLote);
-    })
-    .catch(err => {
-      cont.innerHTML = '<div class="mwfix-loading">No se pudo cargar el calendario. <button onclick="_fixtureCargado=false;_loadFixtureFragment()">Reintentar</button></div>';
-      console.error('Error cargando fixture:', err);
-    });
 }
 
 function pronRonda(ronda, btn) {
