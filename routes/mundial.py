@@ -1447,7 +1447,7 @@ def ranking_mundial_v2():
     ranking_grupos_list  = _rank(raw, "pts_g",      "pen_e",      "ex_g",      "gan_g",      "nombre", "id")
     ranking_eli_list     = _rank(raw, "pts_e",      "pen_e",      "ex_e",      "gan_e",      "nombre", "id")
 
-    # ── Cargar snapshot anterior para calcular cambios ───────────────────
+    # ── Cargar snapshot: guarda puntos anteriores + cambio calculado ─────
     import json
 
     def _load_snapshot(categoria):
@@ -1457,15 +1457,13 @@ def ranking_mundial_v2():
         if not row:
             return {}
         try:
-            # datos: {uid: {"pos": N, "pts": P}}
             raw = json.loads(row["datos"])
             result = {}
             for k, v in raw.items():
                 if isinstance(v, dict):
                     result[int(k)] = v
                 else:
-                    # formato viejo (solo posición como int)
-                    result[int(k)] = {"pos": int(v), "pts": 0}
+                    result[int(k)] = {"pts": int(v), "cambio": 0}
             return result
         except Exception:
             return {}
@@ -1475,14 +1473,22 @@ def ranking_mundial_v2():
     snap_eli    = _load_snapshot("eliminatorias")
 
     def _apply_cambio(ranking_list, snapshot, pts_key):
+        """Si los puntos cambiaron → calcula nuevo cambio de posición.
+           Si no cambiaron → devuelve el cambio guardado (permanente)."""
         result = []
         for r in ranking_list:
-            uid_r = r["id"]
-            prev  = snapshot.get(uid_r)
+            uid   = r["id"]
+            prev  = snapshot.get(uid)
+            pts_now = r.get(pts_key, 0)
             if prev is None:
+                # Primera vez: sin cambio
                 cambio = 0
+            elif prev.get("pts", pts_now) != pts_now:
+                # Puntos cambiaron → recalcular usando posición anterior guardada
+                cambio = prev.get("pos_antes", r["posicion"]) - r["posicion"]
             else:
-                cambio = prev["pos"] - r["posicion"]  # positivo = subió
+                # Puntos igual → mantener cambio guardado (no sobrescribir)
+                cambio = prev.get("cambio", 0)
             result.append({**r, "cambio": cambio})
         return result
 
@@ -1490,24 +1496,29 @@ def ranking_mundial_v2():
     ranking_grupos_list  = _apply_cambio(ranking_grupos_list,  snap_grupos, "pts_g")
     ranking_eli_list     = _apply_cambio(ranking_eli_list,     snap_eli,    "pts_e")
 
-    # ── Guardar snapshot SOLO si los puntos cambiaron ─────────────────────
+    # ── Guardar snapshot: solo actualiza pts/pos_antes cuando cambian puntos ──
     def _save_snapshot(categoria, ranking_list, pts_key):
-        """Actualiza el snapshot solo si algún usuario cambió de puntos.
-        Así el indicador ▲▼ persiste hasta el próximo cambio real de puntos."""
         prev_snap = {"global": snap_global, "grupos": snap_grupos, "eliminatorias": snap_eli}[categoria]
-        # Detectar si algún pts cambió respecto al snapshot anterior
-        changed = False
+        nuevos = {}
         for r in ranking_list:
-            prev = prev_snap.get(r["id"])
-            if prev is None or prev.get("pts", -1) != r.get(pts_key, 0):
-                changed = True
-                break
-        if not changed and prev_snap:
-            return  # nada cambió → mantener snapshot anterior (▲▼ siguen visibles)
-        datos = json.dumps({
-            r["id"]: {"pos": r["posicion"], "pts": r.get(pts_key, 0)}
-            for r in ranking_list
-        })
+            uid     = r["id"]
+            pts_now = r.get(pts_key, 0)
+            prev    = prev_snap.get(uid, {})
+            if prev.get("pts", pts_now) != pts_now:
+                # Puntos cambiaron: guardar nueva posición, pts nuevos y cambio recalculado
+                nuevos[uid] = {
+                    "pts":       pts_now,
+                    "pos_antes": prev.get("pos_antes", r["posicion"]),  # guarda dónde estaba antes
+                    "cambio":    r["cambio"],
+                }
+            else:
+                # Puntos igual: conservar todo lo guardado, solo actualizar cambio si ya había
+                nuevos[uid] = {
+                    "pts":       pts_now,
+                    "pos_antes": prev.get("pos_antes", r["posicion"]),
+                    "cambio":    prev.get("cambio", 0),
+                }
+        datos = json.dumps(nuevos)
         con.execute("""
             INSERT INTO ranking_snapshot(categoria, datos, actualizado)
             VALUES(%s, %s, NOW())
