@@ -907,6 +907,131 @@
       .mwt2026__btn-accept, .mwt2026__btn-cancel { flex: auto; }
     }
   </style>
+  <style>
+  <style>
+  /* ═══════════════════════════════════════════
+     FIXTURE MUNDIAL 2026 — Estilos MWFIX
+  ═══════════════════════════════════════════ */
+  .mwfix-tab-btn { border-color: rgba(245,197,24,.35) !important; }
+  .mwfix-tab-btn.active, .mwfix-tab-btn:hover { background:#f5c518 !important;color:#111 !important; }
+
+  .mwfix-header {
+    display:flex;align-items:center;justify-content:space-between;gap:12px;
+    padding:14px 16px;background:var(--bg2);border:1px solid var(--border);
+    border-radius:14px;margin-bottom:12px;flex-wrap:wrap;
+  }
+  .mwfix-header-left { display:flex;align-items:center;gap:10px; }
+  .mwfix-title { font-size:1rem;font-weight:800;color:var(--text); }
+  .mwfix-sub  { font-size:.75rem;color:var(--text2);margin-top:2px; }
+  .mwfix-notif-btn {
+    display:flex;align-items:center;gap:6px;padding:8px 14px;border-radius:10px;
+    border:1.5px solid var(--border);background:var(--card);color:var(--text2);
+    font-size:.8rem;font-weight:700;cursor:pointer;transition:all .15s;font-family:inherit;
+    white-space:nowrap;
+  }
+  .mwfix-notif-btn .material-symbols-outlined { font-size:17px; }
+  .mwfix-notif-btn.active { border-color:#22c55e;background:rgba(34,197,94,.08);color:#22c55e; }
+  .mwfix-notif-btn:hover { opacity:.85; }
+
+  .mwfix-all-badge {
+    display:flex;align-items:center;gap:7px;padding:8px 14px;margin-bottom:12px;
+    background:rgba(245,197,24,.07);border:1px solid rgba(245,197,24,.2);
+    border-radius:10px;font-size:.78rem;color:var(--text2);
+  }
+  .mwfix-all-badge .material-symbols-outlined { font-size:16px;color:#f5c518;flex-shrink:0; }
+  .mwfix-all-badge strong { color:#f5c518; }
+
+  .mwfix-filtros {
+    display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;
+  }
+  .mwfix-filtro {
+    padding:6px 14px;border-radius:20px;border:1.5px solid var(--border);
+    background:var(--bg2);color:var(--text2);font-size:.8rem;font-weight:600;
+    cursor:pointer;transition:all .15s;font-family:inherit;
+  }
+  .mwfix-filtro.active, .mwfix-filtro:hover {
+    background:#f5c518;color:#111;border-color:#f5c518;
+  }
+
+  .mwfix-lista { display:flex;flex-direction:column;gap:0; }
+  .mwfix-dia-sep {
+    display:flex;align-items:center;gap:7px;padding:10px 4px 6px;
+    font-size:.82rem;font-weight:700;color:var(--text2);
+    border-bottom:1px solid var(--border);margin-bottom:6px;
+  }
+  .mwfix-dia-sep .material-symbols-outlined { font-size:16px;color:#f5c518; }
+
+  .mwfix-partido {
+    display:flex;align-items:center;gap:10px;padding:11px 10px;
+    border-radius:10px;margin-bottom:6px;background:var(--bg2);
+    border:1px solid var(--border);transition:box-shadow .15s;
+  }
+  .mwfix-partido:hover { box-shadow:0 2px 10px rgba(0,0,0,.08); }
+  .mwfix-partido.mwfix-jugado { opacity:.7; }
+  .mwfix-partido.mwfix-en-curso {
+    border-color:#22c55e;background:rgba(34,197,94,.04);
+    box-shadow:0 0 0 2px rgba(34,197,94,.15);
+  }
+
+  .mwfix-hora {
+    min-width:48px;font-size:.78rem;font-weight:700;color:var(--text2);
+    text-align:center;flex-shrink:0;
+  }
+  .mwfix-live {
+    display:inline-block;padding:2px 6px;border-radius:6px;
+    background:#22c55e;color:#fff;font-size:.62rem;font-weight:800;
+    letter-spacing:.03em;animation:mwfix-pulse 1.2s infinite;
+  }
+  @keyframes mwfix-pulse { 0%,100%{opacity:1} 50%{opacity:.6} }
+
+  .mwfix-equipos {
+    flex:1;display:flex;align-items:center;gap:6px;min-width:0;
+  }
+  .mwfix-equipo {
+    flex:1;font-size:.84rem;font-weight:700;color:var(--text);
+    display:flex;align-items:center;gap:5px;min-width:0;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  }
+  .mwfix-local  { justify-content:flex-end;text-align:right; }
+  .mwfix-visitante { justify-content:flex-start;text-align:left; }
+  .mwfix-bandera { width:20px;height:14px;object-fit:cover;border-radius:2px;flex-shrink:0; }
+
+  .mwfix-marcador {
+    display:flex;align-items:center;gap:4px;
+    background:var(--card);border:1px solid var(--border);
+    border-radius:8px;padding:4px 10px;flex-shrink:0;
+  }
+  .mwfix-vs { font-size:.72rem;font-weight:800;color:var(--text3); }
+  .mwfix-gol { font-size:.95rem;font-weight:800;color:var(--text);min-width:14px;text-align:center; }
+  .mwfix-gol.mwfix-ganador { color:#22c55e; }
+  .mwfix-sep { font-size:.85rem;color:var(--text3); }
+
+  .mwfix-meta {
+    display:flex;flex-direction:column;align-items:flex-end;gap:2px;
+    min-width:60px;flex-shrink:0;
+  }
+  .mwfix-fase { font-size:.65rem;font-weight:700;color:var(--text3);text-align:right; }
+  .mwfix-estadio { font-size:.6rem;color:var(--text3);text-align:right;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:80px; }
+
+  /* ── RESPONSIVE FIXTURE ── */
+  @media (max-width:600px) {
+    .mwfix-header { padding:10px 12px; }
+    .mwfix-equipo { font-size:.78rem; }
+    .mwfix-gol { font-size:.88rem; }
+    .mwfix-hora { min-width:38px;font-size:.72rem; }
+    .mwfix-meta { min-width:48px; }
+    .mwfix-bandera { width:16px;height:11px; }
+    .mwfix-partido { padding:9px 8px;gap:7px; }
+    .mwfix-notif-btn span:last-child { display:none; }
+  }
+  @media (max-width:380px) {
+    .mwfix-equipo { font-size:.72rem; }
+    .mwfix-marcador { padding:3px 7px; }
+    .mwfix-meta { display:none; }
+  }
+  </style>
+  </style>
 
   <!-- Backdrop compartido para el modal principal -->
   <div id="mwt2026-backdrop" class="mwt2026__backdrop"></div>
@@ -1371,6 +1496,9 @@
     </button>
     <button class="tab-btn" onclick="mundialTab('ranking', this)">
       <span class="material-symbols-outlined">emoji_events</span> Ranking
+    </button>
+    <button class="tab-btn mwfix-tab-btn" onclick="mundialTab('fixture', this)">
+      <span class="material-symbols-outlined">calendar_month</span> Fixture
     </button>
     {% if usuario.rol == 'admin' %}
     <button class="tab-btn tab-btn-admin" onclick="mundialTab('admin', this)">
@@ -2071,6 +2199,139 @@
     </div>
   </div>
   {% endif %}
+
+  <!-- ════════════════════════════════════════
+       TAB: FIXTURE MUNDIAL — Todos los usuarios
+       Notificaciones: TODOS (no solo miembros)
+  ════════════════════════════════════════ -->
+  <div id="mtab-fixture" class="mtab" style="display:none;">
+
+    <!-- Cabecera + control de notificaciones -->
+    <div class="mwfix-header">
+      <div class="mwfix-header-left">
+        <span class="material-symbols-outlined" style="color:#f5c518;font-size:1.4rem;">calendar_month</span>
+        <div>
+          <div class="mwfix-title">Fixture Mundial 2026</div>
+          <div class="mwfix-sub">Todos los partidos · Hora Colombia (GMT-5)</div>
+        </div>
+      </div>
+      <button class="mwfix-notif-btn" id="mwfix-notif-btn" onclick="mwfixToggleNotif()">
+        <span class="material-symbols-outlined" id="mwfix-notif-ico">notifications</span>
+        <span id="mwfix-notif-txt">Activar avisos</span>
+      </button>
+    </div>
+
+    <!-- Badge "avisos para todos" -->
+    <div class="mwfix-all-badge">
+      <span class="material-symbols-outlined">groups</span>
+      Notificaciones de partidos disponibles para <strong>todos los usuarios</strong>
+    </div>
+
+    <!-- Filtros rápidos -->
+    <div class="mwfix-filtros">
+      <button class="mwfix-filtro active" onclick="mwfixFiltrar('todos', this)">Todos</button>
+      <button class="mwfix-filtro" onclick="mwfixFiltrar('hoy', this)">Hoy</button>
+      <button class="mwfix-filtro" onclick="mwfixFiltrar('proximos', this)">Próximos</button>
+      <button class="mwfix-filtro" onclick="mwfixFiltrar('jugados', this)">Jugados</button>
+    </div>
+
+    <!-- Lista de partidos (agenda) -->
+    <div id="mwfix-lista" class="mwfix-lista">
+      {% if partidos_fixture %}
+        {% set ns = namespace(fecha_actual='') %}
+        {% for partido in partidos_fixture %}
+          {% if partido.fecha != ns.fecha_actual %}
+            {% set ns.fecha_actual = partido.fecha %}
+            <div class="mwfix-dia-sep">
+              <span class="material-symbols-outlined">calendar_today</span>
+              {{ partido.fecha_display }}
+            </div>
+          {% endif %}
+          <div class="mwfix-partido
+            {% if partido.jugado %} mwfix-jugado{% endif %}
+            {% if partido.en_curso %} mwfix-en-curso{% endif %}"
+            data-fecha="{{ partido.fecha }}"
+            data-estado="{{ 'jugado' if partido.jugado else 'en_curso' if partido.en_curso else 'proximo' }}">
+            <div class="mwfix-hora">
+              {% if partido.en_curso %}
+                <span class="mwfix-live">EN VIVO</span>
+              {% else %}
+                {{ partido.hora_col }}
+              {% endif %}
+            </div>
+            <div class="mwfix-equipos">
+              <span class="mwfix-equipo mwfix-local">
+                <img class="mwfix-bandera" src="/static/banderas/{{ partido.equipo_local_code }}.svg"
+                     onerror="this.style.display='none'" alt="">
+                {{ partido.equipo_local }}
+              </span>
+              <div class="mwfix-marcador">
+                {% if partido.jugado or partido.en_curso %}
+                  <span class="mwfix-gol{% if partido.goles_local > partido.goles_visitante %} mwfix-ganador{% endif %}">
+                    {{ partido.goles_local }}
+                  </span>
+                  <span class="mwfix-sep">–</span>
+                  <span class="mwfix-gol{% if partido.goles_visitante > partido.goles_local %} mwfix-ganador{% endif %}">
+                    {{ partido.goles_visitante }}
+                  </span>
+                {% else %}
+                  <span class="mwfix-vs">VS</span>
+                {% endif %}
+              </div>
+              <span class="mwfix-equipo mwfix-visitante">
+                {{ partido.equipo_visitante }}
+                <img class="mwfix-bandera" src="/static/banderas/{{ partido.equipo_visitante_code }}.svg"
+                     onerror="this.style.display='none'" alt="">
+              </span>
+            </div>
+            <div class="mwfix-meta">
+              <span class="mwfix-fase">{{ partido.fase }}</span>
+              {% if partido.estadio %}<span class="mwfix-estadio">{{ partido.estadio }}</span>{% endif %}
+            </div>
+          </div>
+        {% endfor %}
+      {% else %}
+        <!-- Fixture de ejemplo estático mientras se configura el backend -->
+        <div class="mwfix-dia-sep">
+          <span class="material-symbols-outlined">calendar_today</span>
+          Jue 11 Jun 2026
+        </div>
+        <div class="mwfix-partido mwfix-jugado" data-estado="jugado">
+          <div class="mwfix-hora">15:00</div>
+          <div class="mwfix-equipos">
+            <span class="mwfix-equipo mwfix-local">🇲🇽 México</span>
+            <div class="mwfix-marcador">
+              <span class="mwfix-gol">2</span><span class="mwfix-sep">–</span><span class="mwfix-gol mwfix-ganador">3</span>
+            </div>
+            <span class="mwfix-equipo mwfix-visitante">🇧🇷 Brasil</span>
+          </div>
+          <div class="mwfix-meta"><span class="mwfix-fase">Fase de Grupos · A</span></div>
+        </div>
+        <div class="mwfix-dia-sep">
+          <span class="material-symbols-outlined">calendar_today</span>
+          Vie 12 Jun 2026
+        </div>
+        <div class="mwfix-partido" data-estado="proximo">
+          <div class="mwfix-hora">18:00</div>
+          <div class="mwfix-equipos">
+            <span class="mwfix-equipo mwfix-local">🇦🇷 Argentina</span>
+            <div class="mwfix-marcador"><span class="mwfix-vs">VS</span></div>
+            <span class="mwfix-equipo mwfix-visitante">🇩🇪 Alemania</span>
+          </div>
+          <div class="mwfix-meta"><span class="mwfix-fase">Fase de Grupos · B</span></div>
+        </div>
+        <div class="mwfix-partido" data-estado="proximo">
+          <div class="mwfix-hora">21:00</div>
+          <div class="mwfix-equipos">
+            <span class="mwfix-equipo mwfix-local">🇺🇸 EE.UU.</span>
+            <div class="mwfix-marcador"><span class="mwfix-vs">VS</span></div>
+            <span class="mwfix-equipo mwfix-visitante">🇺🇾 Uruguay</span>
+          </div>
+          <div class="mwfix-meta"><span class="mwfix-fase">Fase de Grupos · C</span></div>
+        </div>
+      {% endif %}
+    </div>
+  </div>
 
 </section>
 
@@ -3516,4 +3777,99 @@ window.resetarPartidoMundial = async function(partidoId, tipo) {
     mostrarToast('❌ Error: ' + e.message, 'error');
   }
 };
+</script>
+
+<script>
+/* ═══════════════════════════════════════════════
+   FIXTURE MUNDIAL — Filtros + Notificaciones
+   Notificaciones disponibles para TODOS
+═══════════════════════════════════════════════ */
+(function() {
+  const MWFIX_KEY = 'mwfix_notif_activas';
+
+  function mwfixGetEstado() { return localStorage.getItem(MWFIX_KEY) === '1'; }
+
+  function mwfixActualizarUI(activo) {
+    const btn = document.getElementById('mwfix-notif-btn');
+    const ico = document.getElementById('mwfix-notif-ico');
+    const txt = document.getElementById('mwfix-notif-txt');
+    if (!btn) return;
+    if (activo) {
+      btn.classList.add('active');
+      ico.textContent = 'notifications_active';
+      txt.textContent = 'Avisos activados';
+    } else {
+      btn.classList.remove('active');
+      ico.textContent = 'notifications';
+      txt.textContent = 'Activar avisos';
+    }
+  }
+
+  window.mwfixToggleNotif = async function() {
+    const actual = mwfixGetEstado();
+    if (!actual) {
+      if ('Notification' in window) {
+        const perm = await Notification.requestPermission();
+        if (perm !== 'granted') {
+          if (typeof mostrarToast === 'function')
+            mostrarToast('Permiso de notificaciones denegado', 'error');
+          return;
+        }
+      }
+      localStorage.setItem(MWFIX_KEY, '1');
+      mwfixActualizarUI(true);
+      // Registrar en backend (todos, no requiere auth)
+      fetch('/api/notificaciones/mundial', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ activo: true })
+      }).catch(() => {});
+      if (typeof mostrarToast === 'function')
+        mostrarToast('¡Recibirás avisos de partidos del Mundial!', 'success');
+    } else {
+      localStorage.setItem(MWFIX_KEY, '0');
+      mwfixActualizarUI(false);
+      fetch('/api/notificaciones/mundial', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ activo: false })
+      }).catch(() => {});
+      if (typeof mostrarToast === 'function')
+        mostrarToast('Avisos del Mundial desactivados', 'info');
+    }
+  };
+
+  window.mwfixFiltrar = function(filtro, btn) {
+    // Actualizar botón activo
+    document.querySelectorAll('.mwfix-filtro').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+
+    const hoy = new Date().toISOString().slice(0, 10);
+    document.querySelectorAll('.mwfix-partido').forEach(el => {
+      const fecha  = el.dataset.fecha  || '';
+      const estado = el.dataset.estado || '';
+      let mostrar = true;
+      if (filtro === 'hoy')      mostrar = fecha === hoy;
+      if (filtro === 'proximos') mostrar = estado === 'proximo';
+      if (filtro === 'jugados')  mostrar = estado === 'jugado';
+      el.style.display = mostrar ? '' : 'none';
+    });
+    // Ocultar separadores de día vacíos
+    document.querySelectorAll('.mwfix-dia-sep').forEach(sep => {
+      let sig = sep.nextElementSibling;
+      let tieneVisible = false;
+      while (sig && !sig.classList.contains('mwfix-dia-sep')) {
+        if (sig.classList.contains('mwfix-partido') && sig.style.display !== 'none')
+          tieneVisible = true;
+        sig = sig.nextElementSibling;
+      }
+      sep.style.display = tieneVisible ? '' : 'none';
+    });
+  };
+
+  // Inicializar al cargar
+  document.addEventListener('DOMContentLoaded', function() {
+    mwfixActualizarUI(mwfixGetEstado());
+  });
+})();
 </script>
