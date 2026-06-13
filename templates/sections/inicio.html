@@ -2869,9 +2869,9 @@ body.dark-mode .post-badge-privado { background: rgba(139,92,246,.2); color: #a7
 
 /* Banderas PNG */
 .pah-flag-img {
-  width: 20px; height: 14px; object-fit: cover;
-  border-radius: 2px; flex-shrink: 0;
-  border: 1px solid rgba(255,255,255,.08);
+  width: 22px; height: 16px; object-fit: contain;
+  border-radius: 0; flex-shrink: 0;
+  image-rendering: auto;
 }
 .pah-flag-placeholder { font-size: 14px; line-height: 1; }
 
@@ -7878,11 +7878,11 @@ async function cargarMasPosts(btn) {
     const key = codigo.toLowerCase();
     const file = _FLAG_MAP[key];
     if (file) {
-      return `<img src="/static/banderas/${file}.png" class="pah-flag-img" alt="${codigo.toUpperCase()}" onerror="this.outerHTML='<span class=pah-flag-placeholder>🏳</span>'">`;
+      return `<img src="/static/banderas/${file}.png" class="pah-flag-img" loading="lazy" decoding="async" alt="${codigo.toUpperCase()}" onerror="this.outerHTML='<span class=pah-flag-placeholder>🏳</span>'">`;
     }
     // Intentar con el código en mayúsculas directamente (ej: 'KOR' → KOR.png)
     const upper = codigo.toUpperCase().replace('-','');
-    return `<img src="/static/banderas/${upper}.png" class="pah-flag-img" alt="${upper}" onerror="this.outerHTML='<span class=pah-flag-placeholder>🏳</span>'">`;
+    return `<img src="/static/banderas/${upper}.png" class="pah-flag-img" loading="lazy" decoding="async" alt="${upper}" onerror="this.outerHTML='<span class=pah-flag-placeholder>🏳</span>'">`;
   }
 
   function _hora(fechaIso) {
