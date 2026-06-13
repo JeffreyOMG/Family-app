@@ -1448,15 +1448,25 @@ def ranking_mundial_v2():
     ranking_eli_list     = _rank(raw, "pts_e",      "pen_e",      "ex_e",      "gan_e",      "nombre", "id")
 
     # ── Cargar snapshot anterior para calcular cambios ───────────────────
+    import json
+
     def _load_snapshot(categoria):
         row = con.execute(
             "SELECT datos FROM ranking_snapshot WHERE categoria=%s", (categoria,)
         ).fetchone()
         if not row:
             return {}
-        import json
         try:
-            return {int(k): v for k, v in json.loads(row["datos"]).items()}
+            # datos: {uid: {"pos": N, "pts": P}}
+            raw = json.loads(row["datos"])
+            result = {}
+            for k, v in raw.items():
+                if isinstance(v, dict):
+                    result[int(k)] = v
+                else:
+                    # formato viejo (solo posición como int)
+                    result[int(k)] = {"pos": int(v), "pts": 0}
+            return result
         except Exception:
             return {}
 
@@ -1464,49 +1474,40 @@ def ranking_mundial_v2():
     snap_grupos = _load_snapshot("grupos")
     snap_eli    = _load_snapshot("eliminatorias")
 
-    def _apply_cambio(ranking_list, snapshot):
+    def _apply_cambio(ranking_list, snapshot, pts_key):
         result = []
         for r in ranking_list:
             uid_r = r["id"]
-            prev = snapshot.get(uid_r)
+            prev  = snapshot.get(uid_r)
             if prev is None:
                 cambio = 0
             else:
-                cambio = prev - r["posicion"]  # positivo = subió
+                cambio = prev["pos"] - r["posicion"]  # positivo = subió
             result.append({**r, "cambio": cambio})
         return result
 
-    ranking_global_list = _apply_cambio(ranking_global_list, snap_global)
-    ranking_grupos_list  = _apply_cambio(ranking_grupos_list,  snap_grupos)
-    ranking_eli_list     = _apply_cambio(ranking_eli_list,     snap_eli)
+    ranking_global_list = _apply_cambio(ranking_global_list, snap_global, "pts_global")
+    ranking_grupos_list  = _apply_cambio(ranking_grupos_list,  snap_grupos, "pts_g")
+    ranking_eli_list     = _apply_cambio(ranking_eli_list,     snap_eli,    "pts_e")
 
-    # ── Guardar nuevo snapshot y historial ────────────────────────────────
-    import json
-    def _save_snapshot(categoria, ranking_list):
-        """Solo actualiza el snapshot si han pasado al menos 5 minutos desde el último,
-        o si es la primera vez. Así el cambio de posición es real entre ciclos."""
-        # Verificar cuándo fue el último guardado
-        last = con.execute(
-            "SELECT actualizado FROM ranking_snapshot WHERE categoria=%s", (categoria,)
-        ).fetchone()
-        if last:
-            from datetime import datetime, timezone
-            try:
-                # actualizado puede venir como string o datetime
-                ts = last["actualizado"]
-                if isinstance(ts, str):
-                    ts = datetime.fromisoformat(ts.replace("Z", "+00:00"))
-                # Si tiene timezone, usar UTC; si no, asumir UTC
-                if ts.tzinfo is None:
-                    from datetime import timezone
-                    ts = ts.replace(tzinfo=timezone.utc)
-                ahora = datetime.now(timezone.utc)
-                diff = (ahora - ts).total_seconds()
-                if diff < 300:  # menos de 5 minutos → no actualizar
-                    return
-            except Exception:
-                pass  # si falla la comparación, igual guarda
-        datos = json.dumps({r["id"]: r["posicion"] for r in ranking_list})
+    # ── Guardar snapshot SOLO si los puntos cambiaron ─────────────────────
+    def _save_snapshot(categoria, ranking_list, pts_key):
+        """Actualiza el snapshot solo si algún usuario cambió de puntos.
+        Así el indicador ▲▼ persiste hasta el próximo cambio real de puntos."""
+        prev_snap = {"global": snap_global, "grupos": snap_grupos, "eliminatorias": snap_eli}[categoria]
+        # Detectar si algún pts cambió respecto al snapshot anterior
+        changed = False
+        for r in ranking_list:
+            prev = prev_snap.get(r["id"])
+            if prev is None or prev.get("pts", -1) != r.get(pts_key, 0):
+                changed = True
+                break
+        if not changed and prev_snap:
+            return  # nada cambió → mantener snapshot anterior (▲▼ siguen visibles)
+        datos = json.dumps({
+            r["id"]: {"pos": r["posicion"], "pts": r.get(pts_key, 0)}
+            for r in ranking_list
+        })
         con.execute("""
             INSERT INTO ranking_snapshot(categoria, datos, actualizado)
             VALUES(%s, %s, NOW())
@@ -1523,15 +1524,14 @@ def ranking_mundial_v2():
             INSERT INTO ranking_historial(categoria, datos, creado)
             VALUES(%s, %s, NOW())
         """, (categoria, datos))
-        # Limpiar registros > 7 días
         con.execute("""
             DELETE FROM ranking_historial
             WHERE creado < NOW() - INTERVAL '7 days'
         """)
 
-    _save_snapshot("global",        ranking_global_list)
-    _save_snapshot("grupos",        ranking_grupos_list)
-    _save_snapshot("eliminatorias", ranking_eli_list)
+    _save_snapshot("global",        ranking_global_list, "pts_global")
+    _save_snapshot("grupos",        ranking_grupos_list,  "pts_g")
+    _save_snapshot("eliminatorias", ranking_eli_list,     "pts_e")
     _save_historial("global",        ranking_global_list)
     con.commit()
 
