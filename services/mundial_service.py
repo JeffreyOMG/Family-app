@@ -466,27 +466,57 @@ def _normalize_game(raw: dict, idx: int = 0) -> dict:
     sede = str(venue).strip()
 
     # ── Minuto / tiempo transcurrido (para badge EN VIVO) ────────────────────
-    # Si time_elapsed es un número o "45+2" lo exponemos como "minuto".
-    # Si es un texto descriptivo ('halftime', etc.) lo mapeamos a una etiqueta legible.
+    # Prioridad:
+    #   1. Si time_elapsed es un número ("45", "67", "90+2") → úsalo directo
+    #   2. Si es texto descriptivo ("halftime", "first half") → etiqueta legible
+    #   3. Si la API manda "in progress" o vacío → calcular desde fecha_iso (reloj)
     _ELAPSED_LABEL: dict[str, str] = {
-        "halftime":    "ET",       # Entre tiempos
-        "half time":   "ET",
+        "halftime":    "Desc.",    # Entre tiempos
+        "half time":   "Desc.",
         "first half":  "1T",
         "second half": "2T",
-        "extra time":  "P.E.",     # Prórroga / extra time
-        "penalty":     "Pen.",
-        "penalties":   "Pen.",
-        "in progress": "En curso",
+        "extra time":  "Prórroga",
+        "penalty":     "Penales",
+        "penalties":   "Penales",
+        "in progress": None,       # → fallback al reloj
     }
+
+    def _minuto_por_reloj(iso: Optional[str]) -> Optional[str]:
+        """Estima el minuto usando el tiempo transcurrido desde el kick-off."""
+        if not iso:
+            return "En vivo"
+        try:
+            from datetime import timezone as _tz
+            kickoff = datetime.fromisoformat(iso.replace("Z", "+00:00"))
+            elapsed = int((datetime.now(_tz.utc) - kickoff).total_seconds() / 60)
+            if elapsed < 0:
+                return None
+            elif elapsed <= 47:        # Primer tiempo
+                return f"{min(elapsed, 45)}'"
+            elif elapsed <= 60:        # Descanso (~13-15 min)
+                return "Desc."
+            elif elapsed <= 107:       # Segundo tiempo
+                return f"{min(elapsed - 15, 90)}'"
+            elif elapsed <= 122:       # Descanso prórroga
+                return "Desc."
+            elif elapsed <= 152:       # Prórroga
+                return f"PT {min(elapsed - 122, 30)}'"
+            else:
+                return "Penales"
+        except Exception:
+            return "En vivo"
+
     minuto: Optional[str] = None
-    if estado == "en_curso" and time_elapsed:
-        if time_elapsed in _ELAPSED_LABEL:
-            minuto = _ELAPSED_LABEL[time_elapsed]
+    if estado == "en_curso":
+        if time_elapsed and re.match(r"^\d+", time_elapsed):
+            # Número real enviado por la API ("45", "67", "90+3")
+            minuto = time_elapsed if "+" in time_elapsed else f"{time_elapsed}'"
+        elif time_elapsed in _ELAPSED_LABEL:
+            label = _ELAPSED_LABEL[time_elapsed]
+            minuto = label if label is not None else _minuto_por_reloj(fecha_iso)
         else:
-            # Puede ser "45", "67", "90+3", etc.
-            import re as _re
-            if _re.match(r"^\d+", time_elapsed):
-                minuto = time_elapsed
+            # time_elapsed vacío, "notstarted" actualizado, o valor desconocido
+            minuto = _minuto_por_reloj(fecha_iso)
 
     # is not None guard: id=0 is falsy but valid; must not fall through to match_id
     _id_raw = raw.get("id") if raw.get("id") is not None else raw.get("match_id")
