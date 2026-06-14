@@ -1383,9 +1383,6 @@
     <button class="tab-btn" onclick="mundialTab('ranking', this)">
       <span class="material-symbols-outlined">emoji_events</span> Ranking
     </button>
-    <button class="tab-btn mwfix-tab-btn" onclick="mundialTab('fixture', this)">
-      <span class="material-symbols-outlined">calendar_month</span> Calendario
-    </button>
     {% if usuario.rol == 'admin' %}
     <button class="tab-btn tab-btn-admin" onclick="mundialTab('admin', this)">
       <span class="material-symbols-outlined">admin_panel_settings</span> Admin
@@ -2086,12 +2083,6 @@
   </div>
   {% endif %}
 
-  <!-- ════════════════════════════════════════
-       TAB: FIXTURE/CALENDARIO MUNDIAL
-  ════════════════════════════════════════ -->
-  <div id="mtab-fixture" class="mtab" style="display:none;">
-    {% include "sections/mundial-fixture.html" %}
-  </div>
 </section>
 
 <script>
