@@ -8063,341 +8063,129 @@ async function cargarMasPosts(btn) {
   window.abrirModalPartidos  = abrirModalPartidos;
   window.cerrarModalPartidos = cerrarModalPartidos;
 
-  // ── Configuración worldcup26.ir ─────────────────────────────────────────
-  // Llamada directa desde el navegador (sin pasar por el backend Flask).
-  // JWT guardado en localStorage: key = 'wc26_jwt'
-  const _WC_BASE = 'https://worldcup26.ir';
+  // ── Fetch ────────────────────────────────────────────────────────────────
 
-  function _getToken() { return localStorage.getItem('wc26_jwt') || ''; }
-
-  // Caché local para no saturar la API
-  const _localCache = {};
-  function _cacheGet(k) {
-    const e = _localCache[k];
-    if (!e || Date.now() > e.exp) { delete _localCache[k]; return null; }
-    return e.val;
-  }
-  function _cacheSet(k, v, ttlMs) { _localCache[k] = { val: v, exp: Date.now() + ttlMs }; }
-
-  // nombre EN → ES
-  const _EN_ES = {
-    'united states':'Estados Unidos','usa':'Estados Unidos','canada':'Canadá',
-    'mexico':'México','brazil':'Brasil','argentina':'Argentina','colombia':'Colombia',
-    'uruguay':'Uruguay','chile':'Chile','ecuador':'Ecuador','peru':'Perú',
-    'venezuela':'Venezuela','paraguay':'Paraguay','costa rica':'Costa Rica',
-    'honduras':'Honduras','panama':'Panamá','jamaica':'Jamaica','haiti':'Haití',
-    'germany':'Alemania','france':'Francia','spain':'España','england':'Inglaterra',
-    'portugal':'Portugal','netherlands':'Países Bajos','italy':'Italia',
-    'belgium':'Bélgica','croatia':'Croacia','serbia':'Serbia','denmark':'Dinamarca',
-    'switzerland':'Suiza','poland':'Polonia','ukraine':'Ucrania','austria':'Austria',
-    'sweden':'Suecia','turkey':'Turquía','scotland':'Escocia','wales':'Gales',
-    'czechia':'República Checa','czech republic':'República Checa',
-    'slovakia':'Eslovaquia','hungary':'Hungría','romania':'Rumanía',
-    'albania':'Albania','greece':'Grecia','norway':'Noruega',
-    'bosnia and herzegovina':'Bosnia y Herzegovina','cape verde':'Cabo Verde',
-    'curacao':'Curazao','curaçao':'Curazao','morocco':'Marruecos','senegal':'Senegal',
-    'nigeria':'Nigeria','cameroon':'Camerún','egypt':'Egipto','ghana':'Ghana',
-    'ivory coast':'Costa de Marfil',"cote d'ivoire":'Costa de Marfil',
-    'south africa':'Sudáfrica','tunisia':'Túnez','algeria':'Argelia',
-    'dr congo':'RD Congo','democratic republic of the congo':'RD Congo',
-    'japan':'Japón','south korea':'Corea del Sur','korea republic':'Corea del Sur',
-    'iran':'Irán','iraq':'Irak','saudi arabia':'Arabia Saudita',
-    'australia':'Australia','new zealand':'Nueva Zelanda','uzbekistan':'Uzbekistán',
-    'qatar':'Catar','jordan':'Jordania',
-  };
-
-  // iso2 → nombre ES (de /get/teams)
-  const _ISO_ES = {
-    'us':'Estados Unidos','ca':'Canadá','mx':'México','br':'Brasil','ar':'Argentina',
-    'co':'Colombia','uy':'Uruguay','cl':'Chile','ec':'Ecuador','pe':'Perú',
-    've':'Venezuela','py':'Paraguay','cr':'Costa Rica','hn':'Honduras','pa':'Panamá',
-    'jm':'Jamaica','ht':'Haití','de':'Alemania','fr':'Francia','es':'España',
-    'gb-eng':'Inglaterra','pt':'Portugal','nl':'Países Bajos','it':'Italia',
-    'be':'Bélgica','hr':'Croacia','rs':'Serbia','dk':'Dinamarca','ch':'Suiza',
-    'pl':'Polonia','ua':'Ucrania','at':'Austria','se':'Suecia','tr':'Turquía',
-    'gb-sct':'Escocia','gb-wls':'Gales','cz':'República Checa','sk':'Eslovaquia',
-    'hu':'Hungría','ro':'Rumanía','al':'Albania','gr':'Grecia','no':'Noruega',
-    'ba':'Bosnia y Herzegovina','cv':'Cabo Verde','cw':'Curazao','ma':'Marruecos',
-    'sn':'Senegal','ng':'Nigeria','cm':'Camerún','eg':'Egipto','gh':'Ghana',
-    'ci':'Costa de Marfil','za':'Sudáfrica','tn':'Túnez','dz':'Argelia',
-    'cd':'RD Congo','jp':'Japón','kr':'Corea del Sur','ir':'Irán','iq':'Irak',
-    'sa':'Arabia Saudita','au':'Australia','nz':'Nueva Zelanda','uz':'Uzbekistán',
-    'qa':'Catar','jo':'Jordania','tt':'Trinidad y Tobago',
-  };
-
-  // Offsets UTC por stadium_id (horario verano jun-jul 2026)
-  const _STAD_OFFSET = {
-    '1':-6,'2':-6,'3':-6,'4':-5,'5':-5,'6':-5,
-    '7':-4,'8':-4,'9':-4,'10':-4,'11':-4,'12':-4,
-    '13':-7,'14':-7,'15':-7,'16':-7,
-  };
-  const _STAD_NAME = {
-    '1':'Estadio Azteca','2':'Estadio Akron','3':'Estadio BBVA',
-    '4':'AT&T Stadium','5':'NRG Stadium','6':'GEHA Field at Arrowhead Stadium',
-    '7':'Mercedes-Benz Stadium','8':'Hard Rock Stadium','9':'Gillette Stadium',
-    '10':'Lincoln Financial Field','11':'MetLife Stadium','12':'BMO Field',
-    '13':'BC Place','14':'Lumen Field','15':"Levi's Stadium",'16':'SoFi Stadium',
-  };
-  const _DIAS_ES  = ['Lun.','Mar.','Mié.','Jue.','Vie.','Sáb.','Dom.'];
-  const _MESES_ES = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
-
-  // Caché de equipos (iso2 + nombre ES desde /get/teams)
-  let _teamsCache = null;
-  async function _getTeams() {
-    if (_teamsCache) return _teamsCache;
-    const cached = _cacheGet('wc26:teams');
-    if (cached) { _teamsCache = cached; return cached; }
-    try {
-      const res = await fetch(_WC_BASE + '/get/teams', {
-        headers: { 'Authorization': 'Bearer ' + _getToken() }
-      });
-      if (!res.ok) throw new Error('teams ' + res.status);
-      const data = await res.json();
-      const list = Array.isArray(data) ? data : (data.teams || []);
-      const map = {};
-      list.forEach(t => {
-        const tid = String(t.id || '');
-        const iso2 = (t.iso2 || '').toLowerCase();
-        const nombre_es = _ISO_ES[iso2] || _EN_ES[(t.name_en||'').toLowerCase()] || t.name_en || '';
-        map[tid] = { iso2, nombre_es };
-      });
-      _teamsCache = map;
-      _cacheSet('wc26:teams', map, 3600_000);
-      return map;
-    } catch(e) {
-      return {};
-    }
-  }
-
-  function _localDateToISO(localDate, stadiumId) {
-    try {
-      const parts = localDate.trim().split(' ');
-      const dp = parts[0].split('/');
-      const tp = (parts[1] || '00:00').split(':');
-      const naive = new Date(Date.UTC(+dp[2], +dp[0]-1, +dp[1], +tp[0], +tp[1]));
-      const offset = _STAD_OFFSET[String(stadiumId)] ?? -6;
-      return new Date(naive.getTime() - offset * 3600_000).toISOString();
-    } catch { return null; }
-  }
-
-  function _isoToColTexto(iso) {
-    try {
-      const dt = new Date(iso);
-      const col = new Date(dt.getTime() - 5 * 3600_000);
-      const dia = _DIAS_ES[col.getUTCDay() === 0 ? 6 : col.getUTCDay() - 1];
-      const mes = _MESES_ES[col.getUTCMonth()];
-      const hh  = String(col.getUTCHours()).padStart(2,'0');
-      const mm  = String(col.getUTCMinutes()).padStart(2,'0');
-      return `${dia} ${col.getUTCDate()} ${mes}, ${hh}:${mm}`;
-    } catch { return iso ? iso.slice(0,16) : ''; }
-  }
-
-  function _isoToColDate(iso) {
-    try {
-      const dt = new Date(iso);
-      const col = new Date(dt.getTime() - 5 * 3600_000);
-      return col.toISOString().slice(0,10);
-    } catch { return null; }
-  }
-
-  function _normalizarWC(g, teamsMap) {
-    const hid = String(g.home_team_id || '');
-    const aid = String(g.away_team_id || '');
-    const ht  = teamsMap[hid] || {};
-    const at  = teamsMap[aid] || {};
-
-    const homeEn = g.home_team_name_en || '';
-    const awayEn = g.away_team_name_en || '';
-    const local     = ht.nombre_es || _EN_ES[homeEn.toLowerCase()] || homeEn;
-    const visitante = at.nombre_es || _EN_ES[awayEn.toLowerCase()] || awayEn;
-    const codLocal  = ht.iso2 || '';
-    const codVisit  = at.iso2 || '';
-
-    const fin  = String(g.finished || '').toUpperCase();
-    const tel  = String(g.time_elapsed || '').toLowerCase();
-    let estado = 'programado';
-    if (fin === 'TRUE' || ['fulltime','full-time','completed','ft'].includes(tel)) {
-      estado = 'finalizado';
-    } else if (['halftime','first half','second half','extra time','penalty','in progress'].includes(tel)
-               || (tel && !['notstarted','not started',''].includes(tel))) {
-      estado = 'en_curso';
-    }
-
-    let minuto = null;
-    if (estado === 'en_curso') {
-      if (tel === 'halftime') minuto = 'Desc.';
-      else if (tel === 'extra time') minuto = 'Prórroga';
-      else if (tel === 'penalty') minuto = 'Penales';
-      else minuto = 'En vivo';
-    }
-
-    const fechaIso  = _localDateToISO(g.local_date || '', g.stadium_id || '');
-    const fechaTxt  = fechaIso ? _isoToColTexto(fechaIso) : '';
-    const gl = parseInt(g.home_score) >= 0 ? parseInt(g.home_score) : null;
-    const gv = parseInt(g.away_score) >= 0 ? parseInt(g.away_score) : null;
-
-    const tipo = (g.type || '').toLowerCase();
-    const faseMap = {
-      'group':'Grupos','r32':'Dieciseisavos','r16':'Octavos',
-      'qf':'Cuartos','sf':'Semifinal','third':'Tercer puesto','final':'Final'
-    };
-
-    return {
-      id:           parseInt(g.id) || 0,
-      fase:         faseMap[tipo] || 'Grupos',
-      grupo:        g.group || null,
-      local,
-      visitante,
-      codigo_local: codLocal,
-      codigo_visit: codVisit,
-      goles_local:  isNaN(gl) ? null : gl,
-      goles_visit:  isNaN(gv) ? null : gv,
-      bloqueado:    estado === 'finalizado',
-      fecha_texto:  fechaTxt,
-      fecha_iso:    fechaIso,
-      sede:         _STAD_NAME[String(g.stadium_id||'')] || '',
-      estado,
-      minuto,
-    };
-  }
-
-  // ── UI de token (si no hay JWT guardado) ─────────────────────────────────
-  function _mostrarFormToken(suf) {
-    const loading = document.getElementById('pah-loading-' + suf);
-    const lista   = document.getElementById('pah-lista-' + suf);
-    if (loading) loading.style.display = 'none';
-    if (!lista) return;
-    lista.style.display = 'block';
-    lista.innerHTML = `
-      <div style="padding:10px 4px;">
-        <p style="font-size:12px;color:var(--text-muted,#6b7280);margin:0 0 8px;">
-          ⚽ Pega tu token de <a href="https://worldcup26.ir" target="_blank" style="color:var(--accent);">worldcup26.ir</a>:
-        </p>
-        <div style="display:flex;gap:6px;">
-          <input id="pah-token-input" type="text" placeholder="eyJhbGci..."
-            style="flex:1;font-size:11px;padding:6px 8px;border:1px solid var(--border,#e5e7eb);
-                   border-radius:6px;background:var(--card-bg,#fff);color:var(--text-main,#111);">
-          <button onclick="window._pahGuardarToken()"
-            style="padding:6px 10px;background:var(--accent,#ff4d8d);color:#fff;border:none;
-                   border-radius:6px;cursor:pointer;font-size:12px;">Guardar</button>
-        </div>
-      </div>`;
-  }
-
-  window._pahGuardarToken = function() {
-    const inp = document.getElementById('pah-token-input');
-    if (!inp || !inp.value.trim()) return;
-    localStorage.setItem('wc26_jwt', inp.value.trim());
-    _teamsCache = null;
-    ['desktop','mobile'].forEach(s => {
-      _setEstado(s, 'loading');
-      const l = document.getElementById('pah-lista-' + s);
-      if (l) { l.innerHTML = ''; l.style.display = 'none'; }
-    });
-    cargarPartidosHoy();
-  };
-
-  // ── Fetch principal ───────────────────────────────────────────────────────
   async function cargarPartidosHoy() {
-    const hoy      = new Date(Date.now() - 5*3600_000).toISOString().slice(0,10);
-    const cacheKey = 'pah:wc26:' + hoy;
-    let   partidos = _cacheGet(cacheKey);
+    try {
+      const res = await fetch('/api/mundial/partidos-hoy');
 
-    if (!partidos) {
-      if (!_getToken()) {
-        ['desktop','mobile'].forEach(s => _mostrarFormToken(s));
-        return;
+      // DEBUG: log de respuesta para diagnóstico
+      console.log('[PAH] HTTP', res.status, res.url);
+
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const json = await res.json();
+
+      // Leer el intervalo de polling que recomienda el servidor
+      // (20s live · 60s hoy · 120s sin partidos hoy)
+      const serverTtl = parseInt(res.headers.get('X-Poll-Interval') || '120', 10);
+      _pollInterval = (isNaN(serverTtl) || serverTtl < 5 ? 120 : serverTtl) * 1000;
+      _schedulePoll(_pollInterval);
+
+      const fuente = json.meta?.fuente || 'desconocida';
+
+      // DEBUG: inspección del payload
+      console.log('[PAH] ok=', json.ok,
+        '| partidos recibidos:', Array.isArray(json.data) ? json.data.length : 'no-array',
+        '| fuente:', fuente,
+        '| próximo poll en', _pollInterval/1000 + 's');
+      if (Array.isArray(json.data) && json.data.length > 0) {
+        console.log('[PAH] primer partido:', JSON.stringify(json.data[0]));
       }
-      try {
-        // Cargar equipos y partidos en paralelo
-        const [teamsMap, gamesRes] = await Promise.all([
-          _getTeams(),
-          fetch(_WC_BASE + '/get/games', {
-            headers: { 'Authorization': 'Bearer ' + _getToken() }
-          })
-        ]);
 
-        if (!gamesRes.ok) {
-          if (gamesRes.status === 401) {
-            localStorage.removeItem('wc26_jwt');
-            ['desktop','mobile'].forEach(s => _mostrarFormToken(s));
-            return;
-          }
-          throw new Error('HTTP ' + gamesRes.status);
-        }
-
-        const data     = await gamesRes.json();
-        const todosRaw = Array.isArray(data) ? data : (data.games || data.data || []);
-
-        // Normalizar y filtrar por fecha Colombia
-        const todos = todosRaw
-          .map(g => _normalizarWC(g, teamsMap))
-          .filter(p => p.fecha_iso && _isoToColDate(p.fecha_iso) === hoy);
-
-        const hayVivo = todos.some(p => p.estado === 'en_curso');
-        const ttl     = hayVivo ? 20_000 : todos.length ? 60_000 : 120_000;
-        _cacheSet(cacheKey, todos, ttl);
-        _pollInterval = ttl;
-        partidos = todos;
-
-        const banner = document.getElementById('pah-fallback-banner');
-        if (banner) banner.style.display = 'none';
-        console.log('[PAH] worldcup26.ir OK | hoy:', hoy, '| partidos:', todos.length, '| vivo:', hayVivo);
-
-      } catch(err) {
-        console.error('[PAH] Error:', err.message);
-        const banner = document.getElementById('pah-fallback-banner');
-        if (banner) banner.style.display = 'block';
-        ['desktop','mobile'].forEach(s => _setEstado(s, 'error'));
-        _schedulePoll(30_000);
-        return;
-      }
-    } else {
-      console.log('[PAH] caché local | partidos:', partidos.length);
-    }
-
-    const todos = _ordenar(partidos);
-    window._pahTodosPartidos = todos;
-
-    const partidoWidget = todos.find(p => p.estado === 'en_curso')
-                       || todos.find(p => p.estado === 'programado')
-                       || todos.filter(p => p.estado === 'finalizado').slice(-1)[0]
-                       || null;
-
-    ['desktop','mobile'].forEach(suf => {
-      if (!partidoWidget) {
-        _setEstado(suf, 'vacio');
-        const btn = document.getElementById('pah-ver-mas-' + suf);
-        if (btn) btn.style.display = 'none';
+      // Aviso visual si estamos usando datos locales (API externa caída)
+      const bannerEl = document.getElementById('pah-fallback-banner');
+      if (fuente === 'fallback') {
+        console.warn('[PAH] ⚠️ Usando datos locales — worldcup26.ir no disponible. Scores en 0-0.');
+        if (bannerEl) bannerEl.style.display = 'block';
       } else {
-        _poblarLista(suf, [partidoWidget]);
-        _setEstado(suf, 'lista');
-        const btn = document.getElementById('pah-ver-mas-' + suf);
-        if (btn) { btn.removeAttribute('style'); btn.style.display = 'flex'; }
+        if (bannerEl) bannerEl.style.display = 'none';
       }
-    });
 
-    const modal = document.getElementById('pah-modal');
-    if (modal && modal.style.display === 'flex') {
-      const lista = document.getElementById('pah-lista-modal');
-      if (lista && todos.length) lista.innerHTML = todos.map(_renderPartido).join('');
+      if (!json.ok || !Array.isArray(json.data)) throw new Error('Respuesta inválida del servidor');
+
+      const todos    = _ordenar(json.data);
+      window._pahTodosPartidos = todos;  // guardar para el modal
+
+      // Seleccionar el partido a mostrar en el widget:
+      // 1) El que está EN VIVO ahora mismo
+      // 2) El próximo programado (el que sigue)
+      // 3) Si todos finalizaron, el último finalizado
+      function _seleccionarPartidoWidget(lista) {
+        // Primero: en vivo
+        const enVivo = lista.find(p => {
+          const e = (p.estado || '').toLowerCase();
+          return e === 'en_curso' || e === 'en_vivo' || e === 'live';
+        });
+        if (enVivo) return enVivo;
+        // Segundo: el próximo programado (primero de los no jugados)
+        const proximo = lista.find(p => {
+          const e = (p.estado || '').toLowerCase();
+          return e === 'programado' || e === 'upcoming' || e === 'scheduled';
+        });
+        if (proximo) return proximo;
+        // Tercero: el último finalizado
+        const finalizados = lista.filter(p => {
+          const e = (p.estado || '').toLowerCase();
+          return e === 'finalizado' || e === 'finished';
+        });
+        return finalizados.length ? finalizados[finalizados.length - 1] : null;
+      }
+
+      const partidoWidget = _seleccionarPartidoWidget(todos);
+      const preview = partidoWidget ? [partidoWidget] : [];
+
+      console.log('[PAH] partido widget:', partidoWidget ? partidoWidget.local + ' vs ' + partidoWidget.visitante : 'ninguno', '| total:', todos.length);
+
+      ['desktop', 'mobile'].forEach(suf => {
+        if (!partidoWidget) {
+          _setEstado(suf, 'vacio');
+          const btn = document.getElementById('pah-ver-mas-' + suf);
+          if (btn) btn.style.display = 'none';
+        } else {
+          _poblarLista(suf, preview);
+          _setEstado(suf, 'lista');
+          const btn = document.getElementById('pah-ver-mas-' + suf);
+          if (btn) {
+            btn.removeAttribute('style');
+            btn.style.display = 'flex';
+          }
+        }
+      });
+
+      // Si el modal ya está abierto, actualizar su contenido también
+      const modal = document.getElementById('pah-modal');
+      if (modal && modal.style.display === 'flex') {
+        const lista = document.getElementById('pah-lista-modal');
+        if (lista && todos.length) lista.innerHTML = todos.map(_renderPartido).join('');
+      }
+    } catch (err) {
+      console.error('[PAH] Error al cargar partidos:', err.message, err);
+      ['desktop', 'mobile'].forEach(suf => _setEstado(suf, 'error'));
+      // Reintentar en 30s si hay error de red, no dejar morir el polling
+      _schedulePoll(30_000);
     }
-
-    _schedulePoll(_pollInterval);
   }
 
   // ── Init ─────────────────────────────────────────────────────────────────
-  let _pollTimer    = null;
-  let _pollInterval = 120_000;
 
-  function _schedulePoll(ms) {
+  // Polling adaptativo según X-Poll-Interval devuelto por el servidor:
+  //   20 s  → hay un partido EN VIVO (actualización casi en tiempo real)
+  //   60 s  → hay partidos hoy pero ninguno en curso
+  //  120 s  → sin partidos hoy (valor por defecto)
+  let _pollTimer = null;
+  let _pollInterval = 120_000; // ms — se ajusta tras cada respuesta
+
+  function _schedulePoll(intervalMs) {
     if (_pollTimer) clearTimeout(_pollTimer);
-    _pollTimer = setTimeout(cargarPartidosHoy, ms);
+    _pollTimer = setTimeout(() => {
+      cargarPartidosHoy();
+    }, intervalMs);
   }
 
   document.addEventListener('DOMContentLoaded', () => {
     _setEstado('desktop', 'loading');
     _setEstado('mobile',  'loading');
+    // Lanzar fetch sin bloquear el hilo principal
     setTimeout(cargarPartidosHoy, 0);
   });
 })();
