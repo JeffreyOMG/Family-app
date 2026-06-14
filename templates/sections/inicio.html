@@ -7939,7 +7939,8 @@ async function cargarMasPosts(btn) {
 
     let badge = '';
     if (enVivo) {
-      const min = p.minuto ? `⏱️ ${_esc(String(p.minuto))}'` : '⏱️ En curso';
+      const minStr = p.minuto ? String(p.minuto) : null;
+      const min = minStr ? (minStr.endsWith("'") ? `⏱️ ${_esc(minStr)}` : (minStr==='Desc.'||minStr==='Prórroga'||minStr==='Penales' ? `⏱️ ${_esc(minStr)}` : `⏱️ ${_esc(minStr)}'`)) : '🔴 En vivo';
       badge = `<span class="pah-badge pah-badge--live">EN VIVO</span>
                <span class="pah-meta">${min}</span>`;
     } else if (finalizado) {
@@ -8175,11 +8176,18 @@ async function cargarMasPosts(btn) {
     const visit=at.nombre_es||_EN_ES[aEn.toLowerCase()]||aEn;
     const fin=String(g.finished||'').toUpperCase();
     const tel=String(g.time_elapsed||'').toLowerCase();
+    const telNum=parseInt(tel);
     let estado='programado';
     if(fin==='TRUE'||['fulltime','full-time','completed','ft'].includes(tel)) estado='finalizado';
-    else if(['halftime','first half','second half','extra time','penalty','in progress'].includes(tel)||(tel&&!['notstarted','not started',''].includes(tel))) estado='en_curso';
+    else if(!isNaN(telNum)||['halftime','half time','first half','second half','extra time','penalty','in progress'].includes(tel)||(tel&&!['notstarted','not started',''].includes(tel))) estado='en_curso';
     let minuto=null;
-    if(estado==='en_curso') minuto=tel==='halftime'?'Desc.':tel==='extra time'?'Prórroga':tel==='penalty'?'Penales':'En vivo';
+    if(estado==='en_curso'){
+      if(['halftime','half time','ht'].includes(tel)) minuto='Desc.';
+      else if(tel==='extra time'||tel==='et') minuto='Prórroga';
+      else if(tel==='penalty'||tel==='penalties'||tel==='p') minuto='Penales';
+      else if(!isNaN(telNum)) minuto=telNum+"'";
+      else minuto=null; // solo badge EN VIVO sin texto extra
+    }
     const fiso=_localToISO(g.local_date||'',g.stadium_id||'');
     const gl=parseInt(g.home_score); const gv=parseInt(g.away_score);
     const tipos={'group':'Grupos','r32':'Dieciseisavos','r16':'Octavos','qf':'Cuartos','sf':'Semifinal','third':'Tercer puesto','final':'Final'};
