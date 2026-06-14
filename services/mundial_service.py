@@ -56,7 +56,7 @@ if not logger.handlers:
 # ─── Configuración ────────────────────────────────────────────────────────────
 # Poner en Render/Heroku:  APISPORTS_KEY=tu_api_key_aqui
 
-APISPORTS_KEY:     str   = os.getenv("6f0792f3b2f42258107b8d4e2f6fb5a4", "")
+APISPORTS_KEY = os.getenv("APISPORTS_KEY", "")
 APISPORTS_BASE:    str   = "https://v3.football.api-sports.io"
 LEAGUE_ID:         int   = 1        # FIFA World Cup
 SEASON:            int   = 2026
