@@ -42,9 +42,9 @@ if not logger.handlers:
 EXTERNAL_API_URL: str = os.getenv("MUNDIAL_API_URL", "https://worldcup26.ir/get/games")
 TEAMS_API_URL:    str = "https://worldcup26.ir/get/teams"
 CACHE_TTL_SECONDS: int = int(os.getenv("MUNDIAL_CACHE_TTL", "120"))
-REQUEST_TIMEOUT:   int = int(os.getenv("MUNDIAL_TIMEOUT",   "8"))
-MAX_RETRIES:       int = int(os.getenv("MUNDIAL_RETRIES",   "3"))
-RETRY_BACKOFF:   float = float(os.getenv("MUNDIAL_BACKOFF", "1.5"))
+REQUEST_TIMEOUT:   int = int(os.getenv("MUNDIAL_TIMEOUT",   "4"))   # bajo para no matar el worker
+MAX_RETRIES:       int = int(os.getenv("MUNDIAL_RETRIES",   "1"))   # sin reintentos — fallback inmediato
+RETRY_BACKOFF:   float = float(os.getenv("MUNDIAL_BACKOFF", "1.0"))
 _TTL_LIVE   = int(os.getenv("MUNDIAL_TTL_LIVE",  "20"))
 _TTL_HOY    = int(os.getenv("MUNDIAL_TTL_HOY",   "60"))
 _TTL_NORMAL = CACHE_TTL_SECONDS
@@ -500,6 +500,8 @@ def _fallback_games() -> list[dict]:
 # ─── Fetch externo ────────────────────────────────────────────────────────────
 
 def _fetch_external() -> list[dict]:
+    # Timeout corto para no bloquear el worker de Gunicorn.
+    # Si worldcup26.ir no responde (IP de Render bloqueada), cae al fallback seed.
     raw_json = _hacer_request(EXTERNAL_API_URL)
     if isinstance(raw_json, list):
         games_raw = raw_json
@@ -575,7 +577,7 @@ def get_all_games(force_refresh: bool = False) -> tuple[list[dict], str]:
             logger.info(f"Caché actualizado — TTL={ttl}s, partidos={len(games)}")
             return games, "external"
         except Exception as exc:
-            logger.error(f"Usando fallback. Razón: {exc}")
+            logger.warning(f"worldcup26.ir inaccesible desde Render (probable bloqueo IP): {exc}. Usando seed.")
             games = _fallback_games()
             _cache.set("all_games", games, ttl=30)
             return games, "fallback"
