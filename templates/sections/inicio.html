@@ -8161,55 +8161,64 @@ async function cargarMasPosts(btn) {
     document.body.style.overflow = '';
   }
 
-  // ── Goleadores ───────────────────────────────────────────────────────────
+  // ── Goleadores (calculados desde partidos — worldcup26.ir no tiene /scorers) ──
   async function _renderScorers() {
     const wrap = document.getElementById('pah-scorers-body');
     if (!wrap) return;
-    if (wrap.dataset.loaded === '1') return; // ya cargado
+    if (wrap.dataset.loaded === '1') return;
     wrap.innerHTML = '<div class="pah-loading" style="padding:20px;"><div class="pah-skeleton"></div><div class="pah-skeleton pah-skeleton--short"></div><div class="pah-skeleton"></div></div>';
     try {
       const [tm, r] = await Promise.all([
         _getTeams(),
-        fetch(_WC_BASE+'/get/scorers', {headers:{'Authorization':'Bearer '+_WC_JWT}})
+        fetch(_WC_BASE+'/get/games', {headers:{'Authorization':'Bearer '+_WC_JWT}})
       ]);
       if (!r.ok) throw new Error('HTTP '+r.status);
       const data = await r.json();
-      const list = Array.isArray(data) ? data : (data.scorers||data.data||data.goals||[]);
-      if (!list.length) { wrap.innerHTML = '<div class="pah-prox-empty">No hay datos de goleadores aún</div>'; return; }
-      // Agrupar por jugador y contar goles
-      const byPlayer = {};
-      list.forEach(s => {
-        const pid = String(s.player_id||s.id||s.name_en||s.player_name||'');
-        if (!byPlayer[pid]) {
-          const tid = String(s.team_id||'');
-          const tdata = tm[tid]||{};
-          const tEn = s.team_name||s.team_name_en||'';
-          byPlayer[pid] = {
-            name: s.player_name||s.name||s.name_en||'',
-            team: tdata.nombre_es||_EN_ES[(tEn).toLowerCase()]||tEn,
-            iso2: tdata.iso2||s.team_iso2||'',
-            goals: 0
-          };
+      const raw = Array.isArray(data) ? data : (data.games || data.data || []);
+      // Sumar goles por equipo desde partidos finalizados
+      const byTeam = {};
+      raw.forEach(g => {
+        const tel = String(g.time_elapsed||'').toLowerCase();
+        const fin = String(g.finished||'').toUpperCase();
+        const esFin = fin==='TRUE'||fin==='1'||g.finished===true||
+          ['fulltime','full-time','completed','ft','finished'].includes(tel);
+        if (!esFin) return;
+        const hg = parseInt(g.home_score), ag = parseInt(g.away_score);
+        if (isNaN(hg)||isNaN(ag)) return;
+        const hi = String(g.home_team_id||''), ai = String(g.away_team_id||'');
+        const ht = tm[hi]||{}, at = tm[ai]||{};
+        const hn = ht.nombre_es||_EN_ES[(g.home_team_name_en||'').toLowerCase()]||g.home_team_name_en||'';
+        const an = at.nombre_es||_EN_ES[(g.away_team_name_en||'').toLowerCase()]||g.away_team_name_en||'';
+        if (hg > 0) {
+          if (!byTeam[hi]) byTeam[hi] = {name:hn, iso2:ht.iso2||'', goals:0};
+          byTeam[hi].goals += hg;
         }
-        byPlayer[pid].goals += (parseInt(s.goals)||1);
+        if (ag > 0) {
+          if (!byTeam[ai]) byTeam[ai] = {name:an, iso2:at.iso2||'', goals:0};
+          byTeam[ai].goals += ag;
+        }
       });
-      const sorted = Object.values(byPlayer).sort((a,b)=>b.goals-a.goals).slice(0,15);
-      wrap.innerHTML = sorted.map((p,i) => `
-        <div class="pah-scorer-row">
-          <span class="pah-scorer-rank">${i+1}</span>
-          <span class="pah-scorer-flag">${_bandera(p.iso2)}</span>
-          <div class="pah-scorer-info">
-            <div class="pah-scorer-name">${_esc(p.name)}</div>
-            <div class="pah-scorer-team">${_esc(p.team)}</div>
-          </div>
-          <div>
-            <div class="pah-scorer-goals">${p.goals}</div>
-            <div class="pah-scorer-goal-label">${p.goals===1?'gol':'goles'}</div>
-          </div>
-        </div>`).join('');
+      const sorted = Object.values(byTeam).sort((a,b)=>b.goals-a.goals).slice(0,20);
+      if (!sorted.length) {
+        wrap.innerHTML = '<div class="pah-prox-empty">No hay goles registrados aún</div>';
+        return;
+      }
+      wrap.innerHTML = '<div class="pah-scorer-row" style="font-size:11px;color:var(--text-muted,#9ca3af);padding:0 4px 8px;font-style:italic;">Goles por selección (fase de grupos)</div>' +
+        sorted.map((t,i) => `
+          <div class="pah-scorer-row">
+            <span class="pah-scorer-rank">${i+1}</span>
+            <span class="pah-scorer-flag">${_bandera(t.iso2)}</span>
+            <div class="pah-scorer-info">
+              <div class="pah-scorer-name">${_esc(t.name)}</div>
+            </div>
+            <div>
+              <div class="pah-scorer-goals">${t.goals}</div>
+              <div class="pah-scorer-goal-label">${t.goals===1?'gol':'goles'}</div>
+            </div>
+          </div>`).join('');
       wrap.dataset.loaded = '1';
     } catch(e) {
-      wrap.innerHTML = '<div class="pah-prox-empty">No se pudieron cargar los goleadores</div>';
+      wrap.innerHTML = '<div class="pah-prox-empty">No se pudieron cargar los datos</div>';
     }
   }
 
@@ -8228,7 +8237,11 @@ async function cargarMasPosts(btn) {
       // Calcular tabla desde resultados de fase de grupos
       const groups = {}; // 'A' → { 'COL': {pts,j,g,gc,gd} }
       raw.forEach(g => {
-        if (String(g.finished||'').toUpperCase() !== 'TRUE') return;
+        const _tel = String(g.time_elapsed||'').toLowerCase();
+        const _fin = String(g.finished||'').toUpperCase();
+        const _esFin = _fin==='TRUE'||_fin==='1'||g.finished===true||
+          ['fulltime','full-time','completed','ft','finished'].includes(_tel);
+        if (!_esFin) return;
         const grp = (g.group||'').toUpperCase(); if (!grp) return;
         const hi = String(g.home_team_id||''), ai = String(g.away_team_id||'');
         const ht = tm[hi]||{}, at = tm[ai]||{};
