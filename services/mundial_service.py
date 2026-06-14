@@ -7,7 +7,7 @@ Flujo:
   api-sports.io/v3/fixtures  →  _fetch_external()  →  _cache  →  endpoints públicos
 
 API: API-Football v3 (api-sports.io)
-  - Header: x-apisports-key: TU_API_KEY   (env: APISPORTS_KEY)
+  - Header: x-apisports-key: TU_API_KEY   (env: 6f0792f3b2f42258107b8d4e2f6fb5a4)
   - Liga Mundial FIFA: id=1, season=2026
   - Timezone: America/Bogota (fecha ya viene en UTC-5)
 
@@ -55,7 +55,8 @@ if not logger.handlers:
 
 # ─── Configuración ────────────────────────────────────────────────────────────
 # Poner en Render/Heroku:  APISPORTS_KEY=tu_api_key_aqui
-APISPORTS_KEY:     str   = os.getenv("APISPORTS_KEY", "")
+
+APISPORTS_KEY:     str   = os.getenv("6f0792f3b2f42258107b8d4e2f6fb5a4", "")
 APISPORTS_BASE:    str   = "https://v3.football.api-sports.io"
 LEAGUE_ID:         int   = 1        # FIFA World Cup
 SEASON:            int   = 2026
