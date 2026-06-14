@@ -182,9 +182,11 @@ _STATUS_MAP = {
     "halftime":     "en_curso",
     "finished":     "finalizado",
     "full-time":    "finalizado",
+    "fulltime":     "finalizado",   # worldcup26.ir: time_elapsed="fulltime"
     "ft":           "finalizado",
     "aet":          "finalizado",
     "penalties":    "finalizado",
+    "completed":    "finalizado",
 }
 
 _PHASE_MAP = {
@@ -370,6 +372,8 @@ def _normalize_game(raw: dict, idx: int = 0) -> dict:
     elif time_elapsed in ("halftime", "first half", "second half", "extra time",
                           "penalty", "in progress"):
         estado = "en_curso"
+    elif time_elapsed in ("fulltime", "full time", "full-time", "completed"):
+        estado = "finalizado"
     elif time_elapsed and time_elapsed not in ("notstarted", "not started", ""):
         # Cualquier otro valor no vacío y no "notstarted" → en curso
         estado = "en_curso"
@@ -584,14 +588,15 @@ def _fetch_external() -> list[dict]:
     for attempt in range(1, MAX_RETRIES + 1):
         try:
             logger.info(f"Fetch externa intento {attempt}/{MAX_RETRIES} → {EXTERNAL_API_URL}")
-            req = Request(
-                EXTERNAL_API_URL,
-                headers={
-                    "User-Agent":  "FamiliaApp/1.0 Mundial2026",
-                    "Accept":      "application/json",
-                    "Accept-Language": "es,en;q=0.8",
-                },
-            )
+            _jwt = os.getenv("WC26_JWT_TOKEN", "").strip()
+            _headers = {
+                "User-Agent":      "FamiliaApp/1.0 Mundial2026",
+                "Accept":          "application/json",
+                "Accept-Language": "es,en;q=0.8",
+            }
+            if _jwt:
+                _headers["Authorization"] = f"Bearer {_jwt}"
+            req = Request(EXTERNAL_API_URL, headers=_headers)
             with urlopen(req, timeout=REQUEST_TIMEOUT) as resp:
                 raw_bytes = resp.read()
 
