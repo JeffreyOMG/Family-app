@@ -492,13 +492,35 @@
 <div class="pah-modal-overlay" id="pah-modal" style="display:none;" onclick="cerrarModalPartidos(event)">
   <div class="pah-modal-box">
     <div class="pah-modal-header">
-      <h3>⚽ Todos los Partidos de Hoy</h3>
+      <h3>⚽ Mundial 2026</h3>
       <button class="pah-modal-close" onclick="cerrarModalPartidos()" aria-label="Cerrar">
         <span class="material-symbols-outlined">close</span>
       </button>
     </div>
+    <!-- Tabs -->
+    <div class="pah-tabs" id="pah-tabs">
+      <button class="pah-tab active" onclick="pahSwitchTab('hoy',this)">Hoy</button>
+      <button class="pah-tab" onclick="pahSwitchTab('proximos',this)">Próximos</button>
+      <button class="pah-tab" onclick="pahSwitchTab('goleadores',this)">Goleadores</button>
+      <button class="pah-tab" onclick="pahSwitchTab('tabla',this)">Tabla</button>
+    </div>
     <div class="pah-modal-body" id="pah-modal-body">
-      <div class="noticias-list" id="pah-lista-modal"></div>
+      <!-- Tab: hoy -->
+      <div id="pah-tab-hoy">
+        <div class="noticias-list" id="pah-lista-modal"></div>
+      </div>
+      <!-- Tab: próximos -->
+      <div id="pah-tab-proximos" style="display:none;">
+        <div class="noticias-list" id="pah-lista-proximos"></div>
+      </div>
+      <!-- Tab: goleadores -->
+      <div id="pah-tab-goleadores" style="display:none;">
+        <div id="pah-scorers-body" class="pah-scorers-wrap"></div>
+      </div>
+      <!-- Tab: tabla -->
+      <div id="pah-tab-tabla" style="display:none;">
+        <div id="pah-standings-body" class="pah-standings-wrap"></div>
+      </div>
     </div>
   </div>
 </div>
@@ -2934,6 +2956,68 @@ body.dark-mode .post-badge-privado { background: rgba(139,92,246,.2); color: #a7
   padding-bottom: 8px;
 }
 .pah-modal-body .pah-item { border-radius: 0; }
+
+/* ── PAH TABS ── */
+.pah-tabs {
+  display: flex; flex-shrink: 0;
+  border-bottom: 1px solid var(--border);
+  background: var(--card);
+  padding: 0 4px;
+}
+.pah-tab {
+  flex: 1; padding: 10px 4px; font-size: 12.5px; font-weight: 600;
+  color: var(--text2); background: none; border: none; cursor: pointer;
+  border-bottom: 2px solid transparent; transition: color .15s, border-color .15s;
+  white-space: nowrap;
+}
+.pah-tab.active { color: var(--accent,#6d28d9); border-bottom-color: var(--accent,#6d28d9); }
+.pah-tab:hover { color: var(--text); }
+
+/* ── GOLEADORES ── */
+.pah-scorers-wrap { padding: 8px 0; }
+.pah-scorer-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 18px; border-bottom: 1px solid var(--border);
+}
+.pah-scorer-row:last-child { border-bottom: none; }
+.pah-scorer-rank {
+  font-size: 11px; font-weight: 700; color: var(--text3);
+  min-width: 18px; text-align: center;
+}
+.pah-scorer-flag { flex-shrink: 0; }
+.pah-scorer-info { flex: 1; min-width: 0; }
+.pah-scorer-name { font-size: 13px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pah-scorer-team { font-size: 11px; color: var(--text2); }
+.pah-scorer-goals {
+  font-size: 18px; font-weight: 800; color: var(--accent,#6d28d9);
+  min-width: 28px; text-align: right;
+}
+.pah-scorer-goal-label { font-size: 10px; color: var(--text3); text-align: right; }
+
+/* ── STANDINGS TABLE ── */
+.pah-standings-wrap { padding: 4px 0 8px; }
+.pah-group-block { margin-bottom: 4px; }
+.pah-group-title {
+  font-size: 11px; font-weight: 700; color: var(--text2);
+  padding: 8px 18px 4px; letter-spacing: .05em; text-transform: uppercase;
+}
+.pah-standings-table { width: 100%; border-collapse: collapse; font-size: 11.5px; }
+.pah-standings-table th {
+  color: var(--text3); font-weight: 600; padding: 3px 6px;
+  text-align: center; border-bottom: 1px solid var(--border);
+}
+.pah-standings-table th:first-child { text-align: left; padding-left: 18px; }
+.pah-standings-table td { padding: 5px 6px; text-align: center; color: var(--text); border-bottom: 1px solid var(--border); }
+.pah-standings-table td:first-child { text-align: left; padding-left: 18px; }
+.pah-standings-table tr:last-child td { border-bottom: none; }
+.pah-std-team { display: flex; align-items: center; gap: 6px; }
+.pah-std-pts { font-weight: 700; color: var(--text); }
+.pah-std-qualify { background: rgba(109,40,217,.12); }
+.pah-std-col-label { font-size: 10px; }
+
+/* ── PRÓXIMOS ── */
+.pah-prox-day { font-size: 11px; font-weight: 700; color: var(--text3); padding: 8px 18px 2px; text-transform: uppercase; letter-spacing: .05em; }
+.pah-prox-empty { padding: 24px 18px; text-align: center; color: var(--text3); font-size: 13px; }
 
 /* ── BOTTOM NAV — no local overrides; global style.css handles the pill ── */
 .bnav-label { display: none !important; }
@@ -8024,23 +8108,40 @@ async function cargarMasPosts(btn) {
     });
   }
 
-  // ── Modal ────────────────────────────────────────────────────────────────
+  // ── Modal + Tabs ─────────────────────────────────────────────────────────
+
+  let _activeTab = 'hoy';
+
+  function pahSwitchTab(tab, btn) {
+    _activeTab = tab;
+    // Botones
+    document.querySelectorAll('.pah-tab').forEach(b => b.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+    // Paneles
+    ['hoy','proximos','goleadores','tabla'].forEach(t => {
+      const el = document.getElementById('pah-tab-'+t);
+      if (el) el.style.display = (t === tab) ? '' : 'none';
+    });
+    // Cargar contenido del tab si no está listo
+    if (tab === 'goleadores') _renderScorers();
+    if (tab === 'tabla')      _renderStandings();
+    if (tab === 'proximos')   _renderProximos();
+  }
+  window.pahSwitchTab = pahSwitchTab;
 
   function abrirModalPartidos() {
     const modal = document.getElementById('pah-modal');
     if (!modal) return;
-    // Mover al body para escapar cualquier stacking context
-    if (modal.parentElement !== document.body) {
-      document.body.appendChild(modal);
-    }
+    if (modal.parentElement !== document.body) document.body.appendChild(modal);
     modal.style.display = 'flex';
     document.body.style.overflow = 'hidden';
+    // Siempre abrir en tab "hoy"
+    pahSwitchTab('hoy', document.querySelector('.pah-tab'));
     const lista = document.getElementById('pah-lista-modal');
     if (lista) {
       if (window._pahTodosPartidos && window._pahTodosPartidos.length) {
         lista.innerHTML = window._pahTodosPartidos.map(_renderPartido).join('');
       } else {
-        // Datos no cargados aún → cargarlos
         lista.innerHTML = '<div class="pah-loading" style="padding:16px;"><div class="pah-skeleton"></div><div class="pah-skeleton pah-skeleton--short"></div></div>';
         cargarPartidosHoy().then(() => {
           if (window._pahTodosPartidos) {
@@ -8058,6 +8159,158 @@ async function cargarMasPosts(btn) {
     const modal = document.getElementById('pah-modal');
     if (modal) modal.style.display = 'none';
     document.body.style.overflow = '';
+  }
+
+  // ── Goleadores ───────────────────────────────────────────────────────────
+  async function _renderScorers() {
+    const wrap = document.getElementById('pah-scorers-body');
+    if (!wrap) return;
+    if (wrap.dataset.loaded === '1') return; // ya cargado
+    wrap.innerHTML = '<div class="pah-loading" style="padding:20px;"><div class="pah-skeleton"></div><div class="pah-skeleton pah-skeleton--short"></div><div class="pah-skeleton"></div></div>';
+    try {
+      const [tm, r] = await Promise.all([
+        _getTeams(),
+        fetch(_WC_BASE+'/get/scorers', {headers:{'Authorization':'Bearer '+_WC_JWT}})
+      ]);
+      if (!r.ok) throw new Error('HTTP '+r.status);
+      const data = await r.json();
+      const list = Array.isArray(data) ? data : (data.scorers||data.data||data.goals||[]);
+      if (!list.length) { wrap.innerHTML = '<div class="pah-prox-empty">No hay datos de goleadores aún</div>'; return; }
+      // Agrupar por jugador y contar goles
+      const byPlayer = {};
+      list.forEach(s => {
+        const pid = String(s.player_id||s.id||s.name_en||s.player_name||'');
+        if (!byPlayer[pid]) {
+          const tid = String(s.team_id||'');
+          const tdata = tm[tid]||{};
+          const tEn = s.team_name||s.team_name_en||'';
+          byPlayer[pid] = {
+            name: s.player_name||s.name||s.name_en||'',
+            team: tdata.nombre_es||_EN_ES[(tEn).toLowerCase()]||tEn,
+            iso2: tdata.iso2||s.team_iso2||'',
+            goals: 0
+          };
+        }
+        byPlayer[pid].goals += (parseInt(s.goals)||1);
+      });
+      const sorted = Object.values(byPlayer).sort((a,b)=>b.goals-a.goals).slice(0,15);
+      wrap.innerHTML = sorted.map((p,i) => `
+        <div class="pah-scorer-row">
+          <span class="pah-scorer-rank">${i+1}</span>
+          <span class="pah-scorer-flag">${_bandera(p.iso2)}</span>
+          <div class="pah-scorer-info">
+            <div class="pah-scorer-name">${_esc(p.name)}</div>
+            <div class="pah-scorer-team">${_esc(p.team)}</div>
+          </div>
+          <div>
+            <div class="pah-scorer-goals">${p.goals}</div>
+            <div class="pah-scorer-goal-label">${p.goals===1?'gol':'goles'}</div>
+          </div>
+        </div>`).join('');
+      wrap.dataset.loaded = '1';
+    } catch(e) {
+      wrap.innerHTML = '<div class="pah-prox-empty">No se pudieron cargar los goleadores</div>';
+    }
+  }
+
+  // ── Tabla de posiciones ──────────────────────────────────────────────────
+  async function _renderStandings() {
+    const wrap = document.getElementById('pah-standings-body');
+    if (!wrap) return;
+    if (wrap.dataset.loaded === '1') return;
+    wrap.innerHTML = '<div class="pah-loading" style="padding:20px;"><div class="pah-skeleton"></div><div class="pah-skeleton pah-skeleton--short"></div><div class="pah-skeleton"></div></div>';
+    try {
+      const [tm, allGames] = await Promise.all([
+        _getTeams(),
+        fetch(_WC_BASE+'/get/games', {headers:{'Authorization':'Bearer '+_WC_JWT}}).then(r=>r.ok?r.json():Promise.reject(r.status))
+      ]);
+      const raw = Array.isArray(allGames)?allGames:(allGames.games||[]);
+      // Calcular tabla desde resultados de fase de grupos
+      const groups = {}; // 'A' → { 'COL': {pts,j,g,gc,gd} }
+      raw.forEach(g => {
+        if (String(g.finished||'').toUpperCase() !== 'TRUE') return;
+        const grp = (g.group||'').toUpperCase(); if (!grp) return;
+        const hi = String(g.home_team_id||''), ai = String(g.away_team_id||'');
+        const ht = tm[hi]||{}, at = tm[ai]||{};
+        const hn = ht.nombre_es||g.home_team_name_en||'', an = at.nombre_es||g.away_team_name_en||'';
+        const hg = parseInt(g.home_score), ag = parseInt(g.away_score);
+        if (isNaN(hg)||isNaN(ag)) return;
+        if (!groups[grp]) groups[grp] = {};
+        const addTeam = (key, name, iso2, gf, gc) => {
+          if (!groups[grp][key]) groups[grp][key] = {name,iso2,pts:0,j:0,g:0,e:0,p:0,gf:0,gc:0};
+          const t = groups[grp][key];
+          t.j++; t.gf+=gf; t.gc+=gc;
+          if (gf>gc){t.g++;t.pts+=3;} else if(gf===gc){t.e++;t.pts+=1;} else {t.p++;}
+        };
+        addTeam(hi, hn, ht.iso2||'', hg, ag);
+        addTeam(ai, an, at.iso2||'', ag, hg);
+      });
+      const grpKeys = Object.keys(groups).sort();
+      if (!grpKeys.length) { wrap.innerHTML = '<div class="pah-prox-empty">Los grupos se llenarán conforme avance el torneo</div>'; return; }
+      wrap.innerHTML = grpKeys.map(grp => {
+        const teams = Object.values(groups[grp]).sort((a,b)=>b.pts-a.pts||(b.gf-b.gc)-(a.gf-a.gc)||b.gf-a.gf);
+        const rows = teams.map((t,i) => `
+          <tr class="${i<2?'pah-std-qualify':''}">
+            <td><div class="pah-std-team">${_bandera(t.iso2)} <span>${_esc(t.name)}</span></div></td>
+            <td>${t.j}</td><td>${t.g}</td><td>${t.e}</td><td>${t.p}</td>
+            <td>${t.gf}-${t.gc}</td>
+            <td class="pah-std-pts">${t.pts}</td>
+          </tr>`).join('');
+        return `<div class="pah-group-block">
+          <div class="pah-group-title">Grupo ${grp}</div>
+          <table class="pah-standings-table">
+            <thead><tr>
+              <th>Equipo</th>
+              <th class="pah-std-col-label">J</th>
+              <th class="pah-std-col-label">G</th>
+              <th class="pah-std-col-label">E</th>
+              <th class="pah-std-col-label">P</th>
+              <th class="pah-std-col-label">GD</th>
+              <th class="pah-std-col-label">Pts</th>
+            </tr></thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>`;
+      }).join('');
+      wrap.dataset.loaded = '1';
+    } catch(e) {
+      wrap.innerHTML = '<div class="pah-prox-empty">No se pudo cargar la tabla</div>';
+    }
+  }
+
+  // ── Próximos partidos (mañana y después) ────────────────────────────────
+  async function _renderProximos() {
+    const wrap = document.getElementById('pah-lista-proximos');
+    if (!wrap) return;
+    if (wrap.dataset.loaded === '1') return;
+    wrap.innerHTML = '<div class="pah-loading" style="padding:16px;"><div class="pah-skeleton"></div><div class="pah-skeleton pah-skeleton--short"></div><div class="pah-skeleton"></div></div>';
+    try {
+      const tm = await _getTeams();
+      const r = await fetch(_WC_BASE+'/get/games', {headers:{'Authorization':'Bearer '+_WC_JWT}});
+      if (!r.ok) throw new Error('HTTP '+r.status);
+      const data = await r.json();
+      const raw = Array.isArray(data)?data:(data.games||[]);
+      const hoy = new Date(Date.now()-5*3600000).toISOString().slice(0,10);
+      const proximos = raw
+        .map(g => _normWC(g, tm))
+        .filter(p => p.fecha_iso && _isoDate(p.fecha_iso) > hoy && p.estado === 'programado')
+        .sort((a,b) => (a.fecha_iso||'') < (b.fecha_iso||'') ? -1 : 1)
+        .slice(0, 32);
+      if (!proximos.length) { wrap.innerHTML = '<div class="pah-prox-empty">No hay más partidos programados próximamente</div>'; return; }
+      // Agrupar por día Colombia
+      const byDay = {};
+      proximos.forEach(p => { const d = _isoDate(p.fecha_iso)||'?'; if (!byDay[d]) byDay[d]=[]; byDay[d].push(p); });
+      const _DIAS_ES = ['dom.','lun.','mar.','mié.','jue.','vie.','sáb.'];
+      const _MESES_ES = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+      wrap.innerHTML = Object.keys(byDay).sort().map(d => {
+        const dt = new Date(d+'T12:00:00Z');
+        const label = `${_DIAS_ES[dt.getUTCDay()]} ${dt.getUTCDate()} ${_MESES_ES[dt.getUTCMonth()]}`;
+        return `<div class="pah-prox-day">${label}</div>` + byDay[d].map(_renderPartido).join('');
+      }).join('');
+      wrap.dataset.loaded = '1';
+    } catch(e) {
+      wrap.innerHTML = '<div class="pah-prox-empty">No se pudieron cargar los próximos partidos</div>';
+    }
   }
 
   // Exponer globalmente
