@@ -190,14 +190,14 @@
 
 
 
-      <!-- ⚽ PARTIDOS DE HOY — MÓVIL (visible en ≤900px) -->
+      <!-- ⚽ PARTIDOS DE HOY — MÓVIL (reemplaza el contador; visible en ≤900px) -->
       <div class="panel-card pah-mobile-card" id="pah-widget-mobile">
         <div class="panel-header pah-panel-header">
           <h3>⚽ Partidos de Hoy</h3>
           <span class="pah-world-cup-badge">Mundial 2026</span>
         </div>
         <div class="pah-body">
-          <div id="pah-fallback-banner" style="display:none;background:#fef3c7;border:1px solid #f59e0b;border-radius:8px;padding:8px 12px;margin-bottom:8px;font-size:12px;color:#92400e;text-align:center;">⚠️ Sin conexión a la API — reintentando…</div>
+          <div id="pah-fallback-banner" style="display:none;background:#fef3c7;border:1px solid #f59e0b;border-radius:8px;padding:8px 12px;margin-bottom:8px;font-size:12px;color:#92400e;text-align:center;">⚠️ Mostrando horarios — marcadores en vivo no disponibles ahora mismo</div>
           <div class="pah-loading" id="pah-loading-mobile">
             <div class="pah-skeleton"></div>
             <div class="pah-skeleton pah-skeleton--short"></div>
@@ -7867,10 +7867,10 @@ async function cargarMasPosts(btn) {
     'iq':'IRQ','ci':'CIV','jp':'JPN','jo':'JOR','kr':'KOR','sa':'KSA',
     'ma':'MAR','mx':'MEX','nl':'NED','nz':'NZL','ng':'NGA','no':'NOR',
     'pa':'PAN','py':'PAR','pe':'PER','pt':'POR','qa':'QAT','ro':'ROU',
-    'za':'RSA','sn':'SEN','rs':'SRB','gb-sct':'SCO','sk':'SVK',
+    'za':'RSA','sn':'SEN','rs':'SRB','gb-sct':'SCO','sk':'SVK','za':'RSA',
     'es':'ESP','se':'SWE','ch':'SUI','tn':'TUN','tr':'TUR','us':'USA',
     'uy':'URU','uz':'UZB','ve':'VEN','dz':'ALG','cv':'CPV','ht':'HAI',
-    'cw':'CUW','ba':'BIH','gb-wls':'WAL','tt':'TRI','jm':'JAM',
+    'cw':'CUW','bi':'BIH','gb-wls':'WAL','tt':'TRI','jm':'JAM','pt':'POR','ba':'BIH',
   };
 
   function _bandera(codigo) {
@@ -8063,192 +8063,131 @@ async function cargarMasPosts(btn) {
   window.abrirModalPartidos  = abrirModalPartidos;
   window.cerrarModalPartidos = cerrarModalPartidos;
 
-  // ── Configuración API-Football ──────────────────────────────────────────
-  const _API_KEY      = '6f0792f3b2f42258107b8d4e2f6fb5a4';
-  const _API_BASE     = 'https://v3.football.api-sports.io';
-  const _LEAGUE_ID    = 1;
-  const _SEASON       = 2026;
-  const _TZ           = 'America/Bogota';
-
-  // Caché local para no gastar requests de la cuota diaria (100/día plan free)
-  const _localCache = {};
-  function _cacheGet(key) {
-    const e = _localCache[key];
-    if (!e) return null;
-    if (Date.now() > e.exp) { delete _localCache[key]; return null; }
-    return e.val;
-  }
-  function _cacheSet(key, val, ttlMs) {
-    _localCache[key] = { val, exp: Date.now() + ttlMs };
-  }
-
-  // Mapeo status API-Football → estado canónico
-  const _STATUS_MAP = {
-    'NS':'programado','TBD':'programado','PST':'programado','CANC':'programado',
-    'ABD':'programado','SUSP':'programado',
-    '1H':'en_curso','H1':'en_curso','HT':'en_curso','2H':'en_curso','H2':'en_curso',
-    'ET':'en_curso','BT':'en_curso','BREAK':'en_curso','P':'en_curso','LIVE':'en_curso','INT':'en_curso',
-    'FT':'finalizado','AET':'finalizado','PEN':'finalizado','AWD':'finalizado','WO':'finalizado',
-  };
-  const _MINUTO_LABEL_MAP = { 'HT':'Desc.','BT':'Desc.','BREAK':'Desc.','ET':'Prórroga','P':'Penales' };
-
-  // Nombre de equipo → código ISO-2 (para banderas)
-  const _TEAM_CODE = {
-    'united states':'us','usa':'us','canada':'ca','mexico':'mx','brasil':'br','brazil':'br',
-    'argentina':'ar','colombia':'co','uruguay':'uy','chile':'cl','ecuador':'ec','peru':'pe',
-    'venezuela':'ve','paraguay':'py','costa rica':'cr','honduras':'hn','panama':'pa','jamaica':'jm',
-    'haiti':'ht','germany':'de','france':'fr','spain':'es','england':'gb-eng','portugal':'pt',
-    'netherlands':'nl','italy':'it','belgium':'be','croatia':'hr','serbia':'rs','denmark':'dk',
-    'switzerland':'ch','poland':'pl','ukraine':'ua','austria':'at','sweden':'se','turkey':'tr',
-    'scotland':'gb-sct','wales':'gb-wls','czechia':'cz','czech republic':'cz','slovakia':'sk',
-    'hungary':'hu','romania':'ro','albania':'al','greece':'gr','norway':'no',
-    'bosnia and herzegovina':'ba','cape verde':'cv','curacao':'cw','morocco':'ma','senegal':'sn',
-    'nigeria':'ng','cameroon':'cm','egypt':'eg','ghana':'gh','ivory coast':'ci',
-    "cote d'ivoire":'ci','south africa':'za','tunisia':'tn','algeria':'dz','dr congo':'cd',
-    'japan':'jp','south korea':'kr','korea republic':'kr','iran':'ir','iraq':'iq',
-    'saudi arabia':'sa','australia':'au','new zealand':'nz','uzbekistan':'uz','qatar':'qa','jordan':'jo',
-  };
-
-  function _normalizar(f) {
-    const fix    = f.fixture   || {};
-    const league = f.league    || {};
-    const teams  = f.teams     || {};
-    const goals  = f.goals     || {};
-    const status = fix.status  || {};
-    const short  = status.short || 'NS';
-    const estado = _STATUS_MAP[short] || 'programado';
-
-    let minuto = null;
-    if (estado === 'en_curso') {
-      const lbl = _MINUTO_LABEL_MAP[short];
-      minuto = lbl || (status.elapsed != null ? String(status.elapsed) : null);
-    }
-
-    const homeName = (teams.home || {}).name || '';
-    const awayName = (teams.away || {}).name || '';
-
-    return {
-      id:           fix.id,
-      fase:         league.round || '',
-      grupo:        null,
-      local:        homeName,
-      visitante:    awayName,
-      codigo_local: _TEAM_CODE[homeName.toLowerCase()] || '',
-      codigo_visit: _TEAM_CODE[awayName.toLowerCase()] || '',
-      goles_local:  goals.home  != null ? goals.home  : null,
-      goles_visit:  goals.away  != null ? goals.away  : null,
-      bloqueado:    false,
-      fecha_texto:  (fix.date || '').slice(0, 16).replace('T', ' '),
-      fecha_iso:    fix.date || null,
-      sede:         ((fix.venue || {}).name) || '',
-      estado,
-      minuto,
-    };
-  }
-
-  async function _apiFetch(endpoint, params) {
-    const qs = new URLSearchParams(params).toString();
-    const url = `${_API_BASE}/${endpoint}?${qs}`;
-    const res = await fetch(url, {
-      headers: { 'x-apisports-key': _API_KEY }
-    });
-    if (!res.ok) throw new Error('API-Football HTTP ' + res.status);
-    const json = await res.json();
-    if (json.errors && Object.keys(json.errors).length) {
-      throw new Error('API-Football error: ' + JSON.stringify(json.errors));
-    }
-    return json.response || [];
-  }
-
-  // ── Fetch principal ───────────────────────────────────────────────────────
+  // ── Fetch ────────────────────────────────────────────────────────────────
 
   async function cargarPartidosHoy() {
-    const hoy = new Date().toLocaleDateString('en-CA', { timeZone: _TZ }); // YYYY-MM-DD
-    const cacheKey = 'pah:' + hoy;
+    try {
+      const res = await fetch('/api/mundial/partidos-hoy');
 
-    let partidos = _cacheGet(cacheKey);
+      // DEBUG: log de respuesta para diagnóstico
+      console.log('[PAH] HTTP', res.status, res.url);
 
-    if (!partidos) {
-      try {
-        const raw = await _apiFetch('fixtures', {
-          league:   _LEAGUE_ID,
-          season:   _SEASON,
-          date:     hoy,
-          timezone: _TZ,
-        });
-        partidos = raw.map(_normalizar);
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const json = await res.json();
 
-        // TTL adaptativo: 20s si hay en vivo, 60s si hay partidos hoy, 120s si no hay
-        const hayVivo = partidos.some(p => p.estado === 'en_curso');
-        const ttl = hayVivo ? 20_000 : partidos.length ? 60_000 : 120_000;
-        _cacheSet(cacheKey, partidos, ttl);
-        _pollInterval = ttl;
+      // Leer el intervalo de polling que recomienda el servidor
+      // (20s live · 60s hoy · 120s sin partidos hoy)
+      const serverTtl = parseInt(res.headers.get('X-Poll-Interval') || '120', 10);
+      _pollInterval = (isNaN(serverTtl) || serverTtl < 5 ? 120 : serverTtl) * 1000;
+      _schedulePoll(_pollInterval);
 
-        const bannerEl = document.getElementById('pah-fallback-banner');
-        if (bannerEl) bannerEl.style.display = 'none';
+      const fuente = json.meta?.fuente || 'desconocida';
 
-        console.log('[PAH] api-football OK | partidos:', partidos.length, '| en vivo:', hayVivo, '| próximo poll:', ttl/1000+'s');
-      } catch (err) {
-        console.error('[PAH] Error API-Football:', err.message);
-        const bannerEl = document.getElementById('pah-fallback-banner');
+      // DEBUG: inspección del payload
+      console.log('[PAH] ok=', json.ok,
+        '| partidos recibidos:', Array.isArray(json.data) ? json.data.length : 'no-array',
+        '| fuente:', fuente,
+        '| próximo poll en', _pollInterval/1000 + 's');
+      if (Array.isArray(json.data) && json.data.length > 0) {
+        console.log('[PAH] primer partido:', JSON.stringify(json.data[0]));
+      }
+
+      // Aviso visual si estamos usando datos locales (API externa caída)
+      const bannerEl = document.getElementById('pah-fallback-banner');
+      if (fuente === 'fallback') {
+        console.warn('[PAH] ⚠️ Usando datos locales — worldcup26.ir no disponible. Scores en 0-0.');
         if (bannerEl) bannerEl.style.display = 'block';
-        ['desktop', 'mobile'].forEach(suf => _setEstado(suf, 'error'));
-        _schedulePoll(30_000);
-        return;
-      }
-    } else {
-      console.log('[PAH] caché local | partidos:', partidos.length);
-    }
-
-    const todos = _ordenar(partidos);
-    window._pahTodosPartidos = todos;
-
-    function _seleccionar(lista) {
-      return lista.find(p => p.estado === 'en_curso')
-          || lista.find(p => p.estado === 'programado')
-          || (lista.filter(p => p.estado === 'finalizado').slice(-1)[0] || null);
-    }
-
-    const partidoWidget = _seleccionar(todos);
-    const preview = partidoWidget ? [partidoWidget] : [];
-
-    ['desktop', 'mobile'].forEach(suf => {
-      if (!partidoWidget) {
-        _setEstado(suf, 'vacio');
-        const btn = document.getElementById('pah-ver-mas-' + suf);
-        if (btn) btn.style.display = 'none';
       } else {
-        _poblarLista(suf, preview);
-        _setEstado(suf, 'lista');
-        const btn = document.getElementById('pah-ver-mas-' + suf);
-        if (btn) { btn.removeAttribute('style'); btn.style.display = 'flex'; }
+        if (bannerEl) bannerEl.style.display = 'none';
       }
-    });
 
-    const modal = document.getElementById('pah-modal');
-    if (modal && modal.style.display === 'flex') {
-      const lista = document.getElementById('pah-lista-modal');
-      if (lista && todos.length) lista.innerHTML = todos.map(_renderPartido).join('');
+      if (!json.ok || !Array.isArray(json.data)) throw new Error('Respuesta inválida del servidor');
+
+      const todos    = _ordenar(json.data);
+      window._pahTodosPartidos = todos;  // guardar para el modal
+
+      // Seleccionar el partido a mostrar en el widget:
+      // 1) El que está EN VIVO ahora mismo
+      // 2) El próximo programado (el que sigue)
+      // 3) Si todos finalizaron, el último finalizado
+      function _seleccionarPartidoWidget(lista) {
+        // Primero: en vivo
+        const enVivo = lista.find(p => {
+          const e = (p.estado || '').toLowerCase();
+          return e === 'en_curso' || e === 'en_vivo' || e === 'live';
+        });
+        if (enVivo) return enVivo;
+        // Segundo: el próximo programado (primero de los no jugados)
+        const proximo = lista.find(p => {
+          const e = (p.estado || '').toLowerCase();
+          return e === 'programado' || e === 'upcoming' || e === 'scheduled';
+        });
+        if (proximo) return proximo;
+        // Tercero: el último finalizado
+        const finalizados = lista.filter(p => {
+          const e = (p.estado || '').toLowerCase();
+          return e === 'finalizado' || e === 'finished';
+        });
+        return finalizados.length ? finalizados[finalizados.length - 1] : null;
+      }
+
+      const partidoWidget = _seleccionarPartidoWidget(todos);
+      const preview = partidoWidget ? [partidoWidget] : [];
+
+      console.log('[PAH] partido widget:', partidoWidget ? partidoWidget.local + ' vs ' + partidoWidget.visitante : 'ninguno', '| total:', todos.length);
+
+      ['desktop', 'mobile'].forEach(suf => {
+        if (!partidoWidget) {
+          _setEstado(suf, 'vacio');
+          const btn = document.getElementById('pah-ver-mas-' + suf);
+          if (btn) btn.style.display = 'none';
+        } else {
+          _poblarLista(suf, preview);
+          _setEstado(suf, 'lista');
+          const btn = document.getElementById('pah-ver-mas-' + suf);
+          if (btn) {
+            btn.removeAttribute('style');
+            btn.style.display = 'flex';
+          }
+        }
+      });
+
+      // Si el modal ya está abierto, actualizar su contenido también
+      const modal = document.getElementById('pah-modal');
+      if (modal && modal.style.display === 'flex') {
+        const lista = document.getElementById('pah-lista-modal');
+        if (lista && todos.length) lista.innerHTML = todos.map(_renderPartido).join('');
+      }
+    } catch (err) {
+      console.error('[PAH] Error al cargar partidos:', err.message, err);
+      ['desktop', 'mobile'].forEach(suf => _setEstado(suf, 'error'));
+      // Reintentar en 30s si hay error de red, no dejar morir el polling
+      _schedulePoll(30_000);
     }
-
-    _schedulePoll(_pollInterval);
   }
 
   // ── Init ─────────────────────────────────────────────────────────────────
-  let _pollTimer    = null;
-  let _pollInterval = 120_000;
+
+  // Polling adaptativo según X-Poll-Interval devuelto por el servidor:
+  //   20 s  → hay un partido EN VIVO (actualización casi en tiempo real)
+  //   60 s  → hay partidos hoy pero ninguno en curso
+  //  120 s  → sin partidos hoy (valor por defecto)
+  let _pollTimer = null;
+  let _pollInterval = 120_000; // ms — se ajusta tras cada respuesta
 
   function _schedulePoll(intervalMs) {
     if (_pollTimer) clearTimeout(_pollTimer);
-    _pollTimer = setTimeout(cargarPartidosHoy, intervalMs);
+    _pollTimer = setTimeout(() => {
+      cargarPartidosHoy();
+    }, intervalMs);
   }
 
   document.addEventListener('DOMContentLoaded', () => {
     _setEstado('desktop', 'loading');
     _setEstado('mobile',  'loading');
+    // Lanzar fetch sin bloquear el hilo principal
     setTimeout(cargarPartidosHoy, 0);
   });
 })();
 
 </script>
-
