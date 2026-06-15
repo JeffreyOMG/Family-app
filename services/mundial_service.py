@@ -639,3 +639,72 @@ def invalidate_cache() -> None:
     global _teams_loaded
     _teams_loaded = False
     logger.info("Caché invalidada manualmente")
+
+
+# ─── API cruda para wc_proxy ──────────────────────────────────────────────────
+# Devuelve el JSON crudo de worldcup26.ir (sin normalizar) para que el frontend
+# lo procese con _normWC. Usa caché propio con TTL corto y fallback al seed.
+
+_raw_lock = threading.Lock()
+
+def get_raw_games() -> tuple[list, str]:
+    """
+    Devuelve los datos CRUDOS de worldcup26.ir para /api/wc/games.
+    El frontend (inicio.html) los normaliza con _normWC.
+    Cachea 90 s en vivo, 120 s normal. Si falla, retorna el seed crudo.
+    """
+    cached = _cache.get("raw_games")
+    if cached is not None:
+        return cached, "cache"
+
+    with _raw_lock:
+        cached = _cache.get("raw_games")
+        if cached is not None:
+            return cached, "cache"
+        try:
+            raw = _hacer_request(EXTERNAL_API_URL)
+            if isinstance(raw, list):
+                games_raw = raw
+            elif isinstance(raw, dict):
+                games_raw = (raw.get("games") or raw.get("data")
+                             or raw.get("matches") or raw.get("results") or [])
+            else:
+                games_raw = []
+            # TTL dinámico: si hay partidos en curso, refrescar más rápido
+            hay_vivo = any(
+                str(g.get("finished", "")).upper() not in ("TRUE", "1")
+                and str(g.get("time_elapsed", "")).lower() not in ("notstarted", "not started", "", "scheduled")
+                for g in games_raw
+            )
+            ttl = 60 if hay_vivo else 120
+            _cache.set("raw_games", games_raw, ttl=ttl)
+            logger.info(f"get_raw_games OK — {len(games_raw)} partidos, TTL={ttl}s")
+            return games_raw, "external"
+        except Exception as exc:
+            logger.warning(f"get_raw_games falló ({exc}), usando seed crudo")
+            _cache.set("raw_games", _SEED_GAMES_RAW, ttl=30)
+            return _SEED_GAMES_RAW, "fallback"
+
+
+def get_raw_teams() -> tuple[list, str]:
+    """
+    Devuelve los datos CRUDOS de /get/teams para /api/wc/teams.
+    Cachea 1 hora. Si falla, retorna lista vacía.
+    """
+    cached = _cache.get("raw_teams")
+    if cached is not None:
+        return cached, "cache"
+
+    with _raw_lock:
+        cached = _cache.get("raw_teams")
+        if cached is not None:
+            return cached, "cache"
+        try:
+            raw = _hacer_request(TEAMS_API_URL)
+            teams = raw if isinstance(raw, list) else raw.get("teams", [])
+            _cache.set("raw_teams", teams, ttl=3600)
+            logger.info(f"get_raw_teams OK — {len(teams)} equipos")
+            return teams, "external"
+        except Exception as exc:
+            logger.warning(f"get_raw_teams falló ({exc}), retornando vacío")
+            return [], "fallback"
