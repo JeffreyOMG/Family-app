@@ -331,7 +331,7 @@ def _local_date_to_col_iso(local_date: str, stadium_id: str) -> Optional[str]:
 
 
 def _iso_to_col_texto(iso: str) -> str:
-    """Convierte ISO UTC a texto español en hora Colombia: "Dom. 14 jun, 20:00"."""
+    """Convierte ISO UTC a texto español en hora Colombia: "Lun. 15 jun, 20:00"."""
     dias_es   = ["Lun.", "Mar.", "Mié.", "Jue.", "Vie.", "Sáb.", "Dom."]
     meses_es  = ["ene", "feb", "mar", "abr", "may", "jun",
                  "jul", "ago", "sep", "oct", "nov", "dic"]
