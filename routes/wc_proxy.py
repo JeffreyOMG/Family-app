@@ -4,17 +4,12 @@ routes/wc_proxy.py
 Proxy servidor-a-servidor para worldcup26.ir.
 
 El navegador NO puede llamar directamente a worldcup26.ir porque ese servidor
-no devuelve cabeceras CORS. Este blueprint recibe las peticiones del frontend,
-las reenvía a worldcup26.ir usando el JWT del entorno, y devuelve el JSON CRUDO
-(sin normalizar) para que el frontend lo procese con _normWC.
-
-Usa `mundial_service` en vez de llamar directamente a worldcup26.ir, heredando
-así su caché, reintentos y fallback al seed — lo que evita los errores 502/SSL
-que ocurren cuando Render intenta conectar a worldcup26.ir directamente.
+no devuelve cabeceras CORS. Este blueprint recibe las peticiones del frontend
+y devuelve el JSON crudo usando mundial_service (con caché y fallback seed).
 
 Rutas expuestas:
-  GET /api/wc/games   →  datos crudos de worldcup26.ir/get/games (con caché)
-  GET /api/wc/teams   →  datos crudos de worldcup26.ir/get/teams (con caché)
+  GET /api/wc/games   →  worldcup26.ir/get/games  (cacheado / seed fallback)
+  GET /api/wc/teams   →  worldcup26.ir/get/teams  (cacheado / seed fallback)
 
 Registro en app.py:
   from routes.wc_proxy import wc_bp
@@ -22,6 +17,7 @@ Registro en app.py:
 """
 
 import logging
+
 from flask import Blueprint, jsonify
 
 from services.mundial_service import get_raw_games, get_raw_teams
@@ -33,11 +29,14 @@ wc_bp = Blueprint("wc_proxy", __name__, url_prefix="/api/wc")
 
 @wc_bp.route("/games")
 def proxy_games():
-    """Proxy de /get/games — devuelve JSON crudo para que el frontend lo normalice con _normWC."""
+    """Proxy de /get/games — el frontend llama a /api/wc/games."""
     try:
-        games, source = get_raw_games()
-        logger.debug(f"wc_proxy /games → {len(games)} partidos (fuente: {source})")
-        return jsonify(games)
+        data, source = get_raw_games()
+        resp = jsonify(data)
+        resp.headers["X-Data-Source"] = source
+        # Sin caché en el cliente para que el poller siempre vea datos frescos
+        resp.headers["Cache-Control"] = "no-store"
+        return resp
     except Exception as exc:
         logger.exception(f"wc_proxy /games error inesperado: {exc}")
         return jsonify({"error": "error interno"}), 500
@@ -45,11 +44,13 @@ def proxy_games():
 
 @wc_bp.route("/teams")
 def proxy_teams():
-    """Proxy de /get/teams — devuelve JSON crudo de equipos."""
+    """Proxy de /get/teams — el frontend llama a /api/wc/teams."""
     try:
-        teams, source = get_raw_teams()
-        logger.debug(f"wc_proxy /teams → {len(teams)} equipos (fuente: {source})")
-        return jsonify(teams)
+        data, source = get_raw_teams()
+        resp = jsonify(data)
+        resp.headers["X-Data-Source"] = source
+        resp.headers["Cache-Control"] = "no-store"
+        return resp
     except Exception as exc:
         logger.exception(f"wc_proxy /teams error inesperado: {exc}")
         return jsonify({"error": "error interno"}), 500
