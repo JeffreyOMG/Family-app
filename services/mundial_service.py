@@ -639,3 +639,139 @@ def invalidate_cache() -> None:
     global _teams_loaded
     _teams_loaded = False
     logger.info("Caché invalidada manualmente")
+
+
+# ─── Seed fallback de equipos ─────────────────────────────────────────────────
+# Formato crudo igual al que devuelve worldcup26.ir/get/teams
+_SEED_TEAMS_RAW: list[dict] = [
+    {"id": "1",  "name_en": "Mexico",                        "iso2": "MX"},
+    {"id": "2",  "name_en": "South Africa",                  "iso2": "ZA"},
+    {"id": "3",  "name_en": "South Korea",                   "iso2": "KR"},
+    {"id": "4",  "name_en": "Czech Republic",                "iso2": "CZ"},
+    {"id": "5",  "name_en": "Canada",                        "iso2": "CA"},
+    {"id": "6",  "name_en": "Bosnia and Herzegovina",        "iso2": "BA"},
+    {"id": "7",  "name_en": "United States",                 "iso2": "US"},
+    {"id": "8",  "name_en": "Paraguay",                      "iso2": "PY"},
+    {"id": "9",  "name_en": "Qatar",                         "iso2": "QA"},
+    {"id": "10", "name_en": "Switzerland",                   "iso2": "CH"},
+    {"id": "11", "name_en": "Brazil",                        "iso2": "BR"},
+    {"id": "12", "name_en": "Morocco",                       "iso2": "MA"},
+    {"id": "13", "name_en": "Haiti",                         "iso2": "HT"},
+    {"id": "14", "name_en": "Scotland",                      "iso2": "GB-SCT"},
+    {"id": "15", "name_en": "Australia",                     "iso2": "AU"},
+    {"id": "16", "name_en": "Turkey",                        "iso2": "TR"},
+    {"id": "17", "name_en": "Germany",                       "iso2": "DE"},
+    {"id": "18", "name_en": "Curacao",                       "iso2": "CW"},
+    {"id": "19", "name_en": "Ivory Coast",                   "iso2": "CI"},
+    {"id": "20", "name_en": "Ecuador",                       "iso2": "EC"},
+    {"id": "21", "name_en": "Netherlands",                   "iso2": "NL"},
+    {"id": "22", "name_en": "Japan",                         "iso2": "JP"},
+    {"id": "23", "name_en": "Sweden",                        "iso2": "SE"},
+    {"id": "24", "name_en": "Tunisia",                       "iso2": "TN"},
+    {"id": "25", "name_en": "Belgium",                       "iso2": "BE"},
+    {"id": "26", "name_en": "Egypt",                         "iso2": "EG"},
+    {"id": "27", "name_en": "Iran",                          "iso2": "IR"},
+    {"id": "28", "name_en": "New Zealand",                   "iso2": "NZ"},
+    {"id": "29", "name_en": "Spain",                         "iso2": "ES"},
+    {"id": "30", "name_en": "Cape Verde",                    "iso2": "CV"},
+    {"id": "31", "name_en": "Saudi Arabia",                  "iso2": "SA"},
+    {"id": "32", "name_en": "Uruguay",                       "iso2": "UY"},
+    {"id": "33", "name_en": "France",                        "iso2": "FR"},
+    {"id": "34", "name_en": "Senegal",                       "iso2": "SN"},
+    {"id": "35", "name_en": "Iraq",                          "iso2": "IQ"},
+    {"id": "36", "name_en": "Norway",                        "iso2": "NO"},
+    {"id": "37", "name_en": "Argentina",                     "iso2": "AR"},
+    {"id": "38", "name_en": "Algeria",                       "iso2": "DZ"},
+    {"id": "39", "name_en": "Austria",                       "iso2": "AT"},
+    {"id": "40", "name_en": "Jordan",                        "iso2": "JO"},
+    {"id": "41", "name_en": "Portugal",                      "iso2": "PT"},
+    {"id": "42", "name_en": "Democratic Republic of the Congo", "iso2": "CD"},
+    {"id": "43", "name_en": "Uzbekistan",                    "iso2": "UZ"},
+    {"id": "44", "name_en": "Colombia",                      "iso2": "CO"},
+    {"id": "45", "name_en": "England",                       "iso2": "GB-ENG"},
+    {"id": "46", "name_en": "Croatia",                       "iso2": "HR"},
+    {"id": "47", "name_en": "Ghana",                         "iso2": "GH"},
+    {"id": "48", "name_en": "Panama",                        "iso2": "PA"},
+]
+
+
+# ─── Funciones de datos crudos para el proxy ─────────────────────────────────
+# Devuelven JSON crudo (sin normalizar) igual al formato de worldcup26.ir,
+# para que el frontend pueda procesarlo con _normWC. Usan caché propio y
+# seed de fallback para que el proxy nunca devuelva 502.
+
+_raw_fetch_lock = threading.Lock()
+
+def get_raw_games() -> tuple[list[dict], str]:
+    """
+    Devuelve la lista cruda de partidos de worldcup26.ir (con caché).
+    Si worldcup26.ir falla, usa _SEED_GAMES_RAW.
+    """
+    cached = _cache.get("raw_games")
+    if cached is not None:
+        return cached, "cache"
+
+    with _raw_fetch_lock:
+        cached = _cache.get("raw_games")
+        if cached is not None:
+            return cached, "cache"
+
+        try:
+            raw_json = _hacer_request(EXTERNAL_API_URL)
+            if isinstance(raw_json, list):
+                games = raw_json
+            elif isinstance(raw_json, dict):
+                games = (raw_json.get("games") or raw_json.get("data")
+                         or raw_json.get("matches") or raw_json.get("results") or [])
+            else:
+                games = []
+
+            # TTL dinámico: 60s si hay partidos hoy, 20s si hay en vivo, 120s normal
+            now_col = datetime.now(_TZ_BOGOTA)
+            today_str = now_col.date().isoformat()
+            ttl = _TTL_NORMAL
+            for g in games:
+                ld = g.get("local_date", "")
+                te = str(g.get("time_elapsed", "")).lower()
+                if te in ("first half", "second half", "halftime", "in progress"):
+                    ttl = _TTL_LIVE
+                    break
+                if ld:
+                    try:
+                        parts = ld.strip().split(" ")
+                        dp = parts[0].split("/")
+                        game_date = f"{int(dp[2])}-{int(dp[0]):02d}-{int(dp[1]):02d}"
+                        if game_date == today_str and ttl > _TTL_HOY:
+                            ttl = _TTL_HOY
+                    except Exception:
+                        pass
+
+            _cache.set("raw_games", games, ttl=ttl)
+            logger.info(f"get_raw_games: {len(games)} partidos crudos, TTL={ttl}s")
+            return games, "external"
+        except Exception as exc:
+            logger.warning(f"get_raw_games: worldcup26.ir inaccesible: {exc}. Usando seed.")
+            _cache.set("raw_games", _SEED_GAMES_RAW, ttl=30)
+            return _SEED_GAMES_RAW, "fallback"
+
+
+def get_raw_teams() -> tuple[list[dict], str]:
+    """
+    Devuelve la lista cruda de equipos de worldcup26.ir (con caché de 1h).
+    Si worldcup26.ir falla, usa _SEED_TEAMS_RAW para que el frontend
+    pueda resolver iso2 y mostrar banderas.
+    """
+    cached = _cache.get("raw_teams")
+    if cached is not None:
+        return cached, "cache"
+
+    try:
+        raw_json = _hacer_request(TEAMS_API_URL)
+        teams = raw_json if isinstance(raw_json, list) else raw_json.get("teams", [])
+        _cache.set("raw_teams", teams, ttl=3600)  # 1 hora
+        logger.info(f"get_raw_teams: {len(teams)} equipos crudos")
+        return teams, "external"
+    except Exception as exc:
+        logger.warning(f"get_raw_teams: worldcup26.ir inaccesible: {exc}. Usando seed.")
+        _cache.set("raw_teams", _SEED_TEAMS_RAW, ttl=120)
+        return _SEED_TEAMS_RAW, "fallback"
