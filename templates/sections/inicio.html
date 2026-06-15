@@ -8330,11 +8330,11 @@ async function cargarMasPosts(btn) {
   window.abrirModalPartidos  = abrirModalPartidos;
   window.cerrarModalPartidos = cerrarModalPartidos;
 
-  // ── Fetch directo a worldcup26.ir desde el navegador ────────────────────
-  // Render bloquea worldcup26.ir por IP, pero el navegador del usuario sí llega.
-  // Token hardcodeado — no se le pide nada a ningún usuario.
-  const _WC_JWT = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjZhMmVjN2Q5NWE5YjM0NGQyYmUwMjQxOSIsImlhdCI6MTc4MTQ1MDcxNiwiZXhwIjoxNzg4NzA4MzE2fQ.S4bUjXRVqhV8btWTrtIKDmWnQbicFbVO6U6RzJeeHI8';
-  const _WC_BASE = 'https://worldcup26.ir';
+  // ── Fetch a través del proxy propio (evita CORS de worldcup26.ir) ──────────
+  // El navegador llama a /api/wc/games y /api/wc/teams en nuestro propio servidor.
+  // El backend Flask se encarga de autenticarse con worldcup26.ir usando el JWT.
+  const _WC_JWT  = '';   // no se necesita en el frontend
+  const _WC_BASE = '/api/wc'; // proxy propio: /api/wc/games, /api/wc/teams
 
   // Caché local (evita requests repetidos)
   const _pahCache = {};
