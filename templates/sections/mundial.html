@@ -917,6 +917,17 @@
   }
   .mwfix-loading .rotating { animation: mwfix-spin 1s linear infinite; }
   @keyframes mwfix-spin { from{transform:rotate(0)} to{transform:rotate(360deg)} }
+
+  /* Banderas PNG locales */
+  .team-flag {
+    display: inline-block; vertical-align: middle;
+    width: 28px; height: 20px;
+    object-fit: contain; border-radius: 3px;
+    border: none; image-rendering: auto; flex-shrink: 0;
+  }
+  .team-flag.pron-flag  { width: 30px; height: 22px; border-radius: 0; }
+  .team-flag.admin-flag { width: 28px; height: 20px; border-radius: 2px; }
+  .team-flag.bk-flag    { width: 20px; height: 14px; border-radius: 2px; }
   </style>
 
   <!-- Backdrop compartido para el modal principal -->
@@ -1414,7 +1425,7 @@
             <tr class="{% if loop.index <= 2 %}row-clasifica{% endif %}">
               <td class="td-pos pos-{{ loop.index }}">{{ loop.index }}</td>
               <td class="td-equipo">
-                <span class="fi fi-{{ eq.codigo }} fis"></span>
+                <img src="/static/banderas/{{ eq.codigo | upper }}.png" class="team-flag" alt="{{ eq.nombre }}" onerror="this.style.display='none'">
                 <span class="eq-nombre">{{ eq.nombre }}</span>
               </td>
               <td>{{ eq.pts }}</td><td>{{ eq.pj }}</td><td>{{ eq.g }}</td>
@@ -1433,7 +1444,7 @@
           {% for p in partidos_g %}
           <div class="fixture-row {% if p.bloqueado %}fixture-jugado{% endif %}" data-partido-id="{{ p.id }}">
             <span class="fix-cod">{{ p.codigo_local }}</span>
-            <span class="fi fi-{{ p.codigo_local }} fis"></span>
+            <img src="/static/banderas/{{ p.codigo_local | upper }}.png" class="team-flag" alt="{{ p.local }}" onerror="this.style.display='none'">
             {% if p.bloqueado %}
             <div class="fix-score done">{{ p.goles_local }}</div>
             <span class="fix-sep">-</span>
@@ -1441,7 +1452,7 @@
             {% else %}
             <div class="fix-score-empty"></div><span class="fix-sep">-</span><div class="fix-score-empty"></div>
             {% endif %}
-            <span class="fi fi-{{ p.codigo_visitante }} fis"></span>
+            <img src="/static/banderas/{{ p.codigo_visitante | upper }}.png" class="team-flag" alt="{{ p.visitante }}" onerror="this.style.display='none'">
             <span class="fix-cod">{{ p.codigo_visitante }}</span>
           </div>
           {% endfor %}
@@ -1488,7 +1499,7 @@
           {% for p in partidos %}{% if p.grupo == letra %}
           <div class="pron-partido-card {% if p.bloqueado %}pron-bloqueado{% endif %}">
             <div class="pron-equipo pron-local">
-              <span class="fi fi-{{ p.codigo_local }} fis pron-flag"></span>
+              <img src="/static/banderas/{{ p.codigo_local | upper }}.png" class="team-flag pron-flag" alt="{{ p.local }}" onerror="this.style.display='none'">
               <span class="pron-nombre">{{ p.local }}</span>
             </div>
             <div class="pron-score-area">
@@ -1529,7 +1540,7 @@
             </div>
             <div class="pron-equipo pron-visitante">
               <span class="pron-nombre">{{ p.visitante }}</span>
-              <span class="fi fi-{{ p.codigo_visitante }} fis pron-flag"></span>
+              <img src="/static/banderas/{{ p.codigo_visitante | upper }}.png" class="team-flag pron-flag" alt="{{ p.visitante }}" onerror="this.style.display='none'">
             </div>
           </div>
           {% endif %}{% endfor %}
@@ -2029,13 +2040,13 @@
           <div class="admin-partido-card {% if p.bloqueado %}admin-card-jugado{% endif %}">
             <div class="admin-equipos">
               <div class="admin-eq">
-                <span class="fi fi-{{ p.codigo_local }} fis admin-flag"></span>
+                <img src="/static/banderas/{{ p.codigo_local | upper }}.png" class="team-flag admin-flag" alt="{{ p.local }}" onerror="this.style.display='none'">
                 <span class="admin-eq-name">{{ p.local }}</span>
               </div>
               <span class="admin-vs">vs</span>
               <div class="admin-eq admin-eq-right">
                 <span class="admin-eq-name">{{ p.visitante }}</span>
-                <span class="fi fi-{{ p.codigo_visitante }} fis admin-flag"></span>
+                <img src="/static/banderas/{{ p.codigo_visitante | upper }}.png" class="team-flag admin-flag" alt="{{ p.visitante }}" onerror="this.style.display='none'">
               </div>
             </div>
             <form method="POST" action="/admin_resultado?s=mundial" class="admin-form">
@@ -2249,6 +2260,24 @@ async function _refreshAdminGruposCards() {
   } catch(e) { console.warn('refreshAdminGrupos error', e); }
 }
 
+// ── Mapa ISO-2 → código PNG de 3 letras (banderas locales) ──────────────
+const _FLAG_MAP = {
+  dz:'ALG', ar:'ARG', au:'AUS', at:'AUT', be:'BEL', ba:'BIH', br:'BRA',
+  ca:'CAN', ci:'CIV', cd:'COD', co:'COL', cv:'CPV', hr:'CRO', cw:'CUW',
+  cz:'CZE', ec:'ECU', eg:'EGY', gb_eng:'ENG', es:'ESP', fr:'FRA', de:'GER',
+  gh:'GHA', ht:'HAI', ir:'IRN', iq:'IRQ', jo:'JOR', jp:'JPN', kr:'KOR',
+  sa:'KSA', ma:'MAR', mx:'MEX', nl:'NED', no:'NOR', nz:'NZL', pa:'PAN',
+  py:'PAR', pt:'POR', qa:'QAT', za:'RSA', gb_sct:'SCO', sn:'SEN', ch:'SUI',
+  se:'SWE', tn:'TUN', tr:'TUR', uy:'URU', us:'USA', uz:'UZB', gb:'ENG'
+};
+function _flag(cod, nombre, cssClass) {
+  if (!cod || cod === 'xx') return '';
+  const key = cod.toLowerCase().replace('-','_');
+  const png = _FLAG_MAP[key] || cod.toUpperCase();
+  const extra = cssClass ? ` ${cssClass}` : '';
+  return `<img class="team-flag${extra}" loading="lazy" decoding="async" src="/static/banderas/${png}.png" alt="${_esc(nombre||'')}" onerror="this.style.display='none'">`;
+}
+
 function _renderGrupos(partidos, tabla) {
   for (const [letra, rows] of Object.entries(tabla)) {
     // Encontrar la card de este grupo
@@ -2270,7 +2299,7 @@ function _renderGrupos(partidos, tabla) {
         return `<tr class="${classFila}">
           <td class="td-pos pos-${pos}">${pos}</td>
           <td class="td-equipo">
-            <span class="fi fi-${_esc(eq.codigo)} fis"></span>
+            ${_flag(eq.codigo, eq.nombre, '')}
             <span class="eq-nombre">${_esc(eq.nombre)}</span>
           </td>
           <td>${eq.pts}</td><td>${eq.pj}</td><td>${eq.g}</td>
@@ -2295,9 +2324,9 @@ function _renderGrupos(partidos, tabla) {
              <div class="fix-score-empty"></div>`;
         return `<div class="fixture-row ${jugado ? 'fixture-jugado' : ''}" data-partido-id="${p.id}">
           <span class="fix-cod">${_esc(p.codigo_local)}</span>
-          <span class="fi fi-${_esc(p.codigo_local)} fis"></span>
+          ${_flag(p.codigo_local, p.local, '')}
           ${scoreHTML}
-          <span class="fi fi-${_esc(p.codigo_visitante)} fis"></span>
+          ${_flag(p.codigo_visitante, p.visitante, '')}
           <span class="fix-cod">${_esc(p.codigo_visitante)}</span>
         </div>`;
       }).join('');
@@ -2397,8 +2426,8 @@ function _eliPartidoCardHTML(p) {
   const visitNombre  = p.eq_visit  || p.slot_visit;
   const localCod     = p.cod_local  || 'xx';
   const visitCod     = p.cod_visit  || 'xx';
-  const flagL = p.cod_local  ? `<span class="fi fi-${_esc(localCod)} fis pron-flag"></span>` : '';
-  const flagV = p.cod_visit  ? `<span class="fi fi-${_esc(visitCod)} fis pron-flag"></span>` : '';
+  const flagL = p.cod_local  ? _flag(localCod,  localNombre,  'pron-flag') : '';
+  const flagV = p.cod_visit  ? _flag(visitCod,  visitNombre,  'pron-flag') : '';
 
   let scoreArea = '';
   if (bloq) {
@@ -2569,10 +2598,10 @@ function _adminEliCardHTML(p) {
 
   // Banderas o slot
   const flagL = localNombre
-    ? `<span class="fi fi-${_esc(localCod)} fis admin-flag"></span>`
+    ? _flag(localCod, localNombre, 'admin-flag')
     : `<span class="eli-slot">${_esc(p.slot_local)}</span>`;
   const flagV = visitNombre
-    ? `<span class="fi fi-${_esc(visitCod)} fis admin-flag"></span>`
+    ? _flag(visitCod, visitNombre, 'admin-flag')
     : `<span class="eli-slot">${_esc(p.slot_visit)}</span>`;
 
   // Construir lista de todos los equipos para el selector de países
@@ -2611,7 +2640,7 @@ function _adminEliCardHTML(p) {
           <div class="eli-asignar-tercero eli-tercero-ok">
             <div class="eli-asignar-label"><span class="material-symbols-outlined">filter_3</span> Mejor 3°</div>
             <div class="eli-ya-asignado">
-              <span class="fi fi-${_esc(cod)} fis"></span>
+              ${_flag(cod, visitNombre, '')}
               <strong>${_esc(visitNombre)}</strong>
               <button class="eli-btn-cambiar" onclick="
                 this.closest('.eli-tercero-ok').querySelector('.eli-ya-asignado').style.display='none';
@@ -2841,7 +2870,7 @@ function _renderBracket(bracket, eliPartidos) {
     const eqV = _resolverEq(p.eq_visit,  p.cod_visit,  p.slot_visit);
 
     function _eqRow(eq, goles, winner) {
-      const flag = eq.conocido ? `<span class="fi fi-${_esc(eq.codigo)} fis bk-flag"></span>` : '';
+      const flag = eq.conocido ? _flag(eq.codigo, eq.nombre, 'bk-flag') : '';
       const nom  = eq.conocido ? _esc(eq.nombre) : `<em class="bk-slot">${_esc(eq.nombre)}</em>`;
       const sc   = (p.bloqueado && goles !== null && goles !== undefined)
         ? `<span class="bk-score ${winner ? 'bk-score--win' : ''}">${goles}</span>` : '';
