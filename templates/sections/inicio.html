@@ -8170,7 +8170,7 @@ async function cargarMasPosts(btn) {
     try {
       const [tm, r] = await Promise.all([
         _getTeams(),
-        fetch(_WC_BASE+'/games')
+        fetch(_WC_BASE+'/get/games', {headers:{'Authorization':'Bearer '+_WC_JWT}})
       ]);
       if (!r.ok) throw new Error('HTTP '+r.status);
       const data = await r.json();
@@ -8231,7 +8231,7 @@ async function cargarMasPosts(btn) {
     try {
       const [tm, allGames] = await Promise.all([
         _getTeams(),
-        fetch(_WC_BASE+'/games').then(r=>r.ok?r.json():Promise.reject(r.status))
+        fetch(_WC_BASE+'/get/games', {headers:{'Authorization':'Bearer '+_WC_JWT}}).then(r=>r.ok?r.json():Promise.reject(r.status))
       ]);
       const raw = Array.isArray(allGames)?allGames:(allGames.games||[]);
       // Calcular tabla desde resultados de fase de grupos
@@ -8299,7 +8299,7 @@ async function cargarMasPosts(btn) {
     wrap.innerHTML = '<div class="pah-loading" style="padding:16px;"><div class="pah-skeleton"></div><div class="pah-skeleton pah-skeleton--short"></div><div class="pah-skeleton"></div></div>';
     try {
       const tm = await _getTeams();
-      const r = await fetch(_WC_BASE+'/games');
+      const r = await fetch(_WC_BASE+'/get/games', {headers:{'Authorization':'Bearer '+_WC_JWT}});
       if (!r.ok) throw new Error('HTTP '+r.status);
       const data = await r.json();
       const raw = Array.isArray(data)?data:(data.games||[]);
@@ -8330,11 +8330,11 @@ async function cargarMasPosts(btn) {
   window.abrirModalPartidos  = abrirModalPartidos;
   window.cerrarModalPartidos = cerrarModalPartidos;
 
-  // ── Fetch a través del proxy propio (evita CORS de worldcup26.ir) ──────────
-  // El navegador llama a /api/wc/games y /api/wc/teams en nuestro propio servidor.
-  // El backend Flask se encarga de autenticarse con worldcup26.ir usando el JWT.
-  const _WC_JWT  = '';   // no se necesita en el frontend
-  const _WC_BASE = '/api/wc'; // proxy propio: /api/wc/games, /api/wc/teams
+  // ── Fetch directo a worldcup26.ir desde el navegador ────────────────────
+  // Render bloquea worldcup26.ir por IP, pero el navegador del usuario sí llega.
+  // Token hardcodeado — no se le pide nada a ningún usuario.
+  const _WC_JWT = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjZhMmVjN2Q5NWE5YjM0NGQyYmUwMjQxOSIsImlhdCI6MTc4MTQ1MDcxNiwiZXhwIjoxNzg4NzA4MzE2fQ.S4bUjXRVqhV8btWTrtIKDmWnQbicFbVO6U6RzJeeHI8';
+  const _WC_BASE = 'https://worldcup26.ir';
 
   // Caché local (evita requests repetidos)
   const _pahCache = {};
@@ -8420,7 +8420,7 @@ async function cargarMasPosts(btn) {
     const cached = _pahCacheGet('wc26:teams');
     if (cached) { _teamsMap = cached; return cached; }
     try {
-      const r = await fetch(_WC_BASE+'/teams');
+      const r = await fetch(_WC_BASE+'/get/teams',{headers:{'Authorization':'Bearer '+_WC_JWT}});
       if (!r.ok) throw new Error(r.status);
       const data = await r.json();
       const list = Array.isArray(data)?data:(data.teams||[]);
@@ -8476,7 +8476,7 @@ async function cargarMasPosts(btn) {
       try {
         const [tm, gr] = await Promise.all([
           _getTeams(),
-          fetch(_WC_BASE+'/games')
+          fetch(_WC_BASE+'/get/games',{headers:{'Authorization':'Bearer '+_WC_JWT}})
         ]);
         if (!gr.ok) throw new Error('HTTP '+gr.status);
         const data = await gr.json();
