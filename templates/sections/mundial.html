@@ -1,5 +1,16 @@
 <section class="section main-content-v2" id="sec-mundial">
 
+{% set FLAG_PNG = {
+  'dz':'ALG','ar':'ARG','au':'AUS','at':'AUT','be':'BEL','ba':'BIH','br':'BRA',
+  'ca':'CAN','ci':'CIV','cd':'COD','co':'COL','cv':'CPV','hr':'CRO','cw':'CUW',
+  'cz':'CZE','ec':'ECU','eg':'EGY','gb-eng':'ENG','gb_eng':'ENG','es':'ESP',
+  'fr':'FRA','de':'GER','gh':'GHA','ht':'HAI','ir':'IRN','iq':'IRQ','jo':'JOR',
+  'jp':'JPN','kr':'KOR','sa':'KSA','ma':'MAR','mx':'MEX','nl':'NED','no':'NOR',
+  'nz':'NZL','pa':'PAN','py':'PAR','pt':'POR','qa':'QAT','za':'RSA',
+  'gb-sct':'SCO','gb_sct':'SCO','sn':'SEN','ch':'SUI','se':'SWE','tn':'TUN',
+  'tr':'TUR','uy':'URU','us':'USA','uz':'UZB','gb':'ENG','eng':'ENG','sct':'SCO'
+} %}
+
   {% if usuario.rol == 'invitado' %}
   <!-- ══════════════════════════════════════════
        MODAL ACCESO MUNDIAL — solo invitados (validación server-side)
@@ -1425,7 +1436,7 @@
             <tr class="{% if loop.index <= 2 %}row-clasifica{% endif %}">
               <td class="td-pos pos-{{ loop.index }}">{{ loop.index }}</td>
               <td class="td-equipo">
-                <img src="/static/banderas/{{ eq.codigo | upper }}.png" class="team-flag" alt="{{ eq.nombre }}" onerror="this.style.display='none'">
+                <img src="/static/banderas/{{ FLAG_PNG.get(eq.codigo, eq.codigo | upper) }}.png" class="team-flag" alt="{{ eq.nombre }}" onerror="this.style.display='none'">
                 <span class="eq-nombre">{{ eq.nombre }}</span>
               </td>
               <td>{{ eq.pts }}</td><td>{{ eq.pj }}</td><td>{{ eq.g }}</td>
@@ -1444,7 +1455,7 @@
           {% for p in partidos_g %}
           <div class="fixture-row {% if p.bloqueado %}fixture-jugado{% endif %}" data-partido-id="{{ p.id }}">
             <span class="fix-cod">{{ p.codigo_local }}</span>
-            <img src="/static/banderas/{{ p.codigo_local | upper }}.png" class="team-flag" alt="{{ p.local }}" onerror="this.style.display='none'">
+            <img src="/static/banderas/{{ FLAG_PNG.get(p.codigo_local, p.codigo_local | upper) }}.png" class="team-flag" alt="{{ p.local }}" onerror="this.style.display='none'">
             {% if p.bloqueado %}
             <div class="fix-score done">{{ p.goles_local }}</div>
             <span class="fix-sep">-</span>
@@ -1452,7 +1463,7 @@
             {% else %}
             <div class="fix-score-empty"></div><span class="fix-sep">-</span><div class="fix-score-empty"></div>
             {% endif %}
-            <img src="/static/banderas/{{ p.codigo_visitante | upper }}.png" class="team-flag" alt="{{ p.visitante }}" onerror="this.style.display='none'">
+            <img src="/static/banderas/{{ FLAG_PNG.get(p.codigo_visitante, p.codigo_visitante | upper) }}.png" class="team-flag" alt="{{ p.visitante }}" onerror="this.style.display='none'">
             <span class="fix-cod">{{ p.codigo_visitante }}</span>
           </div>
           {% endfor %}
@@ -1499,7 +1510,7 @@
           {% for p in partidos %}{% if p.grupo == letra %}
           <div class="pron-partido-card {% if p.bloqueado %}pron-bloqueado{% endif %}">
             <div class="pron-equipo pron-local">
-              <img src="/static/banderas/{{ p.codigo_local | upper }}.png" class="team-flag pron-flag" alt="{{ p.local }}" onerror="this.style.display='none'">
+              <img src="/static/banderas/{{ FLAG_PNG.get(p.codigo_local, p.codigo_local | upper) }}.png" class="team-flag pron-flag" alt="{{ p.local }}" onerror="this.style.display='none'">
               <span class="pron-nombre">{{ p.local }}</span>
             </div>
             <div class="pron-score-area">
@@ -1540,7 +1551,7 @@
             </div>
             <div class="pron-equipo pron-visitante">
               <span class="pron-nombre">{{ p.visitante }}</span>
-              <img src="/static/banderas/{{ p.codigo_visitante | upper }}.png" class="team-flag pron-flag" alt="{{ p.visitante }}" onerror="this.style.display='none'">
+              <img src="/static/banderas/{{ FLAG_PNG.get(p.codigo_visitante, p.codigo_visitante | upper) }}.png" class="team-flag pron-flag" alt="{{ p.visitante }}" onerror="this.style.display='none'">
             </div>
           </div>
           {% endif %}{% endfor %}
@@ -2040,13 +2051,13 @@
           <div class="admin-partido-card {% if p.bloqueado %}admin-card-jugado{% endif %}">
             <div class="admin-equipos">
               <div class="admin-eq">
-                <img src="/static/banderas/{{ p.codigo_local | upper }}.png" class="team-flag admin-flag" alt="{{ p.local }}" onerror="this.style.display='none'">
+                <img src="/static/banderas/{{ FLAG_PNG.get(p.codigo_local, p.codigo_local | upper) }}.png" class="team-flag admin-flag" alt="{{ p.local }}" onerror="this.style.display='none'">
                 <span class="admin-eq-name">{{ p.local }}</span>
               </div>
               <span class="admin-vs">vs</span>
               <div class="admin-eq admin-eq-right">
                 <span class="admin-eq-name">{{ p.visitante }}</span>
-                <img src="/static/banderas/{{ p.codigo_visitante | upper }}.png" class="team-flag admin-flag" alt="{{ p.visitante }}" onerror="this.style.display='none'">
+                <img src="/static/banderas/{{ FLAG_PNG.get(p.codigo_visitante, p.codigo_visitante | upper) }}.png" class="team-flag admin-flag" alt="{{ p.visitante }}" onerror="this.style.display='none'">
               </div>
             </div>
             <form method="POST" action="/admin_resultado?s=mundial" class="admin-form">
