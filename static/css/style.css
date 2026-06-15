@@ -3154,16 +3154,12 @@ input[type="checkbox"]:checked::after {
     border-collapse: collapse;
   }
 
-  #sec-mundial .grupo-tabla {
-    width: 100%;
-    overflow-x: auto;
-    display: block;
-  }
+  /* grupo-tabla: override abajo en bloque dedicado (ver fix al final del archivo) */
 
   #sec-mundial th,
   #sec-mundial td {
     font-size: 12px;
-    padding: 6px;
+    padding: 6px 3px;
     white-space: nowrap;
   }
 
@@ -5253,4 +5249,99 @@ body.dark-mode {
 .notif-texto strong .verified-badge,
 .bus-item-title .verified-badge {
   vertical-align: middle;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   MUNDIAL — TABLA DE GRUPOS: FIX MÓVIL (DG siempre visible)
+   ══════════════════════════════════════════════════════════════ */
+
+/* ── Colores DG fuera de media query (aplican siempre) ── */
+.dg-pos { color: #22c55e; font-weight: 700; }
+.dg-neg { color: #ef4444; font-weight: 700; }
+
+@media (max-width: 768px) {
+
+  /* La tabla NO hace scroll horizontal — todo cabe en pantalla */
+  #sec-mundial .grupo-tabla {
+    display: table !important;
+    width: 100% !important;
+    overflow-x: visible !important;
+    table-layout: fixed;
+  }
+
+  /* Padding ultra-compacto para todas las celdas */
+  #sec-mundial .grupo-tabla th,
+  #sec-mundial .grupo-tabla td {
+    font-size: 11px !important;
+    padding: 5px 2px !important;
+    white-space: nowrap;
+    text-align: center;
+  }
+
+  /* Columna # → ancho fijo mínimo */
+  #sec-mundial .grupo-tabla th:nth-child(1),
+  #sec-mundial .grupo-tabla td:nth-child(1) {
+    width: 18px;
+  }
+
+  /* Columna Equipo → flex, bandera + nombre truncado */
+  #sec-mundial .grupo-tabla th:nth-child(2),
+  #sec-mundial .grupo-tabla td:nth-child(2) {
+    width: auto;
+    text-align: left !important;
+    padding-left: 4px !important;
+  }
+
+  /* Columnas numéricas (PTS PJ G E P DG) → ancho fijo pequeño */
+  #sec-mundial .grupo-tabla th:nth-child(n+3),
+  #sec-mundial .grupo-tabla td:nth-child(n+3) {
+    width: 28px;
+  }
+
+  /* La última columna DG es más ancha si tiene signo +/- */
+  #sec-mundial .grupo-tabla th:last-child,
+  #sec-mundial .grupo-tabla td:last-child {
+    width: 30px;
+  }
+
+  /* td-equipo: bandera + nombre en fila, nombre recortado */
+  #sec-mundial .grupo-tabla .td-equipo {
+    display: flex !important;
+    align-items: center;
+    gap: 5px;
+    min-width: 0;
+  }
+
+  /* Bandera PNG más compacta en móvil */
+  #sec-mundial .grupo-tabla .team-flag {
+    width: 20px !important;
+    height: 14px !important;
+    flex-shrink: 0;
+    border-radius: 2px;
+  }
+
+  /* Nombre del equipo: recortar si no cabe */
+  #sec-mundial .grupo-tabla .eq-nombre {
+    font-size: 11px !important;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 80px;
+  }
+
+  /* Fila que clasifica: borde izquierdo sutil */
+  #sec-mundial .grupo-tabla .row-clasifica td:first-child {
+    border-left: 3px solid var(--accent, #f5c518);
+  }
+}
+
+/* ── Pantallas muy pequeñas (≤360px): nombre aún más corto ── */
+@media (max-width: 360px) {
+  #sec-mundial .grupo-tabla .eq-nombre {
+    max-width: 58px !important;
+  }
+  #sec-mundial .grupo-tabla th:nth-child(n+3),
+  #sec-mundial .grupo-tabla td:nth-child(n+3) {
+    width: 24px !important;
+  }
 }
