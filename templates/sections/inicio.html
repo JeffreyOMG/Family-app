@@ -8291,7 +8291,7 @@ async function cargarMasPosts(btn) {
       if (!r.ok) throw new Error('HTTP '+r.status);
       const raw = await r.json();
       const all = Array.isArray(raw) ? raw : (raw.games || raw.data || raw);
-      const hoy = new Date(Date.now()-5*3600000).toISOString().slice(0,10);
+      const hoy = _hoyCol();
       const proximos = all
         .filter(p => p.fecha_iso && _isoDate(p.fecha_iso) > hoy && p.estado === 'programado')
         .sort((a,b) => (a.fecha_iso||'') < (b.fecha_iso||'') ? -1 : 1)
@@ -8398,7 +8398,17 @@ async function cargarMasPosts(btn) {
     } catch{return '';}
   }
   function _isoDate(iso) {
-    try{return new Date(new Date(iso)-5*3600000).toISOString().slice(0,10);}catch{return null;}
+    // fecha_iso viene en UTC (Z). Convertir a fecha Colombia (UTC-5).
+    try {
+      return new Date(new Date(iso)-5*3600000).toISOString().slice(0,10);
+    } catch { return null; }
+  }
+
+  function _hoyCol() {
+    // Calcular fecha de hoy en Colombia (UTC-5) a partir de UTC real.
+    const now = new Date();
+    // getTime() devuelve ms desde epoch (UTC), restar 5h para Colombia
+    return new Date(now.getTime() - 5*3600000).toISOString().slice(0,10);
   }
 
   // Caché de equipos (iso2 + nombre ES)
@@ -8456,7 +8466,7 @@ async function cargarMasPosts(btn) {
   }
 
   async function cargarPartidosHoy() {
-    const hoy = new Date(Date.now()-5*3600000).toISOString().slice(0,10);
+    const hoy = _hoyCol();
     const ck  = 'pah:'+hoy;
     let partidos = _pahCacheGet(ck);
 
