@@ -1,26 +1,21 @@
 """
 routes/mundial_api.py
 ======================
-Blueprint con los endpoints REST del Mundial 2026.
+Blueprint REST del Mundial 2026 — v3.
 
-Endpoints:
-  GET /api/mundial/partidos-hoy          Partidos del día actual
-  GET /api/mundial/en-vivo               Solo partidos en curso (marcador en tiempo real)
-  GET /api/mundial/proximos[?limit=N]    Próximos N partidos (default 10)
-  GET /api/mundial/partido/<int:id>      Detalle de un partido por ID
-  POST /api/mundial/cache/invalidar      Fuerza recarga (solo admin)
+Endpoints existentes (sin cambios):
+  GET /api/mundial/partidos-hoy
+  GET /api/mundial/en-vivo
+  GET /api/mundial/proximos[?limit=N]
+  GET /api/mundial/partido/<int:id>
+  POST /api/mundial/cache/invalidar
 
-Cabecera X-Poll-Interval:
-  Todos los endpoints incluyen esta cabecera indicando al cliente
-  cada cuántos segundos debe refrescar (20s live, 60s hoy, 120s normal).
-
-Formato de respuesta consistente:
-  {
-    "ok":    bool,
-    "data":  ... | null,
-    "meta":  { "fuente": str, "generado": str, "ttl_segundos": int },
-    "error": str | null     # solo cuando ok=False
-  }
+Nuevos endpoints v3:
+  GET /api/mundial/groups              → todos los grupos con tabla FIFA
+  GET /api/mundial/group-table/<letra> → tabla de un grupo (A-L)
+  GET /api/mundial/goals-ranking       → goles por selección DESC
+  GET /api/mundial/qualified           → clasificados 1° y 2° de cada grupo
+  GET /api/mundial/stats               → estadísticas globales
 """
 
 import logging
@@ -34,6 +29,11 @@ from services.mundial_service import (
     get_partido,
     invalidate_cache,
     get_live_ttl,
+    get_groups,
+    get_group_table,
+    get_goals_ranking,
+    get_qualified,
+    get_stats,
     CACHE_TTL_SECONDS,
 )
 
@@ -49,15 +49,14 @@ def _now_iso() -> str:
 
 
 def _ok(data, fuente: str):
-    """Respuesta 200 con cabecera X-Poll-Interval dinámica."""
     ttl = get_live_ttl()
     resp = jsonify({
-        "ok":    True,
-        "data":  data,
-        "meta":  {
-            "fuente":        fuente,
-            "generado":      _now_iso(),
-            "ttl_segundos":  ttl,
+        "ok":   True,
+        "data": data,
+        "meta": {
+            "fuente":       fuente,
+            "generado":     _now_iso(),
+            "ttl_segundos": ttl,
         },
         "error": None,
     })
@@ -65,12 +64,12 @@ def _ok(data, fuente: str):
     return resp, 200
 
 
-def _err(message: str, status: int = 500) -> tuple:
+def _err(message: str, status: int = 500):
     logger.error(f"Error {status}: {message}")
     return jsonify({
-        "ok":    False,
-        "data":  None,
-        "meta":  {
+        "ok":   False,
+        "data": None,
+        "meta": {
             "fuente":       "error",
             "generado":     _now_iso(),
             "ttl_segundos": 0,
@@ -80,14 +79,12 @@ def _err(message: str, status: int = 500) -> tuple:
 
 
 def _require_auth():
-    """Devuelve respuesta 401 si no hay sesión, None si está autenticado."""
     if "uid" not in session:
         return _err("No autenticado", 401)
     return None
 
 
 def _require_admin():
-    """Devuelve respuesta 403 si el usuario no tiene rol admin."""
     from database import get_db
     uid = session.get("uid")
     if not uid:
@@ -99,121 +96,164 @@ def _require_admin():
     return None
 
 
-# ─── Endpoints ────────────────────────────────────────────────────────────────
+# ─── Endpoints existentes ─────────────────────────────────────────────────────
 
 @mundial_api_bp.route("/partidos-hoy", methods=["GET"])
 def api_partidos_hoy():
-    """
-    GET /api/mundial/partidos-hoy
-    Partidos del día en zona Bogotá/Lima (UTC-5).
-    Incluye en_curso, programados y finalizados del día.
-    La cabecera X-Poll-Interval indica cada cuántos segundos refrescar.
-    """
     guard = _require_auth()
-    if guard:
-        return guard
-
+    if guard: return guard
     try:
         partidos, fuente = get_partidos_hoy()
-        logger.info(f"partidos-hoy → {len(partidos)} partidos (fuente={fuente})")
         return _ok(partidos, fuente)
     except Exception as exc:
-        logger.exception("Error inesperado en partidos-hoy")
+        logger.exception("Error en partidos-hoy")
         return _err(f"Error interno: {exc}")
 
 
 @mundial_api_bp.route("/en-vivo", methods=["GET"])
 def api_en_vivo():
-    """
-    GET /api/mundial/en-vivo
-    Solo los partidos con estado 'en_curso' en este momento.
-    Siempre intenta obtener datos frescos cuando hay partidos en curso.
-    Devuelve lista vacía (no error) si no hay ningún partido vivo.
-    """
     guard = _require_auth()
-    if guard:
-        return guard
-
+    if guard: return guard
     try:
         partidos, fuente = get_en_vivo()
-        logger.info(f"en-vivo → {len(partidos)} en curso (fuente={fuente})")
         return _ok(partidos, fuente)
     except Exception as exc:
-        logger.exception("Error inesperado en en-vivo")
+        logger.exception("Error en en-vivo")
         return _err(f"Error interno: {exc}")
 
 
 @mundial_api_bp.route("/proximos", methods=["GET"])
 def api_proximos():
-    """
-    GET /api/mundial/proximos[?limit=N]
-    Próximos N partidos sin disputar ordenados por fecha (default 10, max 50).
-    """
     guard = _require_auth()
-    if guard:
-        return guard
-
+    if guard: return guard
     try:
         limit = int(flask_request.args.get("limit", 10))
     except (TypeError, ValueError):
         return _err("El parámetro 'limit' debe ser un entero", 400)
-
     if not (1 <= limit <= 50):
         return _err("El parámetro 'limit' debe estar entre 1 y 50", 400)
-
     try:
         partidos, fuente = get_proximos(limit=limit)
-        logger.info(f"proximos → {len(partidos)} partidos (fuente={fuente}, limit={limit})")
         return _ok(partidos, fuente)
     except Exception as exc:
-        logger.exception("Error inesperado en proximos")
+        logger.exception("Error en proximos")
         return _err(f"Error interno: {exc}")
 
 
 @mundial_api_bp.route("/partido/<int:partido_id>", methods=["GET"])
 def api_partido_detalle(partido_id: int):
-    """
-    GET /api/mundial/partido/<id>
-    Detalle de un partido por ID. 404 si no existe.
-    """
     guard = _require_auth()
-    if guard:
-        return guard
-
+    if guard: return guard
     try:
         partido, fuente = get_partido(partido_id)
     except Exception as exc:
-        logger.exception(f"Error inesperado en partido/{partido_id}")
+        logger.exception(f"Error en partido/{partido_id}")
         return _err(f"Error interno: {exc}")
-
     if partido is None:
         return _err(f"Partido con id={partido_id} no encontrado", 404)
-
-    logger.info(f"partido/{partido_id} → encontrado (fuente={fuente})")
     return _ok(partido, fuente)
 
 
 @mundial_api_bp.route("/cache/invalidar", methods=["POST"])
 def api_invalidar_cache():
-    """
-    POST /api/mundial/cache/invalidar  (solo admin)
-    Invalida la caché para forzar recarga inmediata desde la API externa.
-    """
     guard = _require_admin()
-    if guard:
-        return guard
-
+    if guard: return guard
     invalidate_cache()
     logger.info(f"Caché invalidada por admin uid={session['uid']}")
     return jsonify({
-        "ok":    True,
-        "data":  {"mensaje": "Caché invalidada. El siguiente request recargará desde la API externa."},
-        "meta":  {"fuente": "manual", "generado": _now_iso(), "ttl_segundos": 0},
+        "ok":   True,
+        "data": {"mensaje": "Caché invalidada. El siguiente request recargará desde la API externa."},
+        "meta": {"fuente": "manual", "generado": _now_iso(), "ttl_segundos": 0},
         "error": None,
     }), 200
 
 
-# ─── Manejadores de error del blueprint ──────────────────────────────────────
+# ─── Nuevos endpoints v3 ──────────────────────────────────────────────────────
+
+@mundial_api_bp.route("/groups", methods=["GET"])
+def api_groups():
+    """
+    GET /api/mundial/groups
+    Retorna todos los grupos A-L con la tabla FIFA calculada desde partidos reales.
+    """
+    guard = _require_auth()
+    if guard: return guard
+    try:
+        grupos, fuente = get_groups()
+        return _ok(grupos, fuente)
+    except Exception as exc:
+        logger.exception("Error en groups")
+        return _err(f"Error interno: {exc}")
+
+
+@mundial_api_bp.route("/group-table/<letra>", methods=["GET"])
+def api_group_table(letra: str):
+    """
+    GET /api/mundial/group-table/<A-L>
+    Tabla de un solo grupo.
+    """
+    guard = _require_auth()
+    if guard: return guard
+    letra = letra.upper()
+    if letra not in list("ABCDEFGHIJKL"):
+        return _err(f"Grupo '{letra}' inválido. Use A-L.", 400)
+    try:
+        tabla, fuente = get_group_table(letra)
+        return _ok({"grupo": letra, "tabla": tabla}, fuente)
+    except Exception as exc:
+        logger.exception(f"Error en group-table/{letra}")
+        return _err(f"Error interno: {exc}")
+
+
+@mundial_api_bp.route("/goals-ranking", methods=["GET"])
+def api_goals_ranking():
+    """
+    GET /api/mundial/goals-ranking
+    Selecciones ordenadas por goles a favor DESC.
+    """
+    guard = _require_auth()
+    if guard: return guard
+    try:
+        ranking, fuente = get_goals_ranking()
+        return _ok(ranking, fuente)
+    except Exception as exc:
+        logger.exception("Error en goals-ranking")
+        return _err(f"Error interno: {exc}")
+
+
+@mundial_api_bp.route("/qualified", methods=["GET"])
+def api_qualified():
+    """
+    GET /api/mundial/qualified
+    1° y 2° clasificado de cada grupo con partidos jugados.
+    """
+    guard = _require_auth()
+    if guard: return guard
+    try:
+        clasificados, fuente = get_qualified()
+        return _ok(clasificados, fuente)
+    except Exception as exc:
+        logger.exception("Error en qualified")
+        return _err(f"Error interno: {exc}")
+
+
+@mundial_api_bp.route("/stats", methods=["GET"])
+def api_stats():
+    """
+    GET /api/mundial/stats
+    Estadísticas globales del torneo.
+    """
+    guard = _require_auth()
+    if guard: return guard
+    try:
+        stats, fuente = get_stats()
+        return _ok(stats, fuente)
+    except Exception as exc:
+        logger.exception("Error en stats")
+        return _err(f"Error interno: {exc}")
+
+
+# ─── Manejadores de error ─────────────────────────────────────────────────────
 
 @mundial_api_bp.errorhandler(404)
 def handle_404(exc):

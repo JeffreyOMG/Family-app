@@ -1,19 +1,18 @@
 """
 services/mundial_service.py
 ============================
-Servicio de datos del Mundial 2026.
+Servicio de datos del Mundial 2026 — v3.
 
 Flujo:
   worldcup26.ir/get/teams  →  _teams_cache (iso2 + nombre ES)
   worldcup26.ir/get/games  →  _fetch_external()  →  _cache  →  endpoints públicos
 
-Mejoras v2:
-  - Nombres de países en español (usando iso2 de /get/teams + mapa ES)
-  - Códigos de bandera leídos desde iso2 de la API (no mapa manual)
-  - Todas las fechas convertidas a hora Colombia (UTC-5)
-  - fecha_texto en español con hora Colombia
-  - Caché de equipos separado (TTL 1h)
-  - JWT en header Authorization para worldcup26.ir
+v3 — nuevas funciones públicas:
+  get_groups()           → dict {A..L: [equipo, ...]} con tabla FIFA calculada
+  get_group_table(letra) → lista de equipos de un grupo ordenados
+  get_goals_ranking()    → lista de selecciones ordenadas por GF DESC
+  get_qualified()        → 1°/2° de cada grupo
+  get_stats()            → estadísticas globales
 """
 
 import logging
@@ -42,8 +41,8 @@ if not logger.handlers:
 EXTERNAL_API_URL: str = os.getenv("MUNDIAL_API_URL", "https://worldcup26.ir/get/games")
 TEAMS_API_URL:    str = "https://worldcup26.ir/get/teams"
 CACHE_TTL_SECONDS: int = int(os.getenv("MUNDIAL_CACHE_TTL", "120"))
-REQUEST_TIMEOUT:   int = int(os.getenv("MUNDIAL_TIMEOUT",   "4"))   # bajo para no matar el worker
-MAX_RETRIES:       int = int(os.getenv("MUNDIAL_RETRIES",   "1"))   # sin reintentos — fallback inmediato
+REQUEST_TIMEOUT:   int = int(os.getenv("MUNDIAL_TIMEOUT",   "4"))
+MAX_RETRIES:       int = int(os.getenv("MUNDIAL_RETRIES",   "1"))
 RETRY_BACKOFF:   float = float(os.getenv("MUNDIAL_BACKOFF", "1.0"))
 _TTL_LIVE   = int(os.getenv("MUNDIAL_TTL_LIVE",  "20"))
 _TTL_HOY    = int(os.getenv("MUNDIAL_TTL_HOY",   "60"))
@@ -112,11 +111,9 @@ _NOMBRE_ES: dict[str, str] = {
     "iq": "Irak",           "sa": "Arabia Saudita","au": "Australia",
     "nz": "Nueva Zelanda",  "uz": "Uzbekistán",  "qa": "Catar",
     "jo": "Jordania",       "cn": "China",       "id": "Indonesia",
-    "th": "Tailandia",      "in": "India",
-    "fj": "Fiyi",
+    "th": "Tailandia",      "in": "India",       "fj": "Fiyi",
 }
 
-# Fallback nombre EN → ES (para cuando no viene iso2)
 _EN_ES: dict[str, str] = {
     "united states": "Estados Unidos", "usa": "Estados Unidos",
     "canada": "Canadá",    "mexico": "México",
@@ -200,8 +197,10 @@ _ELAPSED_LABEL: dict[str, Optional[str]] = {
     "penalties": "Penales",   "in progress": None,
 }
 
+# Grupos A-L del Mundial 2026
+_GRUPOS_LETRAS = list("ABCDEFGHIJKL")
+
 # ─── Caché de equipos (iso2 + nombre ES) ─────────────────────────────────────
-# team_id → {"iso2": "mx", "nombre_es": "México", "nombre_en": "Mexico"}
 _teams_data: dict[str, dict] = {}
 _teams_loaded = False
 
@@ -246,7 +245,6 @@ def _cargar_equipos() -> None:
             if not tid:
                 continue
             iso2_raw = (t.get("iso2") or "").lower().strip()
-            # worldcup26.ir devuelve iso2="ZA" (mayúsculas) → normalizamos
             nombre_en = t.get("name_en") or ""
             nombre_es = (
                 _NOMBRE_ES.get(iso2_raw)
@@ -260,11 +258,11 @@ def _cargar_equipos() -> None:
             }
         _teams_data = data
         _teams_loaded = True
-        _cache.set("teams_data", data, ttl=3600)  # 1 hora
+        _cache.set("teams_data", data, ttl=3600)
         logger.info(f"Equipos cargados: {len(data)} equipos con iso2 y nombre ES")
     except Exception as exc:
         logger.warning(f"No se pudo cargar /get/teams: {exc} — se usará fallback por nombre")
-        _teams_loaded = True  # no reintentar en cada partido
+        _teams_loaded = True
 
 
 def _get_team_info(team_id: str, name_en: str) -> tuple[str, str]:
@@ -279,10 +277,8 @@ def _get_team_info(team_id: str, name_en: str) -> tuple[str, str]:
     if info:
         return info["nombre_es"], info["iso2"]
 
-    # Fallback por nombre
     iso2 = ""
     nombre_es = _EN_ES.get(name_en.lower(), name_en)
-    # Intentar obtener iso2 por nombre si no está en el cache
     for _iso, _en in {
         "us":"United States","ca":"Canada","mx":"Mexico","br":"Brazil",
         "ar":"Argentina","co":"Colombia","uy":"Uruguay","cl":"Chile",
@@ -311,19 +307,14 @@ def _get_team_info(team_id: str, name_en: str) -> tuple[str, str]:
 # ─── Conversión de fecha local del estadio → UTC → Colombia ──────────────────
 
 def _local_date_to_col_iso(local_date: str, stadium_id: str) -> Optional[str]:
-    """
-    Convierte "MM/DD/YYYY HH:MM" (hora local del estadio) a ISO-8601 en UTC,
-    que el frontend convierte a hora Colombia (UTC-5).
-    Devuelve string ISO con Z al final: "2026-06-14T19:00:00Z"
-    """
     try:
         parts = local_date.strip().split(" ")
-        dp = parts[0].split("/")          # ["MM","DD","YYYY"]
+        dp = parts[0].split("/")
         tp = parts[1] if len(parts) > 1 else "00:00"
         naive = datetime(int(dp[2]), int(dp[0]), int(dp[1]),
                          int(tp[:2]), int(tp[3:]))
         stadium_name = _STADIUM_ID_NAME.get(str(stadium_id))
-        offset_h = _STADIUM_UTC_OFFSET.get(stadium_name, -6)  # fallback México
+        offset_h = _STADIUM_UTC_OFFSET.get(stadium_name, -6)
         utc_dt = naive - timedelta(hours=offset_h)
         return utc_dt.strftime("%Y-%m-%dT%H:%M:%SZ")
     except Exception:
@@ -331,7 +322,6 @@ def _local_date_to_col_iso(local_date: str, stadium_id: str) -> Optional[str]:
 
 
 def _iso_to_col_texto(iso: str) -> str:
-    """Convierte ISO UTC a texto español en hora Colombia: "Dom. 14 jun, 20:00"."""
     dias_es   = ["Lun.", "Mar.", "Mié.", "Jue.", "Vie.", "Sáb.", "Dom."]
     meses_es  = ["ene", "feb", "mar", "abr", "may", "jun",
                  "jul", "ago", "sep", "oct", "nov", "dic"]
@@ -360,9 +350,6 @@ def _iso_to_col_date(iso: str) -> Optional[str]:
 # ─── Normalización de un partido ─────────────────────────────────────────────
 
 def _normalize_game(raw: dict, idx: int = 0) -> dict:
-    """Transforma un objeto de worldcup26.ir al esquema canónico con datos en español."""
-
-    # ── Equipos ──────────────────────────────────────────────────────────────
     home_id   = str(raw.get("home_team_id") or "")
     away_id   = str(raw.get("away_team_id") or "")
     home_en   = raw.get("home_team_name_en") or raw.get("home_team") or "TBD"
@@ -371,7 +358,6 @@ def _normalize_game(raw: dict, idx: int = 0) -> dict:
     nombre_local,    cod_local = _get_team_info(home_id, home_en)
     nombre_visitante, cod_visit = _get_team_info(away_id, away_en)
 
-    # ── Marcador ─────────────────────────────────────────────────────────────
     score = raw.get("score") or raw.get("scores")
     if isinstance(score, dict) and score:
         gl = score.get("home")
@@ -384,7 +370,6 @@ def _normalize_game(raw: dict, idx: int = 0) -> dict:
     try: gv = int(gv) if gv is not None else None
     except (TypeError, ValueError): gv = None
 
-    # ── Estado ───────────────────────────────────────────────────────────────
     time_elapsed  = str(raw.get("time_elapsed") or "").lower().strip()
     finished_raw  = str(raw.get("finished")     or "").upper().strip()
 
@@ -402,7 +387,6 @@ def _normalize_game(raw: dict, idx: int = 0) -> dict:
 
     bloqueado = estado == "finalizado"
 
-    # ── Fase / grupo ─────────────────────────────────────────────────────────
     type_raw  = str(raw.get("type")  or "").lower()
     phase_raw = str(raw.get("round") or raw.get("phase") or raw.get("stage") or "")
     fase = _TYPE_MAP.get(type_raw) or _TYPE_MAP.get(phase_raw.lower(), phase_raw.strip() or "Grupos")
@@ -413,25 +397,20 @@ def _normalize_game(raw: dict, idx: int = 0) -> dict:
         m = re.search(r"[A-L]", grupo_raw.upper())
         grupo = m.group(0) if m else None
 
-    # ── Fecha → UTC → texto Colombia ─────────────────────────────────────────
     local_date = str(raw.get("local_date") or "")
     stadium_id = str(raw.get("stadium_id") or "")
 
     if local_date and "/" in local_date:
         fecha_iso = _local_date_to_col_iso(local_date, stadium_id)
     else:
-        # Si ya viene en otro formato
         fecha_iso = local_date or None
 
     fecha_texto = _iso_to_col_texto(fecha_iso) if fecha_iso else ""
-
-    # ── Sede ─────────────────────────────────────────────────────────────────
     sede = _STADIUM_ID_NAME.get(stadium_id, "")
     if not sede:
         venue = raw.get("venue") or raw.get("stadium") or raw.get("city") or ""
         sede  = str(venue) if not isinstance(venue, dict) else venue.get("name", "")
 
-    # ── Minuto ───────────────────────────────────────────────────────────────
     def _minuto_reloj(iso: Optional[str]) -> Optional[str]:
         if not iso:
             return "En vivo"
@@ -482,7 +461,7 @@ def _normalize_game(raw: dict, idx: int = 0) -> dict:
 import json as _json_mod
 
 _SEED_GAMES_RAW: list[dict] = _json_mod.loads(
-    '[{"id":"1","local_date":"06/11/2026 13:00","stadium_id":"1","group":"A","type":"group","matchday":"1","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"Mexico","away_team_name_en":"South Africa","home_team_id":"1","away_team_id":"2"},{"id":"2","local_date":"06/11/2026 20:00","stadium_id":"2","group":"B","type":"group","matchday":"1","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"South Korea","away_team_name_en":"Czech Republic","home_team_id":"3","away_team_id":"4"},{"id":"3","local_date":"06/12/2026 15:00","stadium_id":"12","group":"C","type":"group","matchday":"1","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"Canada","away_team_name_en":"Bosnia and Herzegovina","home_team_id":"5","away_team_id":"6"},{"id":"4","local_date":"06/12/2026 18:00","stadium_id":"16","group":"D","type":"group","matchday":"1","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"United States","away_team_name_en":"Paraguay","home_team_id":"7","away_team_id":"8"},{"id":"5","local_date":"06/13/2026 13:00","stadium_id":"3","group":"E","type":"group","matchday":"1","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"Qatar","away_team_name_en":"Switzerland","home_team_id":"9","away_team_id":"10"},{"id":"6","local_date":"06/13/2026 16:00","stadium_id":"4","group":"F","type":"group","matchday":"1","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"Brazil","away_team_name_en":"Morocco","home_team_id":"11","away_team_id":"12"},{"id":"7","local_date":"06/13/2026 21:00","stadium_id":"5","group":"G","type":"group","matchday":"1","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"Haiti","away_team_name_en":"Scotland","home_team_id":"13","away_team_id":"14"},{"id":"8","local_date":"06/14/2026 14:00","stadium_id":"6","group":"H","type":"group","matchday":"1","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"United States","away_team_name_en":"Paraguay","home_team_id":"7","away_team_id":"8"},{"id":"9","local_date":"06/14/2026 17:00","stadium_id":"7","group":"I","type":"group","matchday":"1","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"Australia","away_team_name_en":"Turkey","home_team_id":"15","away_team_id":"16"},{"id":"10","local_date":"06/14/2026 21:00","stadium_id":"8","group":"J","type":"group","matchday":"1","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"Germany","away_team_name_en":"Curacao","home_team_id":"17","away_team_id":"18"},{"id":"11","local_date":"06/15/2026 12:00","stadium_id":"9","group":"K","type":"group","matchday":"1","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"Ivory Coast","away_team_name_en":"Ecuador","home_team_id":"19","away_team_id":"20"},{"id":"12","local_date":"06/15/2026 15:00","stadium_id":"10","group":"L","type":"group","matchday":"1","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"Netherlands","away_team_name_en":"Japan","home_team_id":"21","away_team_id":"22"},{"id":"13","local_date":"06/15/2026 19:00","stadium_id":"11","group":"A","type":"group","matchday":"1","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"Sweden","away_team_name_en":"Tunisia","home_team_id":"23","away_team_id":"24"},{"id":"14","local_date":"06/16/2026 12:00","stadium_id":"13","group":"B","type":"group","matchday":"1","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"Belgium","away_team_name_en":"Egypt","home_team_id":"25","away_team_id":"26"},{"id":"15","local_date":"06/16/2026 16:00","stadium_id":"14","group":"C","type":"group","matchday":"1","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"Iran","away_team_name_en":"New Zealand","home_team_id":"27","away_team_id":"28"},{"id":"16","local_date":"06/16/2026 20:00","stadium_id":"15","group":"D","type":"group","matchday":"1","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"Spain","away_team_name_en":"Cape Verde","home_team_id":"29","away_team_id":"30"},{"id":"17","local_date":"06/17/2026 12:00","stadium_id":"16","group":"E","type":"group","matchday":"1","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"Saudi Arabia","away_team_name_en":"Uruguay","home_team_id":"31","away_team_id":"32"},{"id":"18","local_date":"06/17/2026 16:00","stadium_id":"1","group":"F","type":"group","matchday":"1","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"France","away_team_name_en":"Senegal","home_team_id":"33","away_team_id":"34"},{"id":"19","local_date":"06/17/2026 20:00","stadium_id":"2","group":"G","type":"group","matchday":"1","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"Iraq","away_team_name_en":"Norway","home_team_id":"35","away_team_id":"36"},{"id":"20","local_date":"06/18/2026 12:00","stadium_id":"3","group":"H","type":"group","matchday":"1","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"Argentina","away_team_name_en":"Algeria","home_team_id":"37","away_team_id":"38"},{"id":"21","local_date":"06/18/2026 16:00","stadium_id":"4","group":"I","type":"group","matchday":"1","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"Austria","away_team_name_en":"Jordan","home_team_id":"39","away_team_id":"40"},{"id":"22","local_date":"06/18/2026 20:00","stadium_id":"5","group":"J","type":"group","matchday":"1","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"Portugal","away_team_name_en":"Democratic Republic of the Congo","home_team_id":"41","away_team_id":"42"},{"id":"23","local_date":"06/19/2026 12:00","stadium_id":"6","group":"K","type":"group","matchday":"1","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"Uzbekistan","away_team_name_en":"Colombia","home_team_id":"43","away_team_id":"44"},{"id":"24","local_date":"06/19/2026 16:00","stadium_id":"7","group":"L","type":"group","matchday":"1","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"England","away_team_name_en":"Croatia","home_team_id":"45","away_team_id":"46"},{"id":"25","local_date":"06/19/2026 20:00","stadium_id":"8","group":"A","type":"group","matchday":"1","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"Ghana","away_team_name_en":"Panama","home_team_id":"47","away_team_id":"48"},{"id":"26","local_date":"06/20/2026 12:00","stadium_id":"9","group":"B","type":"group","matchday":"2","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"Czech Republic","away_team_name_en":"Belgium","home_team_id":"4","away_team_id":"25"},{"id":"27","local_date":"06/20/2026 16:00","stadium_id":"10","group":"C","type":"group","matchday":"2","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"Bosnia and Herzegovina","away_team_name_en":"Iran","home_team_id":"6","away_team_id":"27"},{"id":"28","local_date":"06/20/2026 20:00","stadium_id":"11","group":"D","type":"group","matchday":"2","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"Paraguay","away_team_name_en":"Spain","home_team_id":"8","away_team_id":"29"},{"id":"29","local_date":"06/21/2026 12:00","stadium_id":"12","group":"E","type":"group","matchday":"2","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"Switzerland","away_team_name_en":"Saudi Arabia","home_team_id":"10","away_team_id":"31"},{"id":"30","local_date":"06/21/2026 16:00","stadium_id":"13","group":"F","type":"group","matchday":"2","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"Morocco","away_team_name_en":"Uzbekistan","home_team_id":"12","away_team_id":"43"},{"id":"31","local_date":"06/21/2026 20:00","stadium_id":"14","group":"G","type":"group","matchday":"2","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"Scotland","away_team_name_en":"Iraq","home_team_id":"14","away_team_id":"35"},{"id":"32","local_date":"06/22/2026 12:00","stadium_id":"15","group":"H","type":"group","matchday":"2","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"Algeria","away_team_name_en":"Austria","home_team_id":"38","away_team_id":"39"},{"id":"33","local_date":"06/22/2026 16:00","stadium_id":"16","group":"I","type":"group","matchday":"2","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"Jordan","away_team_name_en":"Australia","home_team_id":"40","away_team_id":"15"},{"id":"34","local_date":"06/22/2026 20:00","stadium_id":"1","group":"J","type":"group","matchday":"2","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"Curacao","away_team_name_en":"Portugal","home_team_id":"18","away_team_id":"41"},{"id":"35","local_date":"06/23/2026 12:00","stadium_id":"2","group":"K","type":"group","matchday":"2","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"Colombia","away_team_name_en":"Ivory Coast","home_team_id":"44","away_team_id":"19"},{"id":"36","local_date":"06/23/2026 16:00","stadium_id":"3","group":"L","type":"group","matchday":"2","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"Croatia","away_team_name_en":"Netherlands","home_team_id":"46","away_team_id":"21"},{"id":"37","local_date":"06/23/2026 20:00","stadium_id":"4","group":"A","type":"group","matchday":"2","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"South Africa","away_team_name_en":"Sweden","home_team_id":"2","away_team_id":"23"},{"id":"38","local_date":"06/24/2026 12:00","stadium_id":"5","group":"B","type":"group","matchday":"2","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"Egypt","away_team_name_en":"South Korea","home_team_id":"26","away_team_id":"3"},{"id":"39","local_date":"06/24/2026 16:00","stadium_id":"6","group":"C","type":"group","matchday":"2","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"New Zealand","away_team_name_en":"Canada","home_team_id":"28","away_team_id":"5"},{"id":"40","local_date":"06/24/2026 20:00","stadium_id":"7","group":"D","type":"group","matchday":"2","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"Cape Verde","away_team_name_en":"United States","home_team_id":"30","away_team_id":"7"},{"id":"41","local_date":"06/25/2026 12:00","stadium_id":"8","group":"E","type":"group","matchday":"2","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"Uruguay","away_team_name_en":"Qatar","home_team_id":"32","away_team_id":"9"},{"id":"42","local_date":"06/25/2026 16:00","stadium_id":"9","group":"F","type":"group","matchday":"2","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"Senegal","away_team_name_en":"Brazil","home_team_id":"34","away_team_id":"11"},{"id":"43","local_date":"06/25/2026 20:00","stadium_id":"10","group":"G","type":"group","matchday":"2","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"Norway","away_team_name_en":"Haiti","home_team_id":"36","away_team_id":"13"},{"id":"44","local_date":"06/26/2026 12:00","stadium_id":"11","group":"H","type":"group","matchday":"2","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"Argentina","away_team_name_en":"Algeria","home_team_id":"37","away_team_id":"38"},{"id":"45","local_date":"06/26/2026 16:00","stadium_id":"12","group":"I","type":"group","matchday":"2","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"Turkey","away_team_name_en":"Jordan","home_team_id":"16","away_team_id":"40"},{"id":"46","local_date":"06/26/2026 20:00","stadium_id":"13","group":"J","type":"group","matchday":"2","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"Democratic Republic of the Congo","away_team_name_en":"Germany","home_team_id":"42","away_team_id":"17"},{"id":"47","local_date":"06/27/2026 12:00","stadium_id":"14","group":"K","type":"group","matchday":"2","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"Ecuador","away_team_name_en":"Colombia","home_team_id":"20","away_team_id":"44"},{"id":"48","local_date":"06/27/2026 16:00","stadium_id":"15","group":"L","type":"group","matchday":"2","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"Japan","away_team_name_en":"England","home_team_id":"22","away_team_id":"45"},{"id":"49","local_date":"06/27/2026 20:00","stadium_id":"16","group":"A","type":"group","matchday":"2","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"Panama","away_team_name_en":"Mexico","home_team_id":"48","away_team_id":"1"},{"id":"50","local_date":"06/28/2026 12:00","stadium_id":"1","group":"B","type":"group","matchday":"2","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"Tunisia","away_team_name_en":"Czech Republic","home_team_id":"24","away_team_id":"4"},{"id":"51","local_date":"06/28/2026 16:00","stadium_id":"2","group":"C","type":"group","matchday":"2","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"Iran","away_team_name_en":"New Zealand","home_team_id":"27","away_team_id":"28"},{"id":"52","local_date":"06/28/2026 20:00","stadium_id":"3","group":"D","type":"group","matchday":"2","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"Spain","away_team_name_en":"Paraguay","home_team_id":"29","away_team_id":"8"},{"id":"53","local_date":"06/29/2026 12:00","stadium_id":"4","group":"E","type":"group","matchday":"3","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"Qatar","away_team_name_en":"Saudi Arabia","home_team_id":"9","away_team_id":"31"},{"id":"54","local_date":"06/29/2026 12:00","stadium_id":"5","group":"E","type":"group","matchday":"3","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"Switzerland","away_team_name_en":"Uruguay","home_team_id":"10","away_team_id":"32"},{"id":"55","local_date":"06/29/2026 20:00","stadium_id":"6","group":"F","type":"group","matchday":"3","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"Brazil","away_team_name_en":"Senegal","home_team_id":"11","away_team_id":"34"},{"id":"56","local_date":"06/29/2026 20:00","stadium_id":"7","group":"F","type":"group","matchday":"3","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"Morocco","away_team_name_en":"Uzbekistan","home_team_id":"12","away_team_id":"43"},{"id":"57","local_date":"06/30/2026 12:00","stadium_id":"8","group":"G","type":"group","matchday":"3","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"Scotland","away_team_name_en":"Haiti","home_team_id":"14","away_team_id":"13"},{"id":"58","local_date":"06/30/2026 12:00","stadium_id":"9","group":"G","type":"group","matchday":"3","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"Norway","away_team_name_en":"Iraq","home_team_id":"36","away_team_id":"35"},{"id":"59","local_date":"06/30/2026 20:00","stadium_id":"10","group":"H","type":"group","matchday":"3","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"Argentina","away_team_name_en":"Algeria","home_team_id":"37","away_team_id":"38"},{"id":"60","local_date":"06/30/2026 20:00","stadium_id":"11","group":"H","type":"group","matchday":"3","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"Austria","away_team_name_en":"Algeria","home_team_id":"39","away_team_id":"38"},{"id":"61","local_date":"07/01/2026 12:00","stadium_id":"12","group":"I","type":"group","matchday":"3","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"Australia","away_team_name_en":"Jordan","home_team_id":"15","away_team_id":"40"},{"id":"62","local_date":"07/01/2026 12:00","stadium_id":"13","group":"I","type":"group","matchday":"3","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"Turkey","away_team_name_en":"Austria","home_team_id":"16","away_team_id":"39"},{"id":"63","local_date":"07/01/2026 20:00","stadium_id":"14","group":"J","type":"group","matchday":"3","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"Germany","away_team_name_en":"Portugal","home_team_id":"17","away_team_id":"41"},{"id":"64","local_date":"07/01/2026 20:00","stadium_id":"15","group":"J","type":"group","matchday":"3","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"Curacao","away_team_name_en":"Democratic Republic of the Congo","home_team_id":"18","away_team_id":"42"},{"id":"65","local_date":"07/02/2026 12:00","stadium_id":"16","group":"K","type":"group","matchday":"3","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"Ivory Coast","away_team_name_en":"Colombia","home_team_id":"19","away_team_id":"44"},{"id":"66","local_date":"07/02/2026 12:00","stadium_id":"1","group":"K","type":"group","matchday":"3","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"Ecuador","away_team_name_en":"Uzbekistan","home_team_id":"20","away_team_id":"43"},{"id":"67","local_date":"07/02/2026 20:00","stadium_id":"2","group":"L","type":"group","matchday":"3","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"Netherlands","away_team_name_en":"England","home_team_id":"21","away_team_id":"45"},{"id":"68","local_date":"07/02/2026 20:00","stadium_id":"3","group":"L","type":"group","matchday":"3","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"Japan","away_team_name_en":"Croatia","home_team_id":"22","away_team_id":"46"},{"id":"69","local_date":"07/03/2026 12:00","stadium_id":"4","group":"A","type":"group","matchday":"3","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"Mexico","away_team_name_en":"Ghana","home_team_id":"1","away_team_id":"47"},{"id":"70","local_date":"07/03/2026 12:00","stadium_id":"5","group":"A","type":"group","matchday":"3","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"Panama","away_team_name_en":"South Africa","home_team_id":"48","away_team_id":"2"},{"id":"71","local_date":"07/03/2026 20:00","stadium_id":"6","group":"B","type":"group","matchday":"3","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"South Korea","away_team_name_en":"Tunisia","home_team_id":"3","away_team_id":"24"},{"id":"72","local_date":"07/03/2026 20:00","stadium_id":"7","group":"B","type":"group","matchday":"3","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"Belgium","away_team_name_en":"Egypt","home_team_id":"25","away_team_id":"26"},{"id":"73","local_date":"07/04/2026 15:00","stadium_id":"16","group":"","type":"r32","matchday":"4","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"2A","away_team_name_en":"2B","home_team_id":"0","away_team_id":"0"},{"id":"74","local_date":"07/04/2026 19:00","stadium_id":"9","group":"","type":"r32","matchday":"4","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"1E","away_team_name_en":"3-ABCDF","home_team_id":"0","away_team_id":"0"},{"id":"75","local_date":"07/05/2026 15:00","stadium_id":"6","group":"","type":"r32","matchday":"4","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"1F","away_team_name_en":"2C","home_team_id":"0","away_team_id":"0"},{"id":"76","local_date":"07/05/2026 19:00","stadium_id":"11","group":"","type":"r32","matchday":"4","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"1B","away_team_name_en":"3-ACDE","home_team_id":"0","away_team_id":"0"},{"id":"77","local_date":"07/06/2026 15:00","stadium_id":"14","group":"","type":"r32","matchday":"4","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"1J","away_team_name_en":"2I","home_team_id":"0","away_team_id":"0"},{"id":"78","local_date":"07/06/2026 19:00","stadium_id":"7","group":"","type":"r32","matchday":"4","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"1K","away_team_name_en":"2L","home_team_id":"0","away_team_id":"0"},{"id":"79","local_date":"07/07/2026 15:00","stadium_id":"8","group":"","type":"r32","matchday":"4","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"1L","away_team_name_en":"2K","home_team_id":"0","away_team_id":"0"},{"id":"80","local_date":"07/07/2026 19:00","stadium_id":"4","group":"","type":"r32","matchday":"4","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"1I","away_team_name_en":"2J","home_team_id":"0","away_team_id":"0"},{"id":"81","local_date":"07/08/2026 15:00","stadium_id":"1","group":"","type":"r32","matchday":"4","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"1A","away_team_name_en":"2B","home_team_id":"0","away_team_id":"0"},{"id":"82","local_date":"07/08/2026 19:00","stadium_id":"5","group":"","type":"r32","matchday":"4","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"1C","away_team_name_en":"2D","home_team_id":"0","away_team_id":"0"},{"id":"83","local_date":"07/09/2026 15:00","stadium_id":"3","group":"","type":"r32","matchday":"4","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"1D","away_team_name_en":"2C","home_team_id":"0","away_team_id":"0"},{"id":"84","local_date":"07/09/2026 19:00","stadium_id":"15","group":"","type":"r32","matchday":"4","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"1G","away_team_name_en":"3-GHIJ","home_team_id":"0","away_team_id":"0"},{"id":"85","local_date":"07/10/2026 15:00","stadium_id":"13","group":"","type":"r32","matchday":"4","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"1H","away_team_name_en":"3-BDEF","home_team_id":"0","away_team_id":"0"},{"id":"86","local_date":"07/10/2026 19:00","stadium_id":"12","group":"","type":"r32","matchday":"4","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"2G","away_team_name_en":"3-HIJK","home_team_id":"0","away_team_id":"0"},{"id":"87","local_date":"07/11/2026 15:00","stadium_id":"2","group":"","type":"r32","matchday":"4","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"1C","away_team_name_en":"2D","home_team_id":"0","away_team_id":"0"},{"id":"88","local_date":"07/11/2026 19:00","stadium_id":"10","group":"","type":"r32","matchday":"4","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"2E","away_team_name_en":"2F","home_team_id":"0","away_team_id":"0"},{"id":"89","local_date":"07/15/2026 15:00","stadium_id":"11","group":"","type":"r16","matchday":"5","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"W73","away_team_name_en":"W74","home_team_id":"0","away_team_id":"0"},{"id":"90","local_date":"07/15/2026 19:00","stadium_id":"7","group":"","type":"r16","matchday":"5","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"W77","away_team_name_en":"W78","home_team_id":"0","away_team_id":"0"},{"id":"91","local_date":"07/16/2026 15:00","stadium_id":"5","group":"","type":"r16","matchday":"5","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"W75","away_team_name_en":"W76","home_team_id":"0","away_team_id":"0"},{"id":"92","local_date":"07/16/2026 19:00","stadium_id":"9","group":"","type":"r16","matchday":"5","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"W79","away_team_name_en":"W80","home_team_id":"0","away_team_id":"0"},{"id":"93","local_date":"07/17/2026 15:00","stadium_id":"14","group":"","type":"r16","matchday":"5","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"W81","away_team_name_en":"W82","home_team_id":"0","away_team_id":"0"},{"id":"94","local_date":"07/17/2026 19:00","stadium_id":"1","group":"","type":"r16","matchday":"5","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"W85","away_team_name_en":"W86","home_team_id":"0","away_team_id":"0"},{"id":"95","local_date":"07/18/2026 15:00","stadium_id":"16","group":"","type":"r16","matchday":"5","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"W83","away_team_name_en":"W84","home_team_id":"0","away_team_id":"0"},{"id":"96","local_date":"07/18/2026 19:00","stadium_id":"4","group":"","type":"r16","matchday":"5","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"W87","away_team_name_en":"W88","home_team_id":"0","away_team_id":"0"},{"id":"97","local_date":"07/22/2026 19:00","stadium_id":"11","group":"","type":"qf","matchday":"6","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"W89","away_team_name_en":"W90","home_team_id":"0","away_team_id":"0"},{"id":"98","local_date":"07/22/2026 19:00","stadium_id":"6","group":"","type":"qf","matchday":"6","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"W91","away_team_name_en":"W92","home_team_id":"0","away_team_id":"0"},{"id":"99","local_date":"07/23/2026 19:00","stadium_id":"15","group":"","type":"qf","matchday":"6","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"W93","away_team_name_en":"W94","home_team_id":"0","away_team_id":"0"},{"id":"100","local_date":"07/23/2026 19:00","stadium_id":"13","group":"","type":"qf","matchday":"6","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"W95","away_team_name_en":"W96","home_team_id":"0","away_team_id":"0"},{"id":"101","local_date":"07/26/2026 19:00","stadium_id":"3","group":"","type":"sf","matchday":"7","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"W97","away_team_name_en":"W98","home_team_id":"0","away_team_id":"0"},{"id":"102","local_date":"07/26/2026 19:00","stadium_id":"8","group":"","type":"sf","matchday":"7","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"W99","away_team_name_en":"W100","home_team_id":"0","away_team_id":"0"},{"id":"103","local_date":"07/29/2026 15:00","stadium_id":"2","group":"","type":"third","matchday":"8","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"L101","away_team_name_en":"L102","home_team_id":"0","away_team_id":"0"},{"id":"104","local_date":"08/02/2026 15:00","stadium_id":"11","group":"","type":"final","matchday":"9","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"W101","away_team_name_en":"W102","home_team_id":"0","away_team_id":"0"}]'
+    '[{"id":"1","local_date":"06/11/2026 13:00","stadium_id":"1","group":"A","type":"group","matchday":"1","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"Mexico","away_team_name_en":"South Africa","home_team_id":"1","away_team_id":"2"},{"id":"2","local_date":"06/11/2026 20:00","stadium_id":"2","group":"B","type":"group","matchday":"1","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"South Korea","away_team_name_en":"Czech Republic","home_team_id":"3","away_team_id":"4"},{"id":"3","local_date":"06/12/2026 15:00","stadium_id":"12","group":"C","type":"group","matchday":"1","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"Canada","away_team_name_en":"Bosnia and Herzegovina","home_team_id":"5","away_team_id":"6"},{"id":"4","local_date":"06/12/2026 18:00","stadium_id":"16","group":"D","type":"group","matchday":"1","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"United States","away_team_name_en":"Paraguay","home_team_id":"7","away_team_id":"8"},{"id":"5","local_date":"06/13/2026 13:00","stadium_id":"3","group":"E","type":"group","matchday":"1","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"Qatar","away_team_name_en":"Switzerland","home_team_id":"9","away_team_id":"10"},{"id":"6","local_date":"06/13/2026 16:00","stadium_id":"4","group":"F","type":"group","matchday":"1","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"Brazil","away_team_name_en":"Morocco","home_team_id":"11","away_team_id":"12"},{"id":"7","local_date":"06/13/2026 21:00","stadium_id":"5","group":"G","type":"group","matchday":"1","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"Haiti","away_team_name_en":"Scotland","home_team_id":"13","away_team_id":"14"},{"id":"8","local_date":"06/14/2026 14:00","stadium_id":"6","group":"H","type":"group","matchday":"1","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"United States","away_team_name_en":"Paraguay","home_team_id":"7","away_team_id":"8"},{"id":"9","local_date":"06/14/2026 17:00","stadium_id":"7","group":"I","type":"group","matchday":"1","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"Australia","away_team_name_en":"Turkey","home_team_id":"15","away_team_id":"16"},{"id":"10","local_date":"06/14/2026 21:00","stadium_id":"8","group":"J","type":"group","matchday":"1","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"Germany","away_team_name_en":"Curacao","home_team_id":"17","away_team_id":"18"},{"id":"11","local_date":"06/15/2026 12:00","stadium_id":"9","group":"K","type":"group","matchday":"1","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"Ivory Coast","away_team_name_en":"Ecuador","home_team_id":"19","away_team_id":"20"},{"id":"12","local_date":"06/15/2026 15:00","stadium_id":"10","group":"L","type":"group","matchday":"1","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"Netherlands","away_team_name_en":"Japan","home_team_id":"21","away_team_id":"22"},{"id":"13","local_date":"06/15/2026 19:00","stadium_id":"11","group":"A","type":"group","matchday":"1","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"Sweden","away_team_name_en":"Tunisia","home_team_id":"23","away_team_id":"24"},{"id":"14","local_date":"06/16/2026 12:00","stadium_id":"13","group":"B","type":"group","matchday":"1","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"Belgium","away_team_name_en":"Egypt","home_team_id":"25","away_team_id":"26"},{"id":"15","local_date":"06/16/2026 16:00","stadium_id":"14","group":"C","type":"group","matchday":"1","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"Iran","away_team_name_en":"New Zealand","home_team_id":"27","away_team_id":"28"},{"id":"16","local_date":"06/16/2026 20:00","stadium_id":"15","group":"D","type":"group","matchday":"1","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"Spain","away_team_name_en":"Cape Verde","home_team_id":"29","away_team_id":"30"},{"id":"17","local_date":"06/17/2026 12:00","stadium_id":"16","group":"E","type":"group","matchday":"1","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"Saudi Arabia","away_team_name_en":"Uruguay","home_team_id":"31","away_team_id":"32"},{"id":"18","local_date":"06/17/2026 16:00","stadium_id":"1","group":"F","type":"group","matchday":"1","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"France","away_team_name_en":"Senegal","home_team_id":"33","away_team_id":"34"},{"id":"19","local_date":"06/17/2026 20:00","stadium_id":"2","group":"G","type":"group","matchday":"1","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"Iraq","away_team_name_en":"Norway","home_team_id":"35","away_team_id":"36"},{"id":"20","local_date":"06/18/2026 12:00","stadium_id":"3","group":"H","type":"group","matchday":"1","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"Argentina","away_team_name_en":"Algeria","home_team_id":"37","away_team_id":"38"},{"id":"21","local_date":"06/18/2026 16:00","stadium_id":"4","group":"I","type":"group","matchday":"1","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"Austria","away_team_name_en":"Jordan","home_team_id":"39","away_team_id":"40"},{"id":"22","local_date":"06/18/2026 20:00","stadium_id":"5","group":"J","type":"group","matchday":"1","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"Portugal","away_team_name_en":"Democratic Republic of the Congo","home_team_id":"41","away_team_id":"42"},{"id":"23","local_date":"06/19/2026 12:00","stadium_id":"6","group":"K","type":"group","matchday":"1","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"Uzbekistan","away_team_name_en":"Colombia","home_team_id":"43","away_team_id":"44"},{"id":"24","local_date":"06/19/2026 16:00","stadium_id":"7","group":"L","type":"group","matchday":"1","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"England","away_team_name_en":"Croatia","home_team_id":"45","away_team_id":"46"},{"id":"25","local_date":"06/19/2026 20:00","stadium_id":"8","group":"A","type":"group","matchday":"1","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"Ghana","away_team_name_en":"Panama","home_team_id":"47","away_team_id":"48"},{"id":"26","local_date":"06/20/2026 12:00","stadium_id":"9","group":"B","type":"group","matchday":"2","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"Czech Republic","away_team_name_en":"Belgium","home_team_id":"4","away_team_id":"25"},{"id":"27","local_date":"06/20/2026 16:00","stadium_id":"10","group":"C","type":"group","matchday":"2","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"Bosnia and Herzegovina","away_team_name_en":"Iran","home_team_id":"6","away_team_id":"27"},{"id":"28","local_date":"06/20/2026 20:00","stadium_id":"11","group":"D","type":"group","matchday":"2","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"Paraguay","away_team_name_en":"Spain","home_team_id":"8","away_team_id":"29"},{"id":"29","local_date":"06/21/2026 12:00","stadium_id":"12","group":"E","type":"group","matchday":"2","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"Switzerland","away_team_name_en":"Saudi Arabia","home_team_id":"10","away_team_id":"31"},{"id":"30","local_date":"06/21/2026 16:00","stadium_id":"13","group":"F","type":"group","matchday":"2","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"Morocco","away_team_name_en":"Uzbekistan","home_team_id":"12","away_team_id":"43"},{"id":"31","local_date":"06/21/2026 20:00","stadium_id":"14","group":"G","type":"group","matchday":"2","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"Scotland","away_team_name_en":"Iraq","home_team_id":"14","away_team_id":"35"},{"id":"32","local_date":"06/22/2026 12:00","stadium_id":"15","group":"H","type":"group","matchday":"2","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"Algeria","away_team_name_en":"Austria","home_team_id":"38","away_team_id":"39"},{"id":"33","local_date":"06/22/2026 16:00","stadium_id":"16","group":"I","type":"group","matchday":"2","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"Jordan","away_team_name_en":"Australia","home_team_id":"40","away_team_id":"15"},{"id":"34","local_date":"06/22/2026 20:00","stadium_id":"1","group":"J","type":"group","matchday":"2","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"Curacao","away_team_name_en":"Portugal","home_team_id":"18","away_team_id":"41"},{"id":"35","local_date":"06/23/2026 12:00","stadium_id":"2","group":"K","type":"group","matchday":"2","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"Colombia","away_team_name_en":"Ivory Coast","home_team_id":"44","away_team_id":"19"},{"id":"36","local_date":"06/23/2026 16:00","stadium_id":"3","group":"L","type":"group","matchday":"2","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"Croatia","away_team_name_en":"Netherlands","home_team_id":"46","away_team_id":"21"},{"id":"37","local_date":"06/23/2026 20:00","stadium_id":"4","group":"A","type":"group","matchday":"2","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"South Africa","away_team_name_en":"Sweden","home_team_id":"2","away_team_id":"23"},{"id":"38","local_date":"06/24/2026 12:00","stadium_id":"5","group":"B","type":"group","matchday":"2","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"Egypt","away_team_name_en":"South Korea","home_team_id":"26","away_team_id":"3"},{"id":"39","local_date":"06/24/2026 16:00","stadium_id":"6","group":"C","type":"group","matchday":"2","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"New Zealand","away_team_name_en":"Canada","home_team_id":"28","away_team_id":"5"},{"id":"40","local_date":"06/24/2026 20:00","stadium_id":"7","group":"D","type":"group","matchday":"2","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"Cape Verde","away_team_name_en":"United States","home_team_id":"30","away_team_id":"7"},{"id":"41","local_date":"06/25/2026 12:00","stadium_id":"8","group":"E","type":"group","matchday":"2","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"Uruguay","away_team_name_en":"Qatar","home_team_id":"32","away_team_id":"9"},{"id":"42","local_date":"06/25/2026 16:00","stadium_id":"9","group":"F","type":"group","matchday":"2","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"Senegal","away_team_name_en":"Brazil","home_team_id":"34","away_team_id":"11"},{"id":"43","local_date":"06/25/2026 20:00","stadium_id":"10","group":"G","type":"group","matchday":"2","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"Norway","away_team_name_en":"Haiti","home_team_id":"36","away_team_id":"13"},{"id":"44","local_date":"06/26/2026 12:00","stadium_id":"11","group":"H","type":"group","matchday":"2","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"Argentina","away_team_name_en":"Algeria","home_team_id":"37","away_team_id":"38"},{"id":"45","local_date":"06/26/2026 16:00","stadium_id":"12","group":"I","type":"group","matchday":"2","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"Turkey","away_team_name_en":"Jordan","home_team_id":"16","away_team_id":"40"},{"id":"46","local_date":"06/26/2026 20:00","stadium_id":"13","group":"J","type":"group","matchday":"2","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"Democratic Republic of the Congo","away_team_name_en":"Germany","home_team_id":"42","away_team_id":"17"},{"id":"47","local_date":"06/27/2026 12:00","stadium_id":"14","group":"K","type":"group","matchday":"2","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"Ecuador","away_team_name_en":"Colombia","home_team_id":"20","away_team_id":"44"},{"id":"48","local_date":"06/27/2026 16:00","stadium_id":"15","group":"L","type":"group","matchday":"2","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"Japan","away_team_name_en":"England","home_team_id":"22","away_team_id":"45"},{"id":"49","local_date":"06/27/2026 20:00","stadium_id":"16","group":"A","type":"group","matchday":"2","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"Panama","away_team_name_en":"Mexico","home_team_id":"48","away_team_id":"1"},{"id":"50","local_date":"06/28/2026 12:00","stadium_id":"1","group":"B","type":"group","matchday":"2","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"Tunisia","away_team_name_en":"Czech Republic","home_team_id":"24","away_team_id":"4"},{"id":"51","local_date":"06/28/2026 16:00","stadium_id":"2","group":"C","type":"group","matchday":"2","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"Iran","away_team_name_en":"New Zealand","home_team_id":"27","away_team_id":"28"},{"id":"52","local_date":"06/28/2026 20:00","stadium_id":"3","group":"D","type":"group","matchday":"2","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"Spain","away_team_name_en":"Paraguay","home_team_id":"29","away_team_id":"8"},{"id":"53","local_date":"06/29/2026 12:00","stadium_id":"4","group":"E","type":"group","matchday":"3","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"Qatar","away_team_name_en":"Saudi Arabia","home_team_id":"9","away_team_id":"31"},{"id":"54","local_date":"06/29/2026 12:00","stadium_id":"5","group":"E","type":"group","matchday":"3","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"Switzerland","away_team_name_en":"Uruguay","home_team_id":"10","away_team_id":"32"},{"id":"55","local_date":"06/29/2026 20:00","stadium_id":"6","group":"F","type":"group","matchday":"3","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"Brazil","away_team_name_en":"Senegal","home_team_id":"11","away_team_id":"34"},{"id":"56","local_date":"06/29/2026 20:00","stadium_id":"7","group":"F","type":"group","matchday":"3","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"Morocco","away_team_name_en":"Uzbekistan","home_team_id":"12","away_team_id":"43"},{"id":"57","local_date":"06/30/2026 12:00","stadium_id":"8","group":"G","type":"group","matchday":"3","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"Scotland","away_team_name_en":"Haiti","home_team_id":"14","away_team_id":"13"},{"id":"58","local_date":"06/30/2026 12:00","stadium_id":"9","group":"G","type":"group","matchday":"3","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"Norway","away_team_name_en":"Iraq","home_team_id":"36","away_team_id":"35"},{"id":"59","local_date":"06/30/2026 20:00","stadium_id":"10","group":"H","type":"group","matchday":"3","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"Argentina","away_team_name_en":"Algeria","home_team_id":"37","away_team_id":"38"},{"id":"60","local_date":"06/30/2026 20:00","stadium_id":"11","group":"H","type":"group","matchday":"3","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"Austria","away_team_name_en":"Algeria","home_team_id":"39","away_team_id":"38"},{"id":"61","local_date":"07/01/2026 12:00","stadium_id":"12","group":"I","type":"group","matchday":"3","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"Australia","away_team_name_en":"Jordan","home_team_id":"15","away_team_id":"40"},{"id":"62","local_date":"07/01/2026 12:00","stadium_id":"13","group":"I","type":"group","matchday":"3","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"Turkey","away_team_name_en":"Austria","home_team_id":"16","away_team_id":"39"},{"id":"63","local_date":"07/01/2026 20:00","stadium_id":"14","group":"J","type":"group","matchday":"3","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"Germany","away_team_name_en":"Portugal","home_team_id":"17","away_team_id":"41"},{"id":"64","local_date":"07/01/2026 20:00","stadium_id":"15","group":"J","type":"group","matchday":"3","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"Curacao","away_team_name_en":"Democratic Republic of the Congo","home_team_id":"18","away_team_id":"42"},{"id":"65","local_date":"07/02/2026 12:00","stadium_id":"16","group":"K","type":"group","matchday":"3","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"Ivory Coast","away_team_name_en":"Colombia","home_team_id":"19","away_team_id":"44"},{"id":"66","local_date":"07/02/2026 12:00","stadium_id":"1","group":"K","type":"group","matchday":"3","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"Ecuador","away_team_name_en":"Uzbekistan","home_team_id":"20","away_team_id":"43"},{"id":"67","local_date":"07/02/2026 20:00","stadium_id":"2","group":"L","type":"group","matchday":"3","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"Netherlands","away_team_name_en":"England","home_team_id":"21","away_team_id":"45"},{"id":"68","local_date":"07/02/2026 20:00","stadium_id":"3","group":"L","type":"group","matchday":"3","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"Japan","away_team_name_en":"Croatia","home_team_id":"22","away_team_id":"46"},{"id":"69","local_date":"07/03/2026 12:00","stadium_id":"4","group":"A","type":"group","matchday":"3","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"Mexico","away_team_name_en":"Ghana","home_team_id":"1","away_team_id":"47"},{"id":"70","local_date":"07/03/2026 12:00","stadium_id":"5","group":"A","type":"group","matchday":"3","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"Panama","away_team_name_en":"South Africa","home_team_id":"48","away_team_id":"2"},{"id":"71","local_date":"07/03/2026 20:00","stadium_id":"6","group":"B","type":"group","matchday":"3","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"South Korea","away_team_name_en":"Tunisia","home_team_id":"3","away_team_id":"24"},{"id":"72","local_date":"07/03/2026 20:00","stadium_id":"7","group":"B","type":"group","matchday":"3","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"Belgium","away_team_name_en":"Egypt","home_team_id":"25","away_team_id":"26"},{"id":"73","local_date":"07/04/2026 15:00","stadium_id":"16","group":"","type":"r32","matchday":"4","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"2A","away_team_name_en":"2B","home_team_id":"0","away_team_id":"0"},{"id":"104","local_date":"08/02/2026 15:00","stadium_id":"11","group":"","type":"final","matchday":"9","finished":"FALSE","time_elapsed":"notstarted","home_score":"0","away_score":"0","home_team_name_en":"W101","away_team_name_en":"W102","home_team_id":"0","away_team_id":"0"}]'
 )
 
 
@@ -500,8 +479,6 @@ def _fallback_games() -> list[dict]:
 # ─── Fetch externo ────────────────────────────────────────────────────────────
 
 def _fetch_external() -> list[dict]:
-    # Timeout corto para no bloquear el worker de Gunicorn.
-    # Si worldcup26.ir no responde (IP de Render bloqueada), cae al fallback seed.
     raw_json = _hacer_request(EXTERNAL_API_URL)
     if isinstance(raw_json, list):
         games_raw = raw_json
@@ -566,7 +543,6 @@ def get_all_games(force_refresh: bool = False) -> tuple[list[dict], str]:
         if cached is not None and not force_refresh:
             return cached, "cache"
 
-        # Asegurarse de tener equipos cargados antes de normalizar partidos
         if not _teams_loaded:
             _cargar_equipos()
 
@@ -577,13 +553,13 @@ def get_all_games(force_refresh: bool = False) -> tuple[list[dict], str]:
             logger.info(f"Caché actualizado — TTL={ttl}s, partidos={len(games)}")
             return games, "external"
         except Exception as exc:
-            logger.warning(f"worldcup26.ir inaccesible desde Render (probable bloqueo IP): {exc}. Usando seed.")
+            logger.warning(f"worldcup26.ir inaccesible: {exc}. Usando seed.")
             games = _fallback_games()
             _cache.set("all_games", games, ttl=30)
             return games, "fallback"
 
 
-# ─── API pública ──────────────────────────────────────────────────────────────
+# ─── API pública — partidos ───────────────────────────────────────────────────
 
 def get_partidos_hoy() -> tuple[list[dict], str]:
     games, source = get_all_games()
@@ -632,6 +608,251 @@ def hay_partidos_en_vivo() -> bool:
     if cached is None:
         return False
     return any(_game_is_live(g) for g in cached)
+
+
+# ─── API pública — grupos y tabla FIFA ───────────────────────────────────────
+
+def _calcular_tabla_grupo(letra: str, games: list[dict]) -> list[dict]:
+    """
+    Calcula la tabla FIFA para un grupo a partir de los partidos finalizados.
+    Retorna lista de equipos ordenados por: PTS → DG → GF → nombre.
+    """
+    partidos_grupo = [
+        g for g in games
+        if g.get("grupo") == letra and g.get("fase") == "Grupos"
+    ]
+
+    # Recopilar equipos únicos en el grupo
+    equipos: dict[str, dict] = {}
+    for g in partidos_grupo:
+        for nombre, codigo in [
+            (g["local"], g["codigo_local"]),
+            (g["visitante"], g["codigo_visit"])
+        ]:
+            if nombre and nombre != "TBD" and nombre not in equipos:
+                equipos[nombre] = {
+                    "nombre":  nombre,
+                    "codigo":  codigo,
+                    "pj": 0, "pg": 0, "pe": 0, "pp": 0,
+                    "gf": 0, "gc": 0, "dg": 0, "pts": 0,
+                }
+
+    # Computar estadísticas con partidos finalizados
+    for g in partidos_grupo:
+        if not g.get("bloqueado"):
+            continue
+        gl = g.get("goles_local")
+        gv = g.get("goles_visit")
+        if gl is None or gv is None:
+            continue
+        loc = g["local"]
+        vis = g["visitante"]
+        if loc not in equipos or vis not in equipos:
+            continue
+
+        gl, gv = int(gl), int(gv)
+
+        equipos[loc]["pj"] += 1
+        equipos[loc]["gf"] += gl
+        equipos[loc]["gc"] += gv
+        equipos[vis]["pj"] += 1
+        equipos[vis]["gf"] += gv
+        equipos[vis]["gc"] += gl
+
+        if gl > gv:
+            equipos[loc]["pg"] += 1; equipos[loc]["pts"] += 3
+            equipos[vis]["pp"] += 1
+        elif gl < gv:
+            equipos[vis]["pg"] += 1; equipos[vis]["pts"] += 3
+            equipos[loc]["pp"] += 1
+        else:
+            equipos[loc]["pe"] += 1; equipos[loc]["pts"] += 1
+            equipos[vis]["pe"] += 1; equipos[vis]["pts"] += 1
+
+    for e in equipos.values():
+        e["dg"] = e["gf"] - e["gc"]
+
+    # Ordenar: pts → dg → gf → nombre
+    rows = sorted(equipos.values(), key=lambda x: (
+        -x["pts"], -x["dg"], -x["gf"], x["nombre"]
+    ))
+
+    # Añadir posición
+    for i, r in enumerate(rows):
+        r["pos"] = i + 1
+
+    return rows
+
+
+def get_groups() -> tuple[dict[str, list[dict]], str]:
+    """
+    Retorna {letra: [equipo_con_stats, ...]} para los 12 grupos.
+    Calcula posiciones con reglas FIFA desde partidos reales.
+    """
+    cached = _cache.get("groups_table")
+    if cached is not None:
+        return cached, "cache"
+
+    games, source = get_all_games()
+
+    result: dict[str, list[dict]] = {}
+    for letra in _GRUPOS_LETRAS:
+        result[letra] = _calcular_tabla_grupo(letra, games)
+
+    _cache.set("groups_table", result, ttl=_dynamic_ttl(games))
+    return result, source
+
+
+def get_group_table(letra: str) -> tuple[list[dict], str]:
+    """Retorna la tabla de un solo grupo."""
+    letra = letra.upper()
+    if letra not in _GRUPOS_LETRAS:
+        return [], "error"
+    grupos, source = get_groups()
+    return grupos.get(letra, []), source
+
+
+def get_goals_ranking() -> tuple[list[dict], str]:
+    """
+    Retorna selecciones ordenadas por goles a favor (GF DESC).
+    Si worldcup26.ir no tiene goleadores individuales, se usa GF por selección.
+    """
+    cached = _cache.get("goals_ranking")
+    if cached is not None:
+        return cached, "cache"
+
+    games, source = get_all_games()
+
+    # Acumular GF por equipo desde partidos finalizados (todas las fases)
+    goles: dict[str, dict] = {}
+    for g in games:
+        if not g.get("bloqueado"):
+            continue
+        gl = g.get("goles_local")
+        gv = g.get("goles_visit")
+        if gl is None or gv is None:
+            continue
+        gl, gv = int(gl), int(gv)
+
+        for nombre, codigo, golesf in [
+            (g["local"],     g["codigo_local"], gl),
+            (g["visitante"], g["codigo_visit"], gv),
+        ]:
+            if not nombre or nombre == "TBD":
+                continue
+            if nombre not in goles:
+                goles[nombre] = {"nombre": nombre, "codigo": codigo, "gf": 0}
+            goles[nombre]["gf"] += golesf
+
+    ranking = sorted(goles.values(), key=lambda x: -x["gf"])
+    for i, r in enumerate(ranking):
+        r["pos"] = i + 1
+
+    _cache.set("goals_ranking", ranking, ttl=_dynamic_ttl(games))
+    return ranking, source
+
+
+def get_qualified() -> tuple[list[dict], str]:
+    """
+    Detecta automáticamente 1° y 2° clasificado de cada grupo.
+    Solo muestra equipos cuando el grupo tiene partidos finalizados.
+    """
+    cached = _cache.get("qualified")
+    if cached is not None:
+        return cached, "cache"
+
+    grupos, source = get_groups()
+    result = []
+
+    for letra, equipos in grupos.items():
+        if not equipos:
+            continue
+        # Solo incluir si hay algún partido jugado
+        if all(e["pj"] == 0 for e in equipos):
+            continue
+        for eq in equipos[:2]:  # 1° y 2° lugar
+            result.append({
+                "grupo":    letra,
+                "pos":      eq["pos"],
+                "nombre":   eq["nombre"],
+                "codigo":   eq["codigo"],
+                "pts":      eq["pts"],
+                "pj":       eq["pj"],
+            })
+
+    games, _ = get_all_games()
+    _cache.set("qualified", result, ttl=_dynamic_ttl(games))
+    return result, source
+
+
+def get_stats() -> tuple[dict, str]:
+    """
+    Estadísticas globales del torneo calculadas desde partidos oficiales.
+    """
+    cached = _cache.get("stats")
+    if cached is not None:
+        return cached, "cache"
+
+    games, source = get_all_games()
+
+    equipos: dict[str, dict] = {}
+    total_goles = 0
+    partidos_jugados = 0
+
+    for g in games:
+        if not g.get("bloqueado"):
+            continue
+        gl = g.get("goles_local")
+        gv = g.get("goles_visit")
+        if gl is None or gv is None:
+            continue
+        gl, gv = int(gl), int(gv)
+        total_goles += gl + gv
+        partidos_jugados += 1
+
+        for nombre, codigo, gf, gc in [
+            (g["local"],     g["codigo_local"], gl, gv),
+            (g["visitante"], g["codigo_visit"], gv, gl),
+        ]:
+            if not nombre or nombre == "TBD":
+                continue
+            if nombre not in equipos:
+                equipos[nombre] = {
+                    "nombre": nombre, "codigo": codigo,
+                    "gf": 0, "gc": 0, "dg": 0,
+                    "pg": 0, "pe": 0, "pp": 0, "pj": 0
+                }
+            e = equipos[nombre]
+            e["gf"] += gf; e["gc"] += gc; e["pj"] += 1
+            if gf > gc:   e["pg"] += 1
+            elif gf == gc: e["pe"] += 1
+            else:          e["pp"] += 1
+
+    for e in equipos.values():
+        e["dg"] = e["gf"] - e["gc"]
+
+    if not equipos:
+        stats = {
+            "total_goles": 0, "partidos_jugados": 0,
+            "mas_goleador": None, "menos_goleado": None,
+            "mayor_diferencia": None, "mas_victorias": None,
+            "mas_empates": None, "mas_derrotas": None,
+        }
+    else:
+        lst = list(equipos.values())
+        stats = {
+            "total_goles":        total_goles,
+            "partidos_jugados":   partidos_jugados,
+            "mas_goleador":       max(lst, key=lambda x: x["gf"]),
+            "menos_goleado":      min((e for e in lst if e["pj"] > 0), key=lambda x: x["gc"], default=None),
+            "mayor_diferencia":   max(lst, key=lambda x: x["dg"]),
+            "mas_victorias":      max(lst, key=lambda x: x["pg"]),
+            "mas_empates":        max(lst, key=lambda x: x["pe"]),
+            "mas_derrotas":       max(lst, key=lambda x: x["pp"]),
+        }
+
+    _cache.set("stats", stats, ttl=_dynamic_ttl(games))
+    return stats, source
 
 
 def invalidate_cache() -> None:
