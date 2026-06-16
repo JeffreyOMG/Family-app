@@ -2856,17 +2856,17 @@ body.dark-mode .post-badge-privado { background: rgba(139,92,246,.2); color: #a7
 }
 .pah-badge--proximo { color: var(--text2); background: var(--bg2); border: 1px solid var(--border); }
 .pah-badge--final   { color: #16a34a; background: rgba(22,163,74,.12); }
+.pah-badge-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
 .pah-grupo-badge {
-  display: inline-block;
   font-size: 10px;
   font-weight: 700;
   letter-spacing: .04em;
   color: var(--text3, #9ca3af);
-  background: var(--bg2);
-  border: 1px solid var(--border);
-  border-radius: 5px;
-  padding: 1px 6px;
-  margin-bottom: 4px;
   text-transform: uppercase;
 }
 
@@ -8095,8 +8095,11 @@ async function cargarMasPosts(btn) {
         </div>`;
     }
 
+    // Grupo en la misma fila que el badge de hora/estado, alineado a la derecha
     const grupoBadge = p.grupo ? `<span class="pah-grupo-badge">Grupo ${_esc(p.grupo)}</span>` : '';
-    return `<div class="pah-item">${badge}${grupoBadge}${matchRow}</div>`;
+    const badgeRow = `<div class="pah-badge-row">${badge}${grupoBadge}</div>`;
+
+    return `<div class="pah-item">${badgeRow}${matchRow}</div>`;
   }
 
   function _poblarLista(sufijo, partidos) {
