@@ -204,7 +204,7 @@
           </div>
           <div class="panel-empty pah-error" id="pah-error-mobile" style="display:none;">
             <span class="material-symbols-outlined">wifi_off</span>
-            <p>No se pudo cargar</p>
+            <p>Marcadores no disponibles</p>
           </div>
           <div class="panel-empty pah-vacio" id="pah-vacio-mobile" style="display:none;">
             <span class="material-symbols-outlined">sports_soccer</span>
@@ -445,7 +445,7 @@
           </div>
           <div class="panel-empty pah-error" id="pah-error-desktop" style="display:none;">
             <span class="material-symbols-outlined">wifi_off</span>
-            <p>No se pudo cargar</p>
+            <p>Marcadores no disponibles</p>
           </div>
           <div class="panel-empty pah-vacio" id="pah-vacio-desktop" style="display:none;">
             <span class="material-symbols-outlined">sports_soccer</span>
@@ -8520,29 +8520,34 @@ async function cargarMasPosts(btn) {
 
   // ── Fetch con fallback: intenta worldcup26.ir directo, luego proxy propio ──
   async function _fetchGames() {
-    // 1. Intentar worldcup26.ir directamente (funciona si el navegador no bloquea CORS)
+    // 1. Intentar worldcup26.ir directamente desde el navegador (sin pasar por Render)
     try {
       const r = await fetch('https://worldcup26.ir/get/games', { mode: 'cors', cache: 'no-store' });
       if (r.ok) {
         const raw = await r.json();
         const list = Array.isArray(raw) ? raw : (raw.games || raw.data || []);
         if (list.length) {
-          // Datos crudos → necesitan normalización
           const tm = await _getTeams();
           const normalized = list.map(g => _normWC(g, tm));
           console.log('[PAH] worldcup26.ir directo OK | partidos:', normalized.length);
           return { games: normalized, source: 'live' };
         }
       }
-    } catch(_) { /* CORS o red — intentar proxy */ }
+    } catch(_) { /* CORS bloqueado — intentar proxy */ }
 
-    // 2. Proxy propio (datos ya normalizados por el backend)
+    // 2. Proxy propio — verificar si devuelve datos reales o seed viejo
     const r2 = await fetch(_WC_GAMES, { cache: 'no-store' });
     if (!r2.ok) throw new Error('HTTP ' + r2.status);
+    const source2 = r2.headers.get('X-Data-Source') || '';
+    if (source2 === 'fallback') {
+      // El backend no pudo llegar a worldcup26.ir y usa seed estático desactualizado
+      // NO usar esos datos porque tienen fechas/grupos incorrectos
+      throw new Error('SEED_FALLBACK');
+    }
     const raw2 = await r2.json();
     const list2 = Array.isArray(raw2) ? raw2 : (raw2.games || raw2.data || raw2);
-    console.log('[PAH] proxy /api/wc/games OK | partidos:', list2.length);
-    return { games: list2, source: 'proxy' };
+    console.log('[PAH] proxy /api/wc/games OK | partidos:', list2.length, '| source:', source2);
+    return { games: list2, source: source2 };
   }
 
   async function cargarPartidosHoy() {
@@ -8565,10 +8570,17 @@ async function cargarMasPosts(btn) {
         console.log('[PAH] hoy:',hoy,'| partidos hoy:',partidos.length,'| vivo:',vivo,'| source:',source);
       } catch(err) {
         console.error('[PAH] Error cargando partidos:', err.message);
+        // Si el backend solo tiene seed desactualizado, mostrar aviso específico
+        const esSeed = err.message === 'SEED_FALLBACK';
         const banner = document.getElementById('pah-fallback-banner');
-        if (banner) banner.style.display = 'block';
+        if (banner) {
+          banner.style.display = 'block';
+          banner.textContent = esSeed
+            ? '⚠️ Marcadores en vivo no disponibles temporalmente — intenta recargar'
+            : '⚠️ No se pudo conectar al servicio de partidos';
+        }
         ['desktop','mobile'].forEach(s=>_setEstado(s,'error'));
-        _schedulePoll(30000);
+        _schedulePoll(esSeed ? 60000 : 30000);
         return;
       }
     }
