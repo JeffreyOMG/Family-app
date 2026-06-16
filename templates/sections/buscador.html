@@ -583,12 +583,15 @@ function busAbrirGaleria() {
 .bus-pron-search-wrap { margin-bottom: 14px; }
 .pron-fechas-wrap {
   display: flex; flex-wrap: wrap; gap: 6px;
-  padding: 4px 0 8px;
+  padding: 4px 0 8px; overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
 }
+.pron-fechas-wrap::-webkit-scrollbar { display: none; }
 .pron-fecha-chip {
   padding: 5px 13px; border-radius: 20px; font-size: 12px; font-weight: 600;
   border: 1px solid var(--border); background: var(--card); color: var(--text2);
-  cursor: pointer; transition: all .15s; white-space: nowrap;
+  cursor: pointer; transition: all .15s; white-space: nowrap; flex-shrink: 0;
 }
 .pron-fecha-chip.active {
   background: var(--accent); border-color: var(--accent); color: #fff;
@@ -596,86 +599,214 @@ function busAbrirGaleria() {
 .pron-fecha-chip:hover:not(.active) { background: var(--bg2); }
 
 /* Skeleton */
-.pron-skeleton-list { display: flex; flex-direction: column; gap: 8px; }
-.pron-sk-item { display: flex; gap: 10px; align-items: center; padding: 10px 14px; background: var(--card); border-radius: 12px; border: 1px solid var(--border); }
-.pron-sk-av { width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0; }
-.pron-sk-body { flex: 1; display: flex; flex-direction: column; gap: 6px; }
+.pron-skeleton-list { display: flex; flex-direction: column; gap: 10px; }
+.pron-sk-item { display: flex; gap: 10px; align-items: center; padding: 14px 16px; background: var(--card); border-radius: 14px; border: 1px solid var(--border); }
+.pron-sk-av { width: 38px; height: 38px; border-radius: 50%; flex-shrink: 0; }
+.pron-sk-body { flex: 1; display: flex; flex-direction: column; gap: 8px; }
 .pron-sk-line { height: 12px; border-radius: 6px; }
-.pron-sk-short { width: 55%; }
+.pron-sk-short { width: 50%; }
 .skeleton { background: linear-gradient(90deg, var(--bg2) 25%, var(--border) 50%, var(--bg2) 75%); background-size: 200% 100%; animation: sk-shimmer 1.4s infinite; }
 @keyframes sk-shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
 
-/* Card partido */
+/* ── Card partido colapsable ── */
 .pron-partido-group {
   background: var(--card); border: 1px solid var(--border);
-  border-radius: 14px; overflow: hidden; margin-bottom: 14px;
+  border-radius: 16px; overflow: hidden; margin-bottom: 12px;
+  box-shadow: 0 1px 4px rgba(0,0,0,.04);
+  transition: box-shadow .2s;
 }
+.pron-partido-group:hover { box-shadow: 0 3px 12px rgba(0,0,0,.08); }
+
+/* Header clickable */
 .pron-partido-header {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 10px 14px 8px;
-  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 14px 10px;
   background: var(--bg2);
+  cursor: pointer;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: background .15s;
 }
-.pron-partido-title { font-size: 13px; font-weight: 700; color: var(--text); }
-.pron-partido-resultado {
-  display: flex; align-items: center; gap: 6px;
-  font-size: 14px; font-weight: 900; color: var(--text);
+.pron-partido-header:active { background: var(--border); }
+
+/* Layout equipo con bandera */
+.pron-match-body {
+  flex: 1; min-width: 0;
+  display: flex; align-items: center; gap: 8px;
+}
+.pron-teams-wrap {
+  flex: 1; display: flex; align-items: center; gap: 6px; min-width: 0;
+}
+.pron-team {
+  display: flex; align-items: center; gap: 5px;
+  min-width: 0; flex: 1;
+}
+.pron-team-flag {
+  flex-shrink: 0; line-height: 1; display: flex; align-items: center;
+}
+.pron-flag-img {
+  width: 26px; height: 19px;
+  object-fit: contain;
+  border-radius: 2px;
+  display: block;
+}
+.pron-team-name {
+  font-size: 12px; font-weight: 700; color: var(--text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.pron-vs {
+  font-size: 10px; font-weight: 800; color: var(--text3);
+  flex-shrink: 0; padding: 0 2px;
+}
+.pron-partido-score-box {
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  flex-shrink: 0;
 }
 .pron-partido-score {
-  background: var(--card); border: 1px solid var(--border);
-  border-radius: 8px; padding: 3px 10px;
-  font-size: 15px; font-weight: 900;
+  background: var(--card); border: 1.5px solid var(--border);
+  border-radius: 8px; padding: 4px 10px;
+  font-size: 15px; font-weight: 900; color: var(--text);
+  white-space: nowrap;
+}
+.pron-score-label { font-size: 9px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: .4px; }
+
+/* Meta row (grupo, fecha, contador, chevron) */
+.pron-meta-row {
+  display: flex; align-items: center; gap: 6px; margin-top: 5px;
 }
 .pron-grupo-badge {
   font-size: 10px; font-weight: 700; padding: 2px 8px;
   border-radius: 10px; background: rgba(var(--accent-rgb,20,184,166),.12);
-  color: var(--accent); border: 1px solid rgba(var(--accent-rgb,20,184,166),.25);
+  color: var(--accent); border: 1px solid rgba(var(--accent-rgb,20,184,166),.22);
+  white-space: nowrap;
 }
-.pron-fecha-badge { font-size: 11px; color: var(--text3); }
+.pron-count-badge {
+  font-size: 10px; font-weight: 600; padding: 2px 7px;
+  border-radius: 10px; background: var(--card); border: 1px solid var(--border);
+  color: var(--text3); margin-left: auto; white-space: nowrap;
+}
+.pron-chevron {
+  font-size: 16px; color: var(--text3); flex-shrink: 0;
+  transition: transform .25s; display: flex; align-items: center;
+}
+.pron-partido-group.open .pron-chevron { transform: rotate(180deg); }
+
+/* Body rows (colapsable) */
+.pron-rows-body {
+  display: none; border-top: 1px solid var(--border);
+}
+.pron-partido-group.open .pron-rows-body { display: block; }
 
 /* Fila de usuario */
 .pron-row {
   display: flex; align-items: center; gap: 10px;
-  padding: 9px 14px; border-bottom: 1px solid var(--border);
-  transition: background .15s; cursor: default;
+  padding: 10px 14px; border-bottom: 1px solid var(--border);
+  transition: background .15s;
 }
 .pron-row:last-child { border-bottom: none; }
 .pron-row:hover { background: var(--bg2); }
-.pron-av-img { width: 30px; height: 30px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
+.pron-av-img { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; flex-shrink: 0; border: 1.5px solid var(--border); }
 .pron-av-letter {
-  width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0;
+  width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0;
   background: var(--accent); color: #fff;
   display: flex; align-items: center; justify-content: center;
   font-size: 13px; font-weight: 700;
 }
 .pron-user-info { flex: 1; min-width: 0; }
-.pron-user-name { font-size: 13px; font-weight: 600; color: var(--text); }
+.pron-user-name { font-size: 13px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .pron-user-handle { font-size: 11px; color: var(--text3); }
 .pron-pred {
-  display: flex; align-items: center; gap: 5px;
-  font-size: 13px; font-weight: 700;
+  display: flex; flex-direction: column; align-items: flex-end; gap: 3px;
+  flex-shrink: 0;
 }
 .pron-pred-score {
-  background: var(--bg2); border: 1px solid var(--border);
-  border-radius: 7px; padding: 2px 8px; font-size: 13px; font-weight: 800;
+  background: var(--bg2); border: 1.5px solid var(--border);
+  border-radius: 7px; padding: 3px 9px; font-size: 13px; font-weight: 800;
+  color: var(--text); white-space: nowrap;
+  display: flex; align-items: center; gap: 4px;
 }
+.pron-pred-score .pron-flag-img { width: 20px; height: 14px; }
 .pron-pts {
-  font-size: 11px; font-weight: 800; padding: 2px 7px;
-  border-radius: 10px; min-width: 28px; text-align: center;
+  font-size: 10px; font-weight: 800; padding: 2px 7px;
+  border-radius: 10px; min-width: 32px; text-align: center; white-space: nowrap;
 }
 .pron-pts-3 { background: rgba(22,163,74,.15); color: #16a34a; }
 .pron-pts-1 { background: rgba(234,179,8,.15);  color: #ca8a04; }
 .pron-pts-0 { background: rgba(239,68,68,.12);  color: #dc2626; }
 .pron-pts-4 { background: rgba(99,102,241,.15); color: #6366f1; }
+
+/* Mobile tweaks */
+@media (max-width: 400px) {
+  .pron-team-name { font-size: 11px; }
+  .pron-partido-score { font-size: 13px; padding: 3px 8px; }
+  .pron-flag-img { width: 22px; height: 16px; }
+  .pron-partido-header { padding: 10px 12px 8px; gap: 8px; }
+  .pron-row { padding: 9px 12px; gap: 8px; }
+}
 </style>
 
 <!-- ══ PANEL PRONÓSTICOS — JS ════════════════════════════════════════════ -->
 <script>
 (function() {
-  let _pronData  = null;  // cache de todos los pronósticos
-  let _fechaAct  = '';    // filtro fecha activo
-  let _queryAct  = '';    // filtro nombre activo
+  let _pronData  = null;
+  let _fechaAct  = '';
+  let _queryAct  = '';
   let _pronTimer = null;
+
+  // ── Mapa nombre de equipo → código FIFA (para /static/banderas/XXX.png) ──
+  // Mismo sistema que ver_perfil.html
+  const _NOMBRE_A_FIFA = {
+    // Inglés
+    'Argentina':'ARG','Brazil':'BRA','Brasil':'BRA','France':'FRA','Francia':'FRA',
+    'Germany':'GER','Alemania':'GER','Spain':'ESP','España':'ESP','England':'ENG',
+    'Portugal':'POR','Netherlands':'NED','Países Bajos':'NED','Belgium':'BEL','Bélgica':'BEL',
+    'Italy':'ITA','Italia':'ITA','Croatia':'CRO','Croacia':'CRO','Uruguay':'URU',
+    'Switzerland':'SUI','Suiza':'SUI','Denmark':'DEN','Dinamarca':'DEN',
+    'Sweden':'SWE','Suecia':'SWE','Poland':'POL','Polonia':'POL',
+    'Serbia':'SRB','Morocco':'MAR','Marruecos':'MAR','Senegal':'SEN',
+    'Japan':'JPN','Japón':'JPN','South Korea':'KOR','Corea del Sur':'KOR',
+    'Australia':'AUS','Mexico':'MEX','México':'MEX','USA':'USA','United States':'USA',
+    'Estados Unidos':'USA','Canada':'CAN','Canadá':'CAN','Ecuador':'ECU',
+    'Qatar':'QAT','Saudi Arabia':'KSA','Arabia Saudita':'KSA',
+    'Iran':'IRN','Irán':'IRN','Tunisia':'TUN','Túnez':'TUN',
+    'Cameroon':'CMR','Camerún':'CMR','Ghana':'GHA','Nigeria':'NGA',
+    'Costa Rica':'CRC','Panama':'PAN','Panamá':'PAN','Honduras':'HON',
+    'Colombia':'COL','Chile':'CHI','Peru':'PER','Perú':'PER',
+    'Venezuela':'VEN','Bolivia':'BOL','Paraguay':'PAR','Jamaica':'JAM',
+    'Wales':'WAL','Gales':'WAL','Scotland':'SCO','Escocia':'SCO',
+    'Turkey':'TUR','Turquía':'TUR','Ukraine':'UKR','Ucrania':'UKR',
+    'Austria':'AUT','Norway':'NOR','Noruega':'NOR','Czech Republic':'CZE',
+    'República Checa':'CZE','Slovakia':'SVK','Eslovaquia':'SVK',
+    'Romania':'ROU','Rumania':'ROU','Hungary':'HUN','Hungría':'HUN',
+    'Egypt':'EGY','Egipto':'EGY','Algeria':'ALG','Argelia':'ALG',
+    'Ivory Coast':'CIV','Costa de Marfil':'CIV','South Africa':'RSA','Sudáfrica':'RSA',
+    'Kenya':'KEN','Kenia':'KEN','Iraq':'IRQ','Irak':'IRQ',
+    'New Zealand':'NZL','Nueva Zelanda':'NZL','China':'CHN',
+    'India':'IND','Indonesia':'IDN','Trinidad y Tobago':'TRI',
+    'Guatemala':'GUA','El Salvador':'SLV','Cuba':'CUB',
+    'Uzbekistan':'UZB','Uzbekistán':'UZB','Jordan':'JOR','Jordania':'JOR',
+    'Congo':'COD','DR Congo':'COD','Cape Verde':'CPV','Cabo Verde':'CPV',
+    'Haiti':'HAI','Haití':'HAI','Curaçao':'CUW','Curazao':'CUW',
+  };
+
+  function _flag(nombre, codFifa) {
+    // Primero usar el código FIFA directo si viene de la API
+    let fifa = codFifa || '';
+    if (!fifa && nombre) {
+      // Buscar exacto
+      fifa = _NOMBRE_A_FIFA[nombre] || '';
+      if (!fifa) {
+        // Buscar case-insensitive
+        const lower = nombre.toLowerCase();
+        for (const [k, v] of Object.entries(_NOMBRE_A_FIFA)) {
+          if (k.toLowerCase() === lower) { fifa = v; break; }
+        }
+      }
+    }
+    if (!fifa || fifa === 'xx') return '<span style="font-size:18px;line-height:1;">⚽</span>';
+    const esc = s => String(s||'').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    return `<img class="pron-flag-img" loading="lazy" decoding="async" src="/static/banderas/${fifa}.png" alt="${esc(nombre)}">`;
+  }
 
   function _cerrarOtrosPaneles() {
     document.getElementById('bus-galeria-panel').style.display = 'none';
@@ -730,6 +861,12 @@ function busAbrirGaleria() {
     _renderPron();
   };
 
+  // Toggle colapsar/expandir un partido
+  window._togglePartido = function(el) {
+    const card = el.closest('.pron-partido-group');
+    card.classList.toggle('open');
+  };
+
   async function _cargarPron() {
     document.getElementById('pron-loading').style.display = 'block';
     document.getElementById('pron-results').innerHTML = '';
@@ -759,12 +896,11 @@ function busAbrirGaleria() {
       btn.onclick = function() { selFechaPron(this, g); };
       wrap.appendChild(btn);
     });
-    // Chip eliminatoria si hay datos
     if (_pronData && _pronData.some(r => r.fase === 'Eliminatoria')) {
       const btn = document.createElement('button');
       btn.className = 'pron-fecha-chip';
       btn.dataset.fecha = '__eli__';
-      btn.textContent = 'Eliminatoria';
+      btn.textContent = '⚔️ Eliminatoria';
       btn.onclick = function() { selFechaPron(this, '__eli__'); };
       wrap.appendChild(btn);
     }
@@ -776,7 +912,6 @@ function busAbrirGaleria() {
 
     let data = _pronData;
 
-    // Filtro por nombre/handle
     if (_queryAct) {
       const q = _queryAct.toLowerCase();
       data = data.filter(r =>
@@ -785,7 +920,6 @@ function busAbrirGaleria() {
       );
     }
 
-    // Filtro por grupo/fase
     if (_fechaAct) {
       if (_fechaAct === '__eli__') {
         data = data.filter(r => r.fase === 'Eliminatoria');
@@ -801,7 +935,7 @@ function busAbrirGaleria() {
     }
     document.getElementById('pron-empty').style.display = 'none';
 
-    // Agrupar por partido (local vs visitante + resultado)
+    // Agrupar por partido
     const partidos = {};
     data.forEach(r => {
       const key = `${r.local}|${r.visitante}|${r.res_local}-${r.res_visit}|${r.fecha_partido}`;
@@ -810,10 +944,13 @@ function busAbrirGaleria() {
     });
 
     const esc = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    const ptsClass = p => p >= 4 ? 'pron-pts-4' : p === 3 ? 'pron-pts-3' : p === 1 ? 'pron-pts-1' : 'pron-pts-0';
 
     let html = '';
     Object.values(partidos).forEach(({ info, rows }) => {
-      const ptsClass = p => p >= 4 ? 'pron-pts-4' : p === 3 ? 'pron-pts-3' : p === 1 ? 'pron-pts-1' : 'pron-pts-0';
+      const flagL = _flag(info.local,     info.cod_local  || info.cod_loc  || '');
+      const flagV = _flag(info.visitante, info.cod_visit  || info.cod_vis  || '');
+
       const rowsHtml = rows.map(r => {
         const av = r.usuario_foto
           ? `<img src="${esc(r.usuario_foto)}" class="pron-av-img" onerror="this.outerHTML='<div class=pron-av-letter>${esc(r.usuario_nombre[0]?.toUpperCase()||'?')}</div>'">`
@@ -825,27 +962,44 @@ function busAbrirGaleria() {
             <div class="pron-user-handle">@${esc(r.usuario_handle)}</div>
           </div>
           <div class="pron-pred">
-            <span class="pron-pred-score">${r.p_local ?? '?'} - ${r.p_vis ?? '?'}</span>
+            <span class="pron-pred-score">
+              ${_flag(r.local || info.local, r.cod_local || info.cod_local || info.cod_loc || '')}
+              ${r.p_local ?? '?'} - ${r.p_vis ?? '?'}
+              ${_flag(r.visitante || info.visitante, r.cod_visit || info.cod_visit || info.cod_vis || '')}
+            </span>
             <span class="pron-pts ${ptsClass(r.puntos)}">${r.puntos ?? 0} pts</span>
           </div>
         </div>`;
       }).join('');
 
-      const fechaLabel = '';
       html += `<div class="pron-partido-group">
-        <div class="pron-partido-header">
-          <div>
-            <div class="pron-partido-title">${esc(info.local)} vs ${esc(info.visitante)}</div>
-            <div style="display:flex;gap:6px;align-items:center;margin-top:3px;">
-              <span class="pron-grupo-badge">${esc(info.grupo)} · ${esc(info.fase)}</span>
-              ${fechaLabel}
+        <div class="pron-partido-header" onclick="_togglePartido(this)">
+          <div class="pron-match-body">
+            <div style="flex:1;min-width:0;">
+              <div class="pron-teams-wrap">
+                <div class="pron-team">
+                  <span class="pron-team-flag">${flagL}</span>
+                  <span class="pron-team-name">${esc(info.local)}</span>
+                </div>
+                <span class="pron-vs">vs</span>
+                <div class="pron-team">
+                  <span class="pron-team-flag">${flagV}</span>
+                  <span class="pron-team-name">${esc(info.visitante)}</span>
+                </div>
+              </div>
+              <div class="pron-meta-row">
+                <span class="pron-grupo-badge">${esc(info.grupo)} · ${esc(info.fase)}</span>
+                <span class="pron-count-badge">${rows.length} pronóstico${rows.length!==1?'s':''}</span>
+              </div>
             </div>
           </div>
-          <div class="pron-partido-resultado">
+          <div class="pron-partido-score-box">
+            <span class="pron-score-label">Resultado</span>
             <span class="pron-partido-score">${info.res_local} - ${info.res_visit}</span>
           </div>
+          <span class="pron-chevron material-symbols-outlined">expand_more</span>
         </div>
-        ${rowsHtml}
+        <div class="pron-rows-body">${rowsHtml}</div>
       </div>`;
     });
 
