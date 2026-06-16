@@ -191,57 +191,28 @@
 
 
       <!-- ⚽ PARTIDOS DE HOY — MÓVIL (reemplaza el contador; visible en ≤900px) -->
-      <!-- ⚽ MUNDIAL 2026 — Widget completo (móvil, visible ≤900px) -->
-      <div class="content-card mw-root pah-mobile-card" id="pah-widget-mobile">
-        <div class="content-card-header" style="padding-bottom:0;">
-          <div class="content-card-title" style="display:flex;align-items:center;gap:8px;">
+      <div class="panel-card pah-mobile-card" id="pah-widget-mobile">
+        <div class="panel-header pah-panel-header">
+          <h3>⚽ Partidos de Hoy</h3>
+          <span class="pah-world-cup-badge">Mundial 2026</span>
+        </div>
+        <div class="pah-body">
+          <div id="pah-fallback-banner" style="display:none;background:#fef3c7;border:1px solid #f59e0b;border-radius:8px;padding:8px 12px;margin-bottom:8px;font-size:12px;color:#92400e;text-align:center;">⚠️ Mostrando horarios — marcadores en vivo no disponibles ahora mismo</div>
+          <div class="pah-loading" id="pah-loading-mobile">
+            <div class="pah-skeleton"></div>
+            <div class="pah-skeleton pah-skeleton--short"></div>
+          </div>
+          <div class="panel-empty pah-error" id="pah-error-mobile" style="display:none;">
+            <span class="material-symbols-outlined">wifi_off</span>
+            <p>No se pudo cargar</p>
+          </div>
+          <div class="panel-empty pah-vacio" id="pah-vacio-mobile" style="display:none;">
             <span class="material-symbols-outlined">sports_soccer</span>
-            Mundial 2026
-            <span class="mw-live-pill mw-live-pill-m" style="display:none">● EN VIVO</span>
+            <p>Sin partidos hoy</p>
           </div>
-        </div>
-        <div class="tabs-bar mw-tabs-bar" style="padding:0 4px;">
-          <button class="tab-btn active" data-mwtab-m="hoy">⚽ Hoy</button>
-          <button class="tab-btn" data-mwtab-m="proximos">🗓️</button>
-          <button class="tab-btn" data-mwtab-m="goles">📊</button>
-          <button class="tab-btn" data-mwtab-m="grupos">🏟️</button>
-          <button class="tab-btn" data-mwtab-m="clasificados">🏆</button>
-        </div>
-        <div id="mwtab-m-hoy" class="mw-panel" style="padding:8px 0;">
-          <div id="mw-m-hoy-list" class="mw-match-list"></div>
-        </div>
-        <div id="mwtab-m-proximos" class="mw-panel" style="display:none;padding:8px 0;">
-          <div id="mw-m-prox-list" class="mw-match-list"></div>
-        </div>
-        <div id="mwtab-m-goles" class="mw-panel" style="display:none;padding:4px 0;">
-          <div id="mw-m-goles-wrap"></div>
-        </div>
-        <div id="mwtab-m-grupos" class="mw-panel" style="display:none;padding:4px 0;">
-          <div class="tabs-bar mw-subtabs-bar" style="flex-wrap:wrap;gap:2px;padding:0 2px;">
-            <button class="tab-btn mw-subtab-m active" data-grupo-m="A">A</button>
-            <button class="tab-btn mw-subtab-m" data-grupo-m="B">B</button>
-            <button class="tab-btn mw-subtab-m" data-grupo-m="C">C</button>
-            <button class="tab-btn mw-subtab-m" data-grupo-m="D">D</button>
-            <button class="tab-btn mw-subtab-m" data-grupo-m="E">E</button>
-            <button class="tab-btn mw-subtab-m" data-grupo-m="F">F</button>
-            <button class="tab-btn mw-subtab-m" data-grupo-m="G">G</button>
-            <button class="tab-btn mw-subtab-m" data-grupo-m="H">H</button>
-            <button class="tab-btn mw-subtab-m" data-grupo-m="I">I</button>
-            <button class="tab-btn mw-subtab-m" data-grupo-m="J">J</button>
-            <button class="tab-btn mw-subtab-m" data-grupo-m="K">K</button>
-            <button class="tab-btn mw-subtab-m" data-grupo-m="L">L</button>
-          </div>
-          <div id="mw-m-grupo-wrap"></div>
-        </div>
-        <div id="mwtab-m-clasificados" class="mw-panel" style="display:none;padding:4px 0;">
-          <div id="mw-m-clas-wrap"></div>
-        </div>
-        <!-- BOTÓN VER TODOS - MÓVIL -->
-        <div style="padding:8px 4px 4px;">
-          <button class="mw-ver-todos-btn" onclick="mwAbrirModal()">
-            <span class="material-symbols-outlined" style="font-size:16px;">sports_soccer</span>
-            VER TODOS LOS PARTIDOS
-            <span class="material-symbols-outlined" style="font-size:16px;">expand_more</span>
+          <div class="noticias-list" id="pah-lista-mobile" style="display:none;"></div>
+          <button class="pah-ver-mas-btn" id="pah-ver-mas-mobile" style="display:none;" onclick="abrirModalPartidos()">
+            Ver todos los partidos <span class="material-symbols-outlined" style="font-size:14px;vertical-align:middle;">expand_more</span>
           </button>
         </div>
       </div>
@@ -460,58 +431,29 @@
       </div>
 
 
-      <!-- ⚽ MUNDIAL 2026 — Widget completo (desktop) -->
-      <div class="content-card mw-root" id="pah-widget-desktop">
-        <div class="content-card-header" style="padding-bottom:0;">
-          <div class="content-card-title" style="display:flex;align-items:center;gap:8px;">
+      <!-- ⚽ PARTIDOS DE HOY — DESKTOP (arriba del panel derecho) -->
+      <div class="panel-card pah-desktop-card" id="pah-widget-desktop">
+        <div class="panel-header pah-panel-header">
+          <h3>⚽ Partidos de Hoy</h3>
+          <span class="pah-world-cup-badge">Mundial 2026</span>
+        </div>
+        <div id="pah-body-desktop" class="pah-body">
+          <div class="pah-loading" id="pah-loading-desktop">
+            <div class="pah-skeleton"></div>
+            <div class="pah-skeleton pah-skeleton--short"></div>
+            <div class="pah-skeleton"></div>
+          </div>
+          <div class="panel-empty pah-error" id="pah-error-desktop" style="display:none;">
+            <span class="material-symbols-outlined">wifi_off</span>
+            <p>No se pudo cargar</p>
+          </div>
+          <div class="panel-empty pah-vacio" id="pah-vacio-desktop" style="display:none;">
             <span class="material-symbols-outlined">sports_soccer</span>
-            Mundial 2026
-            <span id="mw-live-pill" class="mw-live-pill" style="display:none">● EN VIVO</span>
+            <p>Sin partidos hoy</p>
           </div>
-          <small id="mw-last-update" class="mw-last-update"></small>
-        </div>
-        <div class="tabs-bar mw-tabs-bar" style="padding:0 4px;">
-          <button class="tab-btn active" data-mwtab="hoy">⚽ Hoy</button>
-          <button class="tab-btn" data-mwtab="proximos">🗓️</button>
-          <button class="tab-btn" data-mwtab="goles">📊</button>
-          <button class="tab-btn" data-mwtab="grupos">🏟️</button>
-          <button class="tab-btn" data-mwtab="clasificados">🏆</button>
-        </div>
-        <div id="mwtab-hoy" class="mw-panel" style="padding:8px 0;">
-          <div id="mw-hoy-list" class="mw-match-list"></div>
-        </div>
-        <div id="mwtab-proximos" class="mw-panel" style="display:none;padding:8px 0;">
-          <div id="mw-prox-list" class="mw-match-list"></div>
-        </div>
-        <div id="mwtab-goles" class="mw-panel" style="display:none;padding:4px 0;">
-          <div id="mw-goles-wrap"></div>
-        </div>
-        <div id="mwtab-grupos" class="mw-panel" style="display:none;padding:4px 0;">
-          <div class="tabs-bar mw-subtabs-bar" style="flex-wrap:wrap;gap:2px;padding:0 2px;">
-            <button class="tab-btn mw-subtab active" data-grupo="A">A</button>
-            <button class="tab-btn mw-subtab" data-grupo="B">B</button>
-            <button class="tab-btn mw-subtab" data-grupo="C">C</button>
-            <button class="tab-btn mw-subtab" data-grupo="D">D</button>
-            <button class="tab-btn mw-subtab" data-grupo="E">E</button>
-            <button class="tab-btn mw-subtab" data-grupo="F">F</button>
-            <button class="tab-btn mw-subtab" data-grupo="G">G</button>
-            <button class="tab-btn mw-subtab" data-grupo="H">H</button>
-            <button class="tab-btn mw-subtab" data-grupo="I">I</button>
-            <button class="tab-btn mw-subtab" data-grupo="J">J</button>
-            <button class="tab-btn mw-subtab" data-grupo="K">K</button>
-            <button class="tab-btn mw-subtab" data-grupo="L">L</button>
-          </div>
-          <div id="mw-grupo-wrap"></div>
-        </div>
-        <div id="mwtab-clasificados" class="mw-panel" style="display:none;padding:4px 0;">
-          <div id="mw-clas-wrap"></div>
-        </div>
-        <!-- BOTÓN VER TODOS LOS PARTIDOS -->
-        <div style="padding:8px 4px 4px;">
-          <button class="mw-ver-todos-btn" onclick="mwAbrirModal()" id="mw-ver-todos-desktop">
-            <span class="material-symbols-outlined" style="font-size:16px;">sports_soccer</span>
-            VER TODOS LOS PARTIDOS
-            <span class="material-symbols-outlined" style="font-size:16px;">expand_more</span>
+          <div class="noticias-list" id="pah-lista-desktop" style="display:none;"></div>
+          <button class="pah-ver-mas-btn" id="pah-ver-mas-desktop" style="display:none;" onclick="abrirModalPartidos()">
+            Ver todos los partidos <span class="material-symbols-outlined" style="font-size:14px;vertical-align:middle;">expand_more</span>
           </button>
         </div>
       </div>
@@ -546,62 +488,7 @@
   </div>
 </section>
 
-<!-- ── MODAL MUNDIAL 2026 (MW) ── -->
-<div class="mw-modal-overlay" id="mw-modal" style="display:none;" onclick="mwCerrarModal(event)">
-  <div class="mw-modal-box">
-    <div class="mw-modal-header">
-      <div style="display:flex;align-items:center;gap:8px;">
-        <span class="material-symbols-outlined" style="color:var(--accent)">sports_soccer</span>
-        <h3>Mundial 2026</h3>
-        <span id="mw-modal-live-pill" class="mw-live-pill" style="display:none">● EN VIVO</span>
-      </div>
-      <button class="mw-modal-close" onclick="mwCerrarModal()" aria-label="Cerrar">
-        <span class="material-symbols-outlined">close</span>
-      </button>
-    </div>
-    <!-- Tabs -->
-    <div class="tabs-bar mw-tabs-bar" style="padding:0 4px;border-bottom:1px solid var(--border);margin-bottom:0;">
-      <button class="tab-btn active" data-mwtab-modal="hoy">⚽ Hoy</button>
-      <button class="tab-btn" data-mwtab-modal="proximos">🗓️ Próximos</button>
-      <button class="tab-btn" data-mwtab-modal="goles">📊 Goles</button>
-      <button class="tab-btn" data-mwtab-modal="grupos">🏟️ Grupos</button>
-      <button class="tab-btn" data-mwtab-modal="clasificados">🏆 Clasificados</button>
-    </div>
-    <div class="mw-modal-body">
-      <div id="mwtab-modal-hoy" class="mw-panel" style="padding:8px 0;">
-        <div id="mw-modal-hoy-list" class="mw-match-list"></div>
-      </div>
-      <div id="mwtab-modal-proximos" class="mw-panel" style="display:none;padding:8px 0;">
-        <div id="mw-modal-prox-list" class="mw-match-list"></div>
-      </div>
-      <div id="mwtab-modal-goles" class="mw-panel" style="display:none;padding:4px 0;">
-        <div id="mw-modal-goles-wrap"></div>
-      </div>
-      <div id="mwtab-modal-grupos" class="mw-panel" style="display:none;padding:4px 0;">
-        <div class="tabs-bar mw-subtabs-bar" style="flex-wrap:wrap;gap:2px;padding:0 2px;">
-          <button class="tab-btn mw-subtab-modal active" data-grupo-modal="A">A</button>
-          <button class="tab-btn mw-subtab-modal" data-grupo-modal="B">B</button>
-          <button class="tab-btn mw-subtab-modal" data-grupo-modal="C">C</button>
-          <button class="tab-btn mw-subtab-modal" data-grupo-modal="D">D</button>
-          <button class="tab-btn mw-subtab-modal" data-grupo-modal="E">E</button>
-          <button class="tab-btn mw-subtab-modal" data-grupo-modal="F">F</button>
-          <button class="tab-btn mw-subtab-modal" data-grupo-modal="G">G</button>
-          <button class="tab-btn mw-subtab-modal" data-grupo-modal="H">H</button>
-          <button class="tab-btn mw-subtab-modal" data-grupo-modal="I">I</button>
-          <button class="tab-btn mw-subtab-modal" data-grupo-modal="J">J</button>
-          <button class="tab-btn mw-subtab-modal" data-grupo-modal="K">K</button>
-          <button class="tab-btn mw-subtab-modal" data-grupo-modal="L">L</button>
-        </div>
-        <div id="mw-modal-grupo-wrap"></div>
-      </div>
-      <div id="mwtab-modal-clasificados" class="mw-panel" style="display:none;padding:4px 0;">
-        <div id="mw-modal-clas-wrap"></div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- MANTENER modal antigua para compatibilidad con el viejo sistema PAH -->
+<!-- ── MODAL PARTIDOS DE HOY ── -->
 <div class="pah-modal-overlay" id="pah-modal" style="display:none;" onclick="cerrarModalPartidos(event)">
   <div class="pah-modal-box">
     <div class="pah-modal-header">
@@ -610,6 +497,7 @@
         <span class="material-symbols-outlined">close</span>
       </button>
     </div>
+    <!-- Tabs -->
     <div class="pah-tabs" id="pah-tabs">
       <button class="pah-tab active" onclick="pahSwitchTab('hoy',this)">Hoy</button>
       <button class="pah-tab" onclick="pahSwitchTab('proximos',this)">Próximos</button>
@@ -617,15 +505,19 @@
       <button class="pah-tab" onclick="pahSwitchTab('tabla',this)">Tabla</button>
     </div>
     <div class="pah-modal-body" id="pah-modal-body">
+      <!-- Tab: hoy -->
       <div id="pah-tab-hoy">
         <div class="noticias-list" id="pah-lista-modal"></div>
       </div>
+      <!-- Tab: próximos -->
       <div id="pah-tab-proximos" style="display:none;">
         <div class="noticias-list" id="pah-lista-proximos"></div>
       </div>
+      <!-- Tab: goleadores -->
       <div id="pah-tab-goleadores" style="display:none;">
         <div id="pah-scorers-body" class="pah-scorers-wrap"></div>
       </div>
+      <!-- Tab: tabla -->
       <div id="pah-tab-tabla" style="display:none;">
         <div id="pah-standings-body" class="pah-standings-wrap"></div>
       </div>
@@ -4759,91 +4651,6 @@ img.inline-emote:hover {
 .btn-cargar-mas .spin { animation: spin .8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 </style>
-
-<!-- ══ MUNDIAL 2026 — Estilos widget ══ -->
-<style>
-.mw-live-pill,.mw-live-pill-m{font-size:10px;font-weight:800;color:#fff;background:#e84a4a;border-radius:999px;padding:3px 8px;letter-spacing:.3px;animation:mw-pulse 1.5s infinite;}
-@keyframes mw-pulse{0%,100%{opacity:1}50%{opacity:.45}}
-.mw-last-update{font-size:11px;color:var(--text3);}
-.mw-tabs-bar{margin-bottom:8px;}
-.mw-subtabs-bar .tab-btn{padding:5px 9px;font-size:.75rem;}
-.mw-panel{width:100%;}
-.mw-loading,.mw-empty{text-align:center;padding:20px 12px;color:var(--text3);font-size:13px;}
-.mw-spinner{display:inline-block;width:16px;height:16px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:mw-spin .7s linear infinite;margin-bottom:6px;}
-@keyframes mw-spin{to{transform:rotate(360deg)}}
-.mw-match-list{display:flex;flex-direction:column;gap:8px;}
-.mw-match-card{background:var(--card2,var(--card));border:1px solid var(--border-soft,var(--border));border-radius:var(--r,8px);padding:10px 12px;transition:transform .15s;}
-.mw-match-card:hover{transform:translateY(-1px);}
-.mw-match-card.is-live{border-color:rgba(232,74,74,.4);background:rgba(232,74,74,.04);}
-.mw-meta{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:6px;}
-.mw-meta-left{display:flex;flex-direction:column;gap:1px;}
-.mw-fase-label{font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;}
-.mw-sede-label{font-size:10px;color:var(--text3);}
-.mw-badge-live{font-size:10px;font-weight:800;color:#fff;background:#e84a4a;border-radius:999px;padding:2px 7px;animation:mw-pulse 1.5s infinite;white-space:nowrap;}
-.mw-badge-ft{font-size:10px;font-weight:600;color:var(--text3);background:var(--card);border:1px solid var(--border);border-radius:999px;padding:2px 7px;}
-.mw-badge-prox{font-size:11px;font-weight:600;color:var(--text2);text-align:right;line-height:1.4;}
-.mw-teams{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:6px;}
-.mw-team{display:flex;align-items:center;gap:6px;}
-.mw-team.away{justify-content:flex-end;flex-direction:row-reverse;}
-.mw-flag-img{width:24px;height:16px;object-fit:cover;border-radius:2px;border:1px solid var(--border);flex-shrink:0;}
-.mw-flag-em{font-size:18px;line-height:1;flex-shrink:0;}
-.mw-tname{font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:90px;color:var(--text);}
-.mw-score-box{display:flex;flex-direction:column;align-items:center;gap:1px;}
-.mw-score{font-size:20px;font-weight:800;color:var(--text);display:flex;align-items:center;gap:5px;white-space:nowrap;}
-.mw-score-sep{color:var(--text3);font-weight:400;font-size:14px;}
-.mw-minuto{font-size:10px;font-weight:700;color:#e84a4a;}
-.mw-hora{font-size:13px;font-weight:700;color:var(--text);text-align:center;}
-.mw-hora-fecha{font-size:10px;color:var(--text3);text-align:center;}
-/* Grupos */
-.mw-group-header{display:flex;align-items:center;gap:8px;margin-bottom:10px;padding:0 4px;}
-.mw-group-letra{font-size:16px;font-weight:800;color:var(--text);}
-.mw-group-badge{font-size:10px;font-weight:700;color:var(--accent);background:var(--accent-soft,rgba(109,40,217,.1));border:1px solid var(--accent-border,rgba(109,40,217,.2));border-radius:999px;padding:2px 8px;}
-.mw-group-tbl{width:100%;border-collapse:collapse;font-size:11.5px;}
-.mw-group-tbl thead th{color:var(--text3);font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:.3px;padding:3px 4px;text-align:center;border-bottom:1px solid var(--border);}
-.mw-group-tbl thead th:nth-child(2){text-align:left;}
-.mw-group-tbl td{padding:6px 4px;text-align:center;border-bottom:1px solid var(--border-soft,var(--border));color:var(--text);}
-.mw-group-tbl tr:last-child td{border-bottom:none;}
-.mw-group-tbl td:nth-child(2){text-align:left;}
-.mw-group-tbl tbody tr:nth-child(1){background:rgba(0,166,80,.05);}
-.mw-group-tbl tbody tr:nth-child(2){background:rgba(0,166,80,.02);}
-.mw-eq-cell{display:flex;align-items:center;gap:5px;}
-.mw-pos-num{color:var(--text3);font-size:11px;min-width:10px;}
-.mw-eq-name{font-size:11.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100px;}
-.mw-pts-cell{font-weight:800;color:var(--accent);}
-.mw-dg-pos{color:var(--ok,#00a650);}
-.mw-dg-neg{color:var(--err,#e84a4a);}
-.mw-dg-zer{color:var(--text3);}
-/* Goles */
-.mw-goals-tbl{width:100%;border-collapse:collapse;font-size:12.5px;}
-.mw-goals-tbl th{color:var(--text3);font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:.3px;padding:3px 8px;text-align:left;border-bottom:1px solid var(--border);}
-.mw-goals-tbl th:last-child{text-align:center;}
-.mw-goals-tbl td{padding:8px 8px;border-bottom:1px solid var(--border-soft,var(--border));color:var(--text);}
-.mw-goals-tbl tr:last-child td{border-bottom:none;}
-.mw-goals-num{text-align:center;font-weight:800;font-size:16px;color:var(--accent);}
-.mw-goals-pos{color:var(--text3);font-size:11px;}
-.mw-goals-team{display:flex;align-items:center;gap:7px;}
-/* Clasificados */
-.mw-clas-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:16px;}
-.mw-clas-card{background:var(--card2,var(--card));border:1px solid var(--border-soft,var(--border));border-radius:var(--r,8px);padding:9px 10px;display:flex;align-items:center;gap:7px;transition:transform .15s;}
-.mw-clas-card:hover{transform:translateY(-1px);}
-.mw-clas-card.p1{border-left:3px solid var(--accent);}
-.mw-clas-card.p2{border-left:3px solid var(--text3);}
-.mw-clas-info{flex:1;min-width:0;}
-.mw-clas-name{font-size:12px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.mw-clas-meta{font-size:10px;color:var(--text3);margin-top:1px;}
-.mw-clas-badge{font-size:10px;font-weight:700;border-radius:999px;padding:2px 6px;flex-shrink:0;white-space:nowrap;}
-.mw-clas-badge.b1{background:var(--accent,#6d28d9);color:#fff;}
-.mw-clas-badge.b2{background:var(--card);color:var(--text2);border:1px solid var(--border);}
-.mw-stats-title{font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;margin-top:16px;}
-.mw-stat-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border-soft,var(--border));font-size:12px;}
-.mw-stat-row:last-child{border-bottom:none;}
-.mw-stat-label{color:var(--text2);}
-.mw-stat-val{font-weight:700;color:var(--text);}
-.mw-stat-accent{color:var(--accent);font-weight:800;}
-/* Próximos agrupados por día */
-.mw-day-label{font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.4px;padding:8px 2px 4px;}
-@media(max-width:480px){.mw-clas-grid{grid-template-columns:1fr}.mw-tname{max-width:70px;font-size:11px}.mw-score{font-size:16px}.mw-group-tbl{font-size:10.5px}.mw-eq-name{max-width:72px}}
-</style>
 <script>
 /* ── TABS ── */
 const _feeds = {
@@ -8138,16 +7945,17 @@ async function cargarMasPosts(btn) {
   // Mapa ISO-2 → nombre de archivo PNG en /static/banderas/
   const _FLAG_MAP = {
     'ar':'ARG','au':'AUS','at':'AUT','be':'BEL','br':'BRA','ca':'CAN',
-    'cl':'CHI','cn':'CHN','co':'COL','cd':'COD','cr':'CRI','hr':'CRO',
+    'cl':'CHI','co':'COL','cd':'COD','cr':'CRI','hr':'CRO',
     'cz':'CZE','dk':'DEN','ec':'ECU','eg':'EGY','fr':'FRA','de':'GER',
-    'gh':'GHA','gb-eng':'ENG','hu':'HUN','in':'IND','id':'IDN','ir':'IRN',
+    'gh':'GHA','gb-eng':'ENG','hu':'HUN','ir':'IRN',
     'iq':'IRQ','ci':'CIV','jp':'JPN','jo':'JOR','kr':'KOR','sa':'KSA',
     'ma':'MAR','mx':'MEX','nl':'NED','nz':'NZL','ng':'NGA','no':'NOR',
     'pa':'PAN','py':'PAR','pe':'PER','pt':'POR','qa':'QAT','ro':'ROU',
-    'za':'RSA','sn':'SEN','rs':'SRB','gb-sct':'SCO','sk':'SVK','za':'RSA',
+    'za':'RSA','sn':'SEN','rs':'SRB','gb-sct':'SCO','sk':'SVK',
     'es':'ESP','se':'SWE','ch':'SUI','tn':'TUN','tr':'TUR','us':'USA',
     'uy':'URU','uz':'UZB','ve':'VEN','dz':'ALG','cv':'CPV','ht':'HAI',
-    'cw':'CUW','bi':'BIH','gb-wls':'WAL','tt':'TRI','jm':'JAM','pt':'POR','ba':'BIH',
+    'cw':'CUW','ba':'BIH','gb-wls':'WAL','tt':'TRI','jm':'JAM',
+    'al':'ALB','gr':'GRE','ua':'UKR','pl':'POL','kw':'KUW',
   };
 
   function _bandera(codigo) {
@@ -8354,73 +8162,125 @@ async function cargarMasPosts(btn) {
     document.body.style.overflow = '';
   }
 
-  // ── Goleadores — usa backend ──────────────────────────────────────────────
+  // ── Goleadores (calculados desde partidos — worldcup26.ir no tiene /scorers) ──
   async function _renderScorers() {
     const wrap = document.getElementById('pah-scorers-body');
     if (!wrap) return;
     if (wrap.dataset.loaded === '1') return;
     wrap.innerHTML = '<div class="pah-loading" style="padding:20px;"><div class="pah-skeleton"></div><div class="pah-skeleton pah-skeleton--short"></div><div class="pah-skeleton"></div></div>';
     try {
-      const r = await fetch(_API + '/goleadores');
-      if (!r.ok) throw new Error('HTTP ' + r.status);
+      const [tm, r] = await Promise.all([
+        _getTeams(),
+        fetch(_WC_BASE+'/get/games', {headers:{'Authorization':'Bearer '+_WC_JWT}})
+      ]);
+      if (!r.ok) throw new Error('HTTP '+r.status);
       const data = await r.json();
-      const list = data.goleadores || data || [];
-      if (!list.length) {
-        wrap.innerHTML = '<div class="pah-prox-empty">⚽ Los goles aparecerán conforme avance el torneo</div>';
+      const raw = Array.isArray(data) ? data : (data.games || data.data || []);
+      // Sumar goles por equipo desde partidos finalizados
+      const byTeam = {};
+      raw.forEach(g => {
+        const tel = String(g.time_elapsed||'').toLowerCase();
+        const fin = String(g.finished||'').toUpperCase();
+        const esFin = fin==='TRUE'||fin==='1'||g.finished===true||
+          ['fulltime','full-time','completed','ft','finished'].includes(tel);
+        if (!esFin) return;
+        const hg = parseInt(g.home_score), ag = parseInt(g.away_score);
+        if (isNaN(hg)||isNaN(ag)) return;
+        const hi = String(g.home_team_id||''), ai = String(g.away_team_id||'');
+        const ht = tm[hi]||{}, at = tm[ai]||{};
+        const hn = ht.nombre_es||_EN_ES[(g.home_team_name_en||'').toLowerCase()]||g.home_team_name_en||'';
+        const an = at.nombre_es||_EN_ES[(g.away_team_name_en||'').toLowerCase()]||g.away_team_name_en||'';
+        if (hg > 0) {
+          if (!byTeam[hi]) byTeam[hi] = {name:hn, iso2:ht.iso2||'', goals:0};
+          byTeam[hi].goals += hg;
+        }
+        if (ag > 0) {
+          if (!byTeam[ai]) byTeam[ai] = {name:an, iso2:at.iso2||'', goals:0};
+          byTeam[ai].goals += ag;
+        }
+      });
+      const sorted = Object.values(byTeam).sort((a,b)=>b.goals-a.goals).slice(0,20);
+      if (!sorted.length) {
+        wrap.innerHTML = '<div class="pah-prox-empty">No hay goles registrados aún</div>';
         return;
       }
-      wrap.innerHTML = list.slice(0,20).map((t,i) => `
-        <div class="pah-scorer-row">
-          <span class="pah-scorer-rank">${i+1}</span>
-          <span class="pah-scorer-flag">${_bandera(t.iso2||'')}</span>
-          <div class="pah-scorer-info">
-            <div class="pah-scorer-name">${_esc(t.nombre||t.name||'')}</div>
-            <div class="pah-scorer-team">${_esc(t.equipo||t.team||'')}</div>
-          </div>
-          <div>
-            <div class="pah-scorer-goals">${t.goles||t.goals||0}</div>
-            <div class="pah-scorer-goal-label">${(t.goles||t.goals||0)===1?'gol':'goles'}</div>
-          </div>
-        </div>`).join('');
+      wrap.innerHTML = '<div class="pah-scorer-row" style="font-size:11px;color:var(--text-muted,#9ca3af);padding:0 4px 8px;font-style:italic;">Goles por selección (fase de grupos)</div>' +
+        sorted.map((t,i) => `
+          <div class="pah-scorer-row">
+            <span class="pah-scorer-rank">${i+1}</span>
+            <span class="pah-scorer-flag">${_bandera(t.iso2)}</span>
+            <div class="pah-scorer-info">
+              <div class="pah-scorer-name">${_esc(t.name)}</div>
+            </div>
+            <div>
+              <div class="pah-scorer-goals">${t.goals}</div>
+              <div class="pah-scorer-goal-label">${t.goals===1?'gol':'goles'}</div>
+            </div>
+          </div>`).join('');
       wrap.dataset.loaded = '1';
     } catch(e) {
       wrap.innerHTML = '<div class="pah-prox-empty">No se pudieron cargar los datos</div>';
     }
   }
 
-  // ── Tabla de posiciones — usa backend ────────────────────────────────────
+  // ── Tabla de posiciones ──────────────────────────────────────────────────
   async function _renderStandings() {
     const wrap = document.getElementById('pah-standings-body');
     if (!wrap) return;
     if (wrap.dataset.loaded === '1') return;
     wrap.innerHTML = '<div class="pah-loading" style="padding:20px;"><div class="pah-skeleton"></div><div class="pah-skeleton pah-skeleton--short"></div><div class="pah-skeleton"></div></div>';
     try {
-      const r = await fetch(_API + '/tabla');
-      if (!r.ok) throw new Error('HTTP ' + r.status);
-      const data = await r.json();
-      const tabla = data.tabla || data || {};
-      const grpKeys = Object.keys(tabla).sort();
-      if (!grpKeys.length) {
-        wrap.innerHTML = '<div class="pah-prox-empty">Los grupos se llenarán conforme avance el torneo</div>';
-        return;
-      }
+      const [tm, allGames] = await Promise.all([
+        _getTeams(),
+        fetch(_WC_BASE+'/get/games', {headers:{'Authorization':'Bearer '+_WC_JWT}}).then(r=>r.ok?r.json():Promise.reject(r.status))
+      ]);
+      const raw = Array.isArray(allGames)?allGames:(allGames.games||[]);
+      // Calcular tabla desde resultados de fase de grupos
+      const groups = {}; // 'A' → { 'COL': {pts,j,g,gc,gd} }
+      raw.forEach(g => {
+        const _tel = String(g.time_elapsed||'').toLowerCase();
+        const _fin = String(g.finished||'').toUpperCase();
+        const _esFin = _fin==='TRUE'||_fin==='1'||g.finished===true||
+          ['fulltime','full-time','completed','ft','finished'].includes(_tel);
+        if (!_esFin) return;
+        const grp = (g.group||'').toUpperCase(); if (!grp) return;
+        const hi = String(g.home_team_id||''), ai = String(g.away_team_id||'');
+        const ht = tm[hi]||{}, at = tm[ai]||{};
+        const hn = ht.nombre_es||g.home_team_name_en||'', an = at.nombre_es||g.away_team_name_en||'';
+        const hg = parseInt(g.home_score), ag = parseInt(g.away_score);
+        if (isNaN(hg)||isNaN(ag)) return;
+        if (!groups[grp]) groups[grp] = {};
+        const addTeam = (key, name, iso2, gf, gc) => {
+          if (!groups[grp][key]) groups[grp][key] = {name,iso2,pts:0,j:0,g:0,e:0,p:0,gf:0,gc:0};
+          const t = groups[grp][key];
+          t.j++; t.gf+=gf; t.gc+=gc;
+          if (gf>gc){t.g++;t.pts+=3;} else if(gf===gc){t.e++;t.pts+=1;} else {t.p++;}
+        };
+        addTeam(hi, hn, ht.iso2||'', hg, ag);
+        addTeam(ai, an, at.iso2||'', ag, hg);
+      });
+      const grpKeys = Object.keys(groups).sort();
+      if (!grpKeys.length) { wrap.innerHTML = '<div class="pah-prox-empty">Los grupos se llenarán conforme avance el torneo</div>'; return; }
       wrap.innerHTML = grpKeys.map(grp => {
-        const teams = tabla[grp];
+        const teams = Object.values(groups[grp]).sort((a,b)=>b.pts-a.pts||(b.gf-b.gc)-(a.gf-a.gc)||b.gf-a.gf);
         const rows = teams.map((t,i) => `
           <tr class="${i<2?'pah-std-qualify':''}">
-            <td><div class="pah-std-team">${_bandera(t.iso2||'')} <span>${_esc(t.nombre||t.name||'')}</span></div></td>
-            <td>${t.j||0}</td><td>${t.g||0}</td><td>${t.e||0}</td><td>${t.p||0}</td>
-            <td>${t.gf||0}-${t.gc||0}</td>
-            <td class="pah-std-pts">${t.pts||0}</td>
+            <td><div class="pah-std-team">${_bandera(t.iso2)} <span>${_esc(t.name)}</span></div></td>
+            <td>${t.j}</td><td>${t.g}</td><td>${t.e}</td><td>${t.p}</td>
+            <td>${t.gf}-${t.gc}</td>
+            <td class="pah-std-pts">${t.pts}</td>
           </tr>`).join('');
         return `<div class="pah-group-block">
           <div class="pah-group-title">Grupo ${grp}</div>
           <table class="pah-standings-table">
             <thead><tr>
               <th>Equipo</th>
-              <th class="pah-std-col-label">J</th><th class="pah-std-col-label">G</th>
-              <th class="pah-std-col-label">E</th><th class="pah-std-col-label">P</th>
-              <th class="pah-std-col-label">GD</th><th class="pah-std-col-label">Pts</th>
+              <th class="pah-std-col-label">J</th>
+              <th class="pah-std-col-label">G</th>
+              <th class="pah-std-col-label">E</th>
+              <th class="pah-std-col-label">P</th>
+              <th class="pah-std-col-label">GD</th>
+              <th class="pah-std-col-label">Pts</th>
             </tr></thead>
             <tbody>${rows}</tbody>
           </table>
@@ -8432,31 +8292,32 @@ async function cargarMasPosts(btn) {
     }
   }
 
-  // ── Próximos partidos — usa backend ──────────────────────────────────────
+  // ── Próximos partidos (mañana y después) ────────────────────────────────
   async function _renderProximos() {
     const wrap = document.getElementById('pah-lista-proximos');
     if (!wrap) return;
     if (wrap.dataset.loaded === '1') return;
     wrap.innerHTML = '<div class="pah-loading" style="padding:16px;"><div class="pah-skeleton"></div><div class="pah-skeleton pah-skeleton--short"></div><div class="pah-skeleton"></div></div>';
     try {
-      const r = await fetch(_API + '/proximos?limit=40');
-      if (!r.ok) throw new Error('HTTP ' + r.status);
+      const tm = await _getTeams();
+      const r = await fetch(_WC_BASE+'/get/games', {headers:{'Authorization':'Bearer '+_WC_JWT}});
+      if (!r.ok) throw new Error('HTTP '+r.status);
       const data = await r.json();
-      const proximos = data.partidos || data || [];
-      if (!proximos.length) {
-        wrap.innerHTML = '<div class="pah-prox-empty">No hay más partidos programados próximamente</div>';
-        return;
-      }
+      const raw = Array.isArray(data)?data:(data.games||[]);
+      const hoy = new Date(Date.now()-5*3600000).toISOString().slice(0,10);
+      const proximos = raw
+        .map(g => _normWC(g, tm))
+        .filter(p => p.fecha_iso && _isoDate(p.fecha_iso) > hoy && p.estado === 'programado')
+        .sort((a,b) => (a.fecha_iso||'') < (b.fecha_iso||'') ? -1 : 1)
+        .slice(0, 32);
+      if (!proximos.length) { wrap.innerHTML = '<div class="pah-prox-empty">No hay más partidos programados próximamente</div>'; return; }
+      // Agrupar por día Colombia
       const byDay = {};
-      proximos.forEach(p => {
-        const d = p.fecha_iso ? new Date(new Date(p.fecha_iso)-5*3600000).toISOString().slice(0,10) : '?';
-        if (!byDay[d]) byDay[d] = [];
-        byDay[d].push(p);
-      });
+      proximos.forEach(p => { const d = _isoDate(p.fecha_iso)||'?'; if (!byDay[d]) byDay[d]=[]; byDay[d].push(p); });
       const _DIAS_ES = ['dom.','lun.','mar.','mié.','jue.','vie.','sáb.'];
       const _MESES_ES = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
       wrap.innerHTML = Object.keys(byDay).sort().map(d => {
-        const dt = new Date(d + 'T12:00:00Z');
+        const dt = new Date(d+'T12:00:00Z');
         const label = `${_DIAS_ES[dt.getUTCDay()]} ${dt.getUTCDate()} ${_MESES_ES[dt.getUTCMonth()]}`;
         return `<div class="pah-prox-day">${label}</div>` + byDay[d].map(_renderPartido).join('');
       }).join('');
@@ -8470,10 +8331,13 @@ async function cargarMasPosts(btn) {
   window.abrirModalPartidos  = abrirModalPartidos;
   window.cerrarModalPartidos = cerrarModalPartidos;
 
-  // ── Backend propio (Render) como proxy — evita CORS de worldcup26.ir ────
-  const _API = '/api/mundial';
+  // ── Fetch directo a worldcup26.ir desde el navegador ────────────────────
+  // Render bloquea worldcup26.ir por IP, pero el navegador del usuario sí llega.
+  // Token hardcodeado — no se le pide nada a ningún usuario.
+  const _WC_JWT = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjZhMmVjN2Q5NWE5YjM0NGQyYmUwMjQxOSIsImlhdCI6MTc4MTQ1MDcxNiwiZXhwIjoxNzg4NzA4MzE2fQ.S4bUjXRVqhV8btWTrtIKDmWnQbicFbVO6U6RzJeeHI8';
+  const _WC_BASE = 'https://worldcup26.ir';
 
-  // Caché local (evita requests repetidos al backend)
+  // Caché local (evita requests repetidos)
   const _pahCache = {};
   function _pahCacheGet(k) {
     const e = _pahCache[k];
@@ -8550,8 +8414,26 @@ async function cargarMasPosts(btn) {
     try{return new Date(new Date(iso)-5*3600000).toISOString().slice(0,10);}catch{return null;}
   }
 
-  // _getTeams ya no se necesita — el backend devuelve todo normalizado
-  async function _getTeams() { return {}; }
+  // Caché de equipos (iso2 + nombre ES)
+  let _teamsMap = null;
+  async function _getTeams() {
+    if (_teamsMap) return _teamsMap;
+    const cached = _pahCacheGet('wc26:teams');
+    if (cached) { _teamsMap = cached; return cached; }
+    try {
+      const r = await fetch(_WC_BASE+'/get/teams',{headers:{'Authorization':'Bearer '+_WC_JWT}});
+      if (!r.ok) throw new Error(r.status);
+      const data = await r.json();
+      const list = Array.isArray(data)?data:(data.teams||[]);
+      const map = {};
+      list.forEach(t=>{
+        const tid=String(t.id||''), iso2=(t.iso2||'').toLowerCase();
+        map[tid]={iso2, nombre_es:_ISO_ES[iso2]||_EN_ES[(t.name_en||'').toLowerCase()]||t.name_en||''};
+      });
+      _teamsMap=map; _pahCacheSet('wc26:teams',map,3600000);
+      return map;
+    } catch(e){ return {}; }
+  }
 
   function _normWC(g, tm) {
     const hi=String(g.home_team_id||''), ai=String(g.away_team_id||'');
@@ -8593,23 +8475,23 @@ async function cargarMasPosts(btn) {
 
     if (!partidos) {
       try {
-        // El backend hace la llamada a worldcup26.ir — sin CORS
-        const r = await fetch(_API+'/partidos-hoy');
-        if (!r.ok) throw new Error('HTTP '+r.status);
-        const data = await r.json();
-        // El backend ya devuelve partidos normalizados (nombres ES, hora Colombia, etc.)
-        partidos = data.partidos || data || [];
+        const [tm, gr] = await Promise.all([
+          _getTeams(),
+          fetch(_WC_BASE+'/get/games',{headers:{'Authorization':'Bearer '+_WC_JWT}})
+        ]);
+        if (!gr.ok) throw new Error('HTTP '+gr.status);
+        const data = await gr.json();
+        const raw  = Array.isArray(data)?data:(data.games||data.data||[]);
+        partidos   = raw.map(g=>_normWC(g,tm)).filter(p=>p.fecha_iso&&_isoDate(p.fecha_iso)===hoy);
         const vivo = partidos.some(p=>p.estado==='en_curso');
-        const ttl  = vivo ? 20000 : partidos.length ? 60000 : 120000;
+        const ttl  = vivo?20000:partidos.length?60000:120000;
         _pahCacheSet(ck, partidos, ttl);
         _pollInterval = ttl;
-        document.getElementById('pah-fallback-banner')?.style &&
-          (document.getElementById('pah-fallback-banner').style.display='none');
-        console.log('[PAH] HTTP 200 /api/mundial/partidos-hoy | partidos:',partidos.length,'| vivo:',vivo,'| fuente:',data.fuente||'?','| próximo poll en'+(ttl/1000)+'s');
+        document.getElementById('pah-fallback-banner')?.style && (document.getElementById('pah-fallback-banner').style.display='none');
+        console.log('[PAH] worldcup26.ir OK | hoy:',hoy,'| partidos:',partidos.length,'| vivo:',vivo);
       } catch(err) {
-        console.error('[PAH] Error backend:',err.message);
-        document.getElementById('pah-fallback-banner')?.style &&
-          (document.getElementById('pah-fallback-banner').style.display='block');
+        console.error('[PAH] Error worldcup26.ir:',err.message);
+        document.getElementById('pah-fallback-banner')?.style && (document.getElementById('pah-fallback-banner').style.display='block');
         ['desktop','mobile'].forEach(s=>_setEstado(s,'error'));
         _schedulePoll(30000); return;
       }
@@ -8617,10 +8499,7 @@ async function cargarMasPosts(btn) {
 
     const todos = _ordenar(partidos);
     window._pahTodosPartidos = todos;
-    const pw = todos.find(p=>p.estado==='en_curso')
-            || todos.find(p=>p.estado==='programado')
-            || todos.filter(p=>p.estado==='finalizado').slice(-1)[0]
-            || null;
+    const pw = todos.find(p=>p.estado==='en_curso')||todos.find(p=>p.estado==='programado')||todos.filter(p=>p.estado==='finalizado').slice(-1)[0]||null;
 
     ['desktop','mobile'].forEach(suf=>{
       if(!pw){ _setEstado(suf,'vacio'); const b=document.getElementById('pah-ver-mas-'+suf); if(b) b.style.display='none'; }
@@ -8645,622 +8524,4 @@ async function cargarMasPosts(btn) {
   });
 })();
 
-</script>
-
-<!-- ══ MUNDIAL 2026 — Widget JS ══ -->
-<script>
-(function () {
-  'use strict';
-
-  /* ── Shared state ─────────────────────────────── */
-  const _mw = {
-    tab_d: 'hoy', tab_m: 'hoy',
-    grupo_d: 'A', grupo_m: 'A',
-    timer_d: null, timer_m: null,
-    grupos: null, goles: null,
-  };
-
-  /* ── Helpers ───────────────────────────────────── */
-  function flagHtml(iso2, name) {
-    if (!iso2) return `<span class="mw-flag-em">🏳️</span>`;
-    const src = `/static/banderas/${iso2.toUpperCase()}.png`;
-    const em  = _iso2emoji(iso2);
-    return `<img class="mw-flag-img" src="${src}"
-      onerror="this.outerHTML='<span class=mw-flag-em>${em}</span>'"
-      alt="${(name||iso2).replace(/"/g,'&quot;')}">`;
-  }
-
-  function _iso2emoji(iso2) {
-    if (!iso2) return '🏳️';
-    const sp = {'gb-eng':'🏴󠁧󠁢󠁥󠁮󠁧󠁿','gb-sct':'🏴󠁧󠁢󠁳󠁣󠁴󠁿','gb-wls':'🏴󠁧󠁢󠁷󠁬󠁳󠁿'};
-    if (sp[iso2]) return sp[iso2];
-    const c = iso2.replace(/^gb-/,'').toUpperCase().slice(0,2);
-    if (c.length < 2) return '🏳️';
-    const b = 0x1F1E6;
-    return String.fromCodePoint(b+c.charCodeAt(0)-65)+String.fromCodePoint(b+c.charCodeAt(1)-65);
-  }
-
-  function dgHtml(v) {
-    if (v > 0) return `<span class="mw-dg-pos">+${v}</span>`;
-    if (v < 0) return `<span class="mw-dg-neg">${v}</span>`;
-    return `<span class="mw-dg-zer">0</span>`;
-  }
-
-  function loading(el) {
-    el.innerHTML = `<div class="mw-loading"><div class="mw-spinner"></div><br>Cargando…</div>`;
-  }
-  function empty(el, msg) {
-    el.innerHTML = `<div class="mw-empty">${msg}</div>`;
-  }
-
-  async function _get(url) {
-    const r = await fetch(url, {credentials:'same-origin'});
-    if (!r.ok) throw new Error(`HTTP ${r.status}`);
-    const j = await r.json();
-    if (!j.ok) throw new Error(j.error || 'API error');
-    return j.data;
-  }
-
-  function _setUpdate() {
-    const el = document.getElementById('mw-last-update');
-    if (el) el.textContent = `Actualizado ${new Date().toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit'})}`;
-  }
-
-  /* ── Partido card ──────────────────────────────── */
-  function matchCard(p) {
-    const live = p.estado === 'en_curso';
-    const fin  = p.estado === 'finalizado';
-    let badge = '', scoreHtml = '';
-
-    if (live)      badge = `<span class="mw-badge-live">● ${p.minuto||'EN VIVO'}</span>`;
-    else if (fin)  badge = `<span class="mw-badge-ft">FT</span>`;
-    else {
-      const partes = (p.fecha_texto||'').split(', ');
-      badge = `<div class="mw-badge-prox">
-        <div class="mw-hora">${partes[1]||''}</div>
-        <div class="mw-hora-fecha">${partes[0]||p.fecha_texto||''}</div>
-      </div>`;
-    }
-
-    if (fin || live) {
-      scoreHtml = `<div class="mw-score-box">
-        <div class="mw-score">
-          <span>${p.goles_local??'–'}</span><span class="mw-score-sep">-</span><span>${p.goles_visit??'–'}</span>
-        </div>
-        ${live && p.minuto ? `<span class="mw-minuto">${p.minuto}</span>` : ''}
-      </div>`;
-    } else {
-      scoreHtml = badge; badge = '';
-    }
-
-    const grupoStr = p.grupo ? `Grupo ${p.grupo}` : (p.fase||'');
-    const faseLabel = p.grupo ? `Grupo ${p.grupo}` : (p.fase||'');    return `<div class="mw-match-card${live?' is-live':''}">
-      <div class="mw-meta">
-        <div class="mw-meta-left">
-          <span class="mw-fase-label">${faseLabel}</span>
-          ${p.sede ? `<span class="mw-sede-label">📍 ${p.sede}</span>` : ''}
-        </div>
-        ${badge}
-      </div>
-      <div class="mw-teams">
-        <div class="mw-team">${flagHtml(p.codigo_local,p.local)}<span class="mw-tname">${p.local||''}</span></div>
-        ${scoreHtml}
-        <div class="mw-team away">${flagHtml(p.codigo_visit,p.visitante)}<span class="mw-tname">${p.visitante||''}</span></div>
-      </div>
-    </div>`;
-  }
-
-  function _renderMatches(list, el, emptyMsg, pillSel) {
-    if (!list || !list.length) { empty(el, emptyMsg); return; }
-    el.innerHTML = list.map(matchCard).join('');
-    const hasLive = list.some(p => p.estado === 'en_curso');
-    document.querySelectorAll(pillSel).forEach(pill => pill.style.display = hasLive ? '' : 'none');
-  }
-
-  /* ── HOY ────────────────────────────────────────── */
-  async function _loadHoy(suffix) {
-    const el = document.getElementById(`mw-${suffix}hoy-list`);
-    if (!el) return;
-    try {
-      const data = await _get('/api/mundial/partidos-hoy');
-      _renderMatches(data, el, '⚽ No hay partidos hoy', suffix === '' ? '#mw-live-pill' : '.mw-live-pill-m');
-      _setUpdate();
-    } catch { empty(el, '⚠️ No se pudieron cargar los partidos'); }
-  }
-
-  /* ── PRÓXIMOS ───────────────────────────────────── */
-  async function _loadProximos(suffix) {
-    const el = document.getElementById(`mw-${suffix}prox-list`);
-    if (!el) return;
-    loading(el);
-    try {
-      const data = await _get('/api/mundial/proximos?limit=20');
-      // Agrupar por día Colombia
-      const byDay = {};
-      (data||[]).forEach(p => {
-        const d = p.fecha_iso
-          ? new Date(new Date(p.fecha_iso) - 5*3600000).toISOString().slice(0,10)
-          : '?';
-        if (!byDay[d]) byDay[d] = [];
-        byDay[d].push(p);
-      });
-      const DIAS  = ['dom.','lun.','mar.','mié.','jue.','vie.','sáb.'];
-      const MESES = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
-      if (!Object.keys(byDay).length) { empty(el, '🗓️ No hay próximos partidos'); return; }
-      el.innerHTML = Object.keys(byDay).sort().map(d => {
-        const dt = new Date(d+'T12:00:00Z');
-        return `<div class="mw-day-label">${DIAS[dt.getUTCDay()]} ${dt.getUTCDate()} ${MESES[dt.getUTCMonth()]}</div>`
-          + byDay[d].map(matchCard).join('');
-      }).join('');
-    } catch { empty(el, '⚠️ Error al cargar próximos partidos'); }
-  }
-
-  /* ── GOLES ──────────────────────────────────────── */
-  async function _loadGoles(suffix) {
-    const el = document.getElementById(`mw-${suffix}goles-wrap`);
-    if (!el) return;
-    if (_mw.goles && suffix !== '') { _renderGoles(_mw.goles, el); return; }
-    loading(el);
-    try {
-      const data = await _get('/api/mundial/goals-ranking');
-      if (!suffix) _mw.goles = data;
-      _renderGoles(data, el);
-    } catch { empty(el, '⚠️ Sin datos de goles'); }
-  }
-
-  function _renderGoles(data, el) {
-    if (!data || !data.length) {
-      empty(el, '⚽ Los goles aparecerán cuando arranquen los partidos'); return;
-    }
-    const rows = data.map(t => `<tr>
-      <td class="mw-goals-pos">${t.pos}</td>
-      <td><div class="mw-goals-team">${flagHtml(t.codigo,t.nombre)}<span style="font-size:12px;font-weight:600;color:var(--text)">${t.nombre}</span></div></td>
-      <td class="mw-goals-num">${t.gf}</td>
-    </tr>`).join('');
-    el.innerHTML = `<table class="mw-goals-tbl">
-      <thead><tr><th>#</th><th>Selección</th><th>GF</th></tr></thead>
-      <tbody>${rows}</tbody>
-    </table>`;
-  }
-
-  /* ── GRUPOS ─────────────────────────────────────── */
-  async function _loadGrupos(suffix) {
-    const wrapId = `mw-${suffix}grupo-wrap`;
-    const el = document.getElementById(wrapId);
-    if (!el) return;
-    if (_mw.grupos) { _renderGrupo(suffix === '' ? _mw.grupo_d : _mw.grupo_m, el); return; }
-    loading(el);
-    try {
-      _mw.grupos = await _get('/api/mundial/groups');
-      _renderGrupo(suffix === '' ? _mw.grupo_d : _mw.grupo_m, el);
-    } catch { empty(el, '⚠️ Error al cargar grupos'); }
-  }
-
-  function _renderGrupo(letra, el) {
-    if (!_mw.grupos) return;
-    const eq = _mw.grupos[letra];
-    if (!eq || !eq.length) { empty(el, `Sin datos para el Grupo ${letra}`); return; }
-    const rows = eq.map(t => `<tr>
-      <td class="mw-pos-num">${t.pos}</td>
-      <td><div class="mw-eq-cell">${flagHtml(t.codigo,t.nombre)}<span class="mw-eq-name">${t.nombre}</span></div></td>
-      <td>${t.pj}</td><td>${t.pg}</td><td>${t.pe}</td><td>${t.pp}</td>
-      <td>${t.gf}</td><td>${t.gc}</td><td>${dgHtml(t.dg)}</td>
-      <td class="mw-pts-cell">${t.pts}</td>
-    </tr>`).join('');
-    el.innerHTML = `<div class="mw-group-header">
-      <span class="mw-group-letra">Grupo ${letra}</span>
-      <span class="mw-group-badge">Mundial 2026</span>
-    </div>
-    <table class="mw-group-tbl">
-      <thead><tr>
-        <th>#</th><th>Selección</th>
-        <th title="Partidos jugados">PJ</th><th title="Ganados">PG</th>
-        <th title="Empatados">PE</th><th title="Perdidos">PP</th>
-        <th title="Goles favor">GF</th><th title="Goles contra">GC</th>
-        <th title="Diferencia">DG</th><th title="Puntos">PTS</th>
-      </tr></thead>
-      <tbody>${rows}</tbody>
-    </table>`;
-  }
-
-  /* ── CLASIFICADOS ───────────────────────────────── */
-  async function _loadClasificados(suffix) {
-    const el = document.getElementById(`mw-${suffix}clas-wrap`);
-    if (!el) return;
-    loading(el);
-    try {
-      const [clas, stats] = await Promise.all([
-        _get('/api/mundial/qualified'),
-        _get('/api/mundial/stats').catch(() => null),
-      ]);
-      _renderClas(clas, stats, el);
-    } catch { empty(el, '⚠️ Error al cargar clasificados'); }
-  }
-
-  function _renderClas(clas, stats, el) {
-    let html = '';
-    if (!clas || !clas.length) {
-      html += `<div class="mw-empty">🏆 Los clasificados aparecerán al avanzar la fase de grupos</div>`;
-    } else {
-      const cards = clas.map(c => `<div class="mw-clas-card p${c.pos}">
-        ${flagHtml(c.codigo,c.nombre)}
-        <div class="mw-clas-info">
-          <div class="mw-clas-name">${c.nombre}</div>
-          <div class="mw-clas-meta">Grupo ${c.grupo} · ${c.pts} pts</div>
-        </div>
-        <span class="mw-clas-badge b${c.pos}">${c.pos}°</span>
-      </div>`).join('');
-      html += `<p style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Clasificados — Grupos</p>
-      <div class="mw-clas-grid">${cards}</div>`;
-    }
-    if (stats && stats.partidos_jugados) {
-      const sr = (label, val) => `<div class="mw-stat-row"><span class="mw-stat-label">${label}</span><span class="mw-stat-val">${val}</span></div>`;
-      const tv = t => t ? `${_iso2emoji(t.codigo)} ${t.nombre}` : '—';
-      html += `<div class="mw-stats-title">Estadísticas del torneo</div>
-        ${sr('Partidos jugados',`<span class="mw-stat-accent">${stats.partidos_jugados}</span>`)}
-        ${sr('Goles totales',`<span class="mw-stat-accent">${stats.total_goles}</span>`)}
-        ${stats.mas_goleador   ? sr('⚽ Más goleador',   tv(stats.mas_goleador)  +` (${stats.mas_goleador.gf} GF)`) : ''}
-        ${stats.menos_goleado  ? sr('🛡️ Menos goleado', tv(stats.menos_goleado) +` (${stats.menos_goleado.gc} GC)`) : ''}
-        ${stats.mayor_diferencia ? sr('📈 Mayor DG',     tv(stats.mayor_diferencia)+` (+${stats.mayor_diferencia.dg})`) : ''}
-        ${stats.mas_victorias  ? sr('✅ Más victorias',  tv(stats.mas_victorias) +` (${stats.mas_victorias.pg})`) : ''}`;
-    }
-    el.innerHTML = html;
-  }
-
-  /* ── Navegación ─────────────────────────────────── */
-  function _switchTab(suffix, tab) {
-    if (suffix === '') _mw.tab_d = tab; else _mw.tab_m = tab;
-    clearInterval(suffix === '' ? _mw.timer_d : _mw.timer_m);
-    const attr = suffix === '' ? 'data-mwtab' : 'data-mwtab-m';
-    document.querySelectorAll(`[${attr}]`).forEach(b =>
-      b.classList.toggle('active', b.getAttribute(attr) === tab));
-    document.querySelectorAll(`[id^="mwtab-${suffix ? 'm-' : ''}"]`).forEach(p =>
-      p.style.display = p.id === `mwtab-${suffix ? 'm-' : ''}${tab}` ? '' : 'none');
-    _dispatchTab(suffix, tab);
-  }
-
-  function _dispatchTab(suffix, tab) {
-    const s = suffix === '' ? '' : 'm-';
-    const refresh = () => { _mw.grupos = null; _loadGrupos(suffix); };
-    switch (tab) {
-      case 'hoy':
-        _loadHoy(s);
-        const t = setInterval(() => _loadHoy(s), 30000);
-        if (suffix === '') _mw.timer_d = t; else _mw.timer_m = t;
-        break;
-      case 'proximos': _loadProximos(s); break;
-      case 'goles':    _loadGoles(s);    break;
-      case 'grupos':
-        _loadGrupos(s);
-        const t2 = setInterval(refresh, 120000);
-        if (suffix === '') _mw.timer_d = t2; else _mw.timer_m = t2;
-        break;
-      case 'clasificados':
-        _loadClasificados(s);
-        const t3 = setInterval(() => _loadClasificados(s), 120000);
-        if (suffix === '') _mw.timer_d = t3; else _mw.timer_m = t3;
-        break;
-    }
-  }
-
-  function _switchGrupo(suffix, letra) {
-    const s = suffix === '' ? '' : 'm-';
-    if (suffix === '') _mw.grupo_d = letra; else _mw.grupo_m = letra;
-    const attr = suffix === '' ? 'data-grupo' : 'data-grupo-m';
-    document.querySelectorAll(`[${attr}]`).forEach(b =>
-      b.classList.toggle('active', b.getAttribute(attr) === letra));
-    const el = document.getElementById(`mw-${s}grupo-wrap`);
-    if (el) _renderGrupo(letra, el);
-    if (!_mw.grupos) _loadGrupos(s);
-  }
-
-  /* ── Init ───────────────────────────────────────── */
-  function _init() {
-    // Desktop tabs
-    document.querySelectorAll('[data-mwtab]').forEach(btn =>
-      btn.addEventListener('click', () => _switchTab('', btn.dataset.mwtab)));
-    document.querySelectorAll('[data-grupo]').forEach(btn =>
-      btn.addEventListener('click', () => _switchGrupo('', btn.dataset.grupo)));
-
-    // Mobile tabs
-    document.querySelectorAll('[data-mwtab-m]').forEach(btn =>
-      btn.addEventListener('click', () => _switchTab('m', btn.getAttribute('data-mwtab-m'))));
-    document.querySelectorAll('[data-grupo-m]').forEach(btn =>
-      btn.addEventListener('click', () => _switchGrupo('m', btn.getAttribute('data-grupo-m'))));
-
-    // Carga inicial
-    _loadHoy('');  _loadHoy('m-');
-    _mw.timer_d = setInterval(() => _loadHoy(''),   30000);
-    _mw.timer_m = setInterval(() => _loadHoy('m-'), 30000);
-  }
-
-  if (document.readyState === 'loading')
-    document.addEventListener('DOMContentLoaded', _init);
-  else
-    _init();
-})();
-</script>
-
-
-<style>
-/* ── MW Ver Todos Button ── */
-.mw-ver-todos-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  width: 100%;
-  padding: 9px 12px;
-  background: transparent;
-  border: 1px solid var(--accent-border, rgba(109,40,217,.3));
-  border-radius: var(--r, 8px);
-  color: var(--accent);
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: .4px;
-  cursor: pointer;
-  transition: background .15s, border-color .15s;
-}
-.mw-ver-todos-btn:hover {
-  background: var(--accent-soft, rgba(109,40,217,.08));
-  border-color: var(--accent);
-}
-/* ── MW Modal ── */
-.mw-modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,.7);
-  z-index: 3000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 16px;
-  backdrop-filter: blur(4px);
-}
-.mw-modal-box {
-  background: var(--card, #1a1a2e);
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  width: 100%;
-  max-width: 520px;
-  max-height: 88vh;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  box-shadow: 0 24px 64px rgba(0,0,0,.5);
-}
-.mw-modal-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 14px 16px 10px;
-  border-bottom: 1px solid var(--border);
-  flex-shrink: 0;
-}
-.mw-modal-header h3 {
-  font-size: 16px;
-  font-weight: 800;
-  color: var(--text);
-  margin: 0;
-}
-.mw-modal-close {
-  background: none;
-  border: none;
-  cursor: pointer;
-  color: var(--text3);
-  padding: 4px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: background .15s;
-}
-.mw-modal-close:hover { background: var(--border); color: var(--text); }
-.mw-modal-body {
-  flex: 1;
-  overflow-y: auto;
-  padding: 0 12px 16px;
-  overscroll-behavior: contain;
-}
-@media(max-width:540px){
-  .mw-modal-box { border-radius: 12px 12px 0 0; max-height: 90vh; }
-  .mw-modal-overlay { align-items: flex-end; padding: 0; }
-}
-</style>
-
-
-<script>
-/* ── MW Modal Controller ── */
-(function(){
-  'use strict';
-
-  const _mwm = { tab: 'hoy', grupo: 'A' };
-
-  function _iso2emoji(iso2) {
-    if (!iso2) return '🏳';
-    const sp = {'gb-eng':'🏴󠁧󠁢󠁥󠁮󠁧󠁿','gb-sct':'🏴󠁧󠁢󠁳󠁣󠁴󠁿','gb-wls':'🏴󠁧󠁢󠁷󠁬󠁳󠁿'};
-    if (sp[iso2]) return sp[iso2];
-    const c = iso2.replace(/^gb-/,'').toUpperCase().slice(0,2);
-    if (c.length < 2) return '🏳';
-    const b = 0x1F1E6;
-    return String.fromCodePoint(b+c.charCodeAt(0)-65)+String.fromCodePoint(b+c.charCodeAt(1)-65);
-  }
-
-  function flagHtml(iso2, name) {
-    if (!iso2) return '<span class="mw-flag-em">🏳</span>';
-    const MAP = {
-      'ar':'ARG','au':'AUS','at':'AUT','be':'BEL','br':'BRA','ca':'CAN',
-      'cl':'CHI','co':'COL','cd':'COD','cr':'CRI','hr':'CRO','cz':'CZE',
-      'dk':'DEN','ec':'ECU','eg':'EGY','fr':'FRA','de':'GER','gh':'GHA',
-      'gb-eng':'ENG','hu':'HUN','ir':'IRN','iq':'IRQ','ci':'CIV','jp':'JPN',
-      'jo':'JOR','kr':'KOR','sa':'KSA','ma':'MAR','mx':'MEX','nl':'NED',
-      'nz':'NZL','ng':'NGA','no':'NOR','pa':'PAN','py':'PAR','pe':'PER',
-      'pt':'POR','qa':'QAT','ro':'ROU','za':'RSA','sn':'SEN','rs':'SRB',
-      'gb-sct':'SCO','sk':'SVK','es':'ESP','se':'SWE','ch':'SUI','tn':'TUN',
-      'tr':'TUR','us':'USA','uy':'URU','uz':'UZB','ve':'VEN','dz':'ALG',
-      'cv':'CPV','ht':'HAI','cw':'CUW','ba':'BIH','gb-wls':'WAL','tt':'TRI','jm':'JAM',
-    };
-    const key = iso2.toLowerCase();
-    const file = MAP[key] || iso2.toUpperCase().replace('-','');
-    const em = _iso2emoji(iso2);
-    const sn = (name||iso2).replace(/"/g,'&quot;');
-    return '<img class="mw-flag-img" src="/static/banderas/'+file+'.png" onerror="this.outerHTML='<span class=mw-flag-em>'+em+'</span>'" alt="'+sn+'">';
-  }
-
-  function dgHtml(v) {
-    if (v > 0) return '<span class="mw-dg-pos">+'+v+'</span>';
-    if (v < 0) return '<span class="mw-dg-neg">'+v+'</span>';
-    return '<span class="mw-dg-zer">0</span>';
-  }
-  function loading(el) { el.innerHTML = '<div class="mw-loading"><div class="mw-spinner"></div><br>Cargando...</div>'; }
-  function empty(el, msg) { el.innerHTML = '<div class="mw-empty">'+msg+'</div>'; }
-
-  async function _get(url) {
-    const r = await fetch(url, {credentials:'same-origin'});
-    if (!r.ok) throw new Error('HTTP '+r.status);
-    const j = await r.json();
-    if (!j.ok) throw new Error(j.error||'API error');
-    return j.data;
-  }
-
-  function matchCard(p) {
-    const live = p.estado === 'en_curso';
-    const fin  = p.estado === 'finalizado';
-    let badge = '', scoreHtml = '';
-    if (live)     badge = '<span class="mw-badge-live">• '+(p.minuto||'EN VIVO')+'</span>';
-    else if (fin) badge = '<span class="mw-badge-ft">FT</span>';
-    else {
-      const pts = (p.fecha_texto||'').split(', ');
-      badge = '<div class="mw-badge-prox"><div class="mw-hora">'+(pts[1]||'')+'</div><div class="mw-hora-fecha">'+(pts[0]||p.fecha_texto||'')+'</div></div>';
-    }
-    if (fin||live) {
-      scoreHtml = '<div class="mw-score-box"><div class="mw-score"><span>'+(p.goles_local!=null?p.goles_local:'–')+'</span><span class="mw-score-sep">-</span><span>'+(p.goles_visit!=null?p.goles_visit:'–')+'</span></div>'+(live&&p.minuto?'<span class="mw-minuto">'+p.minuto+'</span>':'')+'</div>';
-    } else { scoreHtml = badge; badge = ''; }
-    const fl = p.grupo ? 'Grupo '+p.grupo : (p.fase||'');
-    return '<div class="mw-match-card'+(live?' is-live':'')+'"><div class="mw-meta"><div class="mw-meta-left"><span class="mw-fase-label">'+fl+'</span>'+(p.sede?'<span class="mw-sede-label">📍 '+p.sede+'</span>':'')+'</div>'+badge+'</div><div class="mw-teams"><div class="mw-team">'+flagHtml(p.codigo_local,p.local)+'<span class="mw-tname">'+(p.local||'')+'</span></div>'+scoreHtml+'<div class="mw-team away">'+flagHtml(p.codigo_visit,p.visitante)+'<span class="mw-tname">'+(p.visitante||'')+'</span></div></div></div>';
-  }
-
-  async function _loadModalHoy() {
-    const el = document.getElementById('mw-modal-hoy-list'); if(!el) return;
-    loading(el);
-    try {
-      const data = await _get('/api/mundial/partidos-hoy');
-      if (!data||!data.length) { empty(el,'Hoy no hay partidos'); return; }
-      el.innerHTML = data.map(matchCard).join('');
-      const hasLive = data.some(p=>p.estado==='en_curso');
-      const pill = document.getElementById('mw-modal-live-pill');
-      if (pill) pill.style.display = hasLive?'':'none';
-    } catch(e) { empty(el,'No se pudieron cargar los partidos'); }
-  }
-
-  async function _loadModalProximos() {
-    const el = document.getElementById('mw-modal-prox-list'); if(!el) return;
-    loading(el);
-    try {
-      const data = await _get('/api/mundial/proximos?limit=30');
-      const byDay={}, DIAS=['dom.','lun.','mar.','mie.','jue.','vie.','sab.'],
-            MESES=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
-      (data||[]).forEach(p=>{
-        const d=p.fecha_iso?new Date(new Date(p.fecha_iso)-5*3600000).toISOString().slice(0,10):'?';
-        if(!byDay[d])byDay[d]=[];byDay[d].push(p);
-      });
-      if(!Object.keys(byDay).length){empty(el,'No hay proximos partidos');return;}
-      el.innerHTML=Object.keys(byDay).sort().map(d=>{
-        const dt=new Date(d+'T12:00:00Z');
-        return '<div class="mw-day-label">'+DIAS[dt.getUTCDay()]+' '+dt.getUTCDate()+' '+MESES[dt.getUTCMonth()]+'</div>'+byDay[d].map(matchCard).join('');
-      }).join('');
-    } catch(e){empty(el,'Error al cargar proximos partidos');}
-  }
-
-  let _mgoles=null;
-  async function _loadModalGoles() {
-    const el=document.getElementById('mw-modal-goles-wrap');if(!el)return;
-    if(_mgoles){_rGoles(_mgoles,el);return;}
-    loading(el);
-    try{_mgoles=await _get('/api/mundial/goals-ranking');_rGoles(_mgoles,el);}
-    catch(e){empty(el,'Sin datos de goles');}
-  }
-  function _rGoles(data,el){
-    if(!data||!data.length){empty(el,'Los goles apareceran cuando arranquen los partidos');return;}
-    el.innerHTML='<table class="mw-goals-tbl"><thead><tr><th>#</th><th>Seleccion</th><th>GF</th></tr></thead><tbody>'+
-      data.map(t=>'<tr><td class="mw-goals-pos">'+t.pos+'</td><td><div class="mw-goals-team">'+flagHtml(t.codigo,t.nombre)+'<span style="font-size:12px;font-weight:600;color:var(--text)">'+t.nombre+'</span></div></td><td class="mw-goals-num">'+t.gf+'</td></tr>').join('')+
-      '</tbody></table>';
-  }
-
-  let _mgrupos=null;
-  async function _loadModalGrupos(){
-    const el=document.getElementById('mw-modal-grupo-wrap');if(!el)return;
-    if(_mgrupos){_rGrupo(_mwm.grupo,el);return;}
-    loading(el);
-    try{_mgrupos=await _get('/api/mundial/groups');_rGrupo(_mwm.grupo,el);}
-    catch(e){empty(el,'Error al cargar grupos');}
-  }
-  function _rGrupo(letra,el){
-    if(!_mgrupos)return;
-    const eq=_mgrupos[letra];
-    if(!eq||!eq.length){empty(el,'Sin datos para el Grupo '+letra);return;}
-    el.innerHTML='<div class="mw-group-header"><span class="mw-group-letra">Grupo '+letra+'</span><span class="mw-group-badge">Mundial 2026</span></div>'+
-      '<table class="mw-group-tbl"><thead><tr><th>#</th><th>Seleccion</th><th title="Partidos jugados">PJ</th><th title="Ganados">PG</th><th title="Empatados">PE</th><th title="Perdidos">PP</th><th title="Goles favor">GF</th><th title="Goles contra">GC</th><th title="Diferencia">DG</th><th title="Puntos">PTS</th></tr></thead><tbody>'+
-      eq.map(t=>'<tr><td class="mw-pos-num">'+t.pos+'</td><td><div class="mw-eq-cell">'+flagHtml(t.codigo,t.nombre)+'<span class="mw-eq-name">'+t.nombre+'</span></div></td><td>'+t.pj+'</td><td>'+t.pg+'</td><td>'+t.pe+'</td><td>'+t.pp+'</td><td>'+t.gf+'</td><td>'+t.gc+'</td><td>'+dgHtml(t.dg)+'</td><td class="mw-pts-cell">'+t.pts+'</td></tr>').join('')+
-      '</tbody></table>';
-  }
-
-  async function _loadModalClas(){
-    const el=document.getElementById('mw-modal-clas-wrap');if(!el)return;
-    loading(el);
-    try{
-      const [clas]=await Promise.all([_get('/api/mundial/qualified')]);
-      if(!clas||!clas.length){el.innerHTML='<div class="mw-empty">Los clasificados apareceran al avanzar la fase de grupos</div>';return;}
-      el.innerHTML='<p style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Clasificados</p><div class="mw-clas-grid">'+
-        clas.map(c=>'<div class="mw-clas-card p'+c.pos+'">'+flagHtml(c.codigo,c.nombre)+'<div class="mw-clas-info"><div class="mw-clas-name">'+c.nombre+'</div><div class="mw-clas-meta">Grupo '+c.grupo+' - '+c.pts+' pts</div></div><span class="mw-clas-badge b'+c.pos+'">'+c.pos+'</span></div>').join('')+
-        '</div>';
-    }catch(e){empty(el,'Error al cargar clasificados');}
-  }
-
-  function _switchModalTab(tab){
-    _mwm.tab=tab;
-    document.querySelectorAll('[data-mwtab-modal]').forEach(b=>b.classList.toggle('active',b.getAttribute('data-mwtab-modal')===tab));
-    document.querySelectorAll('[id^="mwtab-modal-"]').forEach(p=>p.style.display=p.id==='mwtab-modal-'+tab?'':'none');
-    if(tab==='hoy')          _loadModalHoy();
-    if(tab==='proximos')     _loadModalProximos();
-    if(tab==='goles')        _loadModalGoles();
-    if(tab==='grupos')       _loadModalGrupos();
-    if(tab==='clasificados') _loadModalClas();
-  }
-
-  function mwAbrirModal(){
-    const modal=document.getElementById('mw-modal');if(!modal)return;
-    if(modal.parentElement!==document.body)document.body.appendChild(modal);
-    modal.style.display='flex';
-    document.body.style.overflow='hidden';
-    _switchModalTab('hoy');
-  }
-
-  window.mwAbrirModal=mwAbrirModal;
-  window.mwCerrarModal=function(e){
-    if(e&&e.target!==document.getElementById('mw-modal'))return;
-    const modal=document.getElementById('mw-modal');
-    if(modal){modal.style.display='none';}
-    document.body.style.overflow='';
-  };
-
-  function _init(){
-    document.querySelectorAll('[data-mwtab-modal]').forEach(btn=>
-      btn.addEventListener('click',()=>_switchModalTab(btn.getAttribute('data-mwtab-modal'))));
-    document.querySelectorAll('[data-grupo-modal]').forEach(btn=>
-      btn.addEventListener('click',()=>{
-        _mwm.grupo=btn.getAttribute('data-grupo-modal');
-        document.querySelectorAll('[data-grupo-modal]').forEach(b=>b.classList.toggle('active',b.getAttribute('data-grupo-modal')===_mwm.grupo));
-        const el=document.getElementById('mw-modal-grupo-wrap');
-        if(el)_rGrupo(_mwm.grupo,el);
-        if(!_mgrupos)_loadModalGrupos();
-      }));
-    document.addEventListener('keydown',e=>{
-      if(e.key==='Escape'){const m=document.getElementById('mw-modal');if(m&&m.style.display==='flex'){m.style.display='none';document.body.style.overflow='';}}
-    });
-  }
-
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',_init);
-  else _init();
-})();
 </script>
