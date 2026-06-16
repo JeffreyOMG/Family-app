@@ -860,3 +860,26 @@ def invalidate_cache() -> None:
     global _teams_loaded
     _teams_loaded = False
     logger.info("Caché invalidada manualmente")
+
+
+# ─── Acceso a datos crudos (para integraciones externas) ─────────────────────
+
+def get_raw_games() -> tuple[list[dict], str]:
+    """
+    Devuelve los partidos normalizados (mismo formato que get_all_games).
+    Alias público para compatibilidad con módulos que lo importan por este nombre.
+    """
+    return get_all_games()
+
+
+def get_raw_teams() -> tuple[dict[str, dict], str]:
+    """
+    Devuelve el mapa de equipos {team_id: {iso2, nombre_es, nombre_en}}.
+    Carga /get/teams si no está en caché.
+    """
+    global _teams_loaded
+    if not _teams_loaded:
+        with _teams_lock:
+            if not _teams_loaded:
+                _cargar_equipos()
+    return dict(_teams_data), "cache" if _teams_loaded else "fallback"
