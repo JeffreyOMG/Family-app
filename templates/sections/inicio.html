@@ -493,7 +493,7 @@
   <div class="pah-modal-box">
     <div class="pah-modal-header">
       <h3>⚽ Mundial 2026</h3>
-      <button class="pah-modal-close" onclick="cerrarModalPartidos()" aria-label="Cerrar">
+      <button class="pah-modal-close" onclick="cerrarModalPartidosX()" aria-label="Cerrar">
         <span class="material-symbols-outlined">close</span>
       </button>
     </div>
@@ -2868,6 +2868,14 @@ body.dark-mode .post-badge-privado { background: rgba(139,92,246,.2); color: #a7
   letter-spacing: .04em;
   color: var(--text3, #9ca3af);
   text-transform: uppercase;
+}
+.pah-sede-row {
+  font-size: 10px;
+  color: var(--text3, #9ca3af);
+  padding: 3px 0 0;
+  display: flex;
+  align-items: center;
+  gap: 3px;
 }
 
 /* Fila del marcador */
@@ -8011,6 +8019,31 @@ async function cargarMasPosts(btn) {
     } catch (_) { return ''; }
   }
 
+  // Fecha+hora completa en Colombia: "Lun. 15 jun, 05:00 p. m." (fallback cuando no hay fecha_texto)
+  function _fechaCol(fechaIso) {
+    if (!fechaIso) return '';
+    try {
+      const str = fechaIso.includes('Z') || fechaIso.includes('+') ? fechaIso : fechaIso + 'Z';
+      const d = new Date(str);
+      const _DIAS  = ['Dom.','Lun.','Mar.','Mié.','Jue.','Vie.','Sáb.'];
+      const _MESES = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+      try {
+        const hora = d.toLocaleTimeString('es', { hour:'2-digit', minute:'2-digit', hour12:true, timeZone:'America/Bogota' });
+        const fecha = d.toLocaleDateString('es', { weekday:'short', day:'numeric', month:'short', timeZone:'America/Bogota' });
+        return fecha + ', ' + hora;
+      } catch(_) {
+        // Fallback manual UTC-5
+        const col = new Date(d.getTime() - 5*3600000);
+        const dia  = _DIAS[col.getUTCDay()];
+        const mes  = _MESES[col.getUTCMonth()];
+        let h = col.getUTCHours(), m = col.getUTCMinutes();
+        const ap = h >= 12 ? 'p. m.' : 'a. m.';
+        h = h % 12 || 12;
+        return `${dia} ${col.getUTCDate()} ${mes}, ${h}:${String(m).padStart(2,'0')} ${ap}`;
+      }
+    } catch(_) { return ''; }
+  }
+
   // ── State renderer ───────────────────────────────────────────────────────
 
   function _setEstado(sufijo, estado) {
@@ -8050,8 +8083,10 @@ async function cargarMasPosts(btn) {
         badge = `<span class="pah-badge pah-badge--final">✅ FINAL</span>`;
       }
     } else {
-      const hora = _hora(p.fecha_iso);
-      badge = `<span class="pah-badge pah-badge--proximo">🕒 ${hora || _esc(p.fecha_texto || 'Próximo')}</span>`;
+      // fecha_texto ya viene del backend con formato completo: "Lun. 15 jun, 17:00" (hora Colombia)
+      // Usarlo directamente; si falta, recalcular desde fecha_iso
+      const fechaCompleta = p.fecha_texto || _fechaCol(p.fecha_iso);
+      badge = `<span class="pah-badge pah-badge--proximo">🕒 ${_esc(fechaCompleta || 'Próximo')}</span>`;
     }
 
     // Mostrar marcador solo si tenemos goles reales; si no, mostrar "vs"
@@ -8096,10 +8131,11 @@ async function cargarMasPosts(btn) {
     }
 
     // Grupo en la misma fila que el badge de hora/estado, alineado a la derecha
-    const grupoBadge = p.grupo ? `<span class="pah-grupo-badge">Grupo ${_esc(p.grupo)}</span>` : '';
+    const grupoBadge = p.grupo ? `<span class="pah-grupo-badge">Grupo ${_esc(p.grupo)}</span>` : (p.fase && p.fase !== 'Grupos' ? `<span class="pah-grupo-badge">${_esc(p.fase)}</span>` : '');
+    const sedeBadge = p.sede ? `<div class="pah-sede-row"><span class="material-symbols-outlined" style="font-size:12px;vertical-align:middle;">stadium</span> ${_esc(p.sede)}</div>` : '';
     const badgeRow = `<div class="pah-badge-row">${badge}${grupoBadge}</div>`;
 
-    return `<div class="pah-item">${badgeRow}${matchRow}</div>`;
+    return `<div class="pah-item">${badgeRow}${matchRow}${sedeBadge}</div>`;
   }
 
   function _poblarLista(sufijo, partidos) {
@@ -8156,28 +8192,39 @@ async function cargarMasPosts(btn) {
     // Siempre abrir en tab "hoy"
     pahSwitchTab('hoy', document.querySelector('.pah-tab'));
     const lista = document.getElementById('pah-lista-modal');
-    if (lista) {
-      if (window._pahTodosPartidos && window._pahTodosPartidos.length) {
-        lista.innerHTML = window._pahTodosPartidos.map(_renderPartido).join('');
+    if (!lista) return;
+
+    const renderHoy = () => {
+      const todos = window._pahTodosPartidos || [];
+      if (todos.length) {
+        lista.innerHTML = todos.map(_renderPartido).join('');
       } else {
-        lista.innerHTML = '<div class="pah-loading" style="padding:16px;"><div class="pah-skeleton"></div><div class="pah-skeleton pah-skeleton--short"></div></div>';
-        cargarPartidosHoy().then(() => {
-          if (window._pahTodosPartidos) {
-            lista.innerHTML = window._pahTodosPartidos.length
-              ? window._pahTodosPartidos.map(_renderPartido).join('')
-              : '<div class="panel-empty pah-vacio" style="display:block;"><span class="material-symbols-outlined">sports_soccer</span><p>Sin partidos hoy</p></div>';
-          }
-        });
+        lista.innerHTML = '<div class="panel-empty pah-vacio" style="display:block;"><span class="material-symbols-outlined">sports_soccer</span><p>Sin partidos hoy</p></div>';
       }
+    };
+
+    if (window._pahTodosPartidos && window._pahTodosPartidos.length) {
+      renderHoy();
+    } else {
+      lista.innerHTML = '<div class="pah-loading" style="padding:16px;"><div class="pah-skeleton"></div><div class="pah-skeleton pah-skeleton--short"></div><div class="pah-skeleton"></div></div>';
+      cargarPartidosHoy().then(renderHoy).catch(() => {
+        lista.innerHTML = '<div class="panel-empty pah-vacio" style="display:block;"><span class="material-symbols-outlined">error</span><p>No se pudieron cargar los partidos</p></div>';
+      });
     }
   }
 
   function cerrarModalPartidos(e) {
-    if (e && e.target !== document.getElementById('pah-modal')) return;
+    // Si se llama con un evento, solo cerrar si se hizo clic en el overlay (no en el contenido)
+    if (e && e.target && e.target !== document.getElementById('pah-modal')) return;
     const modal = document.getElementById('pah-modal');
     if (modal) modal.style.display = 'none';
     document.body.style.overflow = '';
   }
+  window.cerrarModalPartidosX = function() {
+    const modal = document.getElementById('pah-modal');
+    if (modal) modal.style.display = 'none';
+    document.body.style.overflow = '';
+  };
 
   // ── Goleadores (calculados desde partidos normalizados del proxy) ──────────
   async function _renderScorers() {
@@ -8186,10 +8233,12 @@ async function cargarMasPosts(btn) {
     if (wrap.dataset.loaded === '1') return;
     wrap.innerHTML = '<div class="pah-loading" style="padding:20px;"><div class="pah-skeleton"></div><div class="pah-skeleton pah-skeleton--short"></div><div class="pah-skeleton"></div></div>';
     try {
-      const r = await fetch(_WC_GAMES);
-      if (!r.ok) throw new Error('HTTP '+r.status);
-      const raw = await r.json();
-      const all = Array.isArray(raw) ? raw : (raw.games || raw.data || raw);
+      let all = window._pahTodosGames;
+      if (!all) {
+        const { games } = await _fetchGames();
+        all = games;
+        window._pahTodosGames = all;
+      }
       const byTeam = {};
       all.forEach(g => {
         if (!g.bloqueado) return;
@@ -8230,10 +8279,12 @@ async function cargarMasPosts(btn) {
     if (wrap.dataset.loaded === '1') return;
     wrap.innerHTML = '<div class="pah-loading" style="padding:20px;"><div class="pah-skeleton"></div><div class="pah-skeleton pah-skeleton--short"></div><div class="pah-skeleton"></div></div>';
     try {
-      const r = await fetch(_WC_GAMES);
-      if (!r.ok) throw new Error('HTTP '+r.status);
-      const raw = await r.json();
-      const all = Array.isArray(raw) ? raw : (raw.games || raw.data || raw);
+      let all = window._pahTodosGames;
+      if (!all) {
+        const { games } = await _fetchGames();
+        all = games;
+        window._pahTodosGames = all;
+      }
       const groups = {};
       all.forEach(g => {
         if (!g.bloqueado || g.fase !== 'Grupos') return;
@@ -8287,10 +8338,12 @@ async function cargarMasPosts(btn) {
     if (wrap.dataset.loaded === '1') return;
     wrap.innerHTML = '<div class="pah-loading" style="padding:16px;"><div class="pah-skeleton"></div><div class="pah-skeleton pah-skeleton--short"></div><div class="pah-skeleton"></div></div>';
     try {
-      const r = await fetch(_WC_GAMES);
-      if (!r.ok) throw new Error('HTTP '+r.status);
-      const raw = await r.json();
-      const all = Array.isArray(raw) ? raw : (raw.games || raw.data || raw);
+      let all = window._pahTodosGames;
+      if (!all) {
+        const { games } = await _fetchGames();
+        all = games;
+        window._pahTodosGames = all;
+      }
       const hoy = _hoyCol();
       const proximos = all
         .filter(p => p.fecha_iso && _isoDate(p.fecha_iso) > hoy && p.estado === 'programado')
@@ -8465,6 +8518,33 @@ async function cargarMasPosts(btn) {
     };
   }
 
+  // ── Fetch con fallback: intenta worldcup26.ir directo, luego proxy propio ──
+  async function _fetchGames() {
+    // 1. Intentar worldcup26.ir directamente (funciona si el navegador no bloquea CORS)
+    try {
+      const r = await fetch('https://worldcup26.ir/get/games', { mode: 'cors', cache: 'no-store' });
+      if (r.ok) {
+        const raw = await r.json();
+        const list = Array.isArray(raw) ? raw : (raw.games || raw.data || []);
+        if (list.length) {
+          // Datos crudos → necesitan normalización
+          const tm = await _getTeams();
+          const normalized = list.map(g => _normWC(g, tm));
+          console.log('[PAH] worldcup26.ir directo OK | partidos:', normalized.length);
+          return { games: normalized, source: 'live' };
+        }
+      }
+    } catch(_) { /* CORS o red — intentar proxy */ }
+
+    // 2. Proxy propio (datos ya normalizados por el backend)
+    const r2 = await fetch(_WC_GAMES, { cache: 'no-store' });
+    if (!r2.ok) throw new Error('HTTP ' + r2.status);
+    const raw2 = await r2.json();
+    const list2 = Array.isArray(raw2) ? raw2 : (raw2.games || raw2.data || raw2);
+    console.log('[PAH] proxy /api/wc/games OK | partidos:', list2.length);
+    return { games: list2, source: 'proxy' };
+  }
+
   async function cargarPartidosHoy() {
     const hoy = _hoyCol();
     const ck  = 'pah:'+hoy;
@@ -8472,40 +8552,58 @@ async function cargarMasPosts(btn) {
 
     if (!partidos) {
       try {
-        // /api/wc/games es nuestro proxy servidor→worldcup26.ir (sin CORS)
-        // y devuelve los partidos ya normalizados (mismo formato que _normWC)
-        const gr = await fetch(_WC_GAMES);
-        if (!gr.ok) throw new Error('HTTP '+gr.status);
-        const raw = await gr.json();
-        const all = Array.isArray(raw) ? raw : (raw.games || raw.data || raw);
-        partidos  = all.filter(p => p.fecha_iso && _isoDate(p.fecha_iso) === hoy);
+        const { games: all, source } = await _fetchGames();
+        // Guardar todos los partidos (para próximos, goleadores, tabla)
+        window._pahTodosGames = all;
+        partidos = all.filter(p => p.fecha_iso && _isoDate(p.fecha_iso) === hoy);
         const vivo = partidos.some(p=>p.estado==='en_curso');
-        const ttl  = vivo?20000:partidos.length?60000:120000;
+        const ttl  = source==='live' ? (vivo?20000:60000) : 120000;
         _pahCacheSet(ck, partidos, ttl);
         _pollInterval = ttl;
-        document.getElementById('pah-fallback-banner')?.style && (document.getElementById('pah-fallback-banner').style.display='none');
-        console.log('[PAH] proxy OK | hoy:',hoy,'| partidos:',partidos.length,'| vivo:',vivo);
+        const banner = document.getElementById('pah-fallback-banner');
+        if (banner) banner.style.display = source === 'live' ? 'none' : 'none'; // ocultar siempre
+        console.log('[PAH] hoy:',hoy,'| partidos hoy:',partidos.length,'| vivo:',vivo,'| source:',source);
       } catch(err) {
-        console.error('[PAH] Error proxy:',err.message);
-        document.getElementById('pah-fallback-banner')?.style && (document.getElementById('pah-fallback-banner').style.display='block');
+        console.error('[PAH] Error cargando partidos:', err.message);
+        const banner = document.getElementById('pah-fallback-banner');
+        if (banner) banner.style.display = 'block';
         ['desktop','mobile'].forEach(s=>_setEstado(s,'error'));
-        _schedulePoll(30000); return;
+        _schedulePoll(30000);
+        return;
       }
     }
 
     const todos = _ordenar(partidos);
     window._pahTodosPartidos = todos;
-    const pw = todos.find(p=>p.estado==='en_curso')||todos.find(p=>p.estado==='programado')||todos.filter(p=>p.estado==='finalizado').slice(-1)[0]||null;
+
+    // Widget: mostrar el partido más relevante (en vivo > próximo > finalizado)
+    const pw = todos.find(p=>p.estado==='en_curso')
+            || todos.find(p=>p.estado==='programado')
+            || todos.filter(p=>p.estado==='finalizado').slice(-1)[0]
+            || null;
 
     ['desktop','mobile'].forEach(suf=>{
-      if(!pw){ _setEstado(suf,'vacio'); const b=document.getElementById('pah-ver-mas-'+suf); if(b) b.style.display='none'; }
-      else { _poblarLista(suf,[pw]); _setEstado(suf,'lista'); const b=document.getElementById('pah-ver-mas-'+suf); if(b){b.removeAttribute('style');b.style.display='flex';} }
+      if (!pw) {
+        _setEstado(suf,'vacio');
+        const b = document.getElementById('pah-ver-mas-'+suf);
+        if (b) b.style.display = 'none';
+      } else {
+        _poblarLista(suf, [pw]);
+        _setEstado(suf,'lista');
+        const b = document.getElementById('pah-ver-mas-'+suf);
+        if (b) { b.removeAttribute('style'); b.style.display = 'flex'; }
+      }
     });
 
-    const modal=document.getElementById('pah-modal');
-    if(modal&&modal.style.display==='flex'){
-      const lista=document.getElementById('pah-lista-modal');
-      if(lista&&todos.length) lista.innerHTML=todos.map(_renderPartido).join('');
+    // Actualizar modal si está abierto
+    const modal = document.getElementById('pah-modal');
+    if (modal && modal.style.display === 'flex') {
+      const lista = document.getElementById('pah-lista-modal');
+      if (lista) {
+        lista.innerHTML = todos.length
+          ? todos.map(_renderPartido).join('')
+          : '<div class="panel-empty pah-vacio" style="display:block;"><span class="material-symbols-outlined">sports_soccer</span><p>Sin partidos hoy</p></div>';
+      }
     }
     _schedulePoll(_pollInterval);
   }
