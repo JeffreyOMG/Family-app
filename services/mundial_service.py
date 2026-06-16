@@ -41,7 +41,7 @@ if not logger.handlers:
 EXTERNAL_API_URL: str = os.getenv("MUNDIAL_API_URL", "https://worldcup26.ir/get/games")
 TEAMS_API_URL:    str = "https://worldcup26.ir/get/teams"
 CACHE_TTL_SECONDS: int = int(os.getenv("MUNDIAL_CACHE_TTL", "120"))
-REQUEST_TIMEOUT:   int = int(os.getenv("MUNDIAL_TIMEOUT",   "4"))
+REQUEST_TIMEOUT:   int = int(os.getenv("MUNDIAL_TIMEOUT",   "10"))
 MAX_RETRIES:       int = int(os.getenv("MUNDIAL_RETRIES",   "1"))
 RETRY_BACKOFF:   float = float(os.getenv("MUNDIAL_BACKOFF", "1.0"))
 _TTL_LIVE   = int(os.getenv("MUNDIAL_TTL_LIVE",  "20"))
