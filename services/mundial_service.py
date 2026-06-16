@@ -553,9 +553,13 @@ def get_all_games(force_refresh: bool = False) -> tuple[list[dict], str]:
             logger.info(f"Caché actualizado — TTL={ttl}s, partidos={len(games)}")
             return games, "external"
         except Exception as exc:
-            logger.warning(f"worldcup26.ir inaccesible: {exc}. Usando seed.")
+            # worldcup26.ir no es accesible desde Render (IP bloqueada).
+            # El front obtiene datos frescos directamente desde el navegador.
+            # TTL largo para no spamear logs con el mismo error cada 30s.
+            logger.warning(f"worldcup26.ir inaccesible desde servidor: {exc}. "
+                           f"Usando seed (el front obtiene datos en vivo directamente).")
             games = _fallback_games()
-            _cache.set("all_games", games, ttl=30)
+            _cache.set("all_games", games, ttl=3600)
             return games, "fallback"
 
 
@@ -860,6 +864,52 @@ def invalidate_cache() -> None:
     global _teams_loaded
     _teams_loaded = False
     logger.info("Caché invalidada manualmente")
+
+
+def inject_games_from_client(games_raw: list, teams_raw: list | None = None) -> int:
+    """
+    Recibe datos crudos de worldcup26.ir enviados por el navegador del usuario
+    (que sí puede llegar a la API externa) y los normaliza + guarda en caché.
+    Esto soluciona que Render bloquee la IP del servidor hacia worldcup26.ir.
+    """
+    global _teams_data, _teams_loaded
+
+    # Cargar equipos si vinieron
+    if teams_raw and isinstance(teams_raw, list):
+        data: dict[str, dict] = {}
+        for t in teams_raw:
+            tid = str(t.get("id") or t.get("_id") or "")
+            if not tid:
+                continue
+            iso2_raw = (t.get("iso2") or "").lower().strip()
+            nombre_en = t.get("name_en") or ""
+            nombre_es = _NOMBRE_ES.get(iso2_raw) or _EN_ES.get(nombre_en.lower()) or nombre_en
+            data[tid] = {"iso2": iso2_raw, "nombre_es": nombre_es, "nombre_en": nombre_en}
+        if data:
+            _teams_data = data
+            _teams_loaded = True
+            _cache.set("teams_data", data, ttl=3600)
+
+    if not _teams_loaded:
+        _cargar_equipos()
+
+    normalized, skipped = [], 0
+    for i, g in enumerate(games_raw):
+        try:
+            normalized.append(_normalize_game(g, i))
+        except Exception as exc:
+            skipped += 1
+            logger.debug(f"inject: skipped id={g.get('id','?')}: {exc}")
+
+    if normalized:
+        ttl = _dynamic_ttl(normalized)
+        _cache.set("all_games", normalized, ttl=ttl)
+        # Invalida derivados para que se recalculen con datos frescos
+        for key in ("groups_table", "goals_ranking", "qualified", "stats"):
+            _cache.delete(key)
+        logger.info(f"Caché inyectada desde cliente — {len(normalized)} partidos, TTL={ttl}s")
+
+    return len(normalized)
 
 
 # ─── Acceso a datos crudos (para integraciones externas) ─────────────────────

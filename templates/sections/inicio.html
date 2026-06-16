@@ -8503,6 +8503,15 @@ async function cargarMasPosts(btn) {
         _pollInterval = ttl;
         document.getElementById('pah-fallback-banner')?.style && (document.getElementById('pah-fallback-banner').style.display='none');
         console.log('[PAH] worldcup26.ir OK | hoy:',hoy,'| partidos:',partidos.length,'| vivo:',vivo);
+        // ── Empujar datos frescos al servidor (Render no llega a worldcup26.ir) ──
+        // Solo si el caché del servidor es "fallback" (seed estático).
+        // Fire-and-forget: no bloqueamos el render del front.
+        const _teamsArr = tm ? Object.entries(tm).map(([id,v])=>({id,...v})) : [];
+        fetch('/api/mundial/sync', {
+          method: 'POST',
+          headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({ games: raw, teams: _teamsArr })
+        }).catch(()=>{}); // silencioso si falla
       } catch(err) {
         console.error('[PAH] Error worldcup26.ir:',err.message);
         document.getElementById('pah-fallback-banner')?.style && (document.getElementById('pah-fallback-banner').style.display='block');

@@ -34,6 +34,7 @@ from services.mundial_service import (
     get_goals_ranking,
     get_qualified,
     get_stats,
+    inject_games_from_client,
     CACHE_TTL_SECONDS,
 )
 
@@ -250,6 +251,30 @@ def api_stats():
         return _ok(stats, fuente)
     except Exception as exc:
         logger.exception("Error en stats")
+        return _err(f"Error interno: {exc}")
+
+
+@mundial_api_bp.route("/sync", methods=["POST"])
+def api_sync_from_client():
+    """
+    POST /api/mundial/sync
+    El front-end (que SÍ puede llegar a worldcup26.ir) nos envía los datos
+    crudos de /get/games y /get/teams para que el servidor actualice su caché.
+    Body JSON: { "games": [...], "teams": [...] }
+    """
+    guard = _require_auth()
+    if guard: return guard
+    try:
+        body = flask_request.get_json(silent=True) or {}
+        games_raw = body.get("games")
+        teams_raw = body.get("teams")
+        if not games_raw or not isinstance(games_raw, list):
+            return _err("Se requiere 'games' como lista", 400)
+        count = inject_games_from_client(games_raw, teams_raw)
+        logger.info(f"Sync desde cliente: {count} partidos inyectados")
+        return jsonify({"ok": True, "data": {"partidos": count}, "error": None}), 200
+    except Exception as exc:
+        logger.exception("Error en /sync")
         return _err(f"Error interno: {exc}")
 
 
