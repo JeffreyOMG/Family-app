@@ -243,24 +243,29 @@ def api_historial():
     registros = []
     for a in con.execute("""
         SELECT er.id, er.nombre_evento, er.descripcion, er.monto, er.responsables,
-               er.soporte, er.estado, er.fecha, u.nombre AS usuario
+               er.soporte, er.estado, er.fecha, u.nombre AS usuario, u.rol AS rol,
+               u.foto_perfil AS foto_perfil
         FROM eventos_recaudacion er JOIN usuarios u ON u.id=er.usuario_id
+        WHERE u.rol IN ('miembro', 'admin')
         ORDER BY er.fecha DESC
     """).fetchall():
         registros.append({**dict(a), "tipo": "evento"})
     for p in con.execute("""
-        SELECT pp.id, pp.fase, pp.monto, pp.soporte, pp.estado, pp.fecha, u.nombre AS usuario
+        SELECT pp.id, pp.fase, pp.monto, pp.soporte, pp.estado, pp.fecha,
+               u.nombre AS usuario, u.rol AS rol, u.foto_perfil AS foto_perfil
         FROM polla_pagos pp JOIN usuarios u ON u.id=pp.usuario_id
+        WHERE u.rol IN ('miembro', 'admin')
         ORDER BY pp.fecha DESC
     """).fetchall():
         registros.append({**dict(p), "tipo": "polla"})
     for m in con.execute("""
         SELECT cm.id, cm.monto, cm.descripcion, cm.fecha, u.nombre AS usuario,
-               ca.nombre AS cajita_nombre
+               u.rol AS rol, u.foto_perfil AS foto_perfil, ca.nombre AS cajita_nombre
         FROM cajita_movimientos cm
         JOIN usuarios u ON u.id=cm.usuario_id
         JOIN cajitas_ahorro ca ON ca.id=cm.cajita_id
         JOIN cajita_miembros mb ON mb.cajita_id=ca.id AND mb.usuario_id=%s
+        WHERE u.rol IN ('miembro', 'admin')
         ORDER BY cm.fecha DESC
     """, (uid,)).fetchall():
         registros.append({**dict(m), "tipo": "familia"})

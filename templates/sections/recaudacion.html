@@ -82,11 +82,19 @@
         {% elif pct >= 50 %}💰 Más de la mitad ahorrada
         {% else %}📈 Sigue aportando — ¡van muy bien!{% endif %}
       </div>
+      <!-- BARRA MEJORADA CON ANIMACIÓN -->
       <div class="rec-prog-bar-wrap">
-        <div class="progress-bar-bg">
-          <div class="progress-bar-fill" style="width:{{ pct }}%;"></div>
+        <div class="rec-bar-track">
+          <div class="rec-bar-shimmer-fill" id="rec-bar-fill" style="--pct:{{ [pct,100]|min }}%;">
+            <div class="rec-bar-glow"></div>
+          </div>
+          <div class="rec-bar-milestones">
+            <div class="rec-bar-milestone" style="left:25%"  title="25%"></div>
+            <div class="rec-bar-milestone" style="left:50%"  title="50%"></div>
+            <div class="rec-bar-milestone" style="left:75%"  title="75%"></div>
+          </div>
         </div>
-        <span class="rec-prog-pct-label">{{ pct }}%</span>
+        <span class="rec-prog-pct-label"><strong>{{ pct }}%</strong></span>
       </div>
       <div class="rec-prog-numbers">
         <span>${{ total|int }} ahorrados</span>
@@ -182,7 +190,7 @@
           <span class="rec-polla-precio">${{ "{:,.0f}".format(fase.precio).replace(",",".") }}</span>
         </div>
         <div class="rec-polla-miembros-row">
-          {% for m in miembros %}
+          {% for m in miembros if m.rol in ('miembro', 'admin') %}
           {% set pagado = namespace(ok=false) %}
           {% for p in polla_pagos if p.usuario_id == m.id and p.fase == fase.num %}
             {% set pagado.ok = true %}
@@ -200,13 +208,14 @@
         </div>
         <div class="rec-polla-resumen">
           {% set pagados_count = namespace(n=0) %}
-          {% for m in miembros %}
+          {% set miembros_solo = miembros | selectattr('rol', 'in', ['miembro', 'admin']) | list %}
+          {% for m in miembros_solo %}
             {% for p in polla_pagos if p.usuario_id == m.id and p.fase == fase.num %}
               {% set pagados_count.n = pagados_count.n + 1 %}
             {% endfor %}
           {% endfor %}
           <span class="rec-polla-pagados">{{ pagados_count.n }} pagaron</span>
-          <span class="rec-polla-faltan">{{ miembros|length - pagados_count.n }} faltan</span>
+          <span class="rec-polla-faltan">{{ miembros_solo|length - pagados_count.n }} faltan</span>
         </div>
       </div>
       {% endfor %}
@@ -217,32 +226,40 @@
   <div class="content-card">
     <div class="rec-ranking-header">
       <h3>🏆 Ranking Comunitario</h3>
-      <span class="rec-ranking-subtitle">Por total aportado</span>
+      <span class="rec-ranking-subtitle">Por total aportado · solo miembros</span>
     </div>
-    <div class="rec-ranking">
-      {% for r in ranking if r.rol in ('miembro', 'admin') %}
-      <div class="rec-ranking-item {% if loop.index == 1 %}rank-first{% elif loop.index == 2 %}rank-second{% elif loop.index == 3 %}rank-third{% endif %}">
-        <div class="rec-ranking-medal">
-          {% if loop.index==1 %}🥇{% elif loop.index==2 %}🥈{% elif loop.index==3 %}🥉{% else %}<span class="rank-num">#{{ loop.index }}</span>{% endif %}
-        </div>
-        <div class="rec-ranking-avatar-wrap">
-          {% if r.foto_perfil %}
-          <img src="{{ r.foto_perfil }}" alt="{{ r.nombre[0]|upper }}" class="rec-ranking-foto">
-          {% else %}
-          <div class="rec-ranking-avatar">{{ r.nombre[0]|upper }}</div>
-          {% endif %}
-        </div>
-        <div class="rec-ranking-info">
-          <div class="rec-ranking-top">
-            <span class="rec-ranking-name">{{ r.nombre }}</span>
-            <span class="rec-ranking-amount">${{ r.total|int }}</span>
+    <div class="rec-ranking" id="rec-ranking-list">
+      {% set members_only = ranking | selectattr('rol', 'in', ['miembro', 'admin']) | list %}
+      {% if members_only %}
+        {% for r in members_only %}
+        <div class="rec-ranking-item {% if loop.index == 1 %}rank-first{% elif loop.index == 2 %}rank-second{% elif loop.index == 3 %}rank-third{% endif %}" style="animation-delay:{{ loop.index0 * 0.07 }}s;">
+          <div class="rec-ranking-medal">
+            {% if loop.index==1 %}🥇{% elif loop.index==2 %}🥈{% elif loop.index==3 %}🥉{% else %}<span class="rank-num">#{{ loop.index }}</span>{% endif %}
           </div>
-          <div class="progress-bar-bg" style="height:5px;border-radius:10px;overflow:hidden;">
-            <div class="progress-bar-fill" style="width:{{ r.porcentaje }}%;"></div>
+          <div class="rec-ranking-avatar-wrap">
+            {% if r.foto_perfil %}
+            <img src="{{ r.foto_perfil }}" alt="{{ r.nombre[0]|upper }}" class="rec-ranking-foto">
+            {% else %}
+            <div class="rec-ranking-avatar">{{ r.nombre[0]|upper }}</div>
+            {% endif %}
+          </div>
+          <div class="rec-ranking-info">
+            <div class="rec-ranking-top">
+              <span class="rec-ranking-name">{{ r.nombre }}</span>
+              <span class="rec-ranking-amount">${{ r.total|int }}</span>
+            </div>
+            <div class="progress-bar-bg" style="height:6px;border-radius:10px;overflow:hidden;">
+              <div class="progress-bar-fill rank-bar-fill" style="width:{{ r.porcentaje }}%;"></div>
+            </div>
           </div>
         </div>
-      </div>
-      {% endfor %}
+        {% endfor %}
+      {% else %}
+        <div style="text-align:center;padding:32px;color:var(--text2);">
+          <span style="font-size:36px;">🏆</span>
+          <p style="margin-top:8px;">Aún no hay aportes registrados</p>
+        </div>
+      {% endif %}
     </div>
   </div>
 
@@ -559,9 +576,9 @@
           <div class="fase-estado" id="fase-estado-1">
             <span class="badge-pend">⏳ No inscrito</span>
           </div>
-          <button class="fase-btn" id="fase-btn-1" onclick="seleccionarFase(1)">
-            Inscribirme — $30.000
-          </button>
+          <div class="fase-btn-wrap">
+            <button class="fase-btn" onclick="seleccionarFase(1)">Inscribirme — $30.000</button>
+          </div>
         </div>
         <!-- Fase 2 -->
         <div class="fase-card" id="fase-card-2">
@@ -576,9 +593,9 @@
           <div class="fase-estado" id="fase-estado-2">
             <span class="badge-pend">⏳ No inscrito</span>
           </div>
-          <button class="fase-btn" id="fase-btn-2" onclick="seleccionarFase(2)">
-            Inscribirme — $20.000
-          </button>
+          <div class="fase-btn-wrap">
+            <button class="fase-btn" onclick="seleccionarFase(2)">Inscribirme — $20.000</button>
+          </div>
         </div>
         <!-- Fase 3 -->
         <div class="fase-card" id="fase-card-3">
@@ -593,9 +610,9 @@
           <div class="fase-estado" id="fase-estado-3">
             <span class="badge-pend">⏳ No inscrito</span>
           </div>
-          <button class="fase-btn" id="fase-btn-3" onclick="seleccionarFase(3)">
-            Inscribirme — $10.000
-          </button>
+          <div class="fase-btn-wrap">
+            <button class="fase-btn" onclick="seleccionarFase(3)">Inscribirme — $10.000</button>
+          </div>
         </div>
       </div>
 
@@ -833,10 +850,64 @@ body.dark-mode {
 .pig-pct { font-size:1.3rem;font-weight:700;color:var(--accent); }
 .pig-status { font-size:12px;color:var(--text2);text-align:center; }
 .rec-progress-info { flex:1;min-width:180px; }
-.rec-prog-label { font-size:14px;font-weight:600;margin-bottom:10px; }
-.rec-prog-bar-wrap { display:flex;align-items:center;gap:10px;margin-bottom:8px; }
-.rec-prog-pct-label { font-size:12px;color:var(--text2);white-space:nowrap; }
+.rec-prog-label { font-size:14px;font-weight:600;margin-bottom:14px; }
+.rec-prog-bar-wrap { display:flex;align-items:center;gap:12px;margin-bottom:8px; }
+.rec-prog-pct-label { font-size:13px;color:var(--text2);white-space:nowrap;min-width:44px;text-align:right; }
 .rec-prog-numbers { display:flex;justify-content:space-between;font-size:12px;color:var(--text2); }
+
+/* Barra de progreso animada */
+.rec-bar-track {
+  position: relative;
+  flex: 1;
+  height: 18px;
+  background: var(--bg2, #f0f0f0);
+  border-radius: 99px;
+  overflow: hidden;
+  border: 1px solid var(--border, #e0e0e0);
+}
+.rec-bar-shimmer-fill {
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: var(--pct, 0%);
+  background: linear-gradient(90deg, #ff6b9d, #ff4d8d, #c9236a);
+  border-radius: 99px;
+  animation: barGrow .9s cubic-bezier(.22,.68,0,1.2) both;
+  transition: width .4s ease;
+  overflow: hidden;
+}
+@keyframes barGrow {
+  from { width: 0; }
+  to   { width: var(--pct, 0%); }
+}
+/* Shimmer que corre por la barra */
+.rec-bar-glow {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg,
+    transparent 0%,
+    rgba(255,255,255,.45) 40%,
+    rgba(255,255,255,.7) 55%,
+    transparent 100%);
+  animation: shimmerRun 2.2s ease-in-out infinite;
+  border-radius: 99px;
+}
+@keyframes shimmerRun {
+  0%   { transform: translateX(-100%); }
+  60%  { transform: translateX(200%); }
+  100% { transform: translateX(200%); }
+}
+/* Marcas de hito */
+.rec-bar-milestones { position:absolute;inset:0;pointer-events:none; }
+.rec-bar-milestone {
+  position: absolute;
+  top: 3px; bottom: 3px;
+  width: 2px;
+  background: rgba(255,255,255,.5);
+  border-radius: 2px;
+  transform: translateX(-50%);
+}
+body.dark-mode .rec-bar-track { background:var(--bg2);border-color:var(--border); }
+body.dark-mode .rec-bar-milestone { background:rgba(255,255,255,.15); }
 
 /* ---- LOADING STATE ---- */
 .rec-loading-state { text-align:center;padding:40px;color:var(--text2); }
@@ -929,37 +1000,51 @@ body.dark-mode {
 .rec-ranking-header h3 { margin:0;font-size:1rem;font-weight:700; }
 .rec-ranking-subtitle { font-size:12px;color:var(--text2); }
 .rec-ranking { display:flex;flex-direction:column;gap:8px; }
+@keyframes rankSlideIn {
+  from { opacity:0; transform:translateX(-14px); }
+  to   { opacity:1; transform:translateX(0); }
+}
 .rec-ranking-item {
   display:flex;align-items:center;gap:12px;
-  padding:12px 14px;
+  padding:13px 16px;
   border-radius:14px;
   border:1px solid var(--border,#dbdbdb);
   background:var(--bg2,#f5f5f5);
   transition:transform .15s, box-shadow .15s;
+  animation: rankSlideIn .35s ease both;
 }
-.rec-ranking-item:hover { transform:translateX(3px); box-shadow:0 4px 14px rgba(0,0,0,.07); }
-.rec-ranking-item.rank-first  { border-color:rgba(255,215,0,.5); background:rgba(255,215,0,.06); }
-.rec-ranking-item.rank-second { border-color:rgba(192,192,192,.5); background:rgba(192,192,192,.06); }
-.rec-ranking-item.rank-third  { border-color:rgba(205,127,50,.4); background:rgba(205,127,50,.05); }
-.rec-ranking-medal { font-size:20px;flex-shrink:0;width:28px;text-align:center; }
+.rec-ranking-item:hover { transform:translateX(4px); box-shadow:0 5px 18px rgba(0,0,0,.09); }
+.rec-ranking-item.rank-first  { border-color:rgba(255,215,0,.6); background:linear-gradient(90deg,rgba(255,215,0,.07),transparent); }
+.rec-ranking-item.rank-second { border-color:rgba(192,192,192,.6); background:linear-gradient(90deg,rgba(192,192,192,.07),transparent); }
+.rec-ranking-item.rank-third  { border-color:rgba(205,127,50,.5); background:linear-gradient(90deg,rgba(205,127,50,.06),transparent); }
+.rec-ranking-medal { font-size:22px;flex-shrink:0;width:30px;text-align:center; }
 .rank-num { font-size:12px;font-weight:700;color:var(--text2); }
 .rec-ranking-avatar-wrap { flex-shrink:0; }
 .rec-ranking-foto {
-  width:38px;height:38px;border-radius:50%;
+  width:40px;height:40px;border-radius:50%;
   object-fit:cover;
-  border:2px solid var(--border,#dbdbdb);
+  border:2.5px solid var(--border,#dbdbdb);
+  box-shadow:0 2px 8px rgba(0,0,0,.12);
 }
 .rec-ranking-avatar {
-  width:38px;height:38px;border-radius:50%;
+  width:40px;height:40px;border-radius:50%;
   background:var(--accent-gradient, linear-gradient(135deg,#ff6b9d,#ff4d8d,#c9236a));
   color:#fff;
   display:flex;align-items:center;justify-content:center;
-  font-size:14px;font-weight:700;
+  font-size:15px;font-weight:700;
+  box-shadow:0 2px 8px rgba(201,35,106,.25);
 }
 .rec-ranking-info { flex:1;min-width:0; }
-.rec-ranking-top { display:flex;justify-content:space-between;margin-bottom:6px;font-size:14px; }
+.rec-ranking-top { display:flex;justify-content:space-between;margin-bottom:7px;font-size:14px;align-items:baseline; }
 .rec-ranking-name { font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
-.rec-ranking-amount { font-weight:700;color:#4caf50;white-space:nowrap;margin-left:8px; }
+.rec-ranking-amount { font-weight:700;color:#4caf50;white-space:nowrap;margin-left:8px;font-size:15px; }
+/* Barra de ranking animada */
+.rank-bar-fill {
+  background: linear-gradient(90deg,#ff6b9d,#c9236a);
+  height:100%;
+  border-radius:99px;
+  animation: barGrow .7s cubic-bezier(.22,.68,0,1.1) both;
+}
 
 /* ---- AVATAR CON FOTO en tabla ---- */
 .rec-avatar-foto { object-fit:cover;border:1.5px solid var(--border,#dbdbdb); }
@@ -1212,6 +1297,7 @@ body.dark-mode .tipo-info strong {
 .fase-precio { font-weight:700;color:var(--accent);font-size:14px;white-space:nowrap; }
 .fase-estado { margin-bottom:8px; }
 
+.fase-btn-wrap{margin-top:4px;}
 .fase-btn{width:100%;padding:10px;border:none;border-radius:10px;background:var(--accent-gradient, linear-gradient(135deg,#ff6b9d,#ff4d8d,#c9236a));color:#fff;font-weight:600;font-size:14px;cursor:pointer;box-shadow:0 3px 12px var(--accent-border);transition:opacity .15s ease,transform .1s ease,background .2s ease}
 .fase-btn:hover{opacity:.88}
 .fase-btn:active{opacity:.8;transform:translateY(0)}
@@ -1551,21 +1637,31 @@ function cargarEstadoPolla() {
     _pollaData = pagos;
     [1,2,3].forEach(f => {
       const estadoEl = document.getElementById('fase-estado-' + f);
-      const btnEl    = document.getElementById('fase-btn-' + f);
       const cardEl   = document.getElementById('fase-card-' + f);
-      if (!estadoEl) return;
+      if (!estadoEl || !cardEl) return;
+
+      // Resetear (idempotente — puede llamarse varias veces)
+      cardEl.classList.remove('pagada');
+
       if (pagos[f]) {
-        const fecha = pagos[f].fecha ? new Date(pagos[f].fecha).toLocaleDateString('es-CO') : '';
+        const fecha  = pagos[f].fecha ? new Date(pagos[f].fecha).toLocaleDateString('es-CO') : '';
         const estado = pagos[f].estado;
-        if (estado === 'pendiente') {
-          estadoEl.innerHTML = '<span class="badge-pend">⏳ Pendiente verificación · ' + fecha + '</span>';
-        } else {
-          estadoEl.innerHTML = '<span class="badge-pagado">✅ Verificado · ' + fecha + '</span>';
-        }
-        if (btnEl) btnEl.outerHTML = `<div class="fase-btn-pagada"><span class="material-symbols-outlined">check_circle</span>Inscripción completada</div>`;
+        estadoEl.innerHTML = estado === 'pendiente'
+          ? `<span class="badge-pend">⏳ Pendiente verificación${fecha ? ' · ' + fecha : ''}</span>`
+          : `<span class="badge-pagado">✅ Verificado${fecha ? ' · ' + fecha : ''}</span>`;
         cardEl.classList.add('pagada');
+        // Actualizar botón usando el wrapper, sin romper referencias del DOM
+        const btnWrap = cardEl.querySelector('.fase-btn-wrap');
+        if (btnWrap) {
+          btnWrap.innerHTML = `<div class="fase-btn-pagada"><span class="material-symbols-outlined">check_circle</span>Inscripción completada</div>`;
+        }
       } else {
         estadoEl.innerHTML = '<span class="badge-pend">⏳ No inscrito</span>';
+        // Restaurar botón si el wrapper está vacío o no tiene .fase-btn
+        const btnWrap = cardEl.querySelector('.fase-btn-wrap');
+        if (btnWrap && !btnWrap.querySelector('.fase-btn')) {
+          btnWrap.innerHTML = `<button class="fase-btn" onclick="seleccionarFase(${f})">Inscribirme — $${FASES_PRECIO[f].toLocaleString()} COP</button>`;
+        }
       }
     });
   }).catch(() => {});
