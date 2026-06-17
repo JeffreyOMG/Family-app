@@ -157,21 +157,87 @@
     </div>
   </div>
 
+  <!-- POLLA PENDIENTES -->
+  <div class="content-card rec-polla-pendientes-card">
+    <div class="rec-polla-header">
+      <div class="rec-polla-title">
+        <span class="rec-polla-title-icon">⚽</span>
+        <div>
+          <h3>Polla Mundialista — Inscripciones</h3>
+          <p>Estado de pago por fase · solo miembros</p>
+        </div>
+      </div>
+    </div>
+    <div class="rec-polla-fases">
+      {% set fases = [
+        {"num": 1, "nombre": "Fase 1 — Grupos", "precio": 30000, "emoji": "⚽"},
+        {"num": 2, "nombre": "Fase 2 — Eliminatorias", "precio": 20000, "emoji": "🏆"},
+        {"num": 3, "nombre": "Fase 3 — Semifinal y Final", "precio": 10000, "emoji": "🥇"}
+      ] %}
+      {% for fase in fases %}
+      <div class="rec-polla-fase-bloque">
+        <div class="rec-polla-fase-label">
+          <span>{{ fase.emoji }}</span>
+          <strong>{{ fase.nombre }}</strong>
+          <span class="rec-polla-precio">${{ "{:,.0f}".format(fase.precio).replace(",",".") }}</span>
+        </div>
+        <div class="rec-polla-miembros-row">
+          {% for m in miembros %}
+          {% set pagado = namespace(ok=false) %}
+          {% for p in polla_pagos if p.usuario_id == m.id and p.fase == fase.num %}
+            {% set pagado.ok = true %}
+          {% endfor %}
+          <div class="rec-polla-chip {% if pagado.ok %}pagado{% else %}pendiente{% endif %}" title="{{ m.nombre }}">
+            {% if m.foto_perfil %}
+            <img src="{{ m.foto_perfil }}" alt="{{ m.nombre[0]|upper }}" class="rec-chip-foto">
+            {% else %}
+            <div class="rec-chip-avatar">{{ m.nombre[0]|upper }}</div>
+            {% endif %}
+            <span class="rec-chip-nombre">{{ m.nombre.split()[0] }}</span>
+            <span class="rec-chip-estado">{% if pagado.ok %}✓{% else %}✗{% endif %}</span>
+          </div>
+          {% endfor %}
+        </div>
+        <div class="rec-polla-resumen">
+          {% set pagados_count = namespace(n=0) %}
+          {% for m in miembros %}
+            {% for p in polla_pagos if p.usuario_id == m.id and p.fase == fase.num %}
+              {% set pagados_count.n = pagados_count.n + 1 %}
+            {% endfor %}
+          {% endfor %}
+          <span class="rec-polla-pagados">{{ pagados_count.n }} pagaron</span>
+          <span class="rec-polla-faltan">{{ miembros|length - pagados_count.n }} faltan</span>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
   <!-- RANKING -->
   <div class="content-card">
-    <h3 style="margin-bottom:18px;">🏆 Ranking Comunitario</h3>
+    <div class="rec-ranking-header">
+      <h3>🏆 Ranking Comunitario</h3>
+      <span class="rec-ranking-subtitle">Por total aportado</span>
+    </div>
     <div class="rec-ranking">
-      {% for r in ranking %}
-      <div class="rec-ranking-item">
-        <div class="rec-ranking-pos {% if loop.index <= 3 %}top-{{ loop.index }}{% endif %}">
-          {% if loop.index==1 %}🥇{% elif loop.index==2 %}🥈{% elif loop.index==3 %}🥉{% else %}#{{ loop.index }}{% endif %}
+      {% for r in ranking if r.rol in ('miembro', 'admin') %}
+      <div class="rec-ranking-item {% if loop.index == 1 %}rank-first{% elif loop.index == 2 %}rank-second{% elif loop.index == 3 %}rank-third{% endif %}">
+        <div class="rec-ranking-medal">
+          {% if loop.index==1 %}🥇{% elif loop.index==2 %}🥈{% elif loop.index==3 %}🥉{% else %}<span class="rank-num">#{{ loop.index }}</span>{% endif %}
+        </div>
+        <div class="rec-ranking-avatar-wrap">
+          {% if r.foto_perfil %}
+          <img src="{{ r.foto_perfil }}" alt="{{ r.nombre[0]|upper }}" class="rec-ranking-foto">
+          {% else %}
+          <div class="rec-ranking-avatar">{{ r.nombre[0]|upper }}</div>
+          {% endif %}
         </div>
         <div class="rec-ranking-info">
           <div class="rec-ranking-top">
             <span class="rec-ranking-name">{{ r.nombre }}</span>
             <span class="rec-ranking-amount">${{ r.total|int }}</span>
           </div>
-          <div class="progress-bar-bg" style="height:6px;">
+          <div class="progress-bar-bg" style="height:5px;border-radius:10px;overflow:hidden;">
             <div class="progress-bar-fill" style="width:{{ r.porcentaje }}%;"></div>
           </div>
         </div>
@@ -731,10 +797,22 @@ body.dark-mode {
 .rec-preset-btn:hover { background:rgba(76,175,80,.1);border-color:#4caf50;color:#4caf50; }
 
 /* ---- LAYOUT ---- */
-.rec-header { display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px; }
-.rec-header-title { display:flex;align-items:center;gap:10px; }
-.rec-header-title h1 { font-size:1.5rem;font-weight:700;margin:0; }
-.rec-header-title .material-symbols-outlined { font-size:28px;color:var(--accent,#0095f6); }
+.rec-header {
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:24px;
+  flex-wrap:wrap;gap:12px;
+  padding-bottom:20px;
+  border-bottom:1px solid var(--border,#dbdbdb);
+}
+.rec-header-title { display:flex;align-items:center;gap:12px; }
+.rec-header-title h1 { font-size:1.6rem;font-weight:800;margin:0;letter-spacing:-.02em; }
+.rec-header-title .material-symbols-outlined {
+  font-size:30px;
+  background:var(--accent-gradient,linear-gradient(135deg,#ff6b9d,#c9236a));
+  -webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;
+  background-clip:text;
+}
 
 /* ---- STATS ---- */
 .rec-stats { display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:18px; }
@@ -818,17 +896,181 @@ body.dark-mode {
 .btn-verificar:hover { background:rgba(76,175,80,.15);border-color:#4caf50;color:#4caf50; }
 .btn-eliminar:hover  { background:rgba(244,67,54,.15);border-color:#f44336;color:#f44336; }
 
+/* ---- STATS mejoradas ---- */
+.rec-stat {
+  background: var(--card,#fff);
+  border: 1px solid var(--border,#dbdbdb);
+  border-radius: 16px;
+  padding: 16px 18px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  transition: transform .18s, box-shadow .18s;
+  position: relative;
+  overflow: hidden;
+}
+.rec-stat::after {
+  content:'';
+  position:absolute;
+  top:0;left:0;right:0;
+  height:3px;
+  border-radius:16px 16px 0 0;
+}
+.rec-stat:nth-child(1)::after { background: linear-gradient(90deg,#4caf50,#81c784); }
+.rec-stat:nth-child(2)::after { background: linear-gradient(90deg,#0095f6,#64b5f6); }
+.rec-stat:nth-child(3)::after { background: linear-gradient(90deg,#f9a825,#ffd54f); }
+.rec-stat:nth-child(4)::after { background: linear-gradient(90deg,#9c27b0,#ce93d8); }
+.rec-stat:hover { transform:translateY(-3px);box-shadow:0 8px 24px rgba(0,0,0,.1); }
+.rec-stat-icon { width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0; }
+.rec-stat-icon .material-symbols-outlined { font-size:22px; }
+
 /* ---- RANKING ---- */
-.rec-ranking { display:flex;flex-direction:column;gap:10px; }
-.rec-ranking-item { display:flex;align-items:center;gap:14px; }
-.rec-ranking-pos { width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;background:var(--bg2); }
-.rec-ranking-pos.top-1 { background:rgba(255,215,0,.2); }
-.rec-ranking-pos.top-2 { background:rgba(192,192,192,.2); }
-.rec-ranking-pos.top-3 { background:rgba(205,127,50,.2); }
-.rec-ranking-info { flex:1; }
-.rec-ranking-top { display:flex;justify-content:space-between;margin-bottom:4px;font-size:14px; }
-.rec-ranking-name { font-weight:600; }
-.rec-ranking-amount { font-weight:700;color:#4caf50; }
+.rec-ranking-header { display:flex;align-items:baseline;justify-content:space-between;margin-bottom:20px; }
+.rec-ranking-header h3 { margin:0;font-size:1rem;font-weight:700; }
+.rec-ranking-subtitle { font-size:12px;color:var(--text2); }
+.rec-ranking { display:flex;flex-direction:column;gap:8px; }
+.rec-ranking-item {
+  display:flex;align-items:center;gap:12px;
+  padding:12px 14px;
+  border-radius:14px;
+  border:1px solid var(--border,#dbdbdb);
+  background:var(--bg2,#f5f5f5);
+  transition:transform .15s, box-shadow .15s;
+}
+.rec-ranking-item:hover { transform:translateX(3px); box-shadow:0 4px 14px rgba(0,0,0,.07); }
+.rec-ranking-item.rank-first  { border-color:rgba(255,215,0,.5); background:rgba(255,215,0,.06); }
+.rec-ranking-item.rank-second { border-color:rgba(192,192,192,.5); background:rgba(192,192,192,.06); }
+.rec-ranking-item.rank-third  { border-color:rgba(205,127,50,.4); background:rgba(205,127,50,.05); }
+.rec-ranking-medal { font-size:20px;flex-shrink:0;width:28px;text-align:center; }
+.rank-num { font-size:12px;font-weight:700;color:var(--text2); }
+.rec-ranking-avatar-wrap { flex-shrink:0; }
+.rec-ranking-foto {
+  width:38px;height:38px;border-radius:50%;
+  object-fit:cover;
+  border:2px solid var(--border,#dbdbdb);
+}
+.rec-ranking-avatar {
+  width:38px;height:38px;border-radius:50%;
+  background:var(--accent-gradient, linear-gradient(135deg,#ff6b9d,#ff4d8d,#c9236a));
+  color:#fff;
+  display:flex;align-items:center;justify-content:center;
+  font-size:14px;font-weight:700;
+}
+.rec-ranking-info { flex:1;min-width:0; }
+.rec-ranking-top { display:flex;justify-content:space-between;margin-bottom:6px;font-size:14px; }
+.rec-ranking-name { font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
+.rec-ranking-amount { font-weight:700;color:#4caf50;white-space:nowrap;margin-left:8px; }
+
+/* ---- AVATAR CON FOTO en tabla ---- */
+.rec-avatar-foto { object-fit:cover;border:1.5px solid var(--border,#dbdbdb); }
+
+/* ---- POLLA PENDIENTES ---- */
+.rec-polla-pendientes-card { }
+.rec-polla-header { display:flex;align-items:center;justify-content:space-between;margin-bottom:20px; }
+.rec-polla-title { display:flex;align-items:center;gap:12px; }
+.rec-polla-title-icon { font-size:24px; }
+.rec-polla-title h3 { margin:0;font-size:1rem;font-weight:700; }
+.rec-polla-title p { margin:0;font-size:12px;color:var(--text2); }
+.rec-polla-fases { display:flex;flex-direction:column;gap:16px; }
+.rec-polla-fase-bloque {
+  border:1px solid var(--border,#dbdbdb);
+  border-radius:14px;
+  padding:14px 16px;
+  background:var(--bg2,#f5f5f5);
+}
+.rec-polla-fase-label {
+  display:flex;align-items:center;gap:8px;
+  margin-bottom:12px;
+  font-size:13px;
+}
+.rec-polla-fase-label strong { font-weight:700;color:var(--text); }
+.rec-polla-precio {
+  margin-left:auto;
+  font-weight:700;
+  color:#f9a825;
+  font-size:13px;
+  background:rgba(249,168,37,.1);
+  padding:2px 8px;
+  border-radius:20px;
+}
+.rec-polla-miembros-row { display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px; }
+.rec-polla-chip {
+  display:flex;align-items:center;gap:6px;
+  padding:5px 10px 5px 5px;
+  border-radius:30px;
+  font-size:12px;
+  font-weight:600;
+  border:1.5px solid;
+  transition:transform .12s;
+}
+.rec-polla-chip:hover { transform:scale(1.03); }
+.rec-polla-chip.pagado  { background:rgba(76,175,80,.1); border-color:rgba(76,175,80,.4); color:#2e7d32; }
+.rec-polla-chip.pendiente { background:rgba(244,67,54,.07); border-color:rgba(244,67,54,.3); color:#c62828; }
+.rec-chip-foto,.rec-chip-avatar {
+  width:24px;height:24px;border-radius:50%;
+  flex-shrink:0;
+}
+.rec-chip-foto { object-fit:cover;border:1px solid rgba(0,0,0,.1); }
+.rec-chip-avatar {
+  background:var(--accent-gradient,linear-gradient(135deg,#ff6b9d,#ff4d8d,#c9236a));
+  color:#fff;
+  display:flex;align-items:center;justify-content:center;
+  font-size:10px;font-weight:700;
+}
+.rec-chip-nombre { white-space:nowrap;max-width:80px;overflow:hidden;text-overflow:ellipsis; }
+.rec-chip-estado { font-size:11px;font-weight:800; }
+.rec-polla-resumen {
+  display:flex;gap:12px;
+  font-size:12px;
+}
+.rec-polla-pagados {
+  background:rgba(76,175,80,.12);
+  color:#2e7d32;
+  padding:2px 10px;border-radius:20px;font-weight:700;
+}
+.rec-polla-faltan {
+  background:rgba(244,67,54,.1);
+  color:#c62828;
+  padding:2px 10px;border-radius:20px;font-weight:700;
+}
+
+/* ---- PROGRESS CARD mejora ---- */
+.rec-progress-card {
+  background: linear-gradient(135deg, var(--card,#fff) 0%, var(--bg2,#f8f8f8) 100%);
+  border: 1px solid var(--border,#dbdbdb);
+  position: relative;
+  overflow: hidden;
+}
+.rec-progress-card::before {
+  content:'';
+  position:absolute;
+  top:-30px;right:-30px;
+  width:120px;height:120px;
+  border-radius:50%;
+  background: var(--accent-gradient, linear-gradient(135deg,#ff6b9d,#c9236a));
+  opacity:.05;
+}
+
+/* ---- CONTENT-CARD mejorado ---- */
+.content-card {
+  background:var(--card,#fff);
+  border:1px solid var(--border,#dbdbdb);
+  border-radius:var(--r2,18px);
+  padding:20px;
+  margin-bottom:16px;
+}
+
+/* Dark mode polla */
+body.dark-mode .rec-polla-fase-bloque { background:var(--bg2);border-color:var(--border); }
+body.dark-mode .rec-polla-chip.pagado { background:rgba(76,175,80,.12);border-color:rgba(76,175,80,.35);color:#81c784; }
+body.dark-mode .rec-polla-chip.pendiente { background:rgba(244,67,54,.1);border-color:rgba(244,67,54,.3);color:#ef9a9a; }
+body.dark-mode .rec-polla-pagados { background:rgba(76,175,80,.1);color:#81c784; }
+body.dark-mode .rec-polla-faltan { background:rgba(244,67,54,.1);color:#ef9a9a; }
+body.dark-mode .rec-ranking-item { background:var(--bg2);border-color:var(--border); }
+body.dark-mode .rec-ranking-item.rank-first  { border-color:rgba(255,215,0,.3);background:rgba(255,215,0,.04); }
+body.dark-mode .rec-ranking-item.rank-second { border-color:rgba(192,192,192,.3);background:rgba(192,192,192,.04); }
+body.dark-mode .rec-ranking-item.rank-third  { border-color:rgba(205,127,50,.3);background:rgba(205,127,50,.04); }
+body.dark-mode .rec-ranking-foto { border-color:var(--border); }
 
 /* ---- MODAL BASE ---- */
 .rec-modal-overlay { position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(4px); }
@@ -1544,7 +1786,7 @@ function renderHistorial(rows) {
     }
 
     return `<tr class="fila-aporte" data-usuario="${(r.usuario||'').toLowerCase()}" data-fecha="${fecha}" data-tipo="${r.tipo}" data-estado="${r.estado||''}">
-      <td><div class="rec-user-cell"><div class="rec-avatar">${(r.usuario||'?')[0].toUpperCase()}</div><strong>${r.usuario||'—'}</strong></div></td>
+      <td><div class="rec-user-cell">${r.foto_perfil ? `<img src="${r.foto_perfil}" class="rec-avatar rec-avatar-foto" alt="">` : `<div class="rec-avatar">${(r.usuario||'?')[0].toUpperCase()}</div>`}<strong>${r.usuario||'—'}</strong></div></td>
       <td>${tipoBadge}</td>
       <td class="rec-desc-cell col-desc" title="${desc}">${desc}</td>
       <td>${monto}</td>
