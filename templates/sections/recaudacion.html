@@ -1,5 +1,5 @@
 <section class="section main-content-v2" id="sec-recaudacion">
-{% if usuario.rec_bloqueado %}
+{% if usuario.rec_bloqueado and usuario.rol != 'admin' %}
 <div class="acceso-restringido">
   <div class="acceso-icon">🔒</div>
   <h2>Acceso Restringido</h2>
@@ -254,6 +254,8 @@
     <div class="rec-ranking" id="rec-ranking-list">
       {% set members_only = ranking | selectattr('rol', 'in', ['miembro', 'admin']) | list %}
       {% if members_only %}
+        {% set max_total = namespace(v=1) %}
+        {% for r in members_only %}{% if r.total > max_total.v %}{% set max_total.v = r.total %}{% endif %}{% endfor %}
         {% for r in members_only %}
         <div class="rec-ranking-item {% if loop.index == 1 %}rank-first{% elif loop.index == 2 %}rank-second{% elif loop.index == 3 %}rank-third{% endif %}" style="animation-delay:{{ loop.index0 * 0.07 }}s;">
           <div class="rec-ranking-medal">
@@ -276,8 +278,8 @@
               </button>
               {% endif %}
             </div>
-            <div class="progress-bar-bg" style="height:6px;border-radius:10px;overflow:hidden;background:rgba(128,128,128,0.18);">
-              <div class="rank-bar-fill" style="width:{{ r.porcentaje }}%;height:6px;background:linear-gradient(90deg,#ff6b9d,#ff4d8d,#c9236a);border-radius:99px;flex-shrink:0;"></div>
+            <div style="width:100%;height:6px;border-radius:99px;overflow:hidden;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.08);margin-top:2px;">
+              <div style="width:{{ ((r.total / max_total.v) * 100)|round(1) if max_total.v > 0 else 0 }}%;height:6px;background:linear-gradient(90deg,#ff6b9d,#ff4d8d,#c9236a);border-radius:99px;min-width:{% if r.total > 0 %}4px{% else %}0{% endif %};"></div>
             </div>
           </div>
         </div>
