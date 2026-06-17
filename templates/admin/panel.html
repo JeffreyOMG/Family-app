@@ -861,5 +861,450 @@ function filtrar() {
   cargarFases();
 })();
 </script>
+
+<!-- ══════════════════════════════════════════════
+     ROL FINANCIERO/A
+════════════════════════════════════════════════ -->
+<style>
+  .fin-section { padding: 0 24px 48px; }
+  .fin-section h2 { font-size: 15px; font-weight: 700; margin-bottom: 6px;
+                    display: flex; align-items: center; gap: 8px; }
+  .fin-subtitle { font-size: 12px; color: var(--text3); margin-bottom: 20px; }
+
+  .fin-info-banner {
+    background: rgba(250,173,20,.07); border: 1px solid rgba(250,173,20,.22);
+    border-radius: 10px; padding: 12px 16px; margin-bottom: 20px;
+    font-size: 13px; color: var(--text2); line-height: 1.5;
+  }
+  .fin-info-banner strong { color: #faad14; }
+
+  /* Tabla financieros activos */
+  .fin-activos { display: flex; flex-direction: column; gap: 8px; margin-bottom: 24px; }
+  .fin-activo-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 12px 16px;
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  }
+  .fin-activo-info { display: flex; align-items: center; gap: 10px; }
+  .fin-activo-badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 3px 9px; border-radius: 20px; font-size: 11px; font-weight: 700;
+    background: rgba(250,173,20,.12); border: 1px solid rgba(250,173,20,.3); color: #faad14;
+  }
+  .fin-empty { color: var(--text3); font-size: 13px; padding: 16px 0; }
+
+  /* Asignar financiero */
+  .fin-asignar-form {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 18px;
+  }
+  .fin-asignar-form h3 { font-size: 13px; font-weight: 700; margin-bottom: 14px;
+                          color: var(--text2); }
+  .fin-form-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .fin-select {
+    background: var(--surface2); border: 1px solid var(--border); color: var(--text);
+    border-radius: 8px; padding: 8px 12px; font-family: var(--font); font-size: 13px;
+    cursor: pointer; outline: none; flex: 1; min-width: 180px;
+  }
+  .fin-select:focus { border-color: var(--accent); }
+  .btn-fin-assign {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 8px 18px; border-radius: 8px; font-size: 13px; font-weight: 600;
+    background: #faad14; color: #000; border: none; cursor: pointer;
+    white-space: nowrap;
+  }
+  .btn-fin-assign:hover { background: #e09b00; }
+  .btn-fin-revoke {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 5px 12px; border-radius: 6px; font-size: 12px; font-weight: 600;
+    background: rgba(239,68,68,.1); color: var(--red);
+    border: 1px solid rgba(239,68,68,.3); cursor: pointer;
+  }
+  .btn-fin-revoke:hover { background: rgba(239,68,68,.2); }
+  .btn-fin-revoke .material-symbols-outlined { font-size: 14px; }
+
+  /* ══ Sección participantes polla ════════════════════════════════════ */
+  .polla-part-section { padding: 0 24px 56px; }
+  .polla-part-section h2 { font-size: 15px; font-weight: 700; margin-bottom: 6px;
+                            display: flex; align-items: center; gap: 8px; }
+  .polla-part-subtitle { font-size: 12px; color: var(--text3); margin-bottom: 20px; }
+
+  .polla-part-grid { display: flex; flex-direction: column; gap: 8px; }
+  .polla-part-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 12px 16px;
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 12px; flex-wrap: wrap;
+  }
+  .polla-part-info { display: flex; align-items: center; gap: 10px; min-width: 160px; }
+  .polla-part-avatar {
+    width: 34px; height: 34px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent), #a855f7);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 700; flex-shrink: 0;
+  }
+  .polla-part-controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .polla-estado-select {
+    background: var(--surface2); border: 1px solid var(--border); color: var(--text);
+    border-radius: 6px; padding: 6px 10px; font-family: var(--font); font-size: 12px;
+    cursor: pointer; outline: none;
+  }
+  .polla-estado-select:focus { border-color: var(--accent); }
+  .btn-polla-save {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 600;
+    background: rgba(124,106,247,.12); color: var(--accent);
+    border: 1px solid rgba(124,106,247,.3); cursor: pointer;
+  }
+  .btn-polla-save:hover { background: rgba(124,106,247,.22); }
+  .polla-estado-badge {
+    font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 10px;
+  }
+  .pest-activo     { background: rgba(34,197,94,.12); color: #22c55e; border: 1px solid rgba(34,197,94,.25); }
+  .pest-bloqueado  { background: rgba(239,68,68,.12); color: #ef4444; border: 1px solid rgba(239,68,68,.25); }
+  .pest-excluido   { background: rgba(239,68,68,.08); color: #ef4444; border: 1px solid rgba(239,68,68,.2); }
+  .pest-inactivo   { background: rgba(156,163,175,.1); color: #9ca3af; border: 1px solid rgba(156,163,175,.22); }
+  .pest-desactivado{ background: rgba(156,163,175,.08); color: #9ca3af; border: 1px solid rgba(156,163,175,.18); }
+
+  /* ══ Auditoría rápida ═══════════════════════════════════════════════ */
+  .audit-section { padding: 0 24px 56px; }
+  .audit-section h2 { font-size: 15px; font-weight: 700; margin-bottom: 6px;
+                      display: flex; align-items: center; gap: 8px; }
+  .audit-subtitle { font-size: 12px; color: var(--text3); margin-bottom: 20px; }
+  .audit-table-wrap { overflow-x: auto; }
+  .audit-tbl { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .audit-tbl th {
+    text-align: left; padding: 8px 10px; font-size: 10px; font-weight: 700;
+    color: var(--text2); text-transform: uppercase; letter-spacing: .4px;
+    border-bottom: 1px solid var(--border);
+  }
+  .audit-tbl td {
+    padding: 9px 10px; border-bottom: 1px solid var(--border);
+    vertical-align: middle; max-width: 160px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .audit-tbl tbody tr:hover { background: var(--surface); }
+  .audit-accion-badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 700;
+    background: rgba(124,106,247,.1); color: var(--accent);
+    border: 1px solid rgba(124,106,247,.2);
+  }
+
+  @media(max-width: 600px) {
+    .fin-form-row { flex-direction: column; align-items: stretch; }
+    .polla-part-controls { width: 100%; }
+  }
+</style>
+
+<!-- ── Sección Rol Financiero/a ──────────────────────────────────────── -->
+<div class="fin-section">
+  <h2>
+    <span class="material-symbols-outlined" style="font-size:18px;color:#faad14">account_balance</span>
+    Rol Financiero/a
+    <span class="mundial-badge" id="fin-count-badge" style="background:rgba(250,173,20,.12);border-color:rgba(250,173,20,.3);color:#faad14;">Cargando…</span>
+  </h2>
+  <p class="fin-subtitle">Designa miembros con acceso a gestión financiera sin privilegios de administrador</p>
+
+  <div class="fin-info-banner">
+    <strong>⚠️ Permisos del rol Financiero/a:</strong> puede gestionar invitados, corregir montos, modificar estados de pago, ajustar saldos, gestionar la recaudación y ver reportes financieros.
+    <strong>No puede</strong> crear administradores, modificar roles ni acceder a configuración global.
+  </div>
+
+  <!-- Financieros activos -->
+  <h3 style="font-size:13px;font-weight:700;color:var(--text2);margin-bottom:12px;">Financieros/as activos</h3>
+  <div class="fin-activos" id="fin-activos-list">
+    <div class="fin-empty">Cargando…</div>
+  </div>
+
+  <!-- Asignar nuevo financiero -->
+  <div class="fin-asignar-form">
+    <h3>Asignar rol Financiero/a</h3>
+    <div class="fin-form-row">
+      <select class="fin-select" id="fin-select-usuario">
+        <option value="">Seleccionar miembro…</option>
+        {% for u in usuarios %}
+        {% if u.rol in ('miembro', 'invitado') %}
+        <option value="{{ u.id }}">{{ u.nombre }} (@{{ u.usuario }}) — {{ u.rol }}</option>
+        {% endif %}
+        {% endfor %}
+      </select>
+      <button class="btn-fin-assign" onclick="asignarFinanciero()">
+        <span class="material-symbols-outlined" style="font-size:16px">add_moderator</span>
+        Asignar Financiero/a
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Sección Participantes Polla ──────────────────────────────────── -->
+<div class="polla-part-section">
+  <h2>
+    <span class="material-symbols-outlined" style="font-size:18px;color:#f59e0b">sports_soccer</span>
+    Participantes de la Polla
+    <span class="mundial-badge" id="polla-part-badge" style="background:rgba(245,158,11,.1);border-color:rgba(245,158,11,.3);color:#f59e0b;">Cargando…</span>
+  </h2>
+  <p class="polla-part-subtitle">Gestiona quién participa en la polla mundialista. Solo aplica a miembros.</p>
+  <div class="polla-part-grid" id="polla-part-grid">
+    <div class="fin-empty">Cargando…</div>
+  </div>
+</div>
+
+<!-- ── Sección Auditoría Financiera ─────────────────────────────────── -->
+<div class="audit-section">
+  <h2>
+    <span class="material-symbols-outlined" style="font-size:18px;color:#22c55e">history</span>
+    Auditoría Financiera
+    <span class="mundial-badge" id="audit-count-badge" style="background:rgba(34,197,94,.1);border-color:rgba(34,197,94,.3);color:#22c55e;">Últimas 100</span>
+  </h2>
+  <p class="audit-subtitle">Registro completo de cambios realizados por Admin y Financiero/a</p>
+  <div class="audit-table-wrap">
+    <table class="audit-tbl">
+      <thead>
+        <tr>
+          <th>Quién</th>
+          <th>Acción</th>
+          <th>Afecta a</th>
+          <th>Campo</th>
+          <th>Antes</th>
+          <th>Después</th>
+          <th>Motivo</th>
+          <th>Fecha</th>
+        </tr>
+      </thead>
+      <tbody id="audit-tbody">
+        <tr><td colspan="8" style="text-align:center;padding:20px;color:var(--text3);">Cargando auditoría…</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+(function() {
+  // ── Helpers ──────────────────────────────────────────────────────────────
+  function fmtFecha(f) {
+    if (!f) return '—';
+    const d = new Date(f);
+    if (isNaN(d)) return f.slice(0, 10);
+    return d.toLocaleDateString('es-CO', { day: '2-digit', month: '2-digit', year: 'numeric' })
+      + ' ' + d.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
+  }
+
+  const ACCION_LABELS = {
+    'asignar_financiero':    '🏅 Asignó Financiero/a',
+    'retirar_financiero':    '🔻 Retiró Financiero/a',
+    'polla_estado_activo':   '✅ Activó participante',
+    'polla_estado_bloqueado':'🚫 Bloqueó participante',
+    'polla_estado_excluido': '⛔ Excluyó participante',
+    'polla_estado_inactivo': '⏸ Inactivó participante',
+    'polla_estado_desactivado':'🔕 Desactivó participante',
+    'editar_monto_aporte':   '✏️ Editó monto aporte',
+    'editar_desc_aporte':    '✏️ Editó descripción aporte',
+    'editar_verificado_aporte':'✏️ Cambió verificación',
+    'editar_monto_evento':   '✏️ Editó monto evento',
+    'editar_estado_evento':  '✏️ Cambió estado evento',
+    'editar_estado_polla':   '✏️ Cambió estado pago polla',
+  };
+
+  const ESTADO_POLLA_OPT = [
+    { v: 'activo',      l: '✅ Activo' },
+    { v: 'bloqueado',   l: '🚫 Bloqueado' },
+    { v: 'inactivo',    l: '⏸ Inactivo' },
+    { v: 'desactivado', l: '🔕 Desactivado' },
+    { v: 'excluido',    l: '⛔ Excluido' },
+  ];
+
+  function estadoBadgeHTML(estado) {
+    const cls = { activo:'pest-activo', bloqueado:'pest-bloqueado',
+                  excluido:'pest-excluido', inactivo:'pest-inactivo',
+                  desactivado:'pest-desactivado' }[estado] || 'pest-activo';
+    const icon = { activo:'✅', bloqueado:'🚫', excluido:'⛔',
+                   inactivo:'⏸', desactivado:'🔕' }[estado] || '✅';
+    return `<span class="polla-estado-badge ${cls}">${icon} ${(estado||'activo').charAt(0).toUpperCase()+(estado||'activo').slice(1)}</span>`;
+  }
+
+  // ── Financieros/as ────────────────────────────────────────────────────────
+  async function cargarFinancieros() {
+    try {
+      const r = await fetch('/admin/financieros');
+      const lista = await r.json();
+      const badge = document.getElementById('fin-count-badge');
+      const listEl = document.getElementById('fin-activos-list');
+      badge.textContent = lista.length + ' activo' + (lista.length !== 1 ? 's' : '');
+      if (!lista.length) {
+        listEl.innerHTML = '<div class="fin-empty">No hay Financieros/as asignados actualmente.</div>';
+        return;
+      }
+      listEl.innerHTML = lista.map(u => `
+        <div class="fin-activo-card" id="fin-card-${u.id}">
+          <div class="fin-activo-info">
+            <div class="u-avatar">${u.nombre[0].toUpperCase()}</div>
+            <div>
+              <div class="u-name">${u.nombre}</div>
+              <div class="u-sub">@${u.usuario} · ${u.rol}</div>
+            </div>
+            <span class="fin-activo-badge">
+              <span class="material-symbols-outlined" style="font-size:11px">account_balance</span>
+              Financiero/a
+            </span>
+          </div>
+          <button class="btn-fin-revoke" onclick="revocarFinanciero(${u.id}, '${u.nombre.replace(/'/g,"\\'")}')">
+            <span class="material-symbols-outlined">remove_moderator</span>
+            Retirar rol
+          </button>
+        </div>
+      `).join('');
+    } catch(e) {
+      document.getElementById('fin-activos-list').innerHTML =
+        '<div class="fin-empty">Error al cargar financieros.</div>';
+    }
+  }
+
+  window.asignarFinanciero = async function() {
+    const sel = document.getElementById('fin-select-usuario');
+    const uid = sel.value;
+    if (!uid) { showToast('Selecciona un usuario', false); return; }
+    const fd = new FormData();
+    fd.append('uid', uid);
+    try {
+      const r = await fetch('/admin/toggle_financiero', { method: 'POST', body: fd });
+      const d = await r.json();
+      showToast(d.msg, d.ok);
+      if (d.ok) {
+        sel.value = '';
+        setTimeout(cargarFinancieros, 600);
+      }
+    } catch(e) {
+      showToast('Error de conexión', false);
+    }
+  };
+
+  window.revocarFinanciero = async function(uid, nombre) {
+    if (!confirm(`¿Retirar el rol Financiero/a a ${nombre}?`)) return;
+    const fd = new FormData();
+    fd.append('uid', uid);
+    try {
+      const r = await fetch('/admin/toggle_financiero', { method: 'POST', body: fd });
+      const d = await r.json();
+      showToast(d.msg, d.ok);
+      if (d.ok) {
+        const card = document.getElementById('fin-card-' + uid);
+        if (card) {
+          card.style.transition = 'opacity .3s, transform .3s';
+          card.style.opacity = '0';
+          card.style.transform = 'translateX(20px)';
+          setTimeout(() => { card.remove(); cargarFinancieros(); }, 350);
+        }
+      }
+    } catch(e) {
+      showToast('Error de conexión', false);
+    }
+  };
+
+  // ── Participantes polla ───────────────────────────────────────────────────
+  async function cargarParticipantes() {
+    try {
+      const r = await fetch('/admin/polla_participantes');
+      const lista = await r.json();
+      const badge = document.getElementById('polla-part-badge');
+      const grid = document.getElementById('polla-part-grid');
+      const activos = lista.filter(u => u.polla_estado === 'activo' || !u.polla_estado).length;
+      badge.textContent = `${activos}/${lista.length} activos`;
+      if (!lista.length) {
+        grid.innerHTML = '<div class="fin-empty">No hay miembros registrados.</div>';
+        return;
+      }
+      grid.innerHTML = lista.map(u => {
+        const estado = u.polla_estado || 'activo';
+        const opts = ESTADO_POLLA_OPT.map(o =>
+          `<option value="${o.v}" ${o.v === estado ? 'selected' : ''}>${o.l}</option>`
+        ).join('');
+        return `
+          <div class="polla-part-card" id="ppart-${u.id}">
+            <div class="polla-part-info">
+              ${u.foto
+                ? `<img src="${u.foto}" style="width:34px;height:34px;border-radius:50%;object-fit:cover;flex-shrink:0;" alt="">`
+                : `<div class="polla-part-avatar">${u.nombre[0].toUpperCase()}</div>`}
+              <div>
+                <div class="u-name">${u.nombre}</div>
+                <div class="u-sub">@${u.usuario}</div>
+              </div>
+            </div>
+            <div class="polla-part-controls">
+              ${estadoBadgeHTML(estado)}
+              <select class="polla-estado-select" id="pp-sel-${u.id}">
+                ${opts}
+              </select>
+              <button class="btn-polla-save" onclick="guardarEstadoPolla(${u.id})">
+                <span class="material-symbols-outlined" style="font-size:15px">save</span>
+                Guardar
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    } catch(e) {
+      document.getElementById('polla-part-grid').innerHTML =
+        '<div class="fin-empty">Error al cargar participantes.</div>';
+    }
+  }
+
+  window.guardarEstadoPolla = async function(uid) {
+    const sel = document.getElementById('pp-sel-' + uid);
+    if (!sel) return;
+    const estado = sel.value;
+    const fd = new FormData();
+    fd.append('uid', uid);
+    fd.append('estado', estado);
+    try {
+      const r = await fetch('/admin/polla_estado', { method: 'POST', body: fd });
+      const d = await r.json();
+      showToast(d.msg || (d.ok ? 'Actualizado' : 'Error'), d.ok);
+      if (d.ok) {
+        // Actualizar badge visual inline
+        const card = document.getElementById('ppart-' + uid);
+        if (card) {
+          const badgeEl = card.querySelector('.polla-estado-badge');
+          if (badgeEl) badgeEl.outerHTML = estadoBadgeHTML(estado);
+        }
+      }
+    } catch(e) {
+      showToast('Error de conexión', false);
+    }
+  };
+
+  // ── Auditoría ─────────────────────────────────────────────────────────────
+  async function cargarAuditoria() {
+    const tbody = document.getElementById('audit-tbody');
+    try {
+      const r = await fetch('/admin/auditoria');
+      const rows = await r.json();
+      if (!rows.length) {
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:20px;color:var(--text3);">No hay registros de auditoría aún.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = rows.map(a => `
+        <tr>
+          <td title="@${a.actor_usuario||''}"><strong>${a.actor_nombre||'—'}</strong></td>
+          <td><span class="audit-accion-badge">${ACCION_LABELS[a.accion] || a.accion}</span></td>
+          <td style="color:var(--text2);">${a.target_nombre||'—'}</td>
+          <td style="color:var(--text3);font-size:11px;">${a.campo||'—'}</td>
+          <td style="color:var(--text2);font-size:11px;" title="${a.valor_antes||''}">${(a.valor_antes||'—').slice(0,20)}</td>
+          <td style="color:#22c55e;font-size:11px;" title="${a.valor_nuevo||''}">${(a.valor_nuevo||'—').slice(0,20)}</td>
+          <td style="color:var(--text3);font-size:11px;" title="${a.motivo||''}">${(a.motivo||'—').slice(0,30)}</td>
+          <td style="color:var(--text3);font-size:11px;white-space:nowrap;">${fmtFecha(a.fecha)}</td>
+        </tr>
+      `).join('');
+    } catch(e) {
+      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:20px;color:var(--text3);">Error al cargar auditoría.</td></tr>';
+    }
+  }
+
+  // ── Inicializar ────────────────────────────────────────────────────────────
+  cargarFinancieros();
+  cargarParticipantes();
+  cargarAuditoria();
+})();
+</script>
 </body>
 </html>

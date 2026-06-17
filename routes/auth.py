@@ -22,7 +22,7 @@ def login():
         pwd = request.form.get("password", "")
         con = get_db()
         user = con.execute(
-            "SELECT id, nombre, usuario, password, rol FROM usuarios WHERE usuario=%s", (usu,)
+            "SELECT id, nombre, usuario, password, rol, COALESCE(es_financiero, FALSE) AS es_financiero FROM usuarios WHERE usuario=%s", (usu,)
         ).fetchone()
         if user and (user["password"] == pwd or check_password_hash(user["password"], pwd)):
             if user["rol"] == "baneado":
@@ -32,6 +32,7 @@ def login():
                 session["uid"]    = user["id"]
                 session["nombre"] = user["nombre"]
                 session["rol"]    = user["rol"]
+                session["es_financiero"] = bool(user.get("es_financiero", False))
                 return redirect("/dashboard")
         else:
             error = "Usuario o contraseña incorrectos"

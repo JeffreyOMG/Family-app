@@ -87,7 +87,8 @@ def get_ctx(uid, con, extra=None):
         """SELECT id, nombre, usuario, rol, gmail, bio, foto, fecha,
                   portada, ciudad, sitio_web, fecha_nacimiento,
                   COALESCE(verified, FALSE) AS verified,
-                  COALESCE(rec_bloqueado, 0) AS rec_bloqueado
+                  COALESCE(rec_bloqueado, 0) AS rec_bloqueado,
+                  COALESCE(es_financiero, FALSE) AS es_financiero
            FROM usuarios WHERE id=%s""", (uid,)
     ).fetchone()
     if not usuario: return None
@@ -181,10 +182,12 @@ def get_ctx(uid, con, extra=None):
     META = float(cfg_meta["valor"]) if cfg_meta else 500000
     pct  = min(round((total_global / META) * 100, 1), 100) if META > 0 else 0
     ranking = [dict(r, porcentaje=min(round((r["total"] / META) * 100, 1), 100)) for r in con.execute("""
-        SELECT u.id, u.nombre, u.rol, u.foto AS foto_perfil, COALESCE(SUM(a.monto),0) AS total
+        SELECT u.id, u.nombre, u.rol, u.foto AS foto_perfil, COALESCE(SUM(a.monto),0) AS total,
+               COALESCE(u.polla_activo, TRUE) AS polla_activo,
+               COALESCE(u.polla_estado, 'activo') AS polla_estado
         FROM usuarios u LEFT JOIN aportes a ON a.usuario_id=u.id
         WHERE u.rol IN ('miembro', 'admin') AND COALESCE(u.rec_bloqueado, 0) = 0
-        GROUP BY u.id, u.nombre, u.rol, u.foto ORDER BY total DESC
+        GROUP BY u.id, u.nombre, u.rol, u.foto, u.polla_activo, u.polla_estado ORDER BY total DESC
     """).fetchall()]
 
     todos_aportes = [dict(a) for a in con.execute("""
@@ -321,7 +324,12 @@ def get_ctx(uid, con, extra=None):
     usuario_puntos = con.execute("SELECT COALESCE(SUM(puntos),0) FROM pronosticos WHERE usuario_id=%s", (uid,)).fetchone()[0]
 
     miembros = [dict(m) for m in con.execute(
-        "SELECT id, nombre, usuario, foto, foto AS foto_perfil, rol, COALESCE(verified, FALSE) AS verified FROM usuarios ORDER BY nombre ASC"
+        "SELECT id, nombre, usuario, foto, foto AS foto_perfil, rol, COALESCE(verified, FALSE) AS verified, COALESCE(es_financiero, FALSE) AS es_financiero, COALESCE(polla_activo, TRUE) AS polla_activo, COALESCE(polla_estado, 'activo') AS polla_estado FROM usuarios ORDER BY nombre ASC"
+    ).fetchall()]
+
+    # Invitados para vista financiera
+    invitados_fin = [dict(m) for m in con.execute(
+        "SELECT id, nombre, usuario, foto, COALESCE(mundial_pagado, 'sin_solicitud') AS mundial_pagado, COALESCE(rec_bloqueado, 0) AS rec_bloqueado FROM usuarios WHERE rol='invitado' ORDER BY nombre ASC"
     ).fetchall()]
 
     polla_pagos_usuario = {p["fase"]: dict(p) for p in con.execute(
@@ -375,6 +383,7 @@ def get_ctx(uid, con, extra=None):
         usuario_puntos=usuario_puntos,
         mis_aportes=mis_aportes,
         miembros=miembros,
+        invitados_fin=invitados_fin,
         polla_pagos_usuario=polla_pagos_usuario,
         polla_pagos=polla_pagos,
         eventos_recaudacion=eventos_recaudacion,
