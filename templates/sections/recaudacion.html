@@ -1,5 +1,13 @@
 <section class="section main-content-v2" id="sec-recaudacion">
-{% if usuario.rol in ("miembro", "admin") %}
+{% if usuario.rec_bloqueado %}
+<div class="acceso-restringido">
+  <div class="acceso-icon">🔒</div>
+  <h2>Acceso Restringido</h2>
+  <p>No tienes acceso a la sección de <strong>Finanzas Familiares</strong>.</p>
+  <p class="acceso-sub">Si crees que esto es un error, contacta al administrador.</p>
+  <div class="acceso-badge">⛔ Acceso bloqueado por el administrador</div>
+</div>
+{% elif usuario.rol in ("miembro", "admin") %}
 
   <!-- HEADER -->
   <div class="rec-header">
@@ -13,10 +21,25 @@
         <span class="material-symbols-outlined">edit</span>
         Editar meta
       </button>
-      <button class="btn-admin-meta" onclick="fixPollaMontos()" title="Corregir montos de polla a precios actuales" style="border-color:#f9a825;color:#f9a825;">
-        <span class="material-symbols-outlined">price_check</span>
-        Corregir montos polla
-      </button>
+      <!-- BOTÓN ADMIN CONTROL (amarillo) -->
+      <div class="rec-admin-ctrl-wrap" id="rec-admin-ctrl-wrap">
+        <button class="btn-admin-control" onclick="toggleAdminMenu()" id="btn-admin-control">
+          <span class="material-symbols-outlined">admin_panel_settings</span>
+          Admin Control
+          <span class="material-symbols-outlined admin-ctrl-chevron" id="admin-ctrl-chevron">expand_more</span>
+        </button>
+        <div class="admin-ctrl-menu" id="admin-ctrl-menu" style="display:none;">
+          <button class="admin-ctrl-item" onclick="fixPollaMontos();closeAdminMenu()">
+            <span class="material-symbols-outlined">price_check</span>
+            Corregir montos polla
+          </button>
+          <div class="admin-ctrl-divider"></div>
+          <button class="admin-ctrl-item admin-ctrl-danger" onclick="abrirModalBloquearMiembro();closeAdminMenu()">
+            <span class="material-symbols-outlined">person_off</span>
+            Bloquear miembro de sección
+          </button>
+        </div>
+      </div>
       {% endif %}
       <button class="btn-aporte-principal" onclick="abrirModalAporte()">
         <span class="material-symbols-outlined">add_circle</span>
@@ -247,9 +270,14 @@
             <div class="rec-ranking-top">
               <span class="rec-ranking-name">{{ r.nombre }}</span>
               <span class="rec-ranking-amount">${{ r.total|int }}</span>
+              {% if usuario.rol == 'admin' %}
+              <button class="rec-rank-block-btn" onclick="confirmarBloqueoMiembro({{ r.id }},'{{ r.nombre|replace("'","\'") }}')" title="Bloquear de sección">
+                <span class="material-symbols-outlined">person_off</span>
+              </button>
+              {% endif %}
             </div>
             <div class="progress-bar-bg" style="height:6px;border-radius:10px;overflow:hidden;background:rgba(128,128,128,0.18);">
-              <div class="progress-bar-fill rank-bar-fill" style="width:{{ r.porcentaje }}%;height:100%;"></div>
+              <div class="progress-bar-fill rank-bar-fill" style="width:{{ r.porcentaje }}%;height:6px;background:var(--accent-gradient,linear-gradient(90deg,#ff6b9d,#ff4d8d,#c9236a));border-radius:99px;"></div>
             </div>
           </div>
         </div>
@@ -711,6 +739,37 @@
       <a id="modal-comp-link" href="#" target="_blank" class="rec-btn-submit">
         <span class="material-symbols-outlined">open_in_new</span> Ver completo
       </a>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== MODAL: BLOQUEAR MIEMBRO ===================== -->
+<div id="modal-bloquear" class="rec-modal-overlay" onclick="cerrarModalBloquear(event)" role="dialog" style="display:none;">
+  <div class="rec-modal-box rec-modal-confirm" onclick="event.stopPropagation()">
+    <div class="rec-modal-header">
+      <div class="rec-modal-title-wrap">
+        <div class="rec-modal-icon" style="background:rgba(249,168,37,.15);color:#f9a825;">
+          <span class="material-symbols-outlined">admin_panel_settings</span>
+        </div>
+        <div><h3>Bloquear miembro de sección</h3><p>El miembro no podrá ver ni registrar aportes</p></div>
+      </div>
+      <button class="rec-modal-close" onclick="cerrarModalBloquear()"><span class="material-symbols-outlined">close</span></button>
+    </div>
+    <div class="rec-modal-body">
+      <div style="text-align:center;padding:8px 0;">
+        <div id="bloquear-nombre-display" style="font-size:15px;font-weight:700;margin-bottom:12px;"></div>
+        <p style="color:var(--text2);font-size:13px;margin-bottom:16px;">Este usuario <strong>no podrá ver ni interactuar</strong> con la sección de Finanzas Familiares. Podrás desbloquearlo desde el panel de administración de usuarios.</p>
+        <div style="background:rgba(249,168,37,.08);border:1px solid rgba(249,168,37,.25);border-radius:10px;padding:10px 14px;font-size:12px;color:var(--text2);">
+          <span class="material-symbols-outlined" style="font-size:15px;vertical-align:middle;color:#f9a825;">info</span>
+          Sus aportes existentes <strong>seguirán visibles</strong> en el historial. Solo se bloquea el acceso futuro.
+        </div>
+      </div>
+    </div>
+    <div class="rec-modal-footer">
+      <button class="rec-btn-cancel" onclick="cerrarModalBloquear()">Cancelar</button>
+      <button class="rec-btn-submit" id="btn-confirmar-bloqueo" style="background:linear-gradient(135deg,#f9a825,#e6a800);color:#000;">
+        <span class="material-symbols-outlined">person_off</span> Bloquear acceso
+      </button>
     </div>
   </div>
 </div>
@@ -1321,6 +1380,96 @@ body.dark-mode .fase-btn-pagada{background:rgba(0,166,80,.08);border-color:rgba(
 body.dark-mode .btn-admin-meta { color:var(--text2);border-color:var(--border); }
 body.dark-mode .btn-admin-meta:hover { background:rgba(76,175,80,.12);border-color:#4caf50;color:#4caf50; }
 body.dark-mode .rec-meta-actual { background:var(--bg2);border-color:var(--border); }
+
+/* ---- ADMIN CONTROL DROPDOWN (amarillo, estilo mundial) ---- */
+.rec-admin-ctrl-wrap {
+  position: relative;
+}
+.btn-admin-control {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px;
+  background: linear-gradient(135deg, #f9a825, #e6a800);
+  color: #000;
+  border: none;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all .15s;
+  white-space: nowrap;
+  box-shadow: 0 3px 12px rgba(249,168,37,.35);
+}
+.btn-admin-control:hover { opacity:.88; transform:translateY(-1px); }
+.btn-admin-control:active { transform:scale(.97); opacity:.85; }
+.btn-admin-control .material-symbols-outlined { font-size:18px; }
+.admin-ctrl-chevron { font-size:18px; transition:transform .2s; }
+.admin-ctrl-chevron.open { transform:rotate(180deg); }
+.admin-ctrl-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 220px;
+  background: var(--card, #fff);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: 0 12px 40px rgba(0,0,0,.18);
+  z-index: 500;
+  overflow: hidden;
+  animation: dropDown .15s ease;
+}
+@keyframes dropDown {
+  from { opacity:0; transform:translateY(-8px); }
+  to   { opacity:1; transform:translateY(0); }
+}
+.admin-ctrl-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 12px 16px;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: left;
+  transition: background .12s;
+}
+.admin-ctrl-item .material-symbols-outlined { font-size:18px; color:var(--text2); }
+.admin-ctrl-item:hover { background: var(--bg2); }
+.admin-ctrl-item:hover .material-symbols-outlined { color:var(--text); }
+.admin-ctrl-divider { height: 1px; background: var(--border); margin: 2px 0; }
+.admin-ctrl-danger { color: #e53935 !important; }
+.admin-ctrl-danger .material-symbols-outlined { color: #e53935 !important; }
+.admin-ctrl-danger:hover { background: rgba(229,57,53,.08) !important; }
+
+/* ---- BLOQUEAR MIEMBRO inline en ranking ---- */
+.rec-rank-block-btn {
+  margin-left: auto;
+  width: 26px; height: 26px;
+  border-radius: 7px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text2);
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0;
+  transition: all .15s;
+  flex-shrink: 0;
+}
+.rec-rank-block-btn .material-symbols-outlined { font-size: 15px; }
+.rec-ranking-item:hover .rec-rank-block-btn { opacity: 1; }
+.rec-rank-block-btn:hover {
+  background: rgba(249,168,37,.15);
+  border-color: rgba(249,168,37,.4);
+  color: #f9a825;
+}
+
+body.dark-mode .admin-ctrl-menu { background:var(--card);border-color:var(--border); }
+body.dark-mode .admin-ctrl-item:hover { background:var(--bg2); }
 body.dark-mode .rec-preset-btn { background:var(--bg2);border-color:var(--border);color:var(--text); }
 body.dark-mode .rec-preset-btn:hover { background:rgba(76,175,80,.12);border-color:#4caf50;color:#4caf50; }
 body.dark-mode .rec-stat { background:var(--card);border-color:var(--border); }
@@ -1792,7 +1941,7 @@ function guardarMeta() {
 /* ===================== ESCAPE KEY ===================== */
 document.addEventListener('keydown', function(e) {
   if (e.key !== 'Escape') return;
-  ['modal-aporte','modal-familia','modal-evento','modal-polla','modal-comp','modal-confirmar','modal-cajita-detalle','modal-meta'].forEach(hide);
+  ['modal-aporte','modal-familia','modal-evento','modal-polla','modal-comp','modal-confirmar','modal-cajita-detalle','modal-meta','modal-bloquear'].forEach(hide);
 });
 
 /* ===================== HISTORIAL ===================== */
@@ -2206,4 +2355,89 @@ document.addEventListener('DOMContentLoaded', function() {
   cargarHistorial();
 });
 if (document.getElementById('sec-recaudacion')) cargarHistorial();
+
+/* ===================== ADMIN CONTROL DROPDOWN ===================== */
+function toggleAdminMenu() {
+  const menu    = document.getElementById('admin-ctrl-menu');
+  const chevron = document.getElementById('admin-ctrl-chevron');
+  const open = menu.style.display === 'none' || menu.style.display === '';
+  menu.style.display = open ? 'block' : 'none';
+  chevron.classList.toggle('open', open);
+}
+function closeAdminMenu() {
+  const menu    = document.getElementById('admin-ctrl-menu');
+  const chevron = document.getElementById('admin-ctrl-chevron');
+  if (menu) menu.style.display = 'none';
+  if (chevron) chevron.classList.remove('open');
+}
+// Cierra el dropdown al hacer click fuera
+document.addEventListener('click', function(e) {
+  const wrap = document.getElementById('rec-admin-ctrl-wrap');
+  if (wrap && !wrap.contains(e.target)) closeAdminMenu();
+});
+
+/* ===================== BLOQUEAR MIEMBRO DE SECCIÓN ===================== */
+let _bloquearUserId = null;
+
+function abrirModalBloquearMiembro() {
+  // Abre el modal sin usuario preseleccionado (lista general)
+  _bloquearUserId = null;
+  document.getElementById('bloquear-nombre-display').textContent = 'Selecciona un miembro del ranking para bloquearlo.';
+  show('modal-bloquear');
+}
+
+function confirmarBloqueoMiembro(userId, nombre) {
+  _bloquearUserId = userId;
+  document.getElementById('bloquear-nombre-display').innerHTML =
+    '<span style="font-size:22px;">🔒</span><br>' + nombre;
+  document.getElementById('btn-confirmar-bloqueo').onclick = function() {
+    ejecutarBloqueoMiembro();
+  };
+  show('modal-bloquear');
+}
+
+async function ejecutarBloqueoMiembro() {
+  if (!_bloquearUserId) { cerrarModalBloquear(); return; }
+  const btn = document.getElementById('btn-confirmar-bloqueo');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="material-symbols-outlined">hourglass_empty</span> Bloqueando...';
+  try {
+    const r = await fetch('/api/admin/bloquear_recaudacion', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ usuario_id: _bloquearUserId })
+    });
+    const data = await r.json();
+    if (data.ok) {
+      cerrarModalBloquear();
+      // Remover el item del ranking visualmente
+      const items = document.querySelectorAll('.rec-ranking-item');
+      items.forEach(item => {
+        const blockBtn = item.querySelector('.rec-rank-block-btn');
+        if (blockBtn && blockBtn.getAttribute('onclick') && blockBtn.getAttribute('onclick').includes(_bloquearUserId)) {
+          item.style.transition = 'opacity .3s, transform .3s';
+          item.style.opacity = '0';
+          item.style.transform = 'translateX(20px)';
+          setTimeout(() => item.remove(), 300);
+        }
+      });
+      setTimeout(() => location.reload(), 800);
+    } else {
+      alert(data.error || 'Error al bloquear');
+      btn.disabled = false;
+      btn.innerHTML = '<span class="material-symbols-outlined">person_off</span> Bloquear acceso';
+    }
+  } catch(e) {
+    alert('Error de conexión');
+    btn.disabled = false;
+    btn.innerHTML = '<span class="material-symbols-outlined">person_off</span> Bloquear acceso';
+  }
+}
+
+function cerrarModalBloquear(e) {
+  if (!e || e.target === document.getElementById('modal-bloquear')) {
+    hide('modal-bloquear');
+    _bloquearUserId = null;
+  }
+}
 </script>

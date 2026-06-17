@@ -86,7 +86,8 @@ def get_ctx(uid, con, extra=None):
     usuario = con.execute(
         """SELECT id, nombre, usuario, rol, gmail, bio, foto, fecha,
                   portada, ciudad, sitio_web, fecha_nacimiento,
-                  COALESCE(verified, FALSE) AS verified
+                  COALESCE(verified, FALSE) AS verified,
+                  COALESCE(rec_bloqueado, 0) AS rec_bloqueado
            FROM usuarios WHERE id=%s""", (uid,)
     ).fetchone()
     if not usuario: return None
@@ -180,9 +181,9 @@ def get_ctx(uid, con, extra=None):
     META = float(cfg_meta["valor"]) if cfg_meta else 500000
     pct  = min(round((total_global / META) * 100, 1), 100) if META > 0 else 0
     ranking = [dict(r, porcentaje=min(round((r["total"] / META) * 100, 1), 100)) for r in con.execute("""
-        SELECT u.nombre, u.rol, u.foto AS foto_perfil, COALESCE(SUM(a.monto),0) AS total
+        SELECT u.id, u.nombre, u.rol, u.foto AS foto_perfil, COALESCE(SUM(a.monto),0) AS total
         FROM usuarios u LEFT JOIN aportes a ON a.usuario_id=u.id
-        WHERE u.rol IN ('miembro', 'admin')
+        WHERE u.rol IN ('miembro', 'admin') AND COALESCE(u.rec_bloqueado, 0) = 0
         GROUP BY u.id, u.nombre, u.rol, u.foto ORDER BY total DESC
     """).fetchall()]
 

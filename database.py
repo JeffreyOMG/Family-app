@@ -173,6 +173,8 @@ _TABLES = [
     """ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS ciudad TEXT""",
     """ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS sitio_web TEXT""",
     """ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS fecha_nacimiento DATE""",
+    # Bloqueo de sección de recaudación (1 = bloqueado, no puede ver ni registrar aportes)
+    """ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS rec_bloqueado INTEGER DEFAULT 0""",
     """CREATE TABLE IF NOT EXISTS publicaciones (
         id SERIAL PRIMARY KEY, usuario_id INTEGER NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
         texto TEXT DEFAULT '', media TEXT DEFAULT '', media_tipo TEXT DEFAULT '',

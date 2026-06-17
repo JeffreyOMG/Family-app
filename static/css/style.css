@@ -1967,6 +1967,9 @@ body.dark-mode .progress-bar-bg{
 body.dark-mode .progress-bar-fill{
   background:linear-gradient(90deg,#fff,#aaa);
 }
+body.dark-mode .rank-bar-fill{
+  background:var(--accent-gradient,linear-gradient(90deg,#ff6b9d,#ff4d8d,#c9236a)) !important;
+}
 
 /* BADGE */
 body.dark-mode .badge{

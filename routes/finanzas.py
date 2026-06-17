@@ -368,3 +368,25 @@ def fix_polla_montos():
         actualizados += result.rowcount
     con.commit()
     return jsonify({"ok": True, "actualizados": actualizados})
+
+@fin_bp.route("/api/admin/bloquear_recaudacion", methods=["POST"])
+def bloquear_recaudacion():
+    """Bloquea o desbloquea a un usuario de la sección de recaudación."""
+    if session.get("rol") != "admin":
+        return jsonify({"ok": False, "error": "Sin permiso"}), 403
+    data = request.get_json(silent=True) or {}
+    usuario_id = data.get("usuario_id")
+    if not usuario_id:
+        return jsonify({"ok": False, "error": "usuario_id requerido"}), 400
+    # No permitir bloquear al propio admin
+    if int(usuario_id) == int(session.get("usuario_id", 0)):
+        return jsonify({"ok": False, "error": "No puedes bloquearte a ti mismo"}), 400
+    con = get_db()
+    # Toggle: si ya está bloqueado, desbloquear; si no, bloquear
+    row = con.execute("SELECT rec_bloqueado FROM usuarios WHERE id=%s", (usuario_id,)).fetchone()
+    if not row:
+        return jsonify({"ok": False, "error": "Usuario no encontrado"}), 404
+    nuevo_estado = 0 if row["rec_bloqueado"] else 1
+    con.execute("UPDATE usuarios SET rec_bloqueado=%s WHERE id=%s", (nuevo_estado, usuario_id))
+    con.commit()
+    return jsonify({"ok": True, "bloqueado": bool(nuevo_estado)})
