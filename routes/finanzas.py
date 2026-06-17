@@ -378,15 +378,39 @@ def bloquear_recaudacion():
     usuario_id = data.get("usuario_id")
     if not usuario_id:
         return jsonify({"ok": False, "error": "usuario_id requerido"}), 400
-    # No permitir bloquear al propio admin
+    # No permitir bloquear al propio admin ni a ningún admin
     if int(usuario_id) == int(session.get("usuario_id", 0)):
         return jsonify({"ok": False, "error": "No puedes bloquearte a ti mismo"}), 400
     con = get_db()
+    # Verificar que el objetivo no sea admin
+    target = con.execute("SELECT rol, rec_bloqueado FROM usuarios WHERE id=%s", (usuario_id,)).fetchone()
+    if target and target["rol"] == "admin":
+        return jsonify({"ok": False, "error": "No se puede bloquear a un administrador"}), 400
     # Toggle: si ya está bloqueado, desbloquear; si no, bloquear
-    row = con.execute("SELECT rec_bloqueado FROM usuarios WHERE id=%s", (usuario_id,)).fetchone()
+    row = target
     if not row:
         return jsonify({"ok": False, "error": "Usuario no encontrado"}), 404
     nuevo_estado = 0 if row["rec_bloqueado"] else 1
     con.execute("UPDATE usuarios SET rec_bloqueado=%s WHERE id=%s", (nuevo_estado, usuario_id))
     con.commit()
     return jsonify({"ok": True, "bloqueado": bool(nuevo_estado)})
+
+@fin_bp.route("/api/admin/quitar_polla", methods=["POST"])
+def quitar_polla():
+    """Elimina el pago de polla de un usuario en una fase específica (admin)."""
+    if session.get("rol") != "admin":
+        return jsonify({"ok": False, "error": "Sin permiso"}), 403
+    data = request.get_json(silent=True) or {}
+    usuario_id = data.get("usuario_id")
+    fase = data.get("fase")
+    if not usuario_id or not fase:
+        return jsonify({"ok": False, "error": "usuario_id y fase requeridos"}), 400
+    con = get_db()
+    result = con.execute(
+        "DELETE FROM polla_pagos WHERE usuario_id=%s AND fase=%s",
+        (usuario_id, fase)
+    )
+    con.commit()
+    if result.rowcount == 0:
+        return jsonify({"ok": False, "error": "No se encontró el pago"}), 404
+    return jsonify({"ok": True})

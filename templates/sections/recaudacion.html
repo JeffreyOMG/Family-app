@@ -218,6 +218,20 @@
           {% for p in polla_pagos if p.usuario_id == m.id and p.fase == fase.num %}
             {% set pagado.ok = true %}
           {% endfor %}
+          {% if usuario.rol == 'admin' %}
+          <div class="rec-polla-chip {% if pagado.ok %}pagado{% else %}pendiente{% endif %} admin-chip-clickable"
+               title="{{ m.nombre }}{% if pagado.ok %} · Click para quitar pago{% endif %}"
+               {% if pagado.ok %}onclick="confirmarQuitarPolla({{ m.id }},'{{ m.nombre.split()[0] }}',{{ fase.num }})"{% endif %}>
+            {% if m.foto_perfil %}
+            <img src="{{ m.foto_perfil }}" alt="{{ m.nombre[0]|upper }}" class="rec-chip-foto">
+            {% else %}
+            <div class="rec-chip-avatar">{{ m.nombre[0]|upper }}</div>
+            {% endif %}
+            <span class="rec-chip-nombre">{{ m.nombre.split()[0] }}</span>
+            <span class="rec-chip-estado">{% if pagado.ok %}✓{% else %}✗{% endif %}</span>
+            {% if pagado.ok %}<span class="rec-chip-del" title="Quitar">✕</span>{% endif %}
+          </div>
+          {% else %}
           <div class="rec-polla-chip {% if pagado.ok %}pagado{% else %}pendiente{% endif %}" title="{{ m.nombre }}">
             {% if m.foto_perfil %}
             <img src="{{ m.foto_perfil }}" alt="{{ m.nombre[0]|upper }}" class="rec-chip-foto">
@@ -227,6 +241,7 @@
             <span class="rec-chip-nombre">{{ m.nombre.split()[0] }}</span>
             <span class="rec-chip-estado">{% if pagado.ok %}✓{% else %}✗{% endif %}</span>
           </div>
+          {% endif %}
           {% endfor %}
         </div>
         <div class="rec-polla-resumen">
@@ -279,7 +294,7 @@
               {% endif %}
             </div>
             <div style="width:100%;height:6px;border-radius:99px;overflow:hidden;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.08);margin-top:2px;">
-              <div style="width:{{ ((r.total / max_total.v) * 100)|round(1) if max_total.v > 0 else 0 }}%;height:6px;background:linear-gradient(90deg,#ff6b9d,#ff4d8d,#c9236a);border-radius:99px;min-width:{% if r.total > 0 %}4px{% else %}0{% endif %};"></div>
+              <div style="width:{{ ((r.total / max_total.v) * 100)|round(1) if max_total.v > 0 else 0 }}%;height:7px;background:linear-gradient(90deg,#ff4d8d,#c9236a);border-radius:99px;min-width:{% if r.total > 0 %}6px{% else %}0{% endif %};box-shadow:0 0 8px rgba(255,77,141,.5);"></div>
             </div>
           </div>
         </div>
@@ -776,6 +791,33 @@
   </div>
 </div>
 
+<!-- ===================== MODAL: QUITAR PAGO POLLA ===================== -->
+<div id="modal-quitar-polla" class="rec-modal-overlay" onclick="cerrarModalQuitarPolla(event)" role="dialog" style="display:none;">
+  <div class="rec-modal-box rec-modal-confirm" onclick="event.stopPropagation()">
+    <div class="rec-modal-header">
+      <div class="rec-modal-title-wrap">
+        <div class="rec-modal-icon" style="background:rgba(244,67,54,.15);color:#f44336;">
+          <span class="material-symbols-outlined">sports_soccer</span>
+        </div>
+        <div><h3>Quitar pago de polla</h3><p>El miembro volverá a estado pendiente</p></div>
+      </div>
+      <button class="rec-modal-close" onclick="cerrarModalQuitarPolla()"><span class="material-symbols-outlined">close</span></button>
+    </div>
+    <div class="rec-modal-body">
+      <div style="text-align:center;padding:8px 0;">
+        <div id="quitar-polla-display" style="font-size:15px;font-weight:700;margin-bottom:12px;"></div>
+        <p style="color:var(--text2);font-size:13px;">Se eliminará el registro de pago de esta fase. El miembro quedará como <strong>no inscrito</strong> y podrá volver a pagar.</p>
+      </div>
+    </div>
+    <div class="rec-modal-footer">
+      <button class="rec-btn-cancel" onclick="cerrarModalQuitarPolla()">Cancelar</button>
+      <button class="rec-btn-danger" id="btn-confirmar-quitar-polla">
+        <span class="material-symbols-outlined">delete</span> Quitar pago
+      </button>
+    </div>
+  </div>
+</div>
+
 <!-- ===================== MODAL: CONFIRMAR ELIMINAR ===================== -->
 <div id="modal-confirmar" class="rec-modal-overlay" onclick="cancelarEliminar(event)" role="dialog" style="display:none;">
   <div class="rec-modal-box rec-modal-confirm" onclick="event.stopPropagation()">
@@ -1209,6 +1251,23 @@ body.dark-mode .rec-bar-milestone { background:rgba(255,255,255,.15); }
 /* Dark mode polla */
 body.dark-mode .rec-polla-fase-bloque { background:var(--bg2);border-color:var(--border); }
 body.dark-mode .rec-polla-chip.pagado { background:rgba(76,175,80,.12);border-color:rgba(76,175,80,.35);color:#81c784; }
+
+/* Admin chip clickeable */
+.admin-chip-clickable { position:relative; }
+.admin-chip-clickable.pagado { cursor:pointer; }
+.admin-chip-clickable.pagado:hover {
+  background:rgba(244,67,54,.12) !important;
+  border-color:rgba(244,67,54,.4) !important;
+  color:#e53935 !important;
+}
+.admin-chip-clickable.pagado:hover .rec-chip-estado { display:none; }
+.rec-chip-del {
+  display:none;
+  font-size:11px;
+  font-weight:900;
+  color:#e53935;
+}
+.admin-chip-clickable.pagado:hover .rec-chip-del { display:inline; }
 body.dark-mode .rec-polla-chip.pendiente { background:rgba(244,67,54,.1);border-color:rgba(244,67,54,.3);color:#ef9a9a; }
 body.dark-mode .rec-polla-pagados { background:rgba(76,175,80,.1);color:#81c784; }
 body.dark-mode .rec-polla-faltan { background:rgba(244,67,54,.1);color:#ef9a9a; }
@@ -1944,7 +2003,7 @@ function guardarMeta() {
 /* ===================== ESCAPE KEY ===================== */
 document.addEventListener('keydown', function(e) {
   if (e.key !== 'Escape') return;
-  ['modal-aporte','modal-familia','modal-evento','modal-polla','modal-comp','modal-confirmar','modal-cajita-detalle','modal-meta','modal-bloquear'].forEach(hide);
+  ['modal-aporte','modal-familia','modal-evento','modal-polla','modal-comp','modal-confirmar','modal-cajita-detalle','modal-meta','modal-bloquear','modal-quitar-polla'].forEach(hide);
 });
 
 /* ===================== HISTORIAL ===================== */
@@ -2358,6 +2417,52 @@ document.addEventListener('DOMContentLoaded', function() {
   cargarHistorial();
 });
 if (document.getElementById('sec-recaudacion')) cargarHistorial();
+
+/* ===================== QUITAR PAGO POLLA (ADMIN) ===================== */
+let _quitarPollaData = null;
+
+function confirmarQuitarPolla(userId, nombre, fase) {
+  _quitarPollaData = { userId, fase };
+  const faseNombre = {1:'Fase 1 — Grupos', 2:'Fase 2 — Eliminatorias', 3:'Fase 3 — Semifinal y Final'};
+  document.getElementById('quitar-polla-display').innerHTML =
+    '<span style="font-size:20px;">⚽</span><br><strong>' + nombre + '</strong> · ' + (faseNombre[fase]||'Fase '+fase);
+  document.getElementById('btn-confirmar-quitar-polla').onclick = ejecutarQuitarPolla;
+  show('modal-quitar-polla');
+}
+
+async function ejecutarQuitarPolla() {
+  if (!_quitarPollaData) return;
+  const btn = document.getElementById('btn-confirmar-quitar-polla');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="material-symbols-outlined">hourglass_empty</span> Quitando...';
+  try {
+    const r = await fetch('/api/admin/quitar_polla', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ usuario_id: _quitarPollaData.userId, fase: _quitarPollaData.fase })
+    });
+    const data = await r.json();
+    if (data.ok) {
+      cerrarModalQuitarPolla();
+      setTimeout(() => location.reload(), 400);
+    } else {
+      alert(data.error || 'Error al quitar pago');
+      btn.disabled = false;
+      btn.innerHTML = '<span class="material-symbols-outlined">delete</span> Quitar pago';
+    }
+  } catch(e) {
+    alert('Error de conexión');
+    btn.disabled = false;
+    btn.innerHTML = '<span class="material-symbols-outlined">delete</span> Quitar pago';
+  }
+}
+
+function cerrarModalQuitarPolla(e) {
+  if (!e || e.target === document.getElementById('modal-quitar-polla')) {
+    hide('modal-quitar-polla');
+    _quitarPollaData = null;
+  }
+}
 
 /* ===================== ADMIN CONTROL DROPDOWN ===================== */
 function toggleAdminMenu() {
