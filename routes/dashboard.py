@@ -180,9 +180,10 @@ def get_ctx(uid, con, extra=None):
     META = float(cfg_meta["valor"]) if cfg_meta else 500000
     pct  = min(round((total_global / META) * 100, 1), 100) if META > 0 else 0
     ranking = [dict(r, porcentaje=min(round((r["total"] / META) * 100, 1), 100)) for r in con.execute("""
-        SELECT u.nombre, COALESCE(SUM(a.monto),0) AS total
+        SELECT u.nombre, u.rol, u.foto AS foto_perfil, COALESCE(SUM(a.monto),0) AS total
         FROM usuarios u LEFT JOIN aportes a ON a.usuario_id=u.id
-        GROUP BY u.id, u.nombre ORDER BY total DESC
+        WHERE u.rol IN ('miembro', 'admin')
+        GROUP BY u.id, u.nombre, u.rol, u.foto ORDER BY total DESC
     """).fetchall()]
 
     todos_aportes = [dict(a) for a in con.execute("""
@@ -319,12 +320,17 @@ def get_ctx(uid, con, extra=None):
     usuario_puntos = con.execute("SELECT COALESCE(SUM(puntos),0) FROM pronosticos WHERE usuario_id=%s", (uid,)).fetchone()[0]
 
     miembros = [dict(m) for m in con.execute(
-        "SELECT id, nombre, usuario, foto, rol, COALESCE(verified, FALSE) AS verified FROM usuarios ORDER BY nombre ASC"
+        "SELECT id, nombre, usuario, foto, foto AS foto_perfil, rol, COALESCE(verified, FALSE) AS verified FROM usuarios ORDER BY nombre ASC"
     ).fetchall()]
 
     polla_pagos_usuario = {p["fase"]: dict(p) for p in con.execute(
         "SELECT fase, monto, estado, fecha FROM polla_pagos WHERE usuario_id=%s", (uid,)
     ).fetchall()}
+
+    # Lista completa de pagos de polla para mostrar en el template (quién pagó qué fase)
+    polla_pagos = [dict(p) for p in con.execute(
+        "SELECT usuario_id, fase, estado, fecha FROM polla_pagos"
+    ).fetchall()]
 
     eventos_recaudacion = [dict(e) for e in con.execute("""
         SELECT er.id, er.nombre_evento, er.monto, er.estado, er.fecha, u.nombre AS usuario
@@ -369,6 +375,7 @@ def get_ctx(uid, con, extra=None):
         mis_aportes=mis_aportes,
         miembros=miembros,
         polla_pagos_usuario=polla_pagos_usuario,
+        polla_pagos=polla_pagos,
         eventos_recaudacion=eventos_recaudacion,
         noticias_recientes=noticias_recientes,
         actividades_usuario=[],
