@@ -335,7 +335,7 @@
               </button>
               {% endif %}
               {% if es_admin %}
-              <button class="rec-rank-block-btn" style="color:#7c6af7;margin-left:2px;" onclick="abrirModalEstadoParticipante({{ r.id }},'{{ r.nombre|replace("'","\'") }}','{{ r.polla_estado if r.polla_estado is defined else "activo" }}')" title="Gestionar participación polla">
+              <button class="rec-rank-block-btn" style="color:var(--accent);margin-left:2px;" onclick="abrirModalEstadoParticipante({{ r.id }},'{{ r.nombre|replace("'","\'") }}','{{ r.polla_estado if r.polla_estado is defined else "activo" }}')" title="Gestionar participación polla">
                 <span class="material-symbols-outlined">manage_accounts</span>
               </button>
               {% endif %}
@@ -812,7 +812,7 @@
   <div class="rec-modal-box" onclick="event.stopPropagation()" style="max-width:600px;width:100%;">
     <div class="rec-modal-header">
       <div class="rec-modal-title-wrap">
-        <div class="rec-modal-icon" style="background:rgba(var(--accent-rgb,124,106,247),.15);color:var(--accent,#7c6af7);">
+        <div class="rec-modal-icon" style="background:var(--accent-soft);color:var(--accent);">
           <span class="material-symbols-outlined">admin_panel_settings</span>
         </div>
         <div>
@@ -829,7 +829,7 @@
           style="flex:1;background:var(--bg2,#111118);border:1px solid var(--border);color:var(--text);
                  border-radius:8px;padding:7px 12px;font-size:13px;outline:none;">
         <span id="bloqueo-count-badge" style="font-size:11px;padding:3px 9px;border-radius:12px;
-              background:rgba(124,106,247,.1);border:1px solid rgba(124,106,247,.25);color:var(--accent);
+              background:rgba(255,77,141,.1);border:1px solid rgba(255,77,141,.25);color:var(--accent);
               white-space:nowrap;"></span>
       </div>
       <div id="bloqueo-list-inner">
@@ -1348,16 +1348,16 @@ body.dark-mode .rec-ranking-foto { border-color:var(--border); }
 .rec-form-group { margin-bottom:14px; }
 .rec-form-label { display:flex;align-items:center;gap:6px;font-size:11.5px;font-weight:700;margin-bottom:7px;color:#444;text-transform:uppercase;letter-spacing:.04em; }
 .rec-form-label .material-symbols-outlined { font-size:15px;color:#666; }
-.rec-input { width:100%;border:1.5px solid #d0d0d0;border-radius:10px;padding:11px 14px;font-size:14px;background:#ffffff;color:#111111;transition:border-color .15s,box-shadow .15s;box-sizing:border-box;font-family:inherit; }
+.rec-input { width:100%;border:1.5px solid var(--border);border-radius:10px;padding:11px 14px;font-size:14px;background:var(--card);color:var(--text);transition:border-color .15s,box-shadow .15s;box-sizing:border-box;font-family:inherit; }
 .rec-input::placeholder { color:#aaa; }
 .rec-input:hover { border-color:#aaa; }
-.rec-input:focus { outline:none;border-color:var(--accent,#0095f6);box-shadow:0 0 0 3px rgba(0,149,246,.15);background:#fff; }
+.rec-input:focus { outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft);background:var(--card); }
 .rec-textarea { resize:vertical;min-height:60px; }
 .rec-input-wrap { position:relative; }
 .rec-input-prefix { position:absolute;left:12px;top:50%;transform:translateY(-50%);color:#555;font-weight:700;font-size:15px; }
 .rec-input-wrap .rec-input { padding-left:26px; }
 .rec-upload-area { display:flex;flex-direction:column;align-items:center;justify-content:center;border:2px dashed var(--border);border-radius:12px;padding:20px 16px;cursor:pointer;text-align:center;min-height:80px;transition:border-color .15s; }
-.rec-upload-area:hover { border-color:var(--accent,#0095f6); }
+.rec-upload-area:hover { border-color:var(--accent); }
 .rec-upload-icon { font-size:32px;color:var(--text2);display:block;margin-bottom:6px; }
 .rec-upload-text { font-size:13px;color:var(--text2); }
 .rec-upload-hint { font-size:11px;color:var(--text3,#999);display:block;margin-top:4px; }
@@ -1422,7 +1422,7 @@ body.dark-mode .btn-aporte-principal {
 /* ---- TIPO APORTE GRID ---- */
 .tipo-aporte-grid { display:flex;flex-direction:column;gap:10px; }
 .tipo-aporte-card { display:flex;align-items:center;gap:14px;padding:14px 16px;border:1px solid var(--border);border-radius:14px;background:var(--bg2);cursor:pointer;text-align:left;transition:border-color .15s,box-shadow .15s; }
-.tipo-aporte-card:hover { border-color:var(--accent,#0095f6);box-shadow:0 4px 16px rgba(0,149,246,.12); }
+.tipo-aporte-card:hover { border-color:var(--accent);box-shadow:0 4px 16px rgba(0,149,246,.12); }
 .tipo-icon { width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0; }
 .tipo-info { flex:1;text-align:left; }
 .tipo-info strong {
@@ -1446,14 +1446,14 @@ body.dark-mode .tipo-info strong {
 /* ---- CAJITAS ---- */
 .cajitas-lista { display:flex;flex-direction:column;gap:8px; }
 .cajita-item { display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border:1px solid var(--border);border-radius:12px;background:var(--bg2);cursor:pointer;transition:border-color .15s; }
-.cajita-item:hover { border-color:var(--accent,#0095f6); }
+.cajita-item:hover { border-color:var(--accent); }
 .cajita-item-info strong { display:block;font-size:14px; }
 .cajita-item-info span { font-size:12px;color:var(--text2); }
 .cajita-total { font-weight:700;color:#4caf50;font-size:13px; }
 .miembros-lista { display:flex;flex-direction:column;gap:6px;max-height:150px;overflow-y:auto;border:1px solid var(--border);border-radius:10px;padding:8px; }
 .miembro-check { display:flex;align-items:center;gap:8px;cursor:pointer;padding:4px;border-radius:8px; }
 .miembro-check:hover { background:var(--bg2); }
-.miembro-check input { accent-color:var(--accent,#0095f6); }
+.miembro-check input { accent-color:var(--accent); }
 .miembro-avatar { width:26px;height:26px;border-radius:50%;background:var(--accent-gradient, linear-gradient(135deg,#ff6b9d,#ff4d8d,#c9236a));color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0; }
 
 /* ---- FASES POLLA ---- */
@@ -1477,7 +1477,7 @@ body.dark-mode .tipo-info strong {
 .fase-btn-pagada{width:100%;padding:10px;border:2px solid #4caf50;border-radius:10px;background:rgba(76,175,80,.1);color:#4caf50;font-weight:700;font-size:14px;cursor:default;display:flex;align-items:center;justify-content:center;gap:6px}
 
 /* ===== DARK MODE ===== */
-body.dark-mode .fase-btn{color:#000}
+body.dark-mode .fase-btn{color:var(--text)}
 
 body.dark-mode .fase-btn-pagada{background:rgba(0,166,80,.08);border-color:rgba(0,166,80,.4);color:#4caf50}
 
@@ -2122,11 +2122,11 @@ function renderHistorial(rows) {
       let acciones = '';
       // Botón editar rápido (financiero y admin)
       if (r.tipo === 'evento') {
-        acciones += `<button class="btn-accion" style="color:#7c6af7;" onclick="abrirEditarEvento(${r.id},${r.monto||0},'${r.estado||''}')" title="Editar">
+        acciones += `<button class="btn-accion" style="color:var(--accent);" onclick="abrirEditarEvento(${r.id},${r.monto||0},'${r.estado||''}')" title="Editar">
           <span class="material-symbols-outlined">edit</span>
         </button>`;
       } else if (r.tipo === 'polla') {
-        acciones += `<button class="btn-accion" style="color:#7c6af7;" onclick="abrirEditarPolla(${r.id},'${r.estado||''}')" title="Editar estado">
+        acciones += `<button class="btn-accion" style="color:var(--accent);" onclick="abrirEditarPolla(${r.id},'${r.estado||''}')" title="Editar estado">
           <span class="material-symbols-outlined">edit</span>
         </button>`;
       }
@@ -2683,11 +2683,11 @@ function filtrarRanking(modo) {
 .rec-rank-filter-wrap { display:flex;gap:4px; }
 .rec-rank-filter-btn {
   padding:4px 11px;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;
-  background:var(--surface2);border:1px solid var(--border);color:var(--text2);
+  background:var(--card2);border:1px solid var(--border);color:var(--text2);
   transition:all .15s;
 }
 .rec-rank-filter-btn:hover { border-color:var(--accent);color:var(--text); }
-.rec-rank-filter-btn.active { background:rgba(124,106,247,.15);border-color:rgba(124,106,247,.4);color:var(--accent); }
+.rec-rank-filter-btn.active { background:var(--accent-soft);border-color:var(--accent-border);color:var(--accent); }
 
 /* ── Badge financiero ────────────────────────────────────────────────── */
 
@@ -2695,18 +2695,18 @@ function filtrarRanking(modo) {
 .bloqueo-row {
   display:flex;align-items:center;justify-content:space-between;gap:10px;
   padding:10px 14px;border-radius:10px;margin-bottom:6px;
-  background:var(--surface,#1a1a22);border:1px solid var(--border);
+  background:var(--card);border:1px solid var(--border);
   transition:border-color .15s, background .15s;flex-wrap:wrap;
 }
-.bloqueo-row:hover { border-color:rgba(124,106,247,.3); }
+.bloqueo-row:hover { border-color:rgba(255,77,141,.3); }
 .bloqueo-row--bloqueado { background:rgba(239,68,68,.04);border-color:rgba(239,68,68,.18); }
-.bloqueo-row--destacado { border-color:var(--accent,#7c6af7);box-shadow:0 0 0 2px rgba(124,106,247,.15); }
+.bloqueo-row--destacado { border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft); }
 .bloqueo-row-info { display:flex;align-items:center;gap:10px;min-width:160px; }
 .bloqueo-avatar {
   width:36px;height:36px;border-radius:50%;object-fit:cover;flex-shrink:0;
 }
 .bloqueo-avatar-letra {
-  background:linear-gradient(135deg,var(--accent,#7c6af7),#a855f7);
+  background:linear-gradient(135deg,var(--accent),#a855f7);
   display:flex;align-items:center;justify-content:center;
   font-size:14px;font-weight:700;color:#fff;
 }
@@ -2715,7 +2715,7 @@ function filtrarRanking(modo) {
 .bloqueo-rol-badge {
   padding:1px 6px;border-radius:8px;font-size:10px;font-weight:700;
 }
-.bloqueo-rol-admin   { background:rgba(124,106,247,.15);color:var(--accent,#7c6af7); }
+.bloqueo-rol-admin   { background:var(--accent-soft);color:var(--accent); }
 .bloqueo-rol-miembro { background:rgba(34,197,94,.1);color:#22c55e; }
 .bloqueo-aportado { font-size:12px;font-weight:700;color:var(--text2);margin-right:8px; }
 .bloqueo-row-right { display:flex;align-items:center;gap:10px;flex-wrap:wrap; }
@@ -2746,7 +2746,7 @@ function filtrarRanking(modo) {
   text-align:left;padding:9px 10px;font-size:10px;font-weight:700;
   color:var(--text2);text-transform:uppercase;letter-spacing:.4px;
   border-bottom:1px solid var(--border);position:sticky;top:0;
-  background:var(--surface,#1a1a22);z-index:1;
+  background:var(--card);z-index:1;
 }
 .inv-tbl-full td { padding:10px;border-bottom:1px solid var(--border);vertical-align:middle; }
 .inv-tbl-row:hover { background:rgba(255,255,255,.025); }
@@ -2754,13 +2754,13 @@ function filtrarRanking(modo) {
   background:none;border:none;cursor:pointer;color:var(--accent);padding:2px;
   border-radius:4px;display:inline-flex;align-items:center;
 }
-.inv-btn-asignar:hover { background:rgba(124,106,247,.12); }
+.inv-btn-asignar:hover { background:rgba(255,77,141,.12); }
 .inv-btn-detalle {
-  background:rgba(124,106,247,.08);border:1px solid rgba(124,106,247,.2);
+  background:rgba(255,77,141,.08);border:1px solid rgba(255,77,141,.2);
   color:var(--accent);border-radius:6px;padding:4px 7px;cursor:pointer;
   display:inline-flex;align-items:center;
 }
-.inv-btn-detalle:hover { background:rgba(124,106,247,.18); }
+.inv-btn-detalle:hover { background:rgba(255,77,141,.18); }
 
 /* ── Tabs del modal invitados ───────────────────────────────────────── */
 .inv-tab {
@@ -2769,7 +2769,7 @@ function filtrarRanking(modo) {
   margin-bottom:-1px;transition:all .15s;display:inline-flex;align-items:center;gap:5px;
 }
 .inv-tab:hover { color:var(--text); }
-.inv-tab.active { color:var(--accent,#7c6af7);border-bottom-color:var(--accent,#7c6af7); }
+.inv-tab.active { color:var(--accent);border-bottom-color:var(--accent); }
 
 /* ── Spin animation ─────────────────────────────────────────────────── */
 @keyframes spin { to { transform: rotate(360deg); } }
@@ -2796,25 +2796,25 @@ function filtrarRanking(modo) {
   display:flex;align-items:center;justify-content:center;padding:16px;
 }
 .modal-fin-box {
-  background:var(--surface,#1a1a22);border:1px solid var(--border,#2e2e3e);
+  background:var(--card);border:1px solid var(--border);
   border-radius:16px;width:100%;max-width:640px;max-height:90vh;
   display:flex;flex-direction:column;overflow:hidden;
   box-shadow:0 24px 64px rgba(0,0,0,.5);
 }
 .modal-fin-header {
   display:flex;align-items:center;justify-content:space-between;
-  padding:18px 20px;border-bottom:1px solid var(--border,#2e2e3e);flex-shrink:0;
+  padding:18px 20px;border-bottom:1px solid var(--border);flex-shrink:0;
 }
 .modal-fin-title { font-size:15px;font-weight:700;display:flex;align-items:center;gap:8px; }
 .modal-fin-close {
-  background:none;border:none;color:var(--text2,#9090aa);cursor:pointer;
+  background:none;border:none;color:var(--text2);cursor:pointer;
   padding:4px;border-radius:6px;display:flex;align-items:center;
 }
-.modal-fin-close:hover { color:var(--text,#f0f0f5);background:var(--surface2,#22222e); }
+.modal-fin-close:hover { color:var(--text);background:var(--card2); }
 .modal-fin-body { overflow-y:auto;padding:20px;flex:1; }
 .modal-fin-footer {
   display:flex;gap:10px;justify-content:flex-end;
-  padding:14px 20px;border-top:1px solid var(--border,#2e2e3e);flex-shrink:0;
+  padding:14px 20px;border-top:1px solid var(--border);flex-shrink:0;
 }
 
 /* ── Tabla de invitados ─────────────────────────────────────────────── */
@@ -2833,7 +2833,7 @@ function filtrarRanking(modo) {
 .part-table td { padding:10px;border-bottom:1px solid var(--border);vertical-align:middle; }
 .part-table tbody tr:hover { background:rgba(255,255,255,.03); }
 .part-estado-select {
-  background:var(--surface2,#22222e);border:1px solid var(--border);
+  background:var(--card2);border:1px solid var(--border);
   color:var(--text);border-radius:6px;padding:4px 8px;font-size:12px;
   cursor:pointer;outline:none;
 }
@@ -2849,32 +2849,32 @@ function filtrarRanking(modo) {
 .edit-field { display:flex;flex-direction:column;gap:5px; }
 .edit-field label { font-size:12px;font-weight:600;color:var(--text2); }
 .edit-field input, .edit-field select, .edit-field textarea {
-  background:var(--surface2,#22222e);border:1px solid var(--border);
+  background:var(--card2);border:1px solid var(--border);
   color:var(--text);border-radius:8px;padding:8px 12px;font-size:13px;
   width:100%;outline:none;
 }
-.edit-field input:focus, .edit-field select:focus { border-color:var(--accent,#7c6af7); }
+.edit-field input:focus, .edit-field select:focus { border-color:var(--accent); }
 
 /* ── Stats cards en modal ───────────────────────────────────────────── */
 .stats-grid-modal { display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px; }
-.stat-m { background:var(--surface2,#22222e);border:1px solid var(--border);border-radius:10px;padding:14px;text-align:center; }
-.stat-m-val { font-size:22px;font-weight:700;color:var(--accent,#7c6af7); }
+.stat-m { background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:14px;text-align:center; }
+.stat-m-val { font-size:22px;font-weight:700;color:var(--accent); }
 .stat-m-lbl { font-size:11px;color:var(--text2);margin-top:3px; }
 
 /* ── Botones genéricos ──────────────────────────────────────────────── */
 .btn-fin-primary {
   display:inline-flex;align-items:center;gap:6px;
   padding:8px 18px;border-radius:8px;font-size:13px;font-weight:600;
-  background:var(--accent,#7c6af7);color:#fff;border:none;cursor:pointer;
+  background:var(--accent);color:#fff;border:none;cursor:pointer;
 }
 .btn-fin-primary:hover { opacity:.88; }
 .btn-fin-cancel {
   display:inline-flex;align-items:center;gap:6px;
   padding:8px 18px;border-radius:8px;font-size:13px;font-weight:600;
-  background:var(--surface2,#22222e);color:var(--text2);
+  background:var(--card2);color:var(--text2);
   border:1px solid var(--border);cursor:pointer;
 }
-.btn-fin-cancel:hover { border-color:var(--accent,#7c6af7);color:var(--text); }
+.btn-fin-cancel:hover { border-color:var(--accent);color:var(--text); }
 .fin-loading { text-align:center;padding:32px;color:var(--text2);font-size:13px; }
 </style>
 
@@ -2885,15 +2885,15 @@ function filtrarRanking(modo) {
   <div class="modal-fin-box" onclick="event.stopPropagation()" style="max-width:760px;">
     <div class="modal-fin-header">
       <div class="modal-fin-title">
-        <span class="material-symbols-outlined" style="color:var(--accent,#7c6af7)">group</span>
+        <span class="material-symbols-outlined" style="color:var(--accent)">group</span>
         Gestión de Invitados
         <span id="inv-count-badge" style="margin-left:6px;font-size:11px;padding:2px 9px;border-radius:12px;
-              background:rgba(124,106,247,.1);border:1px solid rgba(124,106,247,.25);
+              background:rgba(255,77,141,.1);border:1px solid rgba(255,77,141,.25);
               color:var(--accent);font-weight:700;"></span>
       </div>
       <div style="display:flex;align-items:center;gap:8px;">
         <input type="text" id="inv-search" placeholder="Buscar…" oninput="filtrarTablaInv()"
-          style="background:var(--surface2,#22222e);border:1px solid var(--border);color:var(--text);
+          style="background:var(--card2);border:1px solid var(--border);color:var(--text);
                  border-radius:8px;padding:6px 11px;font-size:12px;outline:none;width:160px;">
         <button class="modal-fin-close" onclick="hide('modal-invitados')">
           <span class="material-symbols-outlined">close</span>
@@ -2947,7 +2947,7 @@ function filtrarRanking(modo) {
   <div class="modal-fin-box" onclick="event.stopPropagation()" style="max-width:420px;">
     <div class="modal-fin-header">
       <div class="modal-fin-title">
-        <span class="material-symbols-outlined" style="color:#7c6af7">manage_accounts</span>
+        <span class="material-symbols-outlined" style="color:var(--accent)">manage_accounts</span>
         Estado en Polla: <span id="ep-nombre" style="margin-left:4px;color:var(--text2)"></span>
       </div>
       <button class="modal-fin-close" onclick="hide('modal-estado-part')">
@@ -3029,7 +3029,7 @@ function filtrarRanking(modo) {
   <div class="modal-fin-box" onclick="event.stopPropagation()" style="max-width:400px;">
     <div class="modal-fin-header">
       <div class="modal-fin-title">
-        <span class="material-symbols-outlined" style="color:#7c6af7">edit</span>
+        <span class="material-symbols-outlined" style="color:var(--accent)">edit</span>
         Editar Evento
       </div>
       <button class="modal-fin-close" onclick="hide('modal-editar-evento')">
@@ -3073,7 +3073,7 @@ function filtrarRanking(modo) {
   <div class="modal-fin-box" onclick="event.stopPropagation()" style="max-width:380px;">
     <div class="modal-fin-header">
       <div class="modal-fin-title">
-        <span class="material-symbols-outlined" style="color:#7c6af7">edit</span>
+        <span class="material-symbols-outlined" style="color:var(--accent)">edit</span>
         Editar Estado Pago Polla
       </div>
       <button class="modal-fin-close" onclick="hide('modal-editar-polla')">
@@ -3112,8 +3112,7 @@ function filtrarRanking(modo) {
 ═══════════════════════════════════════════════════════════════════ -->
 <script>
 // ── Helpers ─────────────────────────────────────────────────────────────────
-function show(id) { document.getElementById(id).style.display='flex'; }
-function hideModal(id) { document.getElementById(id).style.display='none'; }
+// show() y hide() reutilizados desde UTILS (líneas anteriores del script principal)
 
 function fmtCOP(n) {
   return '$' + Math.round(n).toLocaleString('es-CO');
@@ -3170,7 +3169,7 @@ function renderInvTab(tab) {
       <table class="inv-tbl-full">
         <thead><tr>
           <th>Invitado</th>
-          <th>Patrocinador</th>
+          <th>Miembro responsable</th>
           <th>Mundial</th>
           <th>Aportes</th>
           <th>Polla pagada</th>
@@ -3184,7 +3183,7 @@ function renderInvTab(tab) {
             <td>
               <div style="display:flex;align-items:center;gap:8px;">
                 ${u.foto ? `<img src="${u.foto}" style="width:28px;height:28px;border-radius:50%;object-fit:cover;flex-shrink:0;" alt="">` :
-                  `<div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--accent,#7c6af7),#a855f7);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;">${(u.nombre||'?')[0].toUpperCase()}</div>`}
+                  `<div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--accent),#a855f7);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;">${(u.nombre||'?')[0].toUpperCase()}</div>`}
                 <div>
                   <div style="font-weight:600;font-size:13px;">${u.nombre}</div>
                   <div style="font-size:11px;color:var(--text2);">@${u.usuario||'—'}</div>
@@ -3194,9 +3193,11 @@ function renderInvTab(tab) {
             <td>
               <div style="display:flex;align-items:center;gap:6px;">
                 <span style="font-size:12px;color:${u.patrocinador_nombre ? 'var(--text)' : 'var(--text3)'};">
-                  ${u.patrocinador_nombre ? `🤝 ${u.patrocinador_nombre}` : '<span style="color:var(--text3);font-size:11px;">Sin asignar</span>'}
+                  ${u.patrocinador_nombre
+                    ? `🤝 ${u.patrocinador_nombre}`
+                    : '<span style="color:var(--text3);font-size:11px;">Sin asignar</span>'}
                 </span>
-                <button class="inv-btn-asignar" onclick="abrirAsignarPatrocinador(${u.id},'${(u.nombre||'').replace(/'/g,"\\'")}',${u.invitado_de||0})" title="Cambiar patrocinador">
+                <button class="inv-btn-asignar" onclick="abrirAsignarResponsable(${u.id},'${(u.nombre||'').replace(/'/g,"\\'")}',${u.invitado_de||0})" title="Asignar miembro responsable">
                   <span class="material-symbols-outlined" style="font-size:14px;">edit</span>
                 </button>
               </div>
@@ -3228,38 +3229,36 @@ function renderInvTab(tab) {
       </table>
       </div>`;
   } else {
-    // Tab resumen financiero — totales y saldos agrupados por patrocinador
-    const porPatrocinador = {};
+    // Tab resumen financiero — totales agrupados por miembro responsable
+    const porMiembro = {};
     lista.forEach(u => {
-      const key = u.patrocinador_nombre || '(Sin patrocinador)';
-      if (!porPatrocinador[key]) porPatrocinador[key] = { total: 0, pagado: 0, pendiente: 0, count: 0 };
-      porPatrocinador[key].total    += (u.total_aportes || 0);
-      porPatrocinador[key].pagado   += (u.total_pagado || 0);
-      porPatrocinador[key].pendiente+= (u.saldo_pendiente || 0);
-      porPatrocinador[key].count++;
+      const key = u.patrocinador_nombre || '(Sin asignar)';
+      if (!porMiembro[key]) porMiembro[key] = { total: 0, pagado: 0, pendiente: 0, count: 0 };
+      porMiembro[key].total     += (u.total_aportes || 0);
+      porMiembro[key].pagado    += (u.total_pagado  || 0);
+      porMiembro[key].pendiente += (u.saldo_pendiente || 0);
+      porMiembro[key].count++;
     });
     const totGlobal    = lista.reduce((s,u) => s + (u.total_aportes||0), 0);
     const pagadoGlobal = lista.reduce((s,u) => s + (u.total_pagado||0), 0);
     const pendGlobal   = lista.reduce((s,u) => s + (u.saldo_pendiente||0), 0);
     body.innerHTML = `
-      <!-- Totales globales -->
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;padding:16px 20px 0;">
         <div class="stat-m"><div class="stat-m-val" style="color:#22c55e;">${fmtCOP(totGlobal)}</div><div class="stat-m-lbl">Total registrado</div></div>
-        <div class="stat-m"><div class="stat-m-val" style="color:var(--accent,#7c6af7);">${fmtCOP(pagadoGlobal)}</div><div class="stat-m-lbl">Total pagado</div></div>
+        <div class="stat-m"><div class="stat-m-val" style="color:var(--accent);">${fmtCOP(pagadoGlobal)}</div><div class="stat-m-lbl">Total pagado</div></div>
         <div class="stat-m"><div class="stat-m-val" style="color:#ef4444;">${fmtCOP(pendGlobal)}</div><div class="stat-m-lbl">Saldo pendiente</div></div>
         <div class="stat-m"><div class="stat-m-val">${lista.length}</div><div class="stat-m-lbl">Invitados</div></div>
       </div>
-      <!-- Por patrocinador -->
       <div style="padding:16px 20px;">
-        <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px;">Por patrocinador (miembro)</div>
-        ${Object.entries(porPatrocinador).map(([pat, d]) => `
-          <div style="background:var(--surface2,#22222e);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:8px;">
+        <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px;">Por miembro responsable</div>
+        ${Object.entries(porMiembro).map(([miembro, d]) => `
+          <div style="background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:8px;">
             <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
-              <div style="font-weight:700;font-size:13px;">🤝 ${pat} <span style="color:var(--text2);font-weight:400;font-size:12px;">(${d.count} invitado${d.count!==1?'s':''})</span></div>
-              <div style="display:flex;gap:16px;font-size:12px;">
+              <div style="font-weight:700;font-size:13px;">🤝 ${miembro} <span style="color:var(--text2);font-weight:400;font-size:12px;">(${d.count} invitado${d.count!==1?'s':''})</span></div>
+              <div style="display:flex;gap:16px;font-size:12px;flex-wrap:wrap;">
                 <span>Registrado: <strong style="color:#22c55e;">${fmtCOP(d.total)}</strong></span>
-                <span>Pagado: <strong style="color:var(--accent,#7c6af7);">${fmtCOP(d.pagado)}</strong></span>
-                ${d.pendiente > 0 ? `<span>Pendiente: <strong style="color:#ef4444;">${fmtCOP(d.pendiente)}</strong></span>` : '<span style="color:#22c55e;">✅ Sin pendiente</span>'}
+                <span>Pagado: <strong style="color:var(--accent);">${fmtCOP(d.pagado)}</strong></span>
+                ${d.pendiente > 0 ? `<span>Pendiente: <strong style="color:#ef4444;">${fmtCOP(d.pendiente)}</strong></span>` : '<span style="color:#22c55e;">✅ Al día</span>'}
               </div>
             </div>
           </div>
@@ -3326,33 +3325,35 @@ async function verDetalleInvitado(uid, nombre) {
   document.body.insertAdjacentHTML('beforeend', html);
 }
 
-// Modal asignar patrocinador
-function abrirAsignarPatrocinador(invId, invNombre, patActual) {
-  const existing = document.getElementById('modal-asignar-pat');
+
+
+// ── Asignar miembro responsable de invitado ──────────────────────────────────
+function abrirAsignarResponsable(invId, invNombre, patActual) {
+  const existing = document.getElementById('modal-asignar-resp');
   if (existing) existing.remove();
   const opts = [{ id: '', nombre: '— Sin asignar —', usuario: '' },
-    ..._invData.miembros]
+    ...(_invData.miembros || [])]
     .map(m => `<option value="${m.id}" ${Number(m.id) === Number(patActual) ? 'selected' : ''}>${m.nombre}${m.usuario ? ' (@'+m.usuario+')' : ''}</option>`)
     .join('');
   document.body.insertAdjacentHTML('beforeend', `
-  <div id="modal-asignar-pat" class="modal-fin-overlay" onclick="if(event.target===this)this.remove()" style="z-index:10001;">
+  <div id="modal-asignar-resp" class="modal-fin-overlay" onclick="if(event.target===this)this.remove()" style="z-index:10001;">
     <div class="modal-fin-box" onclick="event.stopPropagation()" style="max-width:380px;">
       <div class="modal-fin-header">
         <div class="modal-fin-title">
           <span class="material-symbols-outlined" style="color:var(--accent)">link</span>
-          Asignar patrocinador
+          Miembro responsable
         </div>
-        <button class="modal-fin-close" onclick="document.getElementById('modal-asignar-pat').remove()">
+        <button class="modal-fin-close" onclick="document.getElementById('modal-asignar-resp').remove()">
           <span class="material-symbols-outlined">close</span>
         </button>
       </div>
       <div class="modal-fin-body">
-        <p style="font-size:13px;color:var(--text2);margin-bottom:12px;">¿Qué miembro trajo a <strong style="color:var(--text)">${invNombre}</strong>?</p>
-        <select id="pat-select-${invId}" style="width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:9px 12px;font-size:13px;outline:none;">${opts}</select>
+        <p style="font-size:13px;color:var(--text2);margin-bottom:12px;">¿Qué miembro es responsable de <strong style="color:var(--text)">${invNombre}</strong>?</p>
+        <select id="resp-select-${invId}" style="width:100%;background:var(--card2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:9px 12px;font-size:13px;outline:none;">${opts}</select>
       </div>
       <div class="modal-fin-footer">
-        <button class="btn-fin-cancel" onclick="document.getElementById('modal-asignar-pat').remove()">Cancelar</button>
-        <button class="btn-fin-primary" onclick="guardarPatrocinador(${invId})">
+        <button class="btn-fin-cancel" onclick="document.getElementById('modal-asignar-resp').remove()">Cancelar</button>
+        <button class="btn-fin-primary" onclick="guardarResponsable(${invId})">
           <span class="material-symbols-outlined">save</span> Guardar
         </button>
       </div>
@@ -3360,8 +3361,8 @@ function abrirAsignarPatrocinador(invId, invNombre, patActual) {
   </div>`);
 }
 
-async function guardarPatrocinador(invId) {
-  const sel = document.getElementById('pat-select-' + invId);
+async function guardarResponsable(invId) {
+  const sel = document.getElementById('resp-select-' + invId);
   const patId = sel?.value ? parseInt(sel.value) : null;
   try {
     const r = await fetch('/api/fin/asignar_patrocinador', {
@@ -3370,10 +3371,10 @@ async function guardarPatrocinador(invId) {
       body: JSON.stringify({ invitado_id: invId, patrocinador_id: patId })
     });
     const d = await r.json();
-    document.getElementById('modal-asignar-pat')?.remove();
+    document.getElementById('modal-asignar-resp')?.remove();
     if (d.ok) {
-      mostrarToastFin('Patrocinador actualizado ✅', true);
-      abrirModalInvitados(); // Refrescar
+      mostrarToastFin('Responsable actualizado ✅', true);
+      abrirModalInvitados();
     } else {
       mostrarToastFin(d.error || 'Error', false);
     }
@@ -3417,7 +3418,7 @@ async function abrirModalParticipantes() {
           <tr id="part-row-${u.id}">
             <td>
               <div style="display:flex;align-items:center;gap:8px;">
-                ${u.foto ? `<img src="${u.foto}" style="width:26px;height:26px;border-radius:50%;object-fit:cover;" alt="">` : `<div style="width:26px;height:26px;border-radius:50%;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:11px;">${(u.nombre||'?')[0].toUpperCase()}</div>`}
+                ${u.foto ? `<img src="${u.foto}" style="width:26px;height:26px;border-radius:50%;object-fit:cover;" alt="">` : `<div style="width:26px;height:26px;border-radius:50%;background:var(--card2);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:11px;">${(u.nombre||'?')[0].toUpperCase()}</div>`}
                 <div>
                   <div style="font-weight:600;font-size:13px;">${u.nombre}</div>
                   <div style="font-size:11px;color:var(--text2);">@${u.usuario}</div>
@@ -3486,549 +3487,7 @@ async function guardarEstadoParticipante() {
   try {
     const r = await fetch('/admin/polla_estado', { method:'POST', body:fd });
     const d = await r.json();
-    hideModal('modal-estado-part');
-    if (d.ok) {
-      mostrarToastFin(d.msg || 'Estado actualizado', true);
-      setTimeout(() => location.reload(), 800);
-    } else {
-      mostrarToastFin(d.msg || 'Error', false);
-    }
-  } catch(e) {
-    alert('Error de conexión');
-    btn.disabled = false;
-    btn.innerHTML = '<span class="material-symbols-outlined">person_off</span> Bloquear acceso';
-  }
-}
-
-function cerrarModalBloquear(e) {
-  if (!e || e.target === document.getElementById('modal-bloquear')) {
-    hide('modal-bloquear');
-    _bloquearUserId = null;
-  }
-}
-
-// ── Filtro de ranking por estado polla ───────────────────────────────────────
-function filtrarRanking(modo) {
-  document.querySelectorAll('.rec-rank-filter-btn').forEach(b => b.classList.remove('active'));
-  const btn = document.getElementById('rkf-' + modo);
-  if (btn) btn.classList.add('active');
-  document.querySelectorAll('.rec-ranking-item').forEach(item => {
-    const estado = (item.dataset.pollaEstado || 'activo').toLowerCase();
-    let visible = true;
-    if (modo === 'activos')   visible = (estado === 'activo');
-    if (modo === 'inactivos') visible = (estado !== 'activo');
-    item.style.display = visible ? '' : 'none';
-  });
-}
-</script>
-
-<!-- ═══════════════════════════════════════════════════════════════════
-     NUEVOS ESTILOS: Financiero badge, estado polla, nuevos modales
-═══════════════════════════════════════════════════════════════════ -->
-<style>
-/* ── Filtro ranking ─────────────────────────────────────────────────── */
-.rec-rank-filter-wrap { display:flex;gap:4px; }
-.rec-rank-filter-btn {
-  padding:4px 11px;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;
-  background:var(--surface2);border:1px solid var(--border);color:var(--text2);
-  transition:all .15s;
-}
-.rec-rank-filter-btn:hover { border-color:var(--accent);color:var(--text); }
-.rec-rank-filter-btn.active { background:rgba(124,106,247,.15);border-color:rgba(124,106,247,.4);color:var(--accent); }
-
-/* ── Badge financiero ────────────────────────────────────────────────── */
-.badge-financiero {
-  display:inline-flex;align-items:center;gap:4px;padding:3px 10px;
-  border-radius:20px;font-size:11px;font-weight:700;
-  background:linear-gradient(135deg,rgba(250,173,20,.18),rgba(250,130,20,.12));
-  border:1px solid rgba(250,173,20,.45);color:#faad14;
-  margin-left:10px;vertical-align:middle;
-}
-/* ── Estado polla badge en ranking ──────────────────────────────────── */
-.rec-polla-estado-badge {
-  display:inline-flex;align-items:center;gap:3px;
-  font-size:10px;font-weight:700;padding:2px 7px;border-radius:12px;
-}
-.badge-estado-bloqueado  { background:rgba(239,68,68,.15);color:#ef4444;border:1px solid rgba(239,68,68,.3); }
-.badge-estado-excluido   { background:rgba(239,68,68,.1);color:#ef4444;border:1px solid rgba(239,68,68,.2); }
-.badge-estado-inactivo   { background:rgba(156,163,175,.12);color:#9ca3af;border:1px solid rgba(156,163,175,.25); }
-.badge-estado-desactivado{ background:rgba(156,163,175,.1);color:#9ca3af;border:1px solid rgba(156,163,175,.2); }
-
-/* ── Modal genérico compartido ──────────────────────────────────────── */
-.modal-fin-overlay {
-  position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:9998;
-  display:flex;align-items:center;justify-content:center;padding:16px;
-}
-.modal-fin-box {
-  background:var(--surface,#1a1a22);border:1px solid var(--border,#2e2e3e);
-  border-radius:16px;width:100%;max-width:640px;max-height:90vh;
-  display:flex;flex-direction:column;overflow:hidden;
-  box-shadow:0 24px 64px rgba(0,0,0,.5);
-}
-.modal-fin-header {
-  display:flex;align-items:center;justify-content:space-between;
-  padding:18px 20px;border-bottom:1px solid var(--border,#2e2e3e);flex-shrink:0;
-}
-.modal-fin-title { font-size:15px;font-weight:700;display:flex;align-items:center;gap:8px; }
-.modal-fin-close {
-  background:none;border:none;color:var(--text2,#9090aa);cursor:pointer;
-  padding:4px;border-radius:6px;display:flex;align-items:center;
-}
-.modal-fin-close:hover { color:var(--text,#f0f0f5);background:var(--surface2,#22222e); }
-.modal-fin-body { overflow-y:auto;padding:20px;flex:1; }
-.modal-fin-footer {
-  display:flex;gap:10px;justify-content:flex-end;
-  padding:14px 20px;border-top:1px solid var(--border,#2e2e3e);flex-shrink:0;
-}
-
-/* ── Tabla de invitados ─────────────────────────────────────────────── */
-.inv-table { width:100%;border-collapse:collapse;font-size:13px; }
-.inv-table th { text-align:left;padding:8px 10px;font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;border-bottom:1px solid var(--border); }
-.inv-table td { padding:10px;border-bottom:1px solid var(--border);vertical-align:middle; }
-.inv-table tbody tr:hover { background:rgba(255,255,255,.03); }
-.inv-tag-pagado    { background:rgba(34,197,94,.12);color:#22c55e;border:1px solid rgba(34,197,94,.25);padding:2px 7px;border-radius:10px;font-size:10px;font-weight:700; }
-.inv-tag-pendiente { background:rgba(234,179,8,.12);color:#eab308;border:1px solid rgba(234,179,8,.25);padding:2px 7px;border-radius:10px;font-size:10px;font-weight:700; }
-.inv-tag-rechazado { background:rgba(239,68,68,.12);color:#ef4444;border:1px solid rgba(239,68,68,.25);padding:2px 7px;border-radius:10px;font-size:10px;font-weight:700; }
-.inv-tag-sin       { background:rgba(100,100,100,.1);color:#777;border:1px solid rgba(100,100,100,.2);padding:2px 7px;border-radius:10px;font-size:10px;font-weight:700; }
-
-/* ── Tabla de participantes polla ───────────────────────────────────── */
-.part-table { width:100%;border-collapse:collapse;font-size:13px; }
-.part-table th { text-align:left;padding:8px 10px;font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;border-bottom:1px solid var(--border); }
-.part-table td { padding:10px;border-bottom:1px solid var(--border);vertical-align:middle; }
-.part-table tbody tr:hover { background:rgba(255,255,255,.03); }
-.part-estado-select {
-  background:var(--surface2,#22222e);border:1px solid var(--border);
-  color:var(--text);border-radius:6px;padding:4px 8px;font-size:12px;
-  cursor:pointer;outline:none;
-}
-
-/* ── Tabla auditoría ────────────────────────────────────────────────── */
-.audit-table { width:100%;border-collapse:collapse;font-size:12px; }
-.audit-table th { text-align:left;padding:7px 10px;font-size:10px;font-weight:700;color:var(--text2);text-transform:uppercase;border-bottom:1px solid var(--border); }
-.audit-table td { padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:middle;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
-.audit-table tbody tr:hover { background:rgba(255,255,255,.03); }
-
-/* ── Mini edit form ─────────────────────────────────────────────────── */
-.edit-inline-wrap { display:flex;flex-direction:column;gap:12px; }
-.edit-field { display:flex;flex-direction:column;gap:5px; }
-.edit-field label { font-size:12px;font-weight:600;color:var(--text2); }
-.edit-field input, .edit-field select, .edit-field textarea {
-  background:var(--surface2,#22222e);border:1px solid var(--border);
-  color:var(--text);border-radius:8px;padding:8px 12px;font-size:13px;
-  width:100%;outline:none;
-}
-.edit-field input:focus, .edit-field select:focus { border-color:var(--accent,#7c6af7); }
-
-/* ── Stats cards en modal ───────────────────────────────────────────── */
-.stats-grid-modal { display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px; }
-.stat-m { background:var(--surface2,#22222e);border:1px solid var(--border);border-radius:10px;padding:14px;text-align:center; }
-.stat-m-val { font-size:22px;font-weight:700;color:var(--accent,#7c6af7); }
-.stat-m-lbl { font-size:11px;color:var(--text2);margin-top:3px; }
-
-/* ── Botones genéricos ──────────────────────────────────────────────── */
-.btn-fin-primary {
-  display:inline-flex;align-items:center;gap:6px;
-  padding:8px 18px;border-radius:8px;font-size:13px;font-weight:600;
-  background:var(--accent,#7c6af7);color:#fff;border:none;cursor:pointer;
-}
-.btn-fin-primary:hover { opacity:.88; }
-.btn-fin-cancel {
-  display:inline-flex;align-items:center;gap:6px;
-  padding:8px 18px;border-radius:8px;font-size:13px;font-weight:600;
-  background:var(--surface2,#22222e);color:var(--text2);
-  border:1px solid var(--border);cursor:pointer;
-}
-.btn-fin-cancel:hover { border-color:var(--accent,#7c6af7);color:var(--text); }
-.fin-loading { text-align:center;padding:32px;color:var(--text2);font-size:13px; }
-</style>
-
-<!-- ═══════════════════════════════════════════════════════════════════
-     MODAL: GESTIÓN DE INVITADOS
-═══════════════════════════════════════════════════════════════════ -->
-<div id="modal-invitados" class="modal-fin-overlay" style="display:none;" onclick="if(event.target===this)hide('modal-invitados')">
-  <div class="modal-fin-box" onclick="event.stopPropagation()">
-    <div class="modal-fin-header">
-      <div class="modal-fin-title">
-        <span class="material-symbols-outlined" style="color:#7c6af7">group</span>
-        Gestión de Invitados
-      </div>
-      <button class="modal-fin-close" onclick="hide('modal-invitados')">
-        <span class="material-symbols-outlined">close</span>
-      </button>
-    </div>
-    <div class="modal-fin-body" id="inv-body">
-      <div class="fin-loading">
-        <span class="material-symbols-outlined" style="font-size:32px;display:block;margin-bottom:8px;">hourglass_empty</span>
-        Cargando invitados…
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- ═══════════════════════════════════════════════════════════════════
-     MODAL: GESTIÓN DE PARTICIPANTES POLLA
-═══════════════════════════════════════════════════════════════════ -->
-<div id="modal-participantes" class="modal-fin-overlay" style="display:none;" onclick="if(event.target===this)hide('modal-participantes')">
-  <div class="modal-fin-box" onclick="event.stopPropagation()">
-    <div class="modal-fin-header">
-      <div class="modal-fin-title">
-        <span class="material-symbols-outlined" style="color:#f59e0b">sports_soccer</span>
-        Participantes de la Polla
-      </div>
-      <button class="modal-fin-close" onclick="hide('modal-participantes')">
-        <span class="material-symbols-outlined">close</span>
-      </button>
-    </div>
-    <div class="modal-fin-body" id="part-body">
-      <div class="fin-loading">Cargando…</div>
-    </div>
-  </div>
-</div>
-
-<!-- ═══════════════════════════════════════════════════════════════════
-     MODAL: ESTADO DE PARTICIPANTE (inline desde ranking)
-═══════════════════════════════════════════════════════════════════ -->
-<div id="modal-estado-part" class="modal-fin-overlay" style="display:none;" onclick="if(event.target===this)hide('modal-estado-part')">
-  <div class="modal-fin-box" onclick="event.stopPropagation()" style="max-width:420px;">
-    <div class="modal-fin-header">
-      <div class="modal-fin-title">
-        <span class="material-symbols-outlined" style="color:#7c6af7">manage_accounts</span>
-        Estado en Polla: <span id="ep-nombre" style="margin-left:4px;color:var(--text2)"></span>
-      </div>
-      <button class="modal-fin-close" onclick="hide('modal-estado-part')">
-        <span class="material-symbols-outlined">close</span>
-      </button>
-    </div>
-    <div class="modal-fin-body">
-      <input type="hidden" id="ep-uid">
-      <div class="edit-inline-wrap">
-        <div class="edit-field">
-          <label>Nuevo estado</label>
-          <select id="ep-estado">
-            <option value="activo">✅ Activo (participa normalmente)</option>
-            <option value="bloqueado">🚫 Bloqueado (no puede participar)</option>
-            <option value="inactivo">⏸ Inactivo (temporalmente fuera)</option>
-            <option value="desactivado">🔕 Desactivado (sin acceso)</option>
-            <option value="excluido">⛔ Excluido (permanente)</option>
-          </select>
-        </div>
-        <div class="edit-field">
-          <label>Motivo (opcional)</label>
-          <input type="text" id="ep-motivo" placeholder="Ej: Por decisión del grupo" maxlength="200">
-        </div>
-      </div>
-    </div>
-    <div class="modal-fin-footer">
-      <button class="btn-fin-cancel" onclick="hide('modal-estado-part')">Cancelar</button>
-      <button class="btn-fin-primary" onclick="guardarEstadoParticipante()">
-        <span class="material-symbols-outlined">save</span> Guardar
-      </button>
-    </div>
-  </div>
-</div>
-
-<!-- ═══════════════════════════════════════════════════════════════════
-     MODAL: AUDITORÍA FINANCIERA
-═══════════════════════════════════════════════════════════════════ -->
-<div id="modal-auditoria" class="modal-fin-overlay" style="display:none;" onclick="if(event.target===this)hide('modal-auditoria')">
-  <div class="modal-fin-box" onclick="event.stopPropagation()" style="max-width:720px;">
-    <div class="modal-fin-header">
-      <div class="modal-fin-title">
-        <span class="material-symbols-outlined" style="color:#22c55e">history</span>
-        Auditoría Financiera
-      </div>
-      <button class="modal-fin-close" onclick="hide('modal-auditoria')">
-        <span class="material-symbols-outlined">close</span>
-      </button>
-    </div>
-    <div class="modal-fin-body" id="audit-body">
-      <div class="fin-loading">Cargando historial…</div>
-    </div>
-  </div>
-</div>
-
-<!-- ═══════════════════════════════════════════════════════════════════
-     MODAL: ESTADÍSTICAS DE RECAUDACIÓN
-═══════════════════════════════════════════════════════════════════ -->
-<div id="modal-estadisticas" class="modal-fin-overlay" style="display:none;" onclick="if(event.target===this)hide('modal-estadisticas')">
-  <div class="modal-fin-box" onclick="event.stopPropagation()" style="max-width:480px;">
-    <div class="modal-fin-header">
-      <div class="modal-fin-title">
-        <span class="material-symbols-outlined" style="color:#f59e0b">bar_chart</span>
-        Estadísticas de Recaudación
-      </div>
-      <button class="modal-fin-close" onclick="hide('modal-estadisticas')">
-        <span class="material-symbols-outlined">close</span>
-      </button>
-    </div>
-    <div class="modal-fin-body" id="stats-body">
-      <div class="fin-loading">Cargando estadísticas…</div>
-    </div>
-  </div>
-</div>
-
-<!-- ═══════════════════════════════════════════════════════════════════
-     MODAL: EDITAR EVENTO RÁPIDO
-═══════════════════════════════════════════════════════════════════ -->
-<div id="modal-editar-evento" class="modal-fin-overlay" style="display:none;" onclick="if(event.target===this)hide('modal-editar-evento')">
-  <div class="modal-fin-box" onclick="event.stopPropagation()" style="max-width:400px;">
-    <div class="modal-fin-header">
-      <div class="modal-fin-title">
-        <span class="material-symbols-outlined" style="color:#7c6af7">edit</span>
-        Editar Evento
-      </div>
-      <button class="modal-fin-close" onclick="hide('modal-editar-evento')">
-        <span class="material-symbols-outlined">close</span>
-      </button>
-    </div>
-    <div class="modal-fin-body">
-      <input type="hidden" id="ee-id">
-      <div class="edit-inline-wrap">
-        <div class="edit-field">
-          <label>Monto (COP)</label>
-          <input type="number" id="ee-monto" min="1" placeholder="200000">
-        </div>
-        <div class="edit-field">
-          <label>Estado</label>
-          <select id="ee-estado">
-            <option value="pendiente">⏳ Pendiente</option>
-            <option value="verificado">✅ Verificado</option>
-            <option value="rechazado">❌ Rechazado</option>
-          </select>
-        </div>
-        <div class="edit-field">
-          <label>Motivo del cambio (opcional)</label>
-          <input type="text" id="ee-motivo" placeholder="Ej: Corrección de monto" maxlength="200">
-        </div>
-      </div>
-    </div>
-    <div class="modal-fin-footer">
-      <button class="btn-fin-cancel" onclick="hide('modal-editar-evento')">Cancelar</button>
-      <button class="btn-fin-primary" onclick="guardarEditarEvento()">
-        <span class="material-symbols-outlined">save</span> Guardar
-      </button>
-    </div>
-  </div>
-</div>
-
-<!-- ═══════════════════════════════════════════════════════════════════
-     MODAL: EDITAR PAGO POLLA RÁPIDO
-═══════════════════════════════════════════════════════════════════ -->
-<div id="modal-editar-polla" class="modal-fin-overlay" style="display:none;" onclick="if(event.target===this)hide('modal-editar-polla')">
-  <div class="modal-fin-box" onclick="event.stopPropagation()" style="max-width:380px;">
-    <div class="modal-fin-header">
-      <div class="modal-fin-title">
-        <span class="material-symbols-outlined" style="color:#7c6af7">edit</span>
-        Editar Estado Pago Polla
-      </div>
-      <button class="modal-fin-close" onclick="hide('modal-editar-polla')">
-        <span class="material-symbols-outlined">close</span>
-      </button>
-    </div>
-    <div class="modal-fin-body">
-      <input type="hidden" id="ep2-id">
-      <div class="edit-inline-wrap">
-        <div class="edit-field">
-          <label>Nuevo estado</label>
-          <select id="ep2-estado">
-            <option value="pagado">💳 Pagado</option>
-            <option value="verificado">✅ Verificado</option>
-            <option value="pendiente">⏳ Pendiente</option>
-            <option value="rechazado">❌ Rechazado</option>
-          </select>
-        </div>
-        <div class="edit-field">
-          <label>Motivo (opcional)</label>
-          <input type="text" id="ep2-motivo" placeholder="Ej: Corrección de estado" maxlength="200">
-        </div>
-      </div>
-    </div>
-    <div class="modal-fin-footer">
-      <button class="btn-fin-cancel" onclick="hide('modal-editar-polla')">Cancelar</button>
-      <button class="btn-fin-primary" onclick="guardarEditarPolla()">
-        <span class="material-symbols-outlined">save</span> Guardar
-      </button>
-    </div>
-  </div>
-</div>
-
-<!-- ═══════════════════════════════════════════════════════════════════
-     JS: Nuevos modales y funciones
-═══════════════════════════════════════════════════════════════════ -->
-<script>
-// ── Helpers ─────────────────────────────────────────────────────────────────
-function show(id) { document.getElementById(id).style.display='flex'; }
-function hideModal(id) { document.getElementById(id).style.display='none'; }
-
-function fmtCOP(n) {
-  return '$' + Math.round(n).toLocaleString('es-CO');
-}
-function fmtFechaCorta(f) {
-  if (!f) return '—';
-  return f.slice(0,10);
-}
-
-// ── Gestión de invitados ─────────────────────────────────────────────────────
-async function abrirModalInvitados() {
-  show('modal-invitados');
-  const body = document.getElementById('inv-body');
-  body.innerHTML = '<div class="fin-loading"><span class="material-symbols-outlined" style="font-size:32px;display:block;margin-bottom:8px;">hourglass_empty</span>Cargando invitados…</div>';
-  try {
-    const r = await fetch('/api/fin/invitados');
-    const data = await r.json();
-    if (!data.length) {
-      body.innerHTML = '<div class="fin-loading">No hay invitados registrados.</div>';
-      return;
-    }
-    const tagMundial = (estado) => {
-      if (estado === 'aprobado') return '<span class="inv-tag-pagado">✓ Aprobado</span>';
-      if (estado === 'pendiente' || (estado && estado.startsWith('pendiente'))) return '<span class="inv-tag-pendiente">⏳ Pendiente</span>';
-      if (estado === 'rechazado') return '<span class="inv-tag-rechazado">✗ Rechazado</span>';
-      return '<span class="inv-tag-sin">Sin solicitud</span>';
-    };
-    body.innerHTML = `
-      <p style="font-size:12px;color:var(--text2);margin-bottom:14px;">${data.length} invitado(s) registrado(s) en el sistema.</p>
-      <div style="overflow-x:auto;">
-      <table class="inv-table">
-        <thead><tr>
-          <th>Usuario</th>
-          <th>Mundial</th>
-          <th>Aportes</th>
-          <th>Total</th>
-          <th>Estado</th>
-        </tr></thead>
-        <tbody>
-        ${data.map(u => `
-          <tr>
-            <td>
-              <div style="display:flex;align-items:center;gap:8px;">
-                ${u.foto ? `<img src="${u.foto}" style="width:28px;height:28px;border-radius:50%;object-fit:cover;" alt="">` : `<div style="width:28px;height:28px;border-radius:50%;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;">${(u.nombre||'?')[0].toUpperCase()}</div>`}
-                <div>
-                  <div style="font-weight:600;font-size:13px;">${u.nombre||'—'}</div>
-                  <div style="font-size:11px;color:var(--text2);">@${u.usuario||'—'}</div>
-                </div>
-              </div>
-            </td>
-            <td>${tagMundial(u.mundial_pagado)}</td>
-            <td style="text-align:center;">${u.num_aportes}</td>
-            <td style="font-weight:700;color:#22c55e;">${fmtCOP(u.total_aportado)}</td>
-            <td>${u.rec_bloqueado ? '<span class="inv-tag-rechazado">🔒 Bloqueado</span>' : '<span class="inv-tag-pagado">🟢 Activo</span>'}</td>
-          </tr>
-        `).join('')}
-        </tbody>
-      </table>
-      </div>
-    `;
-  } catch(e) {
-    body.innerHTML = '<div class="fin-loading">Error al cargar invitados.</div>';
-  }
-}
-
-// ── Gestión de participantes polla ───────────────────────────────────────────
-async function abrirModalParticipantes() {
-  show('modal-participantes');
-  const body = document.getElementById('part-body');
-  body.innerHTML = '<div class="fin-loading">Cargando participantes…</div>';
-  try {
-    const r = await fetch('/admin/polla_participantes');
-    const data = await r.json();
-    if (!data.length) {
-      body.innerHTML = '<div class="fin-loading">No hay miembros registrados.</div>';
-      return;
-    }
-    const ESTADO_LABELS_POLLA = {
-      activo: '✅ Activo', bloqueado: '🚫 Bloqueado',
-      inactivo: '⏸ Inactivo', desactivado: '🔕 Desactivado', excluido: '⛔ Excluido'
-    };
-    const estadoOpt = (current) => ['activo','bloqueado','inactivo','desactivado','excluido']
-      .map(e => `<option value="${e}" ${e===current?'selected':''}>${ESTADO_LABELS_POLLA[e]||e}</option>`)
-      .join('');
-    body.innerHTML = `
-      <p style="font-size:12px;color:var(--text2);margin-bottom:14px;">
-        Gestiona la participación de cada miembro en la polla mundialista.
-      </p>
-      <div style="overflow-x:auto;">
-      <table class="part-table">
-        <thead><tr>
-          <th>Miembro</th>
-          <th>Estado polla</th>
-          <th>Acción</th>
-        </tr></thead>
-        <tbody>
-        ${data.map(u => `
-          <tr id="part-row-${u.id}">
-            <td>
-              <div style="display:flex;align-items:center;gap:8px;">
-                ${u.foto ? `<img src="${u.foto}" style="width:26px;height:26px;border-radius:50%;object-fit:cover;" alt="">` : `<div style="width:26px;height:26px;border-radius:50%;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:11px;">${(u.nombre||'?')[0].toUpperCase()}</div>`}
-                <div>
-                  <div style="font-weight:600;font-size:13px;">${u.nombre}</div>
-                  <div style="font-size:11px;color:var(--text2);">@${u.usuario}</div>
-                </div>
-              </div>
-            </td>
-            <td>
-              <select class="part-estado-select" id="ps-${u.id}" data-uid="${u.id}">
-                ${estadoOpt(u.polla_estado||'activo')}
-              </select>
-            </td>
-            <td>
-              <button class="btn-fin-primary" style="padding:5px 12px;font-size:12px;" onclick="guardarEstadoParticipanteFromTable(${u.id})">
-                <span class="material-symbols-outlined" style="font-size:14px;">save</span>
-              </button>
-            </td>
-          </tr>
-        `).join('')}
-        </tbody>
-      </table>
-      </div>
-    `;
-  } catch(e) {
-    body.innerHTML = '<div class="fin-loading">Error al cargar participantes.</div>';
-  }
-}
-
-async function guardarEstadoParticipanteFromTable(uid) {
-  const sel = document.getElementById('ps-' + uid);
-  if (!sel) return;
-  const estado = sel.value;
-  const fd = new FormData();
-  fd.append('uid', uid);
-  fd.append('estado', estado);
-  try {
-    const r = await fetch('/admin/polla_estado', { method:'POST', body:fd });
-    const d = await r.json();
-    if (d.ok) {
-      mostrarToastFin(d.msg || 'Estado actualizado', true);
-    } else {
-      mostrarToastFin(d.msg || 'Error', false);
-    }
-  } catch(e) {
-    mostrarToastFin('Error de conexión', false);
-  }
-}
-
-// ── Modal estado participante (inline desde ranking) ─────────────────────────
-function abrirModalEstadoParticipante(uid, nombre, estadoActual) {
-  document.getElementById('ep-uid').value = uid;
-  document.getElementById('ep-nombre').textContent = nombre;
-  const sel = document.getElementById('ep-estado');
-  sel.value = estadoActual || 'activo';
-  document.getElementById('ep-motivo').value = '';
-  show('modal-estado-part');
-}
-
-async function guardarEstadoParticipante() {
-  const uid = document.getElementById('ep-uid').value;
-  const estado = document.getElementById('ep-estado').value;
-  const motivo = document.getElementById('ep-motivo').value;
-  const fd = new FormData();
-  fd.append('uid', uid);
-  fd.append('estado', estado);
-  fd.append('motivo', motivo);
-  try {
-    const r = await fetch('/admin/polla_estado', { method:'POST', body:fd });
-    const d = await r.json();
-    hideModal('modal-estado-part');
+    hide('modal-estado-part');
     if (d.ok) {
       mostrarToastFin(d.msg || 'Estado actualizado', true);
       setTimeout(() => location.reload(), 800);
@@ -4112,9 +3571,9 @@ async function abrirModalEstadisticas() {
     body.innerHTML = `
       <div class="stats-grid-modal">
         <div class="stat-m"><div class="stat-m-val" style="color:#22c55e;">${fmtCOP(d.total_general)}</div><div class="stat-m-lbl">Total recaudado</div></div>
-        <div class="stat-m"><div class="stat-m-val" style="color:#7c6af7;">${fmtCOP(d.meta)}</div><div class="stat-m-lbl">Meta</div></div>
+        <div class="stat-m"><div class="stat-m-val" style="color:var(--accent);">${fmtCOP(d.meta)}</div><div class="stat-m-lbl">Meta</div></div>
         <div class="stat-m"><div class="stat-m-val" style="color:#f59e0b;">${d.pct}%</div><div class="stat-m-lbl">Progreso</div></div>
-        <div class="stat-m"><div class="stat-m-val" style="color:#0095f6;">${fmtCOP(d.total_eventos)}</div><div class="stat-m-lbl">Eventos verificados</div></div>
+        <div class="stat-m"><div class="stat-m-val" style="color:var(--accent);">${fmtCOP(d.total_eventos)}</div><div class="stat-m-lbl">Eventos verificados</div></div>
         <div class="stat-m"><div class="stat-m-val" style="color:#eab308;">${fmtCOP(d.total_polla)}</div><div class="stat-m-lbl">Polla verificada</div></div>
         <div class="stat-m"><div class="stat-m-val" style="color:#ef4444;">${d.pendientes_verificacion}</div><div class="stat-m-lbl">Pendientes verificación</div></div>
         <div class="stat-m"><div class="stat-m-val">${d.participantes_activos}</div><div class="stat-m-lbl">Participantes activos polla</div></div>
@@ -4147,7 +3606,7 @@ async function guardarEditarEvento() {
       body: JSON.stringify({ id, monto: parseFloat(monto), estado, motivo })
     });
     const d = await r.json();
-    hideModal('modal-editar-evento');
+    hide('modal-editar-evento');
     if (d.ok) {
       mostrarToastFin('Evento actualizado ✅', true);
       setTimeout(() => cargarHistorial(), 500);
@@ -4178,7 +3637,7 @@ async function guardarEditarPolla() {
       body: JSON.stringify({ id, estado, motivo })
     });
     const d = await r.json();
-    hideModal('modal-editar-polla');
+    hide('modal-editar-polla');
     if (d.ok) {
       mostrarToastFin('Pago actualizado ✅', true);
       setTimeout(() => cargarHistorial(), 500);

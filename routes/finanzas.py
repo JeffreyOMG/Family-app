@@ -433,8 +433,100 @@ def quitar_polla():
 # NUEVOS ENDPOINTS: Gestión de Invitados, Edición Rápida, Auditoría
 # ══════════════════════════════════════════════════════════════════════════════
 
-@fin_bp.route("/api/fin/invitados")
-def api_invitados():
+@fin_bp.route("/api/fin/invitados_detalle")
+def api_invitados_detalle():
+    """
+    Invitados con relación a miembro, total pagado, saldo pendiente.
+    Fases polla: F1=$30k, F2=$20k, F3=$10k → total posible=$60k por persona.
+    """
+    if not _es_admin_o_financiero():
+        return jsonify({"ok": False, "error": "Sin permiso"}), 403
+    con = get_db()
+    # Total de fases activas para calcular deuda máxima de polla
+    PRECIO_POLLA = {1: 30000, 2: 20000, 3: 10000}
+    # Invitados con info financiera
+    rows = con.execute("""
+        SELECT
+            inv.id, inv.nombre, inv.usuario, inv.foto,
+            inv.mundial_pagado,
+            COALESCE(inv.rec_bloqueado, 0)     AS rec_bloqueado,
+            COALESCE(inv.invitado_de, 0)        AS invitado_de,
+            pat.nombre                          AS patrocinador_nombre,
+            pat.usuario                         AS patrocinador_usuario,
+            COALESCE(SUM(a.monto), 0)           AS total_aportes,
+            COUNT(DISTINCT a.id)                AS num_aportes,
+            COALESCE(SUM(CASE WHEN a.verificado=1 THEN a.monto ELSE 0 END), 0) AS pagado_verificado
+        FROM usuarios inv
+        LEFT JOIN usuarios pat ON pat.id = inv.invitado_de
+        LEFT JOIN aportes a ON a.usuario_id = inv.id
+        WHERE inv.rol = 'invitado'
+        GROUP BY inv.id, inv.nombre, inv.usuario, inv.foto,
+                 inv.mundial_pagado, inv.rec_bloqueado, inv.invitado_de,
+                 pat.nombre, pat.usuario
+        ORDER BY inv.nombre ASC
+    """).fetchall()
+
+    # Pagos polla por invitado
+    pagos_polla = {}
+    polla_rows = con.execute("""
+        SELECT usuario_id, fase, monto, estado
+        FROM polla_pagos
+        WHERE usuario_id IN (SELECT id FROM usuarios WHERE rol='invitado')
+    """).fetchall()
+    for p in polla_rows:
+        uid = p["usuario_id"]
+        if uid not in pagos_polla:
+            pagos_polla[uid] = []
+        pagos_polla[uid].append(dict(p))
+
+    resultado = []
+    for r in rows:
+        inv = dict(r)
+        fases = pagos_polla.get(r["id"], [])
+        polla_pagado = sum(PRECIO_POLLA.get(f["fase"], f["monto"] or 0)
+                          for f in fases if f["estado"] in ("pagado", "verificado"))
+        polla_pendiente_fases = sum(PRECIO_POLLA.get(f["fase"], f["monto"] or 0)
+                                    for f in fases if f["estado"] == "pendiente")
+        total_pagado = float(r["pagado_verificado"]) + polla_pagado
+        total_general = float(r["total_aportes"]) + polla_pagado + polla_pendiente_fases
+        saldo_pendiente = float(r["total_aportes"]) - float(r["pagado_verificado"]) + polla_pendiente_fases
+        inv["polla_fases"] = fases
+        inv["polla_pagado"] = polla_pagado
+        inv["polla_pendiente"] = polla_pendiente_fases
+        inv["total_pagado"] = total_pagado
+        inv["total_general"] = total_general
+        inv["saldo_pendiente"] = max(saldo_pendiente, 0)
+        resultado.append(inv)
+
+    # Miembros disponibles para asignar como responsable de invitado
+    miembros = con.execute(
+        "SELECT id, nombre, usuario FROM usuarios WHERE rol IN ('miembro','admin') ORDER BY nombre"
+    ).fetchall()
+    return jsonify({"invitados": resultado, "miembros": [dict(m) for m in miembros]})
+
+
+@fin_bp.route("/api/fin/asignar_patrocinador", methods=["POST"])
+def asignar_patrocinador():
+    """Asigna o cambia el miembro responsable de un invitado (columna invitado_de)."""
+    if not _es_admin_o_financiero():
+        return jsonify({"ok": False, "error": "Sin permiso"}), 403
+    data = request.get_json(silent=True) or {}
+    inv_id = data.get("invitado_id")
+    pat_id = data.get("patrocinador_id")  # None = quitar relación
+    if not inv_id:
+        return jsonify({"ok": False, "error": "invitado_id requerido"}), 400
+    con = get_db()
+    row = con.execute("SELECT nombre, invitado_de FROM usuarios WHERE id=%s AND rol='invitado'", (inv_id,)).fetchone()
+    if not row:
+        return jsonify({"ok": False, "error": "Invitado no encontrado"}), 404
+    con.execute("UPDATE usuarios SET invitado_de=%s WHERE id=%s", (pat_id or None, inv_id))
+    _registrar_auditoria(con, session["uid"], inv_id,
+        "asignar_responsable", "invitado_de", str(row["invitado_de"]), str(pat_id))
+    con.commit()
+    return jsonify({"ok": True, "msg": "Responsable actualizado"})
+
+
+
     """Lista todos los usuarios con rol invitado con su info financiera."""
     if "uid" not in session:
         return jsonify({"ok": False}), 401
