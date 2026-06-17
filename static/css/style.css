@@ -1961,7 +1961,7 @@ body.dark-mode .bottom-nav-item.active {
 
 /* PROGRESS */
 body.dark-mode .progress-bar-bg{
-  background:var(--bg2);
+  background:rgba(255,255,255,0.12);
 }
 
 body.dark-mode .progress-bar-fill{

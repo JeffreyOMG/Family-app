@@ -80,7 +80,7 @@
         {% if pct >= 100 %}🎉 ¡Meta alcanzada!
         {% elif pct >= 75 %}🚀 Muy cerca de la meta
         {% elif pct >= 50 %}💰 Más de la mitad ahorrada
-        {% else %}📈 Sigue aportando — ¡van muy bien!{% endif %}
+        {% else %}📈&#xFE0F; Sigue aportando — ¡van muy bien!{% endif %}
       </div>
       <!-- BARRA MEJORADA CON ANIMACIÓN -->
       <div class="rec-prog-bar-wrap">
@@ -248,8 +248,8 @@
               <span class="rec-ranking-name">{{ r.nombre }}</span>
               <span class="rec-ranking-amount">${{ r.total|int }}</span>
             </div>
-            <div class="progress-bar-bg" style="height:6px;border-radius:10px;overflow:hidden;">
-              <div class="progress-bar-fill rank-bar-fill" style="width:{{ r.porcentaje }}%;"></div>
+            <div class="progress-bar-bg" style="height:6px;border-radius:10px;overflow:hidden;background:rgba(128,128,128,0.18);">
+              <div class="progress-bar-fill rank-bar-fill" style="width:{{ r.porcentaje }}%;height:100%;"></div>
             </div>
           </div>
         </div>
@@ -869,7 +869,7 @@ body.dark-mode {
   position: absolute;
   left: 0; top: 0; bottom: 0;
   width: var(--pct, 0%);
-  background: linear-gradient(90deg, #ff6b9d, #ff4d8d, #c9236a);
+  background: var(--accent-gradient, linear-gradient(90deg, #ff6b9d, #ff4d8d, #c9236a));
   border-radius: 99px;
   animation: barGrow .9s cubic-bezier(.22,.68,0,1.2) both;
   transition: width .4s ease;
@@ -906,7 +906,7 @@ body.dark-mode {
   border-radius: 2px;
   transform: translateX(-50%);
 }
-body.dark-mode .rec-bar-track { background:var(--bg2);border-color:var(--border); }
+body.dark-mode .rec-bar-track { background:rgba(255,255,255,0.1);border-color:rgba(255,255,255,0.1); }
 body.dark-mode .rec-bar-milestone { background:rgba(255,255,255,.15); }
 
 /* ---- LOADING STATE ---- */
@@ -1040,7 +1040,7 @@ body.dark-mode .rec-bar-milestone { background:rgba(255,255,255,.15); }
 .rec-ranking-amount { font-weight:700;color:#4caf50;white-space:nowrap;margin-left:8px;font-size:15px; }
 /* Barra de ranking animada */
 .rank-bar-fill {
-  background: linear-gradient(90deg,#ff6b9d,#c9236a);
+  background: var(--accent-gradient, linear-gradient(90deg,#ff6b9d,#c9236a));
   height:100%;
   border-radius:99px;
   animation: barGrow .7s cubic-bezier(.22,.68,0,1.1) both;
