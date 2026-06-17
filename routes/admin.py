@@ -19,7 +19,7 @@ def admin_required(f):
 def panel():
     con = get_db()
     usuarios = con.execute(
-        "SELECT id, nombre, usuario, gmail, rol, fecha, COALESCE(verified, FALSE) AS verified FROM usuarios ORDER BY fecha DESC"
+        "SELECT id, nombre, usuario, gmail, rol, fecha, COALESCE(verified, FALSE) AS verified, COALESCE(es_financiero, FALSE) AS es_financiero, COALESCE(polla_activo, TRUE) AS polla_activo, COALESCE(polla_estado, 'activo') AS polla_estado FROM usuarios ORDER BY fecha DESC"
     ).fetchall()
     return render_template("admin/panel.html", usuarios=usuarios,
                            usuario={"nombre": session["nombre"], "rol": session["rol"], "foto": ""})
@@ -158,3 +158,141 @@ def toggle_verified():
     con.commit()
     return jsonify(ok=True, verified=nuevo,
                    msg="Verificación activada" if nuevo else "Verificación desactivada")
+
+
+# ── Rol Financiero/a ──────────────────────────────────────────────────────────
+
+@admin_bp.route("/admin/toggle_financiero", methods=["POST"])
+@admin_required
+def toggle_financiero():
+    """Asigna o retira el rol Financiero/a a un usuario."""
+    uid_target = request.form.get("uid", type=int)
+    if not uid_target:
+        return jsonify(ok=False, msg="uid requerido"), 400
+    if uid_target == session.get("uid"):
+        return jsonify(ok=False, msg="No puedes modificar tu propio rol financiero"), 403
+    con = get_db()
+    row = con.execute(
+        "SELECT nombre, rol, COALESCE(es_financiero, FALSE) AS es_financiero FROM usuarios WHERE id=%s",
+        (uid_target,)
+    ).fetchone()
+    if not row:
+        return jsonify(ok=False, msg="Usuario no encontrado"), 404
+    if row["rol"] == "admin":
+        return jsonify(ok=False, msg="Los admins ya tienen acceso completo"), 400
+    nuevo = not bool(row["es_financiero"])
+    con.execute("UPDATE usuarios SET es_financiero=%s WHERE id=%s", (nuevo, uid_target))
+    # Auditoría
+    _registrar_auditoria(con, session["uid"], uid_target,
+        "asignar_financiero" if nuevo else "retirar_financiero",
+        "es_financiero", str(not nuevo), str(nuevo))
+    con.commit()
+    return jsonify(ok=True, es_financiero=nuevo,
+                   msg=f"Rol Financiero/a {'asignado a' if nuevo else 'retirado de'} {row['nombre']}")
+
+
+@admin_bp.route("/admin/financieros")
+@admin_required
+def listar_financieros():
+    """Lista todos los usuarios con rol Financiero/a activo."""
+    con = get_db()
+    rows = con.execute(
+        "SELECT id, nombre, usuario, rol FROM usuarios WHERE COALESCE(es_financiero, FALSE) = TRUE ORDER BY nombre"
+    ).fetchall()
+    return jsonify([dict(r) for r in rows])
+
+
+# ── Gestión de participantes de polla (solo miembros) ────────────────────────
+
+@admin_bp.route("/admin/polla_participantes")
+@admin_required
+def polla_participantes():
+    """Devuelve todos los miembros con su estado de participación en la polla."""
+    con = get_db()
+    rows = con.execute("""
+        SELECT u.id, u.nombre, u.usuario, u.foto,
+               COALESCE(u.polla_activo, TRUE) AS polla_activo,
+               COALESCE(u.polla_estado, 'activo') AS polla_estado,
+               COALESCE(u.rec_bloqueado, 0) AS rec_bloqueado
+        FROM usuarios u
+        WHERE u.rol IN ('miembro', 'admin')
+        ORDER BY u.nombre ASC
+    """).fetchall()
+    return jsonify([dict(r) for r in rows])
+
+
+@admin_bp.route("/admin/polla_estado", methods=["POST"])
+@admin_required
+def polla_estado():
+    """Cambia el estado de participación de un miembro en la polla."""
+    uid_target = request.form.get("uid", type=int)
+    nuevo_estado = request.form.get("estado", "").strip()
+    motivo = request.form.get("motivo", "").strip()[:300]
+
+    ESTADOS_VALIDOS = ("activo", "bloqueado", "inactivo", "desactivado", "excluido")
+    if not uid_target or nuevo_estado not in ESTADOS_VALIDOS:
+        return jsonify(ok=False, msg="Datos inválidos"), 400
+    if uid_target == session.get("uid"):
+        return jsonify(ok=False, msg="No puedes modificarte a ti mismo"), 403
+
+    con = get_db()
+    row = con.execute(
+        "SELECT nombre, rol, COALESCE(polla_estado,'activo') AS polla_estado FROM usuarios WHERE id=%s",
+        (uid_target,)
+    ).fetchone()
+    if not row:
+        return jsonify(ok=False, msg="Usuario no encontrado"), 404
+    if row["rol"] not in ("miembro", "admin"):
+        return jsonify(ok=False, msg="Solo aplica a miembros"), 400
+
+    polla_activo = (nuevo_estado == "activo")
+    estado_antes = row["polla_estado"]
+    con.execute(
+        "UPDATE usuarios SET polla_activo=%s, polla_estado=%s WHERE id=%s",
+        (polla_activo, nuevo_estado, uid_target)
+    )
+    _registrar_auditoria(con, session["uid"], uid_target,
+        f"polla_estado_{nuevo_estado}", "polla_estado",
+        estado_antes, nuevo_estado, motivo)
+    con.commit()
+    msgs = {
+        "activo": "Participante reactivado ✅",
+        "bloqueado": "Participante bloqueado 🚫",
+        "inactivo": "Participante marcado como inactivo",
+        "desactivado": "Participante desactivado temporalmente",
+        "excluido": "Participante excluido de la polla",
+    }
+    return jsonify(ok=True, msg=msgs.get(nuevo_estado, "Estado actualizado"),
+                   polla_activo=polla_activo, polla_estado=nuevo_estado)
+
+
+# ── Auditoría ─────────────────────────────────────────────────────────────────
+
+def _registrar_auditoria(con, actor_id, target_id, accion, campo="", valor_antes="", valor_nuevo="", motivo=""):
+    """Registra una acción en la tabla de auditoría financiera."""
+    try:
+        con.execute("""
+            INSERT INTO auditoria_financiera(actor_id, target_id, accion, campo, valor_antes, valor_nuevo, motivo)
+            VALUES(%s, %s, %s, %s, %s, %s, %s)
+        """, (actor_id, target_id, accion, campo, str(valor_antes), str(valor_nuevo), motivo))
+    except Exception as e:
+        print(f"Auditoría warning: {e}")
+
+
+@admin_bp.route("/admin/auditoria")
+@admin_required
+def auditoria():
+    """Devuelve historial de auditoría financiera (últimas 200 acciones)."""
+    con = get_db()
+    rows = con.execute("""
+        SELECT af.id, af.accion, af.campo, af.valor_antes, af.valor_nuevo,
+               af.motivo, af.fecha,
+               a.nombre AS actor_nombre, a.usuario AS actor_usuario,
+               t.nombre AS target_nombre, t.usuario AS target_usuario
+        FROM auditoria_financiera af
+        JOIN usuarios a ON a.id = af.actor_id
+        LEFT JOIN usuarios t ON t.id = af.target_id
+        ORDER BY af.fecha DESC
+        LIMIT 200
+    """).fetchall()
+    return jsonify([dict(r) for r in rows])

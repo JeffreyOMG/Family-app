@@ -328,6 +328,26 @@ _TABLES = [
     "CREATE INDEX IF NOT EXISTS idx_pub_fecha       ON publicaciones(fecha DESC)",
     "CREATE INDEX IF NOT EXISTS idx_pub_usuario     ON publicaciones(usuario_id)",
     "CREATE INDEX IF NOT EXISTS idx_coment_post     ON comentarios(post_id)",
+    # ── Rol Financiero ───────────────────────────────────────────────────────
+    """ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS es_financiero BOOLEAN DEFAULT FALSE""",
+    # ── Control de participación en polla (solo miembros) ────────────────────
+    # polla_activo: TRUE = participa en polla, FALSE = excluido
+    # polla_estado: 'activo','bloqueado','inactivo','desactivado'
+    """ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS polla_activo BOOLEAN DEFAULT TRUE""",
+    """ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS polla_estado TEXT DEFAULT 'activo'""",
+    # ── Tabla de auditoría financiera ────────────────────────────────────────
+    """CREATE TABLE IF NOT EXISTS auditoria_financiera (
+        id          SERIAL PRIMARY KEY,
+        actor_id    INTEGER NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+        target_id   INTEGER REFERENCES usuarios(id) ON DELETE SET NULL,
+        accion      TEXT NOT NULL,
+        campo       TEXT DEFAULT '',
+        valor_antes TEXT DEFAULT '',
+        valor_nuevo TEXT DEFAULT '',
+        motivo      TEXT DEFAULT '',
+        fecha       TIMESTAMP DEFAULT CURRENT_TIMESTAMP)""",
+    """CREATE INDEX IF NOT EXISTS idx_auditoria_actor  ON auditoria_financiera(actor_id)""",
+    """CREATE INDEX IF NOT EXISTS idx_auditoria_fecha  ON auditoria_financiera(fecha DESC)""",
     # ── Sistema de Notificaciones ────────────────────────────────────────────
     """CREATE TABLE IF NOT EXISTS notificaciones (
         id             SERIAL PRIMARY KEY,

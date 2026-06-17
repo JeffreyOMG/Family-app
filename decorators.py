@@ -50,3 +50,19 @@ def admin_required(f):
             return redirect("/dashboard?acceso=denegado")
         return f(*args, **kwargs)
     return decorated
+
+
+def financiero_required(f):
+    """Admin o Financiero/a pueden acceder."""
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if "uid" not in session:
+            return redirect("/")
+        rol = session.get("rol", "invitado")
+        es_fin = session.get("es_financiero", False)
+        if rol != "admin" and not es_fin:
+            if _es_ajax():
+                return jsonify(ok=False, msg="Acceso restringido a Admin o Financiero/a"), 403
+            return redirect("/dashboard?acceso=denegado")
+        return f(*args, **kwargs)
+    return decorated

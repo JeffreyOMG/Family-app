@@ -7,16 +7,26 @@
   <p class="acceso-sub">Si crees que esto es un error, contacta al administrador.</p>
   <div class="acceso-badge">⛔ Acceso bloqueado por el administrador</div>
 </div>
-{% elif usuario.rol in ("miembro", "admin") %}
+{% elif usuario.rol in ("miembro", "admin") or usuario.es_financiero %}
+
+{% set es_admin = usuario.rol == 'admin' %}
+{% set es_fin = usuario.es_financiero and usuario.rol != 'admin' %}
+{% set puede_gestionar = es_admin or usuario.es_financiero %}
 
   <!-- HEADER -->
   <div class="rec-header">
     <div class="rec-header-title">
       <span class="material-symbols-outlined">savings</span>
       <h1>Finanzas Familiares</h1>
+      {% if es_fin %}
+      <span class="badge-financiero" title="Rol Financiero/a activo">
+        <span class="material-symbols-outlined" style="font-size:14px;vertical-align:middle;">account_balance</span>
+        Financiero/a
+      </span>
+      {% endif %}
     </div>
     <div class="rec-header-actions">
-      {% if usuario.rol == 'admin' %}
+      {% if puede_gestionar %}
       <button class="btn-admin-meta" onclick="abrirModalMeta()" title="Editar meta de recaudación">
         <span class="material-symbols-outlined">edit</span>
         Editar meta
@@ -25,7 +35,7 @@
       <div class="rec-admin-ctrl-wrap" id="rec-admin-ctrl-wrap">
         <button class="btn-admin-control" onclick="toggleAdminMenu()" id="btn-admin-control">
           <span class="material-symbols-outlined">admin_panel_settings</span>
-          Admin Control
+          {% if es_admin %}Admin{% else %}Fin.{% endif %} Control
           <span class="material-symbols-outlined admin-ctrl-chevron" id="admin-ctrl-chevron">expand_more</span>
         </button>
         <div class="admin-ctrl-menu" id="admin-ctrl-menu" style="display:none;">
@@ -33,11 +43,29 @@
             <span class="material-symbols-outlined">price_check</span>
             Corregir montos polla
           </button>
+          <button class="admin-ctrl-item" onclick="abrirModalInvitados();closeAdminMenu()">
+            <span class="material-symbols-outlined">group</span>
+            Gestionar invitados
+          </button>
+          <button class="admin-ctrl-item" onclick="abrirModalAuditoria();closeAdminMenu()">
+            <span class="material-symbols-outlined">history</span>
+            Ver auditoría
+          </button>
+          <button class="admin-ctrl-item" onclick="abrirModalEstadisticas();closeAdminMenu()">
+            <span class="material-symbols-outlined">bar_chart</span>
+            Estadísticas
+          </button>
+          {% if es_admin %}
           <div class="admin-ctrl-divider"></div>
           <button class="admin-ctrl-item admin-ctrl-danger" onclick="abrirModalBloquearMiembro();closeAdminMenu()">
             <span class="material-symbols-outlined">person_off</span>
             Bloquear miembro de sección
           </button>
+          <button class="admin-ctrl-item admin-ctrl-danger" onclick="abrirModalParticipantes();closeAdminMenu()">
+            <span class="material-symbols-outlined">sports_soccer</span>
+            Gestionar participantes polla
+          </button>
+          {% endif %}
         </div>
       </div>
       {% endif %}
@@ -176,7 +204,7 @@
             <th class="col-fecha">Fecha</th>
             <th class="col-soporte">Soporte</th>
             <th>Estado</th>
-            {% if usuario.rol=='admin' %}<th>Acciones</th>{% endif %}
+            {% if puede_gestionar %}<th>Acciones</th>{% endif %}
           </tr>
         </thead>
         <tbody id="hist-tbody"></tbody>
@@ -264,7 +292,16 @@
   <div class="content-card">
     <div class="rec-ranking-header">
       <h3>🏆 Ranking Comunitario</h3>
-      <span class="rec-ranking-subtitle">Por total aportado · solo miembros</span>
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+        <span class="rec-ranking-subtitle">Por total aportado · solo miembros</span>
+        {% if puede_gestionar %}
+        <div class="rec-rank-filter-wrap">
+          <button class="rec-rank-filter-btn active" id="rkf-todos" onclick="filtrarRanking('todos')">Todos</button>
+          <button class="rec-rank-filter-btn" id="rkf-activos" onclick="filtrarRanking('activos')">✅ Activos</button>
+          <button class="rec-rank-filter-btn" id="rkf-inactivos" onclick="filtrarRanking('inactivos')">⏸ Inactivos</button>
+        </div>
+        {% endif %}
+      </div>
     </div>
     <div class="rec-ranking" id="rec-ranking-list">
       {% set members_only = ranking | selectattr('rol', 'in', ['miembro', 'admin']) | list %}
@@ -272,7 +309,7 @@
         {% set max_total = namespace(v=1) %}
         {% for r in members_only %}{% if r.total > max_total.v %}{% set max_total.v = r.total %}{% endif %}{% endfor %}
         {% for r in members_only %}
-        <div class="rec-ranking-item {% if loop.index == 1 %}rank-first{% elif loop.index == 2 %}rank-second{% elif loop.index == 3 %}rank-third{% endif %}" style="animation-delay:{{ loop.index0 * 0.07 }}s;">
+        <div class="rec-ranking-item {% if loop.index == 1 %}rank-first{% elif loop.index == 2 %}rank-second{% elif loop.index == 3 %}rank-third{% endif %}" style="animation-delay:{{ loop.index0 * 0.07 }}s;" data-polla-estado="{{ r.polla_estado if r.polla_estado is defined else 'activo' }}">
           <div class="rec-ranking-medal">
             {% if loop.index==1 %}🥇{% elif loop.index==2 %}🥈{% elif loop.index==3 %}🥉{% else %}<span class="rank-num">#{{ loop.index }}</span>{% endif %}
           </div>
@@ -287,9 +324,19 @@
             <div class="rec-ranking-top">
               <span class="rec-ranking-name">{{ r.nombre }}</span>
               <span class="rec-ranking-amount">${{ r.total|int }}</span>
-              {% if usuario.rol == 'admin' %}
+              {% if r.polla_estado is defined and r.polla_estado and r.polla_estado != 'activo' %}
+              <span class="rec-polla-estado-badge badge-estado-{{ r.polla_estado }}" title="Estado polla: {{ r.polla_estado }}">
+                {% if r.polla_estado == 'bloqueado' %}🚫 Bloqueado{% elif r.polla_estado == 'excluido' %}⛔ Excluido{% elif r.polla_estado == 'inactivo' %}⏸ Inactivo{% elif r.polla_estado == 'desactivado' %}🔕 Desactivado{% else %}{{ r.polla_estado }}{% endif %}
+              </span>
+              {% endif %}
+              {% if puede_gestionar %}
               <button class="rec-rank-block-btn" onclick="confirmarBloqueoMiembro({{ r.id }},'{{ r.nombre|replace("'","\'") }}')" title="Bloquear de sección">
                 <span class="material-symbols-outlined">person_off</span>
+              </button>
+              {% endif %}
+              {% if es_admin %}
+              <button class="rec-rank-block-btn" style="color:#7c6af7;margin-left:2px;" onclick="abrirModalEstadoParticipante({{ r.id }},'{{ r.nombre|replace("'","\'") }}','{{ r.polla_estado if r.polla_estado is defined else "activo" }}')" title="Gestionar participación polla">
+                <span class="material-symbols-outlined">manage_accounts</span>
               </button>
               {% endif %}
             </div>
@@ -2009,6 +2056,8 @@ document.addEventListener('keydown', function(e) {
 /* ===================== HISTORIAL ===================== */
 let _historialData = [];
 const IS_ADMIN = {{ 'true' if usuario.rol == 'admin' else 'false' }};
+const IS_FIN   = {{ 'true' if usuario.es_financiero else 'false' }};
+const PUEDE_GESTIONAR = IS_ADMIN || IS_FIN;
 
 function cargarHistorial() {
   fetch('/api/historial').then(r => r.json()).then(data => {
@@ -2063,10 +2112,20 @@ function renderHistorial(rows) {
       estadoBadge = '<span class="badge-pend">⏳ Pendiente</span>';
     }
 
-    // Columna de acciones admin: aplica a eventos Y a polla
+    // Columna de acciones admin/financiero: aplica a eventos Y a polla
     let adminCol = '';
-    if (IS_ADMIN) {
+    if (PUEDE_GESTIONAR) {
       let acciones = '';
+      // Botón editar rápido (financiero y admin)
+      if (r.tipo === 'evento') {
+        acciones += `<button class="btn-accion" style="color:#7c6af7;" onclick="abrirEditarEvento(${r.id},${r.monto||0},'${r.estado||''}')" title="Editar">
+          <span class="material-symbols-outlined">edit</span>
+        </button>`;
+      } else if (r.tipo === 'polla') {
+        acciones += `<button class="btn-accion" style="color:#7c6af7;" onclick="abrirEditarPolla(${r.id},'${r.estado||''}')" title="Editar estado">
+          <span class="material-symbols-outlined">edit</span>
+        </button>`;
+      }
       if (r.estado === 'pendiente' || r.estado === 'pagado') {
         if (r.tipo === 'evento') {
           acciones += `<form method="POST" action="/verificar_evento/${r.id}" style="display:inline;">
@@ -2548,4 +2607,717 @@ function cerrarModalBloquear(e) {
     _bloquearUserId = null;
   }
 }
+
+// ── Filtro de ranking por estado polla ───────────────────────────────────────
+function filtrarRanking(modo) {
+  document.querySelectorAll('.rec-rank-filter-btn').forEach(b => b.classList.remove('active'));
+  const btn = document.getElementById('rkf-' + modo);
+  if (btn) btn.classList.add('active');
+  document.querySelectorAll('.rec-ranking-item').forEach(item => {
+    const estado = (item.dataset.pollaEstado || 'activo').toLowerCase();
+    let visible = true;
+    if (modo === 'activos')   visible = (estado === 'activo');
+    if (modo === 'inactivos') visible = (estado !== 'activo');
+    item.style.display = visible ? '' : 'none';
+  });
+}
+</script>
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     NUEVOS ESTILOS: Financiero badge, estado polla, nuevos modales
+═══════════════════════════════════════════════════════════════════ -->
+<style>
+/* ── Filtro ranking ─────────────────────────────────────────────────── */
+.rec-rank-filter-wrap { display:flex;gap:4px; }
+.rec-rank-filter-btn {
+  padding:4px 11px;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;
+  background:var(--surface2);border:1px solid var(--border);color:var(--text2);
+  transition:all .15s;
+}
+.rec-rank-filter-btn:hover { border-color:var(--accent);color:var(--text); }
+.rec-rank-filter-btn.active { background:rgba(124,106,247,.15);border-color:rgba(124,106,247,.4);color:var(--accent); }
+
+/* ── Badge financiero ────────────────────────────────────────────────── */
+.badge-financiero {
+  display:inline-flex;align-items:center;gap:4px;padding:3px 10px;
+  border-radius:20px;font-size:11px;font-weight:700;
+  background:linear-gradient(135deg,rgba(250,173,20,.18),rgba(250,130,20,.12));
+  border:1px solid rgba(250,173,20,.45);color:#faad14;
+  margin-left:10px;vertical-align:middle;
+}
+/* ── Estado polla badge en ranking ──────────────────────────────────── */
+.rec-polla-estado-badge {
+  display:inline-flex;align-items:center;gap:3px;
+  font-size:10px;font-weight:700;padding:2px 7px;border-radius:12px;
+}
+.badge-estado-bloqueado  { background:rgba(239,68,68,.15);color:#ef4444;border:1px solid rgba(239,68,68,.3); }
+.badge-estado-excluido   { background:rgba(239,68,68,.1);color:#ef4444;border:1px solid rgba(239,68,68,.2); }
+.badge-estado-inactivo   { background:rgba(156,163,175,.12);color:#9ca3af;border:1px solid rgba(156,163,175,.25); }
+.badge-estado-desactivado{ background:rgba(156,163,175,.1);color:#9ca3af;border:1px solid rgba(156,163,175,.2); }
+
+/* ── Modal genérico compartido ──────────────────────────────────────── */
+.modal-fin-overlay {
+  position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:9998;
+  display:flex;align-items:center;justify-content:center;padding:16px;
+}
+.modal-fin-box {
+  background:var(--surface,#1a1a22);border:1px solid var(--border,#2e2e3e);
+  border-radius:16px;width:100%;max-width:640px;max-height:90vh;
+  display:flex;flex-direction:column;overflow:hidden;
+  box-shadow:0 24px 64px rgba(0,0,0,.5);
+}
+.modal-fin-header {
+  display:flex;align-items:center;justify-content:space-between;
+  padding:18px 20px;border-bottom:1px solid var(--border,#2e2e3e);flex-shrink:0;
+}
+.modal-fin-title { font-size:15px;font-weight:700;display:flex;align-items:center;gap:8px; }
+.modal-fin-close {
+  background:none;border:none;color:var(--text2,#9090aa);cursor:pointer;
+  padding:4px;border-radius:6px;display:flex;align-items:center;
+}
+.modal-fin-close:hover { color:var(--text,#f0f0f5);background:var(--surface2,#22222e); }
+.modal-fin-body { overflow-y:auto;padding:20px;flex:1; }
+.modal-fin-footer {
+  display:flex;gap:10px;justify-content:flex-end;
+  padding:14px 20px;border-top:1px solid var(--border,#2e2e3e);flex-shrink:0;
+}
+
+/* ── Tabla de invitados ─────────────────────────────────────────────── */
+.inv-table { width:100%;border-collapse:collapse;font-size:13px; }
+.inv-table th { text-align:left;padding:8px 10px;font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;border-bottom:1px solid var(--border); }
+.inv-table td { padding:10px;border-bottom:1px solid var(--border);vertical-align:middle; }
+.inv-table tbody tr:hover { background:rgba(255,255,255,.03); }
+.inv-tag-pagado    { background:rgba(34,197,94,.12);color:#22c55e;border:1px solid rgba(34,197,94,.25);padding:2px 7px;border-radius:10px;font-size:10px;font-weight:700; }
+.inv-tag-pendiente { background:rgba(234,179,8,.12);color:#eab308;border:1px solid rgba(234,179,8,.25);padding:2px 7px;border-radius:10px;font-size:10px;font-weight:700; }
+.inv-tag-rechazado { background:rgba(239,68,68,.12);color:#ef4444;border:1px solid rgba(239,68,68,.25);padding:2px 7px;border-radius:10px;font-size:10px;font-weight:700; }
+.inv-tag-sin       { background:rgba(100,100,100,.1);color:#777;border:1px solid rgba(100,100,100,.2);padding:2px 7px;border-radius:10px;font-size:10px;font-weight:700; }
+
+/* ── Tabla de participantes polla ───────────────────────────────────── */
+.part-table { width:100%;border-collapse:collapse;font-size:13px; }
+.part-table th { text-align:left;padding:8px 10px;font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;border-bottom:1px solid var(--border); }
+.part-table td { padding:10px;border-bottom:1px solid var(--border);vertical-align:middle; }
+.part-table tbody tr:hover { background:rgba(255,255,255,.03); }
+.part-estado-select {
+  background:var(--surface2,#22222e);border:1px solid var(--border);
+  color:var(--text);border-radius:6px;padding:4px 8px;font-size:12px;
+  cursor:pointer;outline:none;
+}
+
+/* ── Tabla auditoría ────────────────────────────────────────────────── */
+.audit-table { width:100%;border-collapse:collapse;font-size:12px; }
+.audit-table th { text-align:left;padding:7px 10px;font-size:10px;font-weight:700;color:var(--text2);text-transform:uppercase;border-bottom:1px solid var(--border); }
+.audit-table td { padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:middle;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
+.audit-table tbody tr:hover { background:rgba(255,255,255,.03); }
+
+/* ── Mini edit form ─────────────────────────────────────────────────── */
+.edit-inline-wrap { display:flex;flex-direction:column;gap:12px; }
+.edit-field { display:flex;flex-direction:column;gap:5px; }
+.edit-field label { font-size:12px;font-weight:600;color:var(--text2); }
+.edit-field input, .edit-field select, .edit-field textarea {
+  background:var(--surface2,#22222e);border:1px solid var(--border);
+  color:var(--text);border-radius:8px;padding:8px 12px;font-size:13px;
+  width:100%;outline:none;
+}
+.edit-field input:focus, .edit-field select:focus { border-color:var(--accent,#7c6af7); }
+
+/* ── Stats cards en modal ───────────────────────────────────────────── */
+.stats-grid-modal { display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px; }
+.stat-m { background:var(--surface2,#22222e);border:1px solid var(--border);border-radius:10px;padding:14px;text-align:center; }
+.stat-m-val { font-size:22px;font-weight:700;color:var(--accent,#7c6af7); }
+.stat-m-lbl { font-size:11px;color:var(--text2);margin-top:3px; }
+
+/* ── Botones genéricos ──────────────────────────────────────────────── */
+.btn-fin-primary {
+  display:inline-flex;align-items:center;gap:6px;
+  padding:8px 18px;border-radius:8px;font-size:13px;font-weight:600;
+  background:var(--accent,#7c6af7);color:#fff;border:none;cursor:pointer;
+}
+.btn-fin-primary:hover { opacity:.88; }
+.btn-fin-cancel {
+  display:inline-flex;align-items:center;gap:6px;
+  padding:8px 18px;border-radius:8px;font-size:13px;font-weight:600;
+  background:var(--surface2,#22222e);color:var(--text2);
+  border:1px solid var(--border);cursor:pointer;
+}
+.btn-fin-cancel:hover { border-color:var(--accent,#7c6af7);color:var(--text); }
+.fin-loading { text-align:center;padding:32px;color:var(--text2);font-size:13px; }
+</style>
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     MODAL: GESTIÓN DE INVITADOS
+═══════════════════════════════════════════════════════════════════ -->
+<div id="modal-invitados" class="modal-fin-overlay" style="display:none;" onclick="if(event.target===this)hide('modal-invitados')">
+  <div class="modal-fin-box" onclick="event.stopPropagation()">
+    <div class="modal-fin-header">
+      <div class="modal-fin-title">
+        <span class="material-symbols-outlined" style="color:#7c6af7">group</span>
+        Gestión de Invitados
+      </div>
+      <button class="modal-fin-close" onclick="hide('modal-invitados')">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
+    <div class="modal-fin-body" id="inv-body">
+      <div class="fin-loading">
+        <span class="material-symbols-outlined" style="font-size:32px;display:block;margin-bottom:8px;">hourglass_empty</span>
+        Cargando invitados…
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     MODAL: GESTIÓN DE PARTICIPANTES POLLA
+═══════════════════════════════════════════════════════════════════ -->
+<div id="modal-participantes" class="modal-fin-overlay" style="display:none;" onclick="if(event.target===this)hide('modal-participantes')">
+  <div class="modal-fin-box" onclick="event.stopPropagation()">
+    <div class="modal-fin-header">
+      <div class="modal-fin-title">
+        <span class="material-symbols-outlined" style="color:#f59e0b">sports_soccer</span>
+        Participantes de la Polla
+      </div>
+      <button class="modal-fin-close" onclick="hide('modal-participantes')">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
+    <div class="modal-fin-body" id="part-body">
+      <div class="fin-loading">Cargando…</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     MODAL: ESTADO DE PARTICIPANTE (inline desde ranking)
+═══════════════════════════════════════════════════════════════════ -->
+<div id="modal-estado-part" class="modal-fin-overlay" style="display:none;" onclick="if(event.target===this)hide('modal-estado-part')">
+  <div class="modal-fin-box" onclick="event.stopPropagation()" style="max-width:420px;">
+    <div class="modal-fin-header">
+      <div class="modal-fin-title">
+        <span class="material-symbols-outlined" style="color:#7c6af7">manage_accounts</span>
+        Estado en Polla: <span id="ep-nombre" style="margin-left:4px;color:var(--text2)"></span>
+      </div>
+      <button class="modal-fin-close" onclick="hide('modal-estado-part')">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
+    <div class="modal-fin-body">
+      <input type="hidden" id="ep-uid">
+      <div class="edit-inline-wrap">
+        <div class="edit-field">
+          <label>Nuevo estado</label>
+          <select id="ep-estado">
+            <option value="activo">✅ Activo (participa normalmente)</option>
+            <option value="bloqueado">🚫 Bloqueado (no puede participar)</option>
+            <option value="inactivo">⏸ Inactivo (temporalmente fuera)</option>
+            <option value="desactivado">🔕 Desactivado (sin acceso)</option>
+            <option value="excluido">⛔ Excluido (permanente)</option>
+          </select>
+        </div>
+        <div class="edit-field">
+          <label>Motivo (opcional)</label>
+          <input type="text" id="ep-motivo" placeholder="Ej: Por decisión del grupo" maxlength="200">
+        </div>
+      </div>
+    </div>
+    <div class="modal-fin-footer">
+      <button class="btn-fin-cancel" onclick="hide('modal-estado-part')">Cancelar</button>
+      <button class="btn-fin-primary" onclick="guardarEstadoParticipante()">
+        <span class="material-symbols-outlined">save</span> Guardar
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     MODAL: AUDITORÍA FINANCIERA
+═══════════════════════════════════════════════════════════════════ -->
+<div id="modal-auditoria" class="modal-fin-overlay" style="display:none;" onclick="if(event.target===this)hide('modal-auditoria')">
+  <div class="modal-fin-box" onclick="event.stopPropagation()" style="max-width:720px;">
+    <div class="modal-fin-header">
+      <div class="modal-fin-title">
+        <span class="material-symbols-outlined" style="color:#22c55e">history</span>
+        Auditoría Financiera
+      </div>
+      <button class="modal-fin-close" onclick="hide('modal-auditoria')">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
+    <div class="modal-fin-body" id="audit-body">
+      <div class="fin-loading">Cargando historial…</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     MODAL: ESTADÍSTICAS DE RECAUDACIÓN
+═══════════════════════════════════════════════════════════════════ -->
+<div id="modal-estadisticas" class="modal-fin-overlay" style="display:none;" onclick="if(event.target===this)hide('modal-estadisticas')">
+  <div class="modal-fin-box" onclick="event.stopPropagation()" style="max-width:480px;">
+    <div class="modal-fin-header">
+      <div class="modal-fin-title">
+        <span class="material-symbols-outlined" style="color:#f59e0b">bar_chart</span>
+        Estadísticas de Recaudación
+      </div>
+      <button class="modal-fin-close" onclick="hide('modal-estadisticas')">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
+    <div class="modal-fin-body" id="stats-body">
+      <div class="fin-loading">Cargando estadísticas…</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     MODAL: EDITAR EVENTO RÁPIDO
+═══════════════════════════════════════════════════════════════════ -->
+<div id="modal-editar-evento" class="modal-fin-overlay" style="display:none;" onclick="if(event.target===this)hide('modal-editar-evento')">
+  <div class="modal-fin-box" onclick="event.stopPropagation()" style="max-width:400px;">
+    <div class="modal-fin-header">
+      <div class="modal-fin-title">
+        <span class="material-symbols-outlined" style="color:#7c6af7">edit</span>
+        Editar Evento
+      </div>
+      <button class="modal-fin-close" onclick="hide('modal-editar-evento')">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
+    <div class="modal-fin-body">
+      <input type="hidden" id="ee-id">
+      <div class="edit-inline-wrap">
+        <div class="edit-field">
+          <label>Monto (COP)</label>
+          <input type="number" id="ee-monto" min="1" placeholder="200000">
+        </div>
+        <div class="edit-field">
+          <label>Estado</label>
+          <select id="ee-estado">
+            <option value="pendiente">⏳ Pendiente</option>
+            <option value="verificado">✅ Verificado</option>
+            <option value="rechazado">❌ Rechazado</option>
+          </select>
+        </div>
+        <div class="edit-field">
+          <label>Motivo del cambio (opcional)</label>
+          <input type="text" id="ee-motivo" placeholder="Ej: Corrección de monto" maxlength="200">
+        </div>
+      </div>
+    </div>
+    <div class="modal-fin-footer">
+      <button class="btn-fin-cancel" onclick="hide('modal-editar-evento')">Cancelar</button>
+      <button class="btn-fin-primary" onclick="guardarEditarEvento()">
+        <span class="material-symbols-outlined">save</span> Guardar
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     MODAL: EDITAR PAGO POLLA RÁPIDO
+═══════════════════════════════════════════════════════════════════ -->
+<div id="modal-editar-polla" class="modal-fin-overlay" style="display:none;" onclick="if(event.target===this)hide('modal-editar-polla')">
+  <div class="modal-fin-box" onclick="event.stopPropagation()" style="max-width:380px;">
+    <div class="modal-fin-header">
+      <div class="modal-fin-title">
+        <span class="material-symbols-outlined" style="color:#7c6af7">edit</span>
+        Editar Estado Pago Polla
+      </div>
+      <button class="modal-fin-close" onclick="hide('modal-editar-polla')">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
+    <div class="modal-fin-body">
+      <input type="hidden" id="ep2-id">
+      <div class="edit-inline-wrap">
+        <div class="edit-field">
+          <label>Nuevo estado</label>
+          <select id="ep2-estado">
+            <option value="pagado">💳 Pagado</option>
+            <option value="verificado">✅ Verificado</option>
+            <option value="pendiente">⏳ Pendiente</option>
+            <option value="rechazado">❌ Rechazado</option>
+          </select>
+        </div>
+        <div class="edit-field">
+          <label>Motivo (opcional)</label>
+          <input type="text" id="ep2-motivo" placeholder="Ej: Corrección de estado" maxlength="200">
+        </div>
+      </div>
+    </div>
+    <div class="modal-fin-footer">
+      <button class="btn-fin-cancel" onclick="hide('modal-editar-polla')">Cancelar</button>
+      <button class="btn-fin-primary" onclick="guardarEditarPolla()">
+        <span class="material-symbols-outlined">save</span> Guardar
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     JS: Nuevos modales y funciones
+═══════════════════════════════════════════════════════════════════ -->
+<script>
+// ── Helpers ─────────────────────────────────────────────────────────────────
+function show(id) { document.getElementById(id).style.display='flex'; }
+function hideModal(id) { document.getElementById(id).style.display='none'; }
+
+function fmtCOP(n) {
+  return '$' + Math.round(n).toLocaleString('es-CO');
+}
+function fmtFechaCorta(f) {
+  if (!f) return '—';
+  return f.slice(0,10);
+}
+
+// ── Gestión de invitados ─────────────────────────────────────────────────────
+async function abrirModalInvitados() {
+  show('modal-invitados');
+  const body = document.getElementById('inv-body');
+  body.innerHTML = '<div class="fin-loading"><span class="material-symbols-outlined" style="font-size:32px;display:block;margin-bottom:8px;">hourglass_empty</span>Cargando invitados…</div>';
+  try {
+    const r = await fetch('/api/fin/invitados');
+    const data = await r.json();
+    if (!data.length) {
+      body.innerHTML = '<div class="fin-loading">No hay invitados registrados.</div>';
+      return;
+    }
+    const tagMundial = (estado) => {
+      if (estado === 'aprobado') return '<span class="inv-tag-pagado">✓ Aprobado</span>';
+      if (estado === 'pendiente' || (estado && estado.startsWith('pendiente'))) return '<span class="inv-tag-pendiente">⏳ Pendiente</span>';
+      if (estado === 'rechazado') return '<span class="inv-tag-rechazado">✗ Rechazado</span>';
+      return '<span class="inv-tag-sin">Sin solicitud</span>';
+    };
+    body.innerHTML = `
+      <p style="font-size:12px;color:var(--text2);margin-bottom:14px;">${data.length} invitado(s) registrado(s) en el sistema.</p>
+      <div style="overflow-x:auto;">
+      <table class="inv-table">
+        <thead><tr>
+          <th>Usuario</th>
+          <th>Mundial</th>
+          <th>Aportes</th>
+          <th>Total</th>
+          <th>Estado</th>
+        </tr></thead>
+        <tbody>
+        ${data.map(u => `
+          <tr>
+            <td>
+              <div style="display:flex;align-items:center;gap:8px;">
+                ${u.foto ? `<img src="${u.foto}" style="width:28px;height:28px;border-radius:50%;object-fit:cover;" alt="">` : `<div style="width:28px;height:28px;border-radius:50%;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;">${(u.nombre||'?')[0].toUpperCase()}</div>`}
+                <div>
+                  <div style="font-weight:600;font-size:13px;">${u.nombre||'—'}</div>
+                  <div style="font-size:11px;color:var(--text2);">@${u.usuario||'—'}</div>
+                </div>
+              </div>
+            </td>
+            <td>${tagMundial(u.mundial_pagado)}</td>
+            <td style="text-align:center;">${u.num_aportes}</td>
+            <td style="font-weight:700;color:#22c55e;">${fmtCOP(u.total_aportado)}</td>
+            <td>${u.rec_bloqueado ? '<span class="inv-tag-rechazado">🔒 Bloqueado</span>' : '<span class="inv-tag-pagado">🟢 Activo</span>'}</td>
+          </tr>
+        `).join('')}
+        </tbody>
+      </table>
+      </div>
+    `;
+  } catch(e) {
+    body.innerHTML = '<div class="fin-loading">Error al cargar invitados.</div>';
+  }
+}
+
+// ── Gestión de participantes polla ───────────────────────────────────────────
+async function abrirModalParticipantes() {
+  show('modal-participantes');
+  const body = document.getElementById('part-body');
+  body.innerHTML = '<div class="fin-loading">Cargando participantes…</div>';
+  try {
+    const r = await fetch('/admin/polla_participantes');
+    const data = await r.json();
+    if (!data.length) {
+      body.innerHTML = '<div class="fin-loading">No hay miembros registrados.</div>';
+      return;
+    }
+    const ESTADO_LABELS_POLLA = {
+      activo: '✅ Activo', bloqueado: '🚫 Bloqueado',
+      inactivo: '⏸ Inactivo', desactivado: '🔕 Desactivado', excluido: '⛔ Excluido'
+    };
+    const estadoOpt = (current) => ['activo','bloqueado','inactivo','desactivado','excluido']
+      .map(e => `<option value="${e}" ${e===current?'selected':''}>${ESTADO_LABELS_POLLA[e]||e}</option>`)
+      .join('');
+    body.innerHTML = `
+      <p style="font-size:12px;color:var(--text2);margin-bottom:14px;">
+        Gestiona la participación de cada miembro en la polla mundialista.
+      </p>
+      <div style="overflow-x:auto;">
+      <table class="part-table">
+        <thead><tr>
+          <th>Miembro</th>
+          <th>Estado polla</th>
+          <th>Acción</th>
+        </tr></thead>
+        <tbody>
+        ${data.map(u => `
+          <tr id="part-row-${u.id}">
+            <td>
+              <div style="display:flex;align-items:center;gap:8px;">
+                ${u.foto ? `<img src="${u.foto}" style="width:26px;height:26px;border-radius:50%;object-fit:cover;" alt="">` : `<div style="width:26px;height:26px;border-radius:50%;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:11px;">${(u.nombre||'?')[0].toUpperCase()}</div>`}
+                <div>
+                  <div style="font-weight:600;font-size:13px;">${u.nombre}</div>
+                  <div style="font-size:11px;color:var(--text2);">@${u.usuario}</div>
+                </div>
+              </div>
+            </td>
+            <td>
+              <select class="part-estado-select" id="ps-${u.id}" data-uid="${u.id}">
+                ${estadoOpt(u.polla_estado||'activo')}
+              </select>
+            </td>
+            <td>
+              <button class="btn-fin-primary" style="padding:5px 12px;font-size:12px;" onclick="guardarEstadoParticipanteFromTable(${u.id})">
+                <span class="material-symbols-outlined" style="font-size:14px;">save</span>
+              </button>
+            </td>
+          </tr>
+        `).join('')}
+        </tbody>
+      </table>
+      </div>
+    `;
+  } catch(e) {
+    body.innerHTML = '<div class="fin-loading">Error al cargar participantes.</div>';
+  }
+}
+
+async function guardarEstadoParticipanteFromTable(uid) {
+  const sel = document.getElementById('ps-' + uid);
+  if (!sel) return;
+  const estado = sel.value;
+  const fd = new FormData();
+  fd.append('uid', uid);
+  fd.append('estado', estado);
+  try {
+    const r = await fetch('/admin/polla_estado', { method:'POST', body:fd });
+    const d = await r.json();
+    if (d.ok) {
+      mostrarToastFin(d.msg || 'Estado actualizado', true);
+    } else {
+      mostrarToastFin(d.msg || 'Error', false);
+    }
+  } catch(e) {
+    mostrarToastFin('Error de conexión', false);
+  }
+}
+
+// ── Modal estado participante (inline desde ranking) ─────────────────────────
+function abrirModalEstadoParticipante(uid, nombre, estadoActual) {
+  document.getElementById('ep-uid').value = uid;
+  document.getElementById('ep-nombre').textContent = nombre;
+  const sel = document.getElementById('ep-estado');
+  sel.value = estadoActual || 'activo';
+  document.getElementById('ep-motivo').value = '';
+  show('modal-estado-part');
+}
+
+async function guardarEstadoParticipante() {
+  const uid = document.getElementById('ep-uid').value;
+  const estado = document.getElementById('ep-estado').value;
+  const motivo = document.getElementById('ep-motivo').value;
+  const fd = new FormData();
+  fd.append('uid', uid);
+  fd.append('estado', estado);
+  fd.append('motivo', motivo);
+  try {
+    const r = await fetch('/admin/polla_estado', { method:'POST', body:fd });
+    const d = await r.json();
+    hideModal('modal-estado-part');
+    if (d.ok) {
+      mostrarToastFin(d.msg || 'Estado actualizado', true);
+      setTimeout(() => location.reload(), 800);
+    } else {
+      mostrarToastFin(d.msg || 'Error', false);
+    }
+  } catch(e) {
+    mostrarToastFin('Error de conexión', false);
+  }
+}
+
+// ── Auditoría ────────────────────────────────────────────────────────────────
+async function abrirModalAuditoria() {
+  show('modal-auditoria');
+  const body = document.getElementById('audit-body');
+  body.innerHTML = '<div class="fin-loading">Cargando historial…</div>';
+  try {
+    const r = await fetch('/api/fin/auditoria');
+    const data = await r.json();
+    if (!data.length) {
+      body.innerHTML = '<div class="fin-loading">No hay registros de auditoría aún.</div>';
+      return;
+    }
+    const accionLabel = (a) => ({
+      'asignar_financiero': '🏅 Asignó Financiero/a',
+      'retirar_financiero': '🔻 Retiró Financiero/a',
+      'polla_estado_activo': '✅ Activó participante',
+      'polla_estado_bloqueado': '🚫 Bloqueó participante',
+      'polla_estado_excluido': '⛔ Excluyó participante',
+      'polla_estado_inactivo': '⏸ Desactivó temporalmente',
+      'polla_estado_desactivado': '🔕 Desactivó participante',
+      'editar_monto_aporte': '✏️ Editó monto aporte',
+      'editar_desc_aporte': '✏️ Editó descripción aporte',
+      'editar_verificado_aporte': '✏️ Cambió verificación aporte',
+      'editar_monto_evento': '✏️ Editó monto evento',
+      'editar_estado_evento': '✏️ Cambió estado evento',
+      'editar_estado_polla': '✏️ Cambió estado pago polla',
+    }[a] || a);
+    body.innerHTML = `
+      <div style="overflow-x:auto;max-height:60vh;">
+      <table class="audit-table">
+        <thead><tr>
+          <th>Quién</th>
+          <th>Acción</th>
+          <th>Afecta a</th>
+          <th>Antes</th>
+          <th>Después</th>
+          <th>Motivo</th>
+          <th>Fecha</th>
+        </tr></thead>
+        <tbody>
+        ${data.map(a => `
+          <tr>
+            <td title="${a.actor_usuario||''}"><strong>${a.actor_nombre||'—'}</strong></td>
+            <td>${accionLabel(a.accion)}</td>
+            <td>${a.target_nombre||'—'}</td>
+            <td style="color:var(--text2);font-size:11px;">${a.valor_antes||'—'}</td>
+            <td style="color:#22c55e;font-size:11px;">${a.valor_nuevo||'—'}</td>
+            <td style="color:var(--text2);font-size:11px;">${a.motivo||'—'}</td>
+            <td style="color:var(--text2);font-size:11px;">${fmtFechaCorta(a.fecha)}</td>
+          </tr>
+        `).join('')}
+        </tbody>
+      </table>
+      </div>
+    `;
+  } catch(e) {
+    body.innerHTML = '<div class="fin-loading">Error al cargar auditoría.</div>';
+  }
+}
+
+// ── Estadísticas ─────────────────────────────────────────────────────────────
+async function abrirModalEstadisticas() {
+  show('modal-estadisticas');
+  const body = document.getElementById('stats-body');
+  body.innerHTML = '<div class="fin-loading">Cargando estadísticas…</div>';
+  try {
+    const r = await fetch('/api/fin/estadisticas');
+    const d = await r.json();
+    if (d.ok === false) { body.innerHTML = '<div class="fin-loading">Sin permiso.</div>'; return; }
+    body.innerHTML = `
+      <div class="stats-grid-modal">
+        <div class="stat-m"><div class="stat-m-val" style="color:#22c55e;">${fmtCOP(d.total_general)}</div><div class="stat-m-lbl">Total recaudado</div></div>
+        <div class="stat-m"><div class="stat-m-val" style="color:#7c6af7;">${fmtCOP(d.meta)}</div><div class="stat-m-lbl">Meta</div></div>
+        <div class="stat-m"><div class="stat-m-val" style="color:#f59e0b;">${d.pct}%</div><div class="stat-m-lbl">Progreso</div></div>
+        <div class="stat-m"><div class="stat-m-val" style="color:#0095f6;">${fmtCOP(d.total_eventos)}</div><div class="stat-m-lbl">Eventos verificados</div></div>
+        <div class="stat-m"><div class="stat-m-val" style="color:#eab308;">${fmtCOP(d.total_polla)}</div><div class="stat-m-lbl">Polla verificada</div></div>
+        <div class="stat-m"><div class="stat-m-val" style="color:#ef4444;">${d.pendientes_verificacion}</div><div class="stat-m-lbl">Pendientes verificación</div></div>
+        <div class="stat-m"><div class="stat-m-val">${d.participantes_activos}</div><div class="stat-m-lbl">Participantes activos polla</div></div>
+        <div class="stat-m"><div class="stat-m-val" style="color:#eab308;">${d.invitados_count}</div><div class="stat-m-lbl">Invitados registrados</div></div>
+      </div>
+    `;
+  } catch(e) {
+    body.innerHTML = '<div class="fin-loading">Error al cargar estadísticas.</div>';
+  }
+}
+
+// ── Editar evento rápido ─────────────────────────────────────────────────────
+function abrirEditarEvento(id, monto, estado) {
+  document.getElementById('ee-id').value = id;
+  document.getElementById('ee-monto').value = monto;
+  document.getElementById('ee-estado').value = estado || 'pendiente';
+  document.getElementById('ee-motivo').value = '';
+  show('modal-editar-evento');
+}
+
+async function guardarEditarEvento() {
+  const id = document.getElementById('ee-id').value;
+  const monto = document.getElementById('ee-monto').value;
+  const estado = document.getElementById('ee-estado').value;
+  const motivo = document.getElementById('ee-motivo').value;
+  try {
+    const r = await fetch('/api/fin/editar_evento', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ id, monto: parseFloat(monto), estado, motivo })
+    });
+    const d = await r.json();
+    hideModal('modal-editar-evento');
+    if (d.ok) {
+      mostrarToastFin('Evento actualizado ✅', true);
+      setTimeout(() => cargarHistorial(), 500);
+    } else {
+      mostrarToastFin(d.error || 'Error', false);
+    }
+  } catch(e) {
+    mostrarToastFin('Error de conexión', false);
+  }
+}
+
+// ── Editar pago polla rápido ──────────────────────────────────────────────────
+function abrirEditarPolla(id, estado) {
+  document.getElementById('ep2-id').value = id;
+  document.getElementById('ep2-estado').value = estado || 'pagado';
+  document.getElementById('ep2-motivo').value = '';
+  show('modal-editar-polla');
+}
+
+async function guardarEditarPolla() {
+  const id = document.getElementById('ep2-id').value;
+  const estado = document.getElementById('ep2-estado').value;
+  const motivo = document.getElementById('ep2-motivo').value;
+  try {
+    const r = await fetch('/api/fin/editar_polla_pago', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ id, estado, motivo })
+    });
+    const d = await r.json();
+    hideModal('modal-editar-polla');
+    if (d.ok) {
+      mostrarToastFin('Pago actualizado ✅', true);
+      setTimeout(() => cargarHistorial(), 500);
+    } else {
+      mostrarToastFin(d.error || 'Error', false);
+    }
+  } catch(e) {
+    mostrarToastFin('Error de conexión', false);
+  }
+}
+
+// ── Toast para nuevos modales ─────────────────────────────────────────────────
+function mostrarToastFin(msg, ok = true) {
+  // Reutiliza el toast existente si existe, sino crea uno
+  let t = document.getElementById('toast-fin');
+  if (!t) {
+    t = document.createElement('div');
+    t.id = 'toast-fin';
+    t.style.cssText = 'position:fixed;bottom:80px;right:24px;z-index:99999;padding:12px 18px;border-radius:10px;font-size:13px;font-weight:600;display:none;align-items:center;gap:8px;box-shadow:0 8px 32px rgba(0,0,0,.4);';
+    document.body.appendChild(t);
+  }
+  t.textContent = (ok ? '✅ ' : '❌ ') + msg;
+  t.style.background = ok ? 'rgba(34,197,94,.15)' : 'rgba(239,68,68,.15)';
+  t.style.border = ok ? '1px solid rgba(34,197,94,.4)' : '1px solid rgba(239,68,68,.4)';
+  t.style.color = ok ? '#22c55e' : '#ef4444';
+  t.style.display = 'flex';
+  clearTimeout(t._to);
+  t._to = setTimeout(() => { t.style.display = 'none'; }, 3500);
+}
+
+// ── Patch: asegura que los nuevos modales cierren con ESC ─────────────────────
+document.addEventListener('keydown', function(e) {
+  if (e.key !== 'Escape') return;
+  ['modal-invitados','modal-participantes','modal-estado-part',
+   'modal-auditoria','modal-estadisticas','modal-editar-evento','modal-editar-polla']
+    .forEach(id => {
+      const el = document.getElementById(id);
+      if (el && el.style.display !== 'none') el.style.display = 'none';
+    });
+});
 </script>

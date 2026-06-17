@@ -1,4 +1,4 @@
-from decorators import miembro_required
+from decorators import miembro_required, financiero_required
 import json
 from flask import Blueprint, request, redirect, session, jsonify
 from database import get_db
@@ -20,6 +20,19 @@ def _save_file(file_obj):
         return None
     url, _ = subir_a_cloudinary(file_obj, folder="familia/finanzas")
     return url
+
+def _es_admin_o_financiero():
+    return session.get("rol") == "admin" or session.get("es_financiero", False)
+
+def _registrar_auditoria(con, actor_id, target_id, accion, campo="", valor_antes="", valor_nuevo="", motivo=""):
+    """Registra acción en auditoría financiera."""
+    try:
+        con.execute("""
+            INSERT INTO auditoria_financiera(actor_id, target_id, accion, campo, valor_antes, valor_nuevo, motivo)
+            VALUES(%s, %s, %s, %s, %s, %s, %s)
+        """, (actor_id, target_id, accion, campo, str(valor_antes), str(valor_nuevo), motivo))
+    except Exception as e:
+        print(f"Auditoría fin warning: {e}")
 
 @fin_bp.route("/aporte", methods=["POST"])
 @miembro_required
@@ -274,7 +287,7 @@ def api_historial():
 
 @fin_bp.route("/verificar_evento/<int:eid>", methods=["POST"])
 def verificar_evento(eid):
-    if session.get("rol") != "admin":
+    if not _es_admin_o_financiero():
         return (jsonify({"ok": False}), 403) if _is_ajax() else redirect("/dashboard")
     con = get_db()
     con.execute("UPDATE eventos_recaudacion SET estado='verificado' WHERE id=%s", (eid,))
@@ -285,7 +298,7 @@ def verificar_evento(eid):
 
 @fin_bp.route("/eliminar_aporte/<int:aid>", methods=["POST"])
 def eliminar_aporte(aid):
-    if session.get("rol") != "admin":
+    if not _es_admin_o_financiero():
         return (jsonify({"ok": False}), 403) if _is_ajax() else redirect("/dashboard")
     con = get_db()
     con.execute("DELETE FROM aportes WHERE id=%s", (aid,))
@@ -296,7 +309,7 @@ def eliminar_aporte(aid):
 
 @fin_bp.route("/verificar_aporte/<int:aid>", methods=["POST"])
 def verificar_aporte(aid):
-    if session.get("rol") != "admin":
+    if not _es_admin_o_financiero():
         return (jsonify({"ok": False}), 403) if _is_ajax() else redirect("/dashboard")
     con = get_db()
     con.execute("UPDATE aportes SET verificado=1 WHERE id=%s", (aid,))
@@ -307,7 +320,7 @@ def verificar_aporte(aid):
 
 @fin_bp.route("/verificar_polla/<int:pid>", methods=["POST"])
 def verificar_polla(pid):
-    if session.get("rol") != "admin":
+    if not _es_admin_o_financiero():
         return (jsonify({"ok": False}), 403) if _is_ajax() else redirect("/dashboard")
     con = get_db()
     con.execute("UPDATE polla_pagos SET estado='verificado' WHERE id=%s", (pid,))
@@ -318,7 +331,7 @@ def verificar_polla(pid):
 
 @fin_bp.route("/eliminar_pago/<tipo>/<int:rid>", methods=["POST"])
 def eliminar_pago(tipo, rid):
-    if session.get("rol") != "admin":
+    if not _es_admin_o_financiero():
         return (jsonify({"ok": False}), 403) if _is_ajax() else redirect("/dashboard")
     con = get_db()
     if tipo == "evento":
@@ -335,7 +348,7 @@ def eliminar_pago(tipo, rid):
 
 @fin_bp.route("/api/admin/meta", methods=["POST"])
 def api_admin_meta():
-    if session.get("rol") != "admin":
+    if not _es_admin_o_financiero():
         return jsonify({"ok": False, "error": "Sin permiso"}), 403
     data = request.get_json(silent=True) or {}
     try:
@@ -356,7 +369,7 @@ def api_admin_meta():
 @fin_bp.route("/api/admin/fix_polla_montos", methods=["POST"])
 def fix_polla_montos():
     """Corrige montos de polla_pagos existentes segun los precios actuales por fase."""
-    if session.get("rol") != "admin":
+    if not _es_admin_o_financiero():
         return jsonify({"ok": False, "error": "Sin permiso"}), 403
     con = get_db()
     actualizados = 0
@@ -372,7 +385,7 @@ def fix_polla_montos():
 @fin_bp.route("/api/admin/bloquear_recaudacion", methods=["POST"])
 def bloquear_recaudacion():
     """Bloquea o desbloquea a un usuario de la sección de recaudación."""
-    if session.get("rol") != "admin":
+    if not _es_admin_o_financiero():
         return jsonify({"ok": False, "error": "Sin permiso"}), 403
     data = request.get_json(silent=True) or {}
     usuario_id = data.get("usuario_id")
@@ -398,7 +411,7 @@ def bloquear_recaudacion():
 @fin_bp.route("/api/admin/quitar_polla", methods=["POST"])
 def quitar_polla():
     """Elimina el pago de polla de un usuario en una fase específica (admin)."""
-    if session.get("rol") != "admin":
+    if not _es_admin_o_financiero():
         return jsonify({"ok": False, "error": "Sin permiso"}), 403
     data = request.get_json(silent=True) or {}
     usuario_id = data.get("usuario_id")
@@ -414,3 +427,235 @@ def quitar_polla():
     if result.rowcount == 0:
         return jsonify({"ok": False, "error": "No se encontró el pago"}), 404
     return jsonify({"ok": True})
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# NUEVOS ENDPOINTS: Gestión de Invitados, Edición Rápida, Auditoría
+# ══════════════════════════════════════════════════════════════════════════════
+
+@fin_bp.route("/api/fin/invitados")
+def api_invitados():
+    """Lista todos los usuarios con rol invitado con su info financiera."""
+    if "uid" not in session:
+        return jsonify({"ok": False}), 401
+    if not _es_admin_o_financiero():
+        return jsonify({"ok": False, "error": "Sin permiso"}), 403
+    con = get_db()
+    rows = con.execute("""
+        SELECT u.id, u.nombre, u.usuario, u.foto,
+               COALESCE(u.mundial_pagado, 'sin_solicitud') AS mundial_pagado,
+               COALESCE(u.rec_bloqueado, 0) AS rec_bloqueado,
+               COALESCE(SUM(a.monto), 0) AS total_aportado,
+               COUNT(a.id) AS num_aportes
+        FROM usuarios u
+        LEFT JOIN aportes a ON a.usuario_id = u.id
+        WHERE u.rol = 'invitado'
+        GROUP BY u.id, u.nombre, u.usuario, u.foto, u.mundial_pagado, u.rec_bloqueado
+        ORDER BY u.nombre ASC
+    """).fetchall()
+    return jsonify([dict(r) for r in rows])
+
+
+@fin_bp.route("/api/fin/invitado/<int:uid_target>/aportes")
+def api_invitado_aportes(uid_target):
+    """Detalle de aportes de un invitado específico."""
+    if "uid" not in session:
+        return jsonify({"ok": False}), 401
+    if not _es_admin_o_financiero():
+        return jsonify({"ok": False, "error": "Sin permiso"}), 403
+    con = get_db()
+    aportes = con.execute("""
+        SELECT id, monto, descripcion, comprobante, verificado, fecha
+        FROM aportes WHERE usuario_id=%s ORDER BY fecha DESC
+    """, (uid_target,)).fetchall()
+    return jsonify([dict(a) for a in aportes])
+
+
+@fin_bp.route("/api/fin/editar_aporte", methods=["POST"])
+def editar_aporte():
+    """Edición rápida de un aporte (monto, descripción, estado) para Admin/Financiero."""
+    if not _es_admin_o_financiero():
+        return jsonify({"ok": False, "error": "Sin permiso"}), 403
+    data = request.get_json(silent=True) or {}
+    aporte_id = data.get("id")
+    if not aporte_id:
+        return jsonify({"ok": False, "error": "id requerido"}), 400
+
+    con = get_db()
+    aporte = con.execute(
+        "SELECT id, monto, descripcion, verificado, usuario_id FROM aportes WHERE id=%s",
+        (aporte_id,)
+    ).fetchone()
+    if not aporte:
+        return jsonify({"ok": False, "error": "Aporte no encontrado"}), 404
+
+    cambios = []
+    motivo = data.get("motivo", "")
+
+    if "monto" in data:
+        try:
+            nuevo_monto = float(data["monto"])
+            if nuevo_monto <= 0:
+                raise ValueError
+        except (ValueError, TypeError):
+            return jsonify({"ok": False, "error": "Monto inválido"}), 400
+        _registrar_auditoria(con, session["uid"], aporte["usuario_id"],
+            "editar_monto_aporte", "monto", aporte["monto"], nuevo_monto, motivo)
+        con.execute("UPDATE aportes SET monto=%s WHERE id=%s", (nuevo_monto, aporte_id))
+        cambios.append("monto")
+
+    if "descripcion" in data:
+        nueva_desc = str(data["descripcion"])[:300]
+        _registrar_auditoria(con, session["uid"], aporte["usuario_id"],
+            "editar_desc_aporte", "descripcion", aporte["descripcion"], nueva_desc, motivo)
+        con.execute("UPDATE aportes SET descripcion=%s WHERE id=%s", (nueva_desc, aporte_id))
+        cambios.append("descripcion")
+
+    if "verificado" in data:
+        nuevo_ver = 1 if data["verificado"] else 0
+        _registrar_auditoria(con, session["uid"], aporte["usuario_id"],
+            "editar_verificado_aporte", "verificado", aporte["verificado"], nuevo_ver, motivo)
+        con.execute("UPDATE aportes SET verificado=%s WHERE id=%s", (nuevo_ver, aporte_id))
+        cambios.append("verificado")
+
+    con.commit()
+    return jsonify({"ok": True, "campos": cambios})
+
+
+@fin_bp.route("/api/fin/editar_evento", methods=["POST"])
+def editar_evento():
+    """Edición rápida de un evento de recaudación."""
+    if not _es_admin_o_financiero():
+        return jsonify({"ok": False, "error": "Sin permiso"}), 403
+    data = request.get_json(silent=True) or {}
+    ev_id = data.get("id")
+    if not ev_id:
+        return jsonify({"ok": False, "error": "id requerido"}), 400
+
+    con = get_db()
+    ev = con.execute(
+        "SELECT id, monto, nombre_evento, estado, usuario_id FROM eventos_recaudacion WHERE id=%s",
+        (ev_id,)
+    ).fetchone()
+    if not ev:
+        return jsonify({"ok": False, "error": "Evento no encontrado"}), 404
+
+    motivo = data.get("motivo", "")
+    cambios = []
+
+    if "monto" in data:
+        try:
+            nuevo_monto = float(data["monto"])
+            if nuevo_monto <= 0:
+                raise ValueError
+        except (ValueError, TypeError):
+            return jsonify({"ok": False, "error": "Monto inválido"}), 400
+        _registrar_auditoria(con, session["uid"], ev["usuario_id"],
+            "editar_monto_evento", "monto", ev["monto"], nuevo_monto, motivo)
+        con.execute("UPDATE eventos_recaudacion SET monto=%s WHERE id=%s", (nuevo_monto, ev_id))
+        # Sync con tabla aportes
+        con.execute("UPDATE aportes SET monto=%s WHERE descripcion=%s",
+                    (nuevo_monto, f"Evento: {ev['nombre_evento']}"))
+        cambios.append("monto")
+
+    if "estado" in data:
+        estados_v = ("pendiente", "verificado", "rechazado")
+        nuevo_estado = data["estado"] if data["estado"] in estados_v else None
+        if nuevo_estado:
+            _registrar_auditoria(con, session["uid"], ev["usuario_id"],
+                "editar_estado_evento", "estado", ev["estado"], nuevo_estado, motivo)
+            con.execute("UPDATE eventos_recaudacion SET estado=%s WHERE id=%s", (nuevo_estado, ev_id))
+            cambios.append("estado")
+
+    con.commit()
+    return jsonify({"ok": True, "campos": cambios})
+
+
+@fin_bp.route("/api/fin/editar_polla_pago", methods=["POST"])
+def editar_polla_pago():
+    """Edición rápida de un pago de polla (estado)."""
+    if not _es_admin_o_financiero():
+        return jsonify({"ok": False, "error": "Sin permiso"}), 403
+    data = request.get_json(silent=True) or {}
+    pago_id = data.get("id")
+    if not pago_id:
+        return jsonify({"ok": False, "error": "id requerido"}), 400
+
+    con = get_db()
+    pago = con.execute(
+        "SELECT id, estado, usuario_id, fase FROM polla_pagos WHERE id=%s", (pago_id,)
+    ).fetchone()
+    if not pago:
+        return jsonify({"ok": False, "error": "Pago no encontrado"}), 404
+
+    motivo = data.get("motivo", "")
+    if "estado" in data:
+        estados_v = ("pagado", "verificado", "pendiente", "rechazado")
+        nuevo_estado = data["estado"] if data["estado"] in estados_v else None
+        if nuevo_estado:
+            _registrar_auditoria(con, session["uid"], pago["usuario_id"],
+                "editar_estado_polla", "estado", pago["estado"], nuevo_estado, motivo)
+            con.execute("UPDATE polla_pagos SET estado=%s WHERE id=%s", (nuevo_estado, pago_id))
+            con.commit()
+            return jsonify({"ok": True})
+
+    return jsonify({"ok": False, "error": "Nada que actualizar"}), 400
+
+
+@fin_bp.route("/api/fin/auditoria")
+def api_auditoria():
+    """Historial de auditoría financiera — Admin y Financiero."""
+    if not _es_admin_o_financiero():
+        return jsonify({"ok": False, "error": "Sin permiso"}), 403
+    con = get_db()
+    try:
+        rows = con.execute("""
+            SELECT af.id, af.accion, af.campo, af.valor_antes, af.valor_nuevo,
+                   af.motivo, af.fecha,
+                   a.nombre AS actor_nombre, a.usuario AS actor_usuario,
+                   t.nombre AS target_nombre, t.usuario AS target_usuario
+            FROM auditoria_financiera af
+            JOIN usuarios a ON a.id = af.actor_id
+            LEFT JOIN usuarios t ON t.id = af.target_id
+            ORDER BY af.fecha DESC
+            LIMIT 100
+        """).fetchall()
+        return jsonify([dict(r) for r in rows])
+    except Exception:
+        return jsonify([])
+
+
+@fin_bp.route("/api/fin/estadisticas")
+def api_estadisticas():
+    """Estadísticas de recaudación para Admin y Financiero."""
+    if not _es_admin_o_financiero():
+        return jsonify({"ok": False, "error": "Sin permiso"}), 403
+    con = get_db()
+    total_general = con.execute("SELECT COALESCE(SUM(monto),0) FROM aportes").fetchone()[0]
+    total_eventos = con.execute(
+        "SELECT COALESCE(SUM(monto),0) FROM eventos_recaudacion WHERE estado='verificado'"
+    ).fetchone()[0]
+    total_polla = con.execute(
+        "SELECT COALESCE(SUM(monto),0) FROM polla_pagos WHERE estado='verificado'"
+    ).fetchone()[0]
+    pendientes = con.execute(
+        "SELECT COUNT(*) FROM eventos_recaudacion WHERE estado='pendiente'"
+    ).fetchone()[0]
+    participantes_activos = con.execute(
+        "SELECT COUNT(*) FROM usuarios WHERE rol IN ('miembro','admin') AND COALESCE(polla_activo, TRUE)=TRUE"
+    ).fetchone()[0]
+    invitados_count = con.execute(
+        "SELECT COUNT(*) FROM usuarios WHERE rol='invitado'"
+    ).fetchone()[0]
+    cfg_meta = con.execute("SELECT valor FROM config WHERE clave='meta_recaudacion'").fetchone()
+    meta = float(cfg_meta["valor"]) if cfg_meta else 500000
+    return jsonify({
+        "total_general": float(total_general),
+        "total_eventos": float(total_eventos),
+        "total_polla": float(total_polla),
+        "pendientes_verificacion": int(pendientes),
+        "participantes_activos": int(participantes_activos),
+        "invitados_count": int(invitados_count),
+        "meta": float(meta),
+        "pct": round(float(total_general) / float(meta) * 100, 1) if meta > 0 else 0,
+    })
