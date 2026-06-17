@@ -277,7 +277,7 @@
               {% endif %}
             </div>
             <div class="progress-bar-bg" style="height:6px;border-radius:10px;overflow:hidden;background:rgba(128,128,128,0.18);">
-              <div class="progress-bar-fill rank-bar-fill" style="width:{{ r.porcentaje }}%;height:6px;background:var(--accent-gradient,linear-gradient(90deg,#ff6b9d,#ff4d8d,#c9236a));border-radius:99px;"></div>
+              <div class="rank-bar-fill" style="width:{{ r.porcentaje }}%;height:6px;background:linear-gradient(90deg,#ff6b9d,#ff4d8d,#c9236a);border-radius:99px;flex-shrink:0;"></div>
             </div>
           </div>
         </div>
@@ -1449,23 +1449,24 @@ body.dark-mode .rec-meta-actual { background:var(--bg2);border-color:var(--borde
 /* ---- BLOQUEAR MIEMBRO inline en ranking ---- */
 .rec-rank-block-btn {
   margin-left: auto;
-  width: 26px; height: 26px;
-  border-radius: 7px;
-  border: 1px solid transparent;
-  background: transparent;
-  color: var(--text2);
+  width: 28px; height: 28px;
+  border-radius: 8px;
+  border: 1px solid rgba(249,168,37,.35);
+  background: rgba(249,168,37,.08);
+  color: #f9a825;
   cursor: pointer;
   display: flex; align-items: center; justify-content: center;
-  opacity: 0;
+  opacity: 0.55;
   transition: all .15s;
   flex-shrink: 0;
 }
-.rec-rank-block-btn .material-symbols-outlined { font-size: 15px; }
+.rec-rank-block-btn .material-symbols-outlined { font-size: 16px; }
 .rec-ranking-item:hover .rec-rank-block-btn { opacity: 1; }
 .rec-rank-block-btn:hover {
-  background: rgba(249,168,37,.15);
-  border-color: rgba(249,168,37,.4);
+  background: rgba(249,168,37,.22);
+  border-color: #f9a825;
   color: #f9a825;
+  transform: scale(1.1);
 }
 
 body.dark-mode .admin-ctrl-menu { background:var(--card);border-color:var(--border); }
