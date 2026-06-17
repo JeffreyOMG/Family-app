@@ -3494,6 +3494,548 @@ async function guardarEstadoParticipante() {
       mostrarToastFin(d.msg || 'Error', false);
     }
   } catch(e) {
+    alert('Error de conexión');
+    btn.disabled = false;
+    btn.innerHTML = '<span class="material-symbols-outlined">person_off</span> Bloquear acceso';
+  }
+}
+
+function cerrarModalBloquear(e) {
+  if (!e || e.target === document.getElementById('modal-bloquear')) {
+    hide('modal-bloquear');
+    _bloquearUserId = null;
+  }
+}
+
+// ── Filtro de ranking por estado polla ───────────────────────────────────────
+function filtrarRanking(modo) {
+  document.querySelectorAll('.rec-rank-filter-btn').forEach(b => b.classList.remove('active'));
+  const btn = document.getElementById('rkf-' + modo);
+  if (btn) btn.classList.add('active');
+  document.querySelectorAll('.rec-ranking-item').forEach(item => {
+    const estado = (item.dataset.pollaEstado || 'activo').toLowerCase();
+    let visible = true;
+    if (modo === 'activos')   visible = (estado === 'activo');
+    if (modo === 'inactivos') visible = (estado !== 'activo');
+    item.style.display = visible ? '' : 'none';
+  });
+}
+</script>
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     NUEVOS ESTILOS: Financiero badge, estado polla, nuevos modales
+═══════════════════════════════════════════════════════════════════ -->
+<style>
+/* ── Filtro ranking ─────────────────────────────────────────────────── */
+.rec-rank-filter-wrap { display:flex;gap:4px; }
+.rec-rank-filter-btn {
+  padding:4px 11px;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;
+  background:var(--surface2);border:1px solid var(--border);color:var(--text2);
+  transition:all .15s;
+}
+.rec-rank-filter-btn:hover { border-color:var(--accent);color:var(--text); }
+.rec-rank-filter-btn.active { background:rgba(124,106,247,.15);border-color:rgba(124,106,247,.4);color:var(--accent); }
+
+/* ── Badge financiero ────────────────────────────────────────────────── */
+.badge-financiero {
+  display:inline-flex;align-items:center;gap:4px;padding:3px 10px;
+  border-radius:20px;font-size:11px;font-weight:700;
+  background:linear-gradient(135deg,rgba(250,173,20,.18),rgba(250,130,20,.12));
+  border:1px solid rgba(250,173,20,.45);color:#faad14;
+  margin-left:10px;vertical-align:middle;
+}
+/* ── Estado polla badge en ranking ──────────────────────────────────── */
+.rec-polla-estado-badge {
+  display:inline-flex;align-items:center;gap:3px;
+  font-size:10px;font-weight:700;padding:2px 7px;border-radius:12px;
+}
+.badge-estado-bloqueado  { background:rgba(239,68,68,.15);color:#ef4444;border:1px solid rgba(239,68,68,.3); }
+.badge-estado-excluido   { background:rgba(239,68,68,.1);color:#ef4444;border:1px solid rgba(239,68,68,.2); }
+.badge-estado-inactivo   { background:rgba(156,163,175,.12);color:#9ca3af;border:1px solid rgba(156,163,175,.25); }
+.badge-estado-desactivado{ background:rgba(156,163,175,.1);color:#9ca3af;border:1px solid rgba(156,163,175,.2); }
+
+/* ── Modal genérico compartido ──────────────────────────────────────── */
+.modal-fin-overlay {
+  position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:9998;
+  display:flex;align-items:center;justify-content:center;padding:16px;
+}
+.modal-fin-box {
+  background:var(--surface,#1a1a22);border:1px solid var(--border,#2e2e3e);
+  border-radius:16px;width:100%;max-width:640px;max-height:90vh;
+  display:flex;flex-direction:column;overflow:hidden;
+  box-shadow:0 24px 64px rgba(0,0,0,.5);
+}
+.modal-fin-header {
+  display:flex;align-items:center;justify-content:space-between;
+  padding:18px 20px;border-bottom:1px solid var(--border,#2e2e3e);flex-shrink:0;
+}
+.modal-fin-title { font-size:15px;font-weight:700;display:flex;align-items:center;gap:8px; }
+.modal-fin-close {
+  background:none;border:none;color:var(--text2,#9090aa);cursor:pointer;
+  padding:4px;border-radius:6px;display:flex;align-items:center;
+}
+.modal-fin-close:hover { color:var(--text,#f0f0f5);background:var(--surface2,#22222e); }
+.modal-fin-body { overflow-y:auto;padding:20px;flex:1; }
+.modal-fin-footer {
+  display:flex;gap:10px;justify-content:flex-end;
+  padding:14px 20px;border-top:1px solid var(--border,#2e2e3e);flex-shrink:0;
+}
+
+/* ── Tabla de invitados ─────────────────────────────────────────────── */
+.inv-table { width:100%;border-collapse:collapse;font-size:13px; }
+.inv-table th { text-align:left;padding:8px 10px;font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;border-bottom:1px solid var(--border); }
+.inv-table td { padding:10px;border-bottom:1px solid var(--border);vertical-align:middle; }
+.inv-table tbody tr:hover { background:rgba(255,255,255,.03); }
+.inv-tag-pagado    { background:rgba(34,197,94,.12);color:#22c55e;border:1px solid rgba(34,197,94,.25);padding:2px 7px;border-radius:10px;font-size:10px;font-weight:700; }
+.inv-tag-pendiente { background:rgba(234,179,8,.12);color:#eab308;border:1px solid rgba(234,179,8,.25);padding:2px 7px;border-radius:10px;font-size:10px;font-weight:700; }
+.inv-tag-rechazado { background:rgba(239,68,68,.12);color:#ef4444;border:1px solid rgba(239,68,68,.25);padding:2px 7px;border-radius:10px;font-size:10px;font-weight:700; }
+.inv-tag-sin       { background:rgba(100,100,100,.1);color:#777;border:1px solid rgba(100,100,100,.2);padding:2px 7px;border-radius:10px;font-size:10px;font-weight:700; }
+
+/* ── Tabla de participantes polla ───────────────────────────────────── */
+.part-table { width:100%;border-collapse:collapse;font-size:13px; }
+.part-table th { text-align:left;padding:8px 10px;font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;border-bottom:1px solid var(--border); }
+.part-table td { padding:10px;border-bottom:1px solid var(--border);vertical-align:middle; }
+.part-table tbody tr:hover { background:rgba(255,255,255,.03); }
+.part-estado-select {
+  background:var(--surface2,#22222e);border:1px solid var(--border);
+  color:var(--text);border-radius:6px;padding:4px 8px;font-size:12px;
+  cursor:pointer;outline:none;
+}
+
+/* ── Tabla auditoría ────────────────────────────────────────────────── */
+.audit-table { width:100%;border-collapse:collapse;font-size:12px; }
+.audit-table th { text-align:left;padding:7px 10px;font-size:10px;font-weight:700;color:var(--text2);text-transform:uppercase;border-bottom:1px solid var(--border); }
+.audit-table td { padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:middle;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
+.audit-table tbody tr:hover { background:rgba(255,255,255,.03); }
+
+/* ── Mini edit form ─────────────────────────────────────────────────── */
+.edit-inline-wrap { display:flex;flex-direction:column;gap:12px; }
+.edit-field { display:flex;flex-direction:column;gap:5px; }
+.edit-field label { font-size:12px;font-weight:600;color:var(--text2); }
+.edit-field input, .edit-field select, .edit-field textarea {
+  background:var(--surface2,#22222e);border:1px solid var(--border);
+  color:var(--text);border-radius:8px;padding:8px 12px;font-size:13px;
+  width:100%;outline:none;
+}
+.edit-field input:focus, .edit-field select:focus { border-color:var(--accent,#7c6af7); }
+
+/* ── Stats cards en modal ───────────────────────────────────────────── */
+.stats-grid-modal { display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px; }
+.stat-m { background:var(--surface2,#22222e);border:1px solid var(--border);border-radius:10px;padding:14px;text-align:center; }
+.stat-m-val { font-size:22px;font-weight:700;color:var(--accent,#7c6af7); }
+.stat-m-lbl { font-size:11px;color:var(--text2);margin-top:3px; }
+
+/* ── Botones genéricos ──────────────────────────────────────────────── */
+.btn-fin-primary {
+  display:inline-flex;align-items:center;gap:6px;
+  padding:8px 18px;border-radius:8px;font-size:13px;font-weight:600;
+  background:var(--accent,#7c6af7);color:#fff;border:none;cursor:pointer;
+}
+.btn-fin-primary:hover { opacity:.88; }
+.btn-fin-cancel {
+  display:inline-flex;align-items:center;gap:6px;
+  padding:8px 18px;border-radius:8px;font-size:13px;font-weight:600;
+  background:var(--surface2,#22222e);color:var(--text2);
+  border:1px solid var(--border);cursor:pointer;
+}
+.btn-fin-cancel:hover { border-color:var(--accent,#7c6af7);color:var(--text); }
+.fin-loading { text-align:center;padding:32px;color:var(--text2);font-size:13px; }
+</style>
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     MODAL: GESTIÓN DE INVITADOS
+═══════════════════════════════════════════════════════════════════ -->
+<div id="modal-invitados" class="modal-fin-overlay" style="display:none;" onclick="if(event.target===this)hide('modal-invitados')">
+  <div class="modal-fin-box" onclick="event.stopPropagation()">
+    <div class="modal-fin-header">
+      <div class="modal-fin-title">
+        <span class="material-symbols-outlined" style="color:#7c6af7">group</span>
+        Gestión de Invitados
+      </div>
+      <button class="modal-fin-close" onclick="hide('modal-invitados')">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
+    <div class="modal-fin-body" id="inv-body">
+      <div class="fin-loading">
+        <span class="material-symbols-outlined" style="font-size:32px;display:block;margin-bottom:8px;">hourglass_empty</span>
+        Cargando invitados…
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     MODAL: GESTIÓN DE PARTICIPANTES POLLA
+═══════════════════════════════════════════════════════════════════ -->
+<div id="modal-participantes" class="modal-fin-overlay" style="display:none;" onclick="if(event.target===this)hide('modal-participantes')">
+  <div class="modal-fin-box" onclick="event.stopPropagation()">
+    <div class="modal-fin-header">
+      <div class="modal-fin-title">
+        <span class="material-symbols-outlined" style="color:#f59e0b">sports_soccer</span>
+        Participantes de la Polla
+      </div>
+      <button class="modal-fin-close" onclick="hide('modal-participantes')">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
+    <div class="modal-fin-body" id="part-body">
+      <div class="fin-loading">Cargando…</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     MODAL: ESTADO DE PARTICIPANTE (inline desde ranking)
+═══════════════════════════════════════════════════════════════════ -->
+<div id="modal-estado-part" class="modal-fin-overlay" style="display:none;" onclick="if(event.target===this)hide('modal-estado-part')">
+  <div class="modal-fin-box" onclick="event.stopPropagation()" style="max-width:420px;">
+    <div class="modal-fin-header">
+      <div class="modal-fin-title">
+        <span class="material-symbols-outlined" style="color:#7c6af7">manage_accounts</span>
+        Estado en Polla: <span id="ep-nombre" style="margin-left:4px;color:var(--text2)"></span>
+      </div>
+      <button class="modal-fin-close" onclick="hide('modal-estado-part')">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
+    <div class="modal-fin-body">
+      <input type="hidden" id="ep-uid">
+      <div class="edit-inline-wrap">
+        <div class="edit-field">
+          <label>Nuevo estado</label>
+          <select id="ep-estado">
+            <option value="activo">✅ Activo (participa normalmente)</option>
+            <option value="bloqueado">🚫 Bloqueado (no puede participar)</option>
+            <option value="inactivo">⏸ Inactivo (temporalmente fuera)</option>
+            <option value="desactivado">🔕 Desactivado (sin acceso)</option>
+            <option value="excluido">⛔ Excluido (permanente)</option>
+          </select>
+        </div>
+        <div class="edit-field">
+          <label>Motivo (opcional)</label>
+          <input type="text" id="ep-motivo" placeholder="Ej: Por decisión del grupo" maxlength="200">
+        </div>
+      </div>
+    </div>
+    <div class="modal-fin-footer">
+      <button class="btn-fin-cancel" onclick="hide('modal-estado-part')">Cancelar</button>
+      <button class="btn-fin-primary" onclick="guardarEstadoParticipante()">
+        <span class="material-symbols-outlined">save</span> Guardar
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     MODAL: AUDITORÍA FINANCIERA
+═══════════════════════════════════════════════════════════════════ -->
+<div id="modal-auditoria" class="modal-fin-overlay" style="display:none;" onclick="if(event.target===this)hide('modal-auditoria')">
+  <div class="modal-fin-box" onclick="event.stopPropagation()" style="max-width:720px;">
+    <div class="modal-fin-header">
+      <div class="modal-fin-title">
+        <span class="material-symbols-outlined" style="color:#22c55e">history</span>
+        Auditoría Financiera
+      </div>
+      <button class="modal-fin-close" onclick="hide('modal-auditoria')">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
+    <div class="modal-fin-body" id="audit-body">
+      <div class="fin-loading">Cargando historial…</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     MODAL: ESTADÍSTICAS DE RECAUDACIÓN
+═══════════════════════════════════════════════════════════════════ -->
+<div id="modal-estadisticas" class="modal-fin-overlay" style="display:none;" onclick="if(event.target===this)hide('modal-estadisticas')">
+  <div class="modal-fin-box" onclick="event.stopPropagation()" style="max-width:480px;">
+    <div class="modal-fin-header">
+      <div class="modal-fin-title">
+        <span class="material-symbols-outlined" style="color:#f59e0b">bar_chart</span>
+        Estadísticas de Recaudación
+      </div>
+      <button class="modal-fin-close" onclick="hide('modal-estadisticas')">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
+    <div class="modal-fin-body" id="stats-body">
+      <div class="fin-loading">Cargando estadísticas…</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     MODAL: EDITAR EVENTO RÁPIDO
+═══════════════════════════════════════════════════════════════════ -->
+<div id="modal-editar-evento" class="modal-fin-overlay" style="display:none;" onclick="if(event.target===this)hide('modal-editar-evento')">
+  <div class="modal-fin-box" onclick="event.stopPropagation()" style="max-width:400px;">
+    <div class="modal-fin-header">
+      <div class="modal-fin-title">
+        <span class="material-symbols-outlined" style="color:#7c6af7">edit</span>
+        Editar Evento
+      </div>
+      <button class="modal-fin-close" onclick="hide('modal-editar-evento')">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
+    <div class="modal-fin-body">
+      <input type="hidden" id="ee-id">
+      <div class="edit-inline-wrap">
+        <div class="edit-field">
+          <label>Monto (COP)</label>
+          <input type="number" id="ee-monto" min="1" placeholder="200000">
+        </div>
+        <div class="edit-field">
+          <label>Estado</label>
+          <select id="ee-estado">
+            <option value="pendiente">⏳ Pendiente</option>
+            <option value="verificado">✅ Verificado</option>
+            <option value="rechazado">❌ Rechazado</option>
+          </select>
+        </div>
+        <div class="edit-field">
+          <label>Motivo del cambio (opcional)</label>
+          <input type="text" id="ee-motivo" placeholder="Ej: Corrección de monto" maxlength="200">
+        </div>
+      </div>
+    </div>
+    <div class="modal-fin-footer">
+      <button class="btn-fin-cancel" onclick="hide('modal-editar-evento')">Cancelar</button>
+      <button class="btn-fin-primary" onclick="guardarEditarEvento()">
+        <span class="material-symbols-outlined">save</span> Guardar
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     MODAL: EDITAR PAGO POLLA RÁPIDO
+═══════════════════════════════════════════════════════════════════ -->
+<div id="modal-editar-polla" class="modal-fin-overlay" style="display:none;" onclick="if(event.target===this)hide('modal-editar-polla')">
+  <div class="modal-fin-box" onclick="event.stopPropagation()" style="max-width:380px;">
+    <div class="modal-fin-header">
+      <div class="modal-fin-title">
+        <span class="material-symbols-outlined" style="color:#7c6af7">edit</span>
+        Editar Estado Pago Polla
+      </div>
+      <button class="modal-fin-close" onclick="hide('modal-editar-polla')">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
+    <div class="modal-fin-body">
+      <input type="hidden" id="ep2-id">
+      <div class="edit-inline-wrap">
+        <div class="edit-field">
+          <label>Nuevo estado</label>
+          <select id="ep2-estado">
+            <option value="pagado">💳 Pagado</option>
+            <option value="verificado">✅ Verificado</option>
+            <option value="pendiente">⏳ Pendiente</option>
+            <option value="rechazado">❌ Rechazado</option>
+          </select>
+        </div>
+        <div class="edit-field">
+          <label>Motivo (opcional)</label>
+          <input type="text" id="ep2-motivo" placeholder="Ej: Corrección de estado" maxlength="200">
+        </div>
+      </div>
+    </div>
+    <div class="modal-fin-footer">
+      <button class="btn-fin-cancel" onclick="hide('modal-editar-polla')">Cancelar</button>
+      <button class="btn-fin-primary" onclick="guardarEditarPolla()">
+        <span class="material-symbols-outlined">save</span> Guardar
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     JS: Nuevos modales y funciones
+═══════════════════════════════════════════════════════════════════ -->
+<script>
+// ── Helpers ─────────────────────────────────────────────────────────────────
+function show(id) { document.getElementById(id).style.display='flex'; }
+function hideModal(id) { document.getElementById(id).style.display='none'; }
+
+function fmtCOP(n) {
+  return '$' + Math.round(n).toLocaleString('es-CO');
+}
+function fmtFechaCorta(f) {
+  if (!f) return '—';
+  return f.slice(0,10);
+}
+
+// ── Gestión de invitados ─────────────────────────────────────────────────────
+async function abrirModalInvitados() {
+  show('modal-invitados');
+  const body = document.getElementById('inv-body');
+  body.innerHTML = '<div class="fin-loading"><span class="material-symbols-outlined" style="font-size:32px;display:block;margin-bottom:8px;">hourglass_empty</span>Cargando invitados…</div>';
+  try {
+    const r = await fetch('/api/fin/invitados');
+    const data = await r.json();
+    if (!data.length) {
+      body.innerHTML = '<div class="fin-loading">No hay invitados registrados.</div>';
+      return;
+    }
+    const tagMundial = (estado) => {
+      if (estado === 'aprobado') return '<span class="inv-tag-pagado">✓ Aprobado</span>';
+      if (estado === 'pendiente' || (estado && estado.startsWith('pendiente'))) return '<span class="inv-tag-pendiente">⏳ Pendiente</span>';
+      if (estado === 'rechazado') return '<span class="inv-tag-rechazado">✗ Rechazado</span>';
+      return '<span class="inv-tag-sin">Sin solicitud</span>';
+    };
+    body.innerHTML = `
+      <p style="font-size:12px;color:var(--text2);margin-bottom:14px;">${data.length} invitado(s) registrado(s) en el sistema.</p>
+      <div style="overflow-x:auto;">
+      <table class="inv-table">
+        <thead><tr>
+          <th>Usuario</th>
+          <th>Mundial</th>
+          <th>Aportes</th>
+          <th>Total</th>
+          <th>Estado</th>
+        </tr></thead>
+        <tbody>
+        ${data.map(u => `
+          <tr>
+            <td>
+              <div style="display:flex;align-items:center;gap:8px;">
+                ${u.foto ? `<img src="${u.foto}" style="width:28px;height:28px;border-radius:50%;object-fit:cover;" alt="">` : `<div style="width:28px;height:28px;border-radius:50%;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;">${(u.nombre||'?')[0].toUpperCase()}</div>`}
+                <div>
+                  <div style="font-weight:600;font-size:13px;">${u.nombre||'—'}</div>
+                  <div style="font-size:11px;color:var(--text2);">@${u.usuario||'—'}</div>
+                </div>
+              </div>
+            </td>
+            <td>${tagMundial(u.mundial_pagado)}</td>
+            <td style="text-align:center;">${u.num_aportes}</td>
+            <td style="font-weight:700;color:#22c55e;">${fmtCOP(u.total_aportado)}</td>
+            <td>${u.rec_bloqueado ? '<span class="inv-tag-rechazado">🔒 Bloqueado</span>' : '<span class="inv-tag-pagado">🟢 Activo</span>'}</td>
+          </tr>
+        `).join('')}
+        </tbody>
+      </table>
+      </div>
+    `;
+  } catch(e) {
+    body.innerHTML = '<div class="fin-loading">Error al cargar invitados.</div>';
+  }
+}
+
+// ── Gestión de participantes polla ───────────────────────────────────────────
+async function abrirModalParticipantes() {
+  show('modal-participantes');
+  const body = document.getElementById('part-body');
+  body.innerHTML = '<div class="fin-loading">Cargando participantes…</div>';
+  try {
+    const r = await fetch('/admin/polla_participantes');
+    const data = await r.json();
+    if (!data.length) {
+      body.innerHTML = '<div class="fin-loading">No hay miembros registrados.</div>';
+      return;
+    }
+    const ESTADO_LABELS_POLLA = {
+      activo: '✅ Activo', bloqueado: '🚫 Bloqueado',
+      inactivo: '⏸ Inactivo', desactivado: '🔕 Desactivado', excluido: '⛔ Excluido'
+    };
+    const estadoOpt = (current) => ['activo','bloqueado','inactivo','desactivado','excluido']
+      .map(e => `<option value="${e}" ${e===current?'selected':''}>${ESTADO_LABELS_POLLA[e]||e}</option>`)
+      .join('');
+    body.innerHTML = `
+      <p style="font-size:12px;color:var(--text2);margin-bottom:14px;">
+        Gestiona la participación de cada miembro en la polla mundialista.
+      </p>
+      <div style="overflow-x:auto;">
+      <table class="part-table">
+        <thead><tr>
+          <th>Miembro</th>
+          <th>Estado polla</th>
+          <th>Acción</th>
+        </tr></thead>
+        <tbody>
+        ${data.map(u => `
+          <tr id="part-row-${u.id}">
+            <td>
+              <div style="display:flex;align-items:center;gap:8px;">
+                ${u.foto ? `<img src="${u.foto}" style="width:26px;height:26px;border-radius:50%;object-fit:cover;" alt="">` : `<div style="width:26px;height:26px;border-radius:50%;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:11px;">${(u.nombre||'?')[0].toUpperCase()}</div>`}
+                <div>
+                  <div style="font-weight:600;font-size:13px;">${u.nombre}</div>
+                  <div style="font-size:11px;color:var(--text2);">@${u.usuario}</div>
+                </div>
+              </div>
+            </td>
+            <td>
+              <select class="part-estado-select" id="ps-${u.id}" data-uid="${u.id}">
+                ${estadoOpt(u.polla_estado||'activo')}
+              </select>
+            </td>
+            <td>
+              <button class="btn-fin-primary" style="padding:5px 12px;font-size:12px;" onclick="guardarEstadoParticipanteFromTable(${u.id})">
+                <span class="material-symbols-outlined" style="font-size:14px;">save</span>
+              </button>
+            </td>
+          </tr>
+        `).join('')}
+        </tbody>
+      </table>
+      </div>
+    `;
+  } catch(e) {
+    body.innerHTML = '<div class="fin-loading">Error al cargar participantes.</div>';
+  }
+}
+
+async function guardarEstadoParticipanteFromTable(uid) {
+  const sel = document.getElementById('ps-' + uid);
+  if (!sel) return;
+  const estado = sel.value;
+  const fd = new FormData();
+  fd.append('uid', uid);
+  fd.append('estado', estado);
+  try {
+    const r = await fetch('/admin/polla_estado', { method:'POST', body:fd });
+    const d = await r.json();
+    if (d.ok) {
+      mostrarToastFin(d.msg || 'Estado actualizado', true);
+    } else {
+      mostrarToastFin(d.msg || 'Error', false);
+    }
+  } catch(e) {
+    mostrarToastFin('Error de conexión', false);
+  }
+}
+
+// ── Modal estado participante (inline desde ranking) ─────────────────────────
+function abrirModalEstadoParticipante(uid, nombre, estadoActual) {
+  document.getElementById('ep-uid').value = uid;
+  document.getElementById('ep-nombre').textContent = nombre;
+  const sel = document.getElementById('ep-estado');
+  sel.value = estadoActual || 'activo';
+  document.getElementById('ep-motivo').value = '';
+  show('modal-estado-part');
+}
+
+async function guardarEstadoParticipante() {
+  const uid = document.getElementById('ep-uid').value;
+  const estado = document.getElementById('ep-estado').value;
+  const motivo = document.getElementById('ep-motivo').value;
+  const fd = new FormData();
+  fd.append('uid', uid);
+  fd.append('estado', estado);
+  fd.append('motivo', motivo);
+  try {
+    const r = await fetch('/admin/polla_estado', { method:'POST', body:fd });
+    const d = await r.json();
+    hideModal('modal-estado-part');
+    if (d.ok) {
+      mostrarToastFin(d.msg || 'Estado actualizado', true);
+      setTimeout(() => location.reload(), 800);
+    } else {
+      mostrarToastFin(d.msg || 'Error', false);
+    }
+  } catch(e) {
     mostrarToastFin('Error de conexión', false);
   }
 }
