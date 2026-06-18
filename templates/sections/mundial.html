@@ -1747,11 +1747,6 @@
         font-size: .72rem; color: rgba(255,255,255,.38);
         white-space: nowrap;
       }
-      .rkv2__sin-pron {
-        font-size: .72rem; font-weight: 600;
-        color: rgba(255,255,255,.38);
-        margin-left: 4px;
-      }
       .rkv2__part-bar {
         display: block; height: 3px; border-radius: 2px;
         background: rgba(255,255,255,.1); margin-top: 3px;
@@ -2021,10 +2016,6 @@
     const pct = r.total_partidos > 0
       ? Math.round(r.pronosticos_hechos / r.total_partidos * 100)
       : 0;
-    const sinPron = r.sin_pronosticar || 0;
-    const sinBadge = sinPron > 0
-      ? ` <span class="rkv2__sin-pron" title="No pronosticó ${sinPron} partido${sinPron===1?'':'s'} con resultado">✗${sinPron}</span>`
-      : '';
     const partHTML = `
       <span class="rkv2__part">${r.pronosticos_hechos}/${r.total_partidos}${sinBadge}</span>
       <span class="rkv2__part-bar"><span class="rkv2__part-fill" style="width:${pct}%"></span></span>`;
