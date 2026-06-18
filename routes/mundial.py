@@ -1408,9 +1408,12 @@ def ranking_mundial_v2():
     """).fetchall()
 
     # ── Construir los 3 rankings ─────────────────────────────────────────
-    def _rank(lst, key_pts, key_pen, key_ex, key_gan, key_nom, key_id):
+    def _rank(lst, key_pts, key_pen, key_ex, key_gan, key_sin, key_nom, key_id):
+        # Ordenar: más puntos → más penales exactos → más exactos → más ganadores
+        # → MENOS partidos sin pronosticar (desempate: quien no pronosticó baja)
         sorted_lst = sorted(lst, key=lambda r: (
             -r[key_pts], -r[key_pen], -r[key_ex], -r[key_gan],
+            r[key_sin],   # ASC: menos sin-pronosticar = mejor posición
             r[key_nom].lower(), r[key_id]
         ))
         # Asignar posición (empates comparten posición)
@@ -1424,12 +1427,14 @@ def ranking_mundial_v2():
                     r[key_pts] == prev["_pts"] and
                     r[key_pen] == prev["_pen"] and
                     r[key_ex]  == prev["_ex"]  and
-                    r[key_gan] == prev["_gan"]
+                    r[key_gan] == prev["_gan"]  and
+                    r[key_sin] == prev["_sin"]   # solo son "iguales" si tampoco difieren en partidos sin pronosticar
                 )
                 pos = prev["posicion"] if same else i + 1
             result.append({**dict(r), "posicion": pos,
                            "_pts": r[key_pts], "_pen": r[key_pen],
-                           "_ex": r[key_ex], "_gan": r[key_gan]})
+                           "_ex": r[key_ex], "_gan": r[key_gan],
+                           "_sin": r[key_sin]})
         return result
 
     # Global
@@ -1442,10 +1447,14 @@ def ranking_mundial_v2():
         r["ex_global"]  = r["ex_g"] + r["ex_e"]
         r["gan_global"] = r["gan_g"] + r["gan_e"]
         r["pron_global"]= r["pron_g"] + r["pron_e"]
+        # Partidos sin pronosticar por categoría (desempate: más sin pronosticar = peor posición)
+        r["sin_global"] = total_global - r["pron_global"]
+        r["sin_g"]      = total_grupos - r["pron_g"]
+        r["sin_e"]      = total_eli    - r["pron_e"]
 
-    ranking_global_list = _rank(raw, "pts_global", "pen_global", "ex_global", "gan_global", "nombre", "id")
-    ranking_grupos_list  = _rank(raw, "pts_g",      "pen_e",      "ex_g",      "gan_g",      "nombre", "id")
-    ranking_eli_list     = _rank(raw, "pts_e",      "pen_e",      "ex_e",      "gan_e",      "nombre", "id")
+    ranking_global_list = _rank(raw, "pts_global", "pen_global", "ex_global", "gan_global", "sin_global", "nombre", "id")
+    ranking_grupos_list  = _rank(raw, "pts_g",      "pen_e",      "ex_g",      "gan_g",      "sin_g",      "nombre", "id")
+    ranking_eli_list     = _rank(raw, "pts_e",      "pen_e",      "ex_e",      "gan_e",      "sin_e",      "nombre", "id")
 
     # ── Cargar snapshot: guarda puntos anteriores + cambio calculado ─────
     import json
@@ -1547,10 +1556,12 @@ def ranking_mundial_v2():
     con.commit()
 
     # ── Formatear respuesta ───────────────────────────────────────────────
-    def _fmt(lst, pts_key, pron_key, total):
+    def _fmt(lst, pts_key, pron_key, sin_key, total):
         out = []
         for r in lst:
             uid_r = r["id"]
+            pronosticos_hechos = r[pron_key]
+            sin_pronosticar    = r[sin_key]
             out.append({
                 "id":       uid_r,
                 "nombre":   r["nombre"],
@@ -1562,15 +1573,16 @@ def ranking_mundial_v2():
                 "ganadores":r.get("gan_global", r.get("gan_g", r.get("gan_e", 0))),
                 "posicion": r["posicion"],
                 "cambio":   r["cambio"],
-                "pronosticos_hechos": r[pron_key],
+                "pronosticos_hechos": pronosticos_hechos,
+                "sin_pronosticar":    sin_pronosticar,
                 "total_partidos": total,
             })
         return out
 
     return jsonify({
-        "ranking_global": _fmt(ranking_global_list, "pts_global", "pron_global", total_global),
-        "ranking_grupos":  _fmt(ranking_grupos_list,  "pts_g",      "pron_g",      total_grupos),
-        "ranking_eli":     _fmt(ranking_eli_list,     "pts_e",      "pron_e",      total_eli),
+        "ranking_global": _fmt(ranking_global_list, "pts_global", "pron_global", "sin_global", total_global),
+        "ranking_grupos":  _fmt(ranking_grupos_list,  "pts_g",      "pron_g",      "sin_g",      total_grupos),
+        "ranking_eli":     _fmt(ranking_eli_list,     "pts_e",      "pron_e",      "sin_e",      total_eli),
     })
 
 
