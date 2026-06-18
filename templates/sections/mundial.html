@@ -1857,14 +1857,31 @@
       <div class="rkv2__help-overlay" id="rkv2-help-overlay" onclick="if(event.target===this)rkv2HelpClose()">
         <div class="rkv2__help-box">
           <button class="rkv2__help-close" onclick="rkv2HelpClose()">✕</button>
-          <h3>🏆 ¿Cómo funciona el ranking?</h3>
-          <ol>
-            <li><strong>Puntos totales</strong> — exacto (3 pts) o ganador (1 pt)</li>
-            <li><strong>Penales acertados</strong> — +1 extra si acertaste el ganador en penales</li>
-            <li><strong>Marcadores exactos</strong> — cantidad de ⚽ acertados</li>
-            <li><strong>Ganadores acertados</strong> — cantidad de ✓ acertados</li>
-            <li><strong>Partidos sin pronosticar</strong> — quien dejó más sin hacer baja posición</li>
-          </ol>
+          <h3>🏆 ¿Cómo se calcula el ranking?</h3>
+            <ol>
+              <li>
+                <strong>Puntos totales</strong> — Se ordena primero por la cantidad total de puntos obtenidos.
+              </li>
+              <li>
+                <strong>Aciertos en penales (Pen)</strong> — Desempata quien más veces logró 4 puntos: acertó el marcador exacto de un empate y además el ganador por penales.
+              </li>
+              <li>
+                <strong>Marcadores exactos (⚽)</strong> — Si el empate continúa, se compara quién acertó más resultados exactos.
+              </li>
+              <li>
+                <strong>Ganadores acertados (✓)</strong> — Luego se compara quién acertó más ganadores de partido.
+              </li>
+              <li>
+                <strong>Partidos sin pronóstico</strong> — Quien dejó menos partidos sin pronosticar queda mejor posicionado.
+              </li>
+            </ol>
+
+            <p>
+              <strong>📌 Sistema de puntos:</strong><br>
+              ⚽ 4 pts = Marcador exacto en empate + ganador por penales correcto.<br>
+              ⚽ 3 pts = Marcador exacto.<br>
+              ✓ 1 pt = Acertar el ganador o acertar que hubo empate sin el marcador exacto.
+            </p>
           <div class="rkv2__help-note">
             La columna <strong>Part.</strong> muestra cuántos pronosticaste de los partidos ya jugados. Si aparece <strong>✗N</strong>, significa que N partidos con resultado ya no los pronosticaste.
           </div>
