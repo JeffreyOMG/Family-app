@@ -94,6 +94,12 @@ def get_ctx(uid, con, extra=None):
     if not usuario: return None
     usuario = dict(usuario)
 
+    # Refrescar permisos en sesión con el valor actual de la BD
+    # Permite que cambios de financiero/rol del admin sean inmediatos sin re-login
+    from flask import session as _session
+    _session["es_financiero"] = bool(usuario.get("es_financiero", False))
+    _session["rol"] = usuario["rol"]
+
     rol = usuario['rol']  # 'invitado', 'miembro', 'admin'
     vis_filter = "" if rol in ('miembro', 'admin') else "AND COALESCE(p.visibilidad,'general') = 'general'"
 

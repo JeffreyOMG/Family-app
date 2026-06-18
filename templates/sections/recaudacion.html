@@ -2813,10 +2813,26 @@ function filtrarRanking(modo) {
   display:flex;flex-direction:column;overflow:hidden;
   box-shadow:0 24px 64px rgba(0,0,0,.5);
 }
-/* Modo claro: si --surface es claro, el box hereda bien */
+/* Modo claro: fondo blanco limpio con sombra suave */
 body:not(.dark-mode) .modal-fin-box {
+  background:#ffffff;
+  border-color:#e0e0e0;
   box-shadow:0 24px 64px rgba(0,0,0,.18);
+  color:var(--text,#111);
 }
+body:not(.dark-mode) .modal-fin-header { border-color:#e0e0e0; }
+body:not(.dark-mode) .modal-fin-footer { border-color:#e0e0e0; }
+/* Modo oscuro: fondo oscuro usando --card que sí se redefine en dark-mode */
+body.dark-mode .modal-fin-box {
+  background:var(--card,#1b1b1d);
+  border-color:var(--border,#2a2a2d);
+  color:var(--text,#ffffff);
+}
+body.dark-mode .modal-fin-header { border-color:var(--border,#2a2a2d); }
+body.dark-mode .modal-fin-footer { border-color:var(--border,#2a2a2d); }
+body.dark-mode .modal-fin-close { color:var(--text2,#b5b5b5); }
+body.dark-mode .modal-fin-close:hover { background:var(--card2,#222224);color:var(--text,#fff); }
+body.dark-mode .modal-fin-title { color:var(--text,#ffffff); }
 .modal-fin-header {
   display:flex;align-items:center;justify-content:space-between;
   padding:18px 20px;border-bottom:1px solid var(--border,#2e2e3e);flex-shrink:0;
