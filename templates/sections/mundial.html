@@ -1730,6 +1730,33 @@
       .rkv2__player-name { font-weight: 500; line-height: 1.2; }
       .rkv2__yo-badge { color: var(--accent, #ff4d8d); font-size: .66rem; margin-left: 3px; }
 
+      /* Ver más */
+      .rkv2__ver-mas-wrap {
+        display: flex; justify-content: center; padding: 14px 12px 8px;
+      }
+      .rkv2__ver-mas-btn {
+        display: inline-flex; align-items: center; gap: 8px;
+        background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.13);
+        color: rgba(255,255,255,.75); font-size: .82rem; font-weight: 500;
+        border-radius: 20px; padding: 8px 18px; cursor: pointer;
+        transition: background .18s, border-color .18s, color .18s;
+      }
+      .rkv2__ver-mas-btn:hover {
+        background: rgba(255,255,255,.12); border-color: rgba(255,255,255,.3);
+        color: #fff;
+      }
+      .rkv2__ver-mas-icon { font-size: 1rem; opacity: .7; }
+      .rkv2__ver-mas-count {
+        background: rgba(255,255,255,.1); border-radius: 10px;
+        padding: 1px 7px; font-size: .72rem; opacity: .65;
+      }
+      /* Fila de "tu posición" cuando estás fuera del top visible */
+      tr.rkv2__yo-preview td {
+        border-top: 1px dashed rgba(255,77,141,.35) !important;
+        opacity: .7;
+      }
+      tr.rkv2__yo-preview:hover td { opacity: 1; }
+
       /* Top 3 nombres más grandes */
       tr[data-pos="1"] .rkv2__player-name { font-size: .92rem; color: #f5c518; }
       tr[data-pos="2"] .rkv2__player-name { font-size: .9rem; color: rgba(255,255,255,.92); }
@@ -1973,6 +2000,10 @@
   }
 
   // ── Render completo (siempre limpio, sin diff de filas) ──────────────
+  // ── Páginas visibles por tab ──────────────────────────────────────────
+  const _rkv2Pages = { global: 1, grupos: 1, eli: 1 };
+  const _RKV2_PAGE_SIZE = 10;
+
   function _rkv2Render(tab, rows, cambiosPosicion) {
     const panel = document.getElementById('rkv2-panel-' + tab);
     if (!panel) return;
@@ -1984,6 +2015,14 @@
 
     const showPen  = tab !== 'grupos';
     const maxPron  = Math.max(...rows.map(r => r.total_partidos), 1);
+    const page     = _rkv2Pages[tab] || 1;
+    const visible  = rows.slice(0, page * _RKV2_PAGE_SIZE);
+    const hayMas   = visible.length < rows.length;
+    const faltante = rows.length - visible.length;
+
+    // Detectar si el usuario actual está fuera del rango visible
+    const yoFuera = rows.slice(visible.length).some(r => +r.id === +_MI_ID_RKV2);
+    const miRow   = yoFuera ? rows.find(r => +r.id === +_MI_ID_RKV2) : null;
 
     panel.innerHTML = `
       <div class="rkv2__wrap">
@@ -1998,9 +2037,23 @@
             <th class="th-r" title="Pronósticos hechos / Total">Part.</th>
           </tr></thead>
           <tbody>
-            ${rows.map(r => _rkv2RowHTML(r, showPen, maxPron)).join('')}
+            ${visible.map(r => _rkv2RowHTML(r, showPen, maxPron)).join('')}
+            ${(hayMas && miRow) ? `
+            <tr><td colspan="7" style="padding:0;"></td></tr>
+            <tr class="rkv2__yo rkv2__yo-preview" title="Tu posición actual">
+              ${_rkv2RowCells(miRow, showPen, maxPron)}
+            </tr>` : ''}
           </tbody>
         </table>
+
+        ${hayMas ? `
+        <div class="rkv2__ver-mas-wrap">
+          <button class="rkv2__ver-mas-btn" onclick="_rkv2VerMas('${tab}')">
+            <span class="rkv2__ver-mas-icon">↓</span>
+            Ver ${Math.min(_RKV2_PAGE_SIZE, faltante)} participante${Math.min(_RKV2_PAGE_SIZE, faltante) === 1 ? '' : 's'} más
+            <span class="rkv2__ver-mas-count">${faltante} restante${faltante === 1 ? '' : 's'}</span>
+          </button>
+        </div>` : ''}
       </div>`;
 
     // Aplicar animaciones post-render si hubo cambios de posición
@@ -2012,6 +2065,20 @@
         setTimeout(() => tr.classList.remove('rkv2__flash-up', 'rkv2__flash-down'), 950);
       });
     }
+  }
+
+  function _rkv2VerMas(tab) {
+    _rkv2Pages[tab] = (_rkv2Pages[tab] || 1) + 1;
+    if (_rkv2Cache) _rkv2RenderIfChanged(tab, _rkv2Cache, false);
+    // Forzar re-render aunque el hash no cambió
+    const keyMap = { global: 'ranking_global', grupos: 'ranking_grupos', eli: 'ranking_eli' };
+    const rows = (_rkv2Cache || {})[keyMap[tab]] || [];
+    if (rows.length) _rkv2Render(tab, rows, {});
+  }
+
+  function _rkv2RowCells(r, showPen, maxPron) {
+    return _rkv2RowHTML(r, showPen, maxPron)
+      .replace(/^<tr[^>]*>/, '').replace(/<\/tr>$/, '');
   }
 
   // ── HTML de una fila ─────────────────────────────────────────────────
