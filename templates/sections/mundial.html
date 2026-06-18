@@ -1748,9 +1748,9 @@
         white-space: nowrap;
       }
       .rkv2__sin-pron {
-        font-size: .72rem; font-weight: 600;
-        color: rgba(255,255,255,.38);
-        margin-left: 4px;
+        font-size: .68rem; font-weight: 700;
+        color: #f59e0b; margin-left: 4px;
+        opacity: .9;
       }
       .rkv2__part-bar {
         display: block; height: 3px; border-radius: 2px;
@@ -1859,8 +1859,8 @@
           <button class="rkv2__help-close" onclick="rkv2HelpClose()">✕</button>
           <h3>🏆 ¿Cómo funciona el ranking?</h3>
           <ol>
-            <li><strong>Puntos totales</strong> — exacto da 3 pts, ganador acertado da 1 pt</li>
-            <li><strong>Penales acertados</strong> — en eliminatorias: si pronosticaste el marcador exacto (empate) <em>y además</em> acertaste el ganador en penales, sumas 4 pts en vez de 3. El desempate cuenta cuántas veces lograste ese 4.</li>
+            <li><strong>Puntos totales</strong> — exacto (3 pts) o ganador (1 pt)</li>
+            <li><strong>Penales acertados</strong> — +1 extra si acertaste el ganador en penales</li>
             <li><strong>Marcadores exactos</strong> — cantidad de ⚽ acertados</li>
             <li><strong>Ganadores acertados</strong> — cantidad de ✓ acertados</li>
             <li><strong>Partidos sin pronosticar</strong> — quien dejó más sin hacer baja posición</li>
@@ -2023,7 +2023,7 @@
       : 0;
     const sinPron = r.sin_pronosticar || 0;
     const sinBadge = sinPron > 0
-      ? ` <span class="rkv2__sin-pron" title="No pronosticó ${sinPron} partido${sinPron===1?'':'s'} con resultado">✗${sinPron}</span>`
+      ? ` <span class="rkv2__sin-pron" title="Faltó pronosticar ${sinPron} partido${sinPron===1?'':'s'}">⚠ -${sinPron}</span>`
       : '';
     const partHTML = `
       <span class="rkv2__part">${r.pronosticos_hechos}/${r.total_partidos}${sinBadge}</span>
