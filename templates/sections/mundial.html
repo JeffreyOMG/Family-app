@@ -1086,6 +1086,7 @@
             <li><span class="mwt2026__bullet">2.</span><span>Mayor cantidad de aciertos en penales</span></li>
             <li><span class="mwt2026__bullet">3.</span><span>Mayor cantidad de resultados exactos</span></li>
             <li><span class="mwt2026__bullet">4.</span><span>Mayor cantidad de ganadores acertados</span></li>
+            <li><span class="mwt2026__bullet">5.</span><span>Menor cantidad de partidos <strong>sin pronosticar</strong> — quien dejó más partidos sin pronosticar queda por debajo</span></li>
           </ul>
         </div>
 
@@ -1746,6 +1747,11 @@
         font-size: .72rem; color: rgba(255,255,255,.38);
         white-space: nowrap;
       }
+      .rkv2__sin-pron {
+        font-size: .72rem; font-weight: 600;
+        color: rgba(255,255,255,.38);
+        margin-left: 4px;
+      }
       .rkv2__part-bar {
         display: block; height: 3px; border-radius: 2px;
         background: rgba(255,255,255,.1); margin-top: 3px;
@@ -1764,6 +1770,57 @@
       tr[data-pos="2"] .rkv2__medal { font-size: 1.05rem; filter: drop-shadow(0 0 4px rgba(200,200,200,.5)); }
       tr[data-pos="3"] .rkv2__medal { font-size: 1.05rem; filter: drop-shadow(0 0 4px rgba(205,127,50,.5)); }
 
+      /* ── Help button ─────────────────────────────────── */
+      .rkv2__tabs-row {
+        display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+      }
+      .rkv2__help-btn {
+        margin-left: auto;
+        width: 26px; height: 26px; border-radius: 50%;
+        background: rgba(255,255,255,.08);
+        border: 1px solid rgba(255,255,255,.15);
+        color: rgba(255,255,255,.5);
+        font-size: .8rem; font-weight: 700;
+        cursor: pointer; display: flex; align-items: center; justify-content: center;
+        transition: background .2s, color .2s;
+        flex-shrink: 0;
+      }
+      .rkv2__help-btn:hover { background: rgba(255,255,255,.16); color: #fff; }
+
+      /* ── Help modal ──────────────────────────────────── */
+      .rkv2__help-overlay {
+        display: none; position: fixed; inset: 0; z-index: 9000;
+        background: rgba(0,0,0,.72); backdrop-filter: blur(4px);
+        align-items: center; justify-content: center;
+      }
+      .rkv2__help-overlay.open { display: flex; }
+      .rkv2__help-box {
+        background: #1a1a2e; border: 1px solid rgba(255,255,255,.12);
+        border-radius: 16px; padding: 24px 22px 20px;
+        max-width: 360px; width: 90%; position: relative;
+        box-shadow: 0 8px 40px rgba(0,0,0,.6);
+      }
+      .rkv2__help-box h3 {
+        margin: 0 0 14px; font-size: 1rem; font-weight: 700;
+        color: #fff; display: flex; align-items: center; gap: 8px;
+      }
+      .rkv2__help-box ol {
+        margin: 0; padding-left: 20px; color: rgba(255,255,255,.75);
+        font-size: .82rem; line-height: 1.7;
+      }
+      .rkv2__help-box ol li { margin-bottom: 4px; }
+      .rkv2__help-box .rkv2__help-note {
+        margin-top: 12px; padding: 10px 12px;
+        background: rgba(255,255,255,.05); border-radius: 8px;
+        font-size: .78rem; color: rgba(255,255,255,.5); line-height: 1.5;
+      }
+      .rkv2__help-close {
+        position: absolute; top: 12px; right: 14px;
+        background: none; border: none; color: rgba(255,255,255,.4);
+        font-size: 1.2rem; cursor: pointer; line-height: 1;
+      }
+      .rkv2__help-close:hover { color: #fff; }
+
       /* ── Loading ──────────────────────────────────────── */
       .rkv2__loading {
         text-align: center; padding: 32px;
@@ -1780,17 +1837,38 @@
     </style>
 
     <div class="content-card">
-      <div class="rkv2__tabs">
-        <button class="rkv2__tab-btn active" onclick="rkv2Tab('global', this)">🌍 Global</button>
-        <button class="rkv2__tab-btn" onclick="rkv2Tab('grupos', this)">⚽ Grupos</button>
-        {% if ranking_eli_visible or usuario.rol == 'admin' %}
-        <button class="rkv2__tab-btn" onclick="rkv2Tab('eli', this)" id="rkv2-btn-eli">
-          🏆 Eliminatorias
-          {% if usuario.rol == 'admin' and not ranking_eli_visible %}
-          <span style="font-size:.6rem;opacity:.5;margin-left:3px;">(oculto)</span>
+      <div class="rkv2__tabs-row">
+        <div class="rkv2__tabs" style="flex:1;">
+          <button class="rkv2__tab-btn active" onclick="rkv2Tab('global', this)">🌍 Global</button>
+          <button class="rkv2__tab-btn" onclick="rkv2Tab('grupos', this)">⚽ Grupos</button>
+          {% if ranking_eli_visible or usuario.rol == 'admin' %}
+          <button class="rkv2__tab-btn" onclick="rkv2Tab('eli', this)" id="rkv2-btn-eli">
+            🏆 Eliminatorias
+            {% if usuario.rol == 'admin' and not ranking_eli_visible %}
+            <span style="font-size:.6rem;opacity:.5;margin-left:3px;">(oculto)</span>
+            {% endif %}
+          </button>
           {% endif %}
-        </button>
-        {% endif %}
+        </div>
+        <button class="rkv2__help-btn" onclick="rkv2HelpOpen()" title="¿Cómo funciona el ranking?">?</button>
+      </div>
+
+      <!-- Modal ayuda ranking -->
+      <div class="rkv2__help-overlay" id="rkv2-help-overlay" onclick="if(event.target===this)rkv2HelpClose()">
+        <div class="rkv2__help-box">
+          <button class="rkv2__help-close" onclick="rkv2HelpClose()">✕</button>
+          <h3>🏆 ¿Cómo funciona el ranking?</h3>
+          <ol>
+            <li><strong>Puntos totales</strong> — exacto (3 pts) o ganador (1 pt)</li>
+            <li><strong>Penales acertados</strong> — +1 extra si acertaste el ganador en penales</li>
+            <li><strong>Marcadores exactos</strong> — cantidad de ⚽ acertados</li>
+            <li><strong>Ganadores acertados</strong> — cantidad de ✓ acertados</li>
+            <li><strong>Partidos sin pronosticar</strong> — quien dejó más sin hacer baja posición</li>
+          </ol>
+          <div class="rkv2__help-note">
+            La columna <strong>Part.</strong> muestra cuántos pronosticaste de los partidos ya jugados. Si aparece <strong>✗N</strong>, significa que N partidos con resultado ya no los pronosticaste.
+          </div>
+        </div>
       </div>
 
       <div class="rkv2__panel active" id="rkv2-panel-global">
@@ -1806,6 +1884,14 @@
   </div>
 
   <script>
+  // ── Help modal ───────────────────────────────────────────────────────────
+  function rkv2HelpOpen() {
+    document.getElementById('rkv2-help-overlay').classList.add('open');
+  }
+  function rkv2HelpClose() {
+    document.getElementById('rkv2-help-overlay').classList.remove('open');
+  }
+
   // ══════════════════════════════════════════
   // RANKING V2 — VERSIÓN FINAL
   // ══════════════════════════════════════════
@@ -1935,8 +2021,12 @@
     const pct = r.total_partidos > 0
       ? Math.round(r.pronosticos_hechos / r.total_partidos * 100)
       : 0;
+    const sinPron = r.sin_pronosticar || 0;
+    const sinBadge = sinPron > 0
+      ? ` <span class="rkv2__sin-pron" title="No pronosticó ${sinPron} partido${sinPron===1?'':'s'} con resultado">✗${sinPron}</span>`
+      : '';
     const partHTML = `
-      <span class="rkv2__part">${r.pronosticos_hechos}/${r.total_partidos}</span>
+      <span class="rkv2__part">${r.pronosticos_hechos}/${r.total_partidos}${sinBadge}</span>
       <span class="rkv2__part-bar"><span class="rkv2__part-fill" style="width:${pct}%"></span></span>`;
 
     const clases = [esYo ? 'rkv2__yo' : ''].filter(Boolean).join(' ');
