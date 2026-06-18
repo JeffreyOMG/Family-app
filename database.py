@@ -328,11 +328,12 @@ _TABLES = [
     "CREATE INDEX IF NOT EXISTS idx_pub_fecha       ON publicaciones(fecha DESC)",
     "CREATE INDEX IF NOT EXISTS idx_pub_usuario     ON publicaciones(usuario_id)",
     "CREATE INDEX IF NOT EXISTS idx_coment_post     ON comentarios(post_id)",
-    # ── Relación Miembro → Invitado ──────────────────────────────────────────
-    # invitado_de: el miembro que trajo/patrocina al invitado
-    """ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS invitado_de INTEGER REFERENCES usuarios(id) ON DELETE SET NULL""",
     # ── Rol Financiero ───────────────────────────────────────────────────────
     """ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS es_financiero BOOLEAN DEFAULT FALSE""",
+    # ── Responsable de invitado (miembro que trajo al invitado) ─────────────
+    # invitado_de: FK a usuarios(id) — qué miembro es responsable de este invitado
+    # Solo aplica a usuarios con rol='invitado'. NULL = sin responsable asignado.
+    """ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS invitado_de INTEGER REFERENCES usuarios(id) ON DELETE SET NULL""",
     # ── Control de participación en polla (solo miembros) ────────────────────
     # polla_activo: TRUE = participa en polla, FALSE = excluido
     # polla_estado: 'activo','bloqueado','inactivo','desactivado'

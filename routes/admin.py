@@ -255,7 +255,8 @@ def listar_financieros():
 @admin_bp.route("/admin/polla_participantes")
 @admin_required
 def polla_participantes():
-    """Devuelve todos los miembros con su estado de participación en la polla."""
+    """Devuelve todos los usuarios con rol='miembro' y su estado de participación en la polla.
+    No incluye invitados ni administradores."""
     con = get_db()
     rows = con.execute("""
         SELECT u.id, u.nombre, u.usuario, u.foto,
@@ -263,7 +264,7 @@ def polla_participantes():
                COALESCE(u.polla_estado, 'activo') AS polla_estado,
                COALESCE(u.rec_bloqueado, 0) AS rec_bloqueado
         FROM usuarios u
-        WHERE u.rol IN ('miembro', 'admin')
+        WHERE u.rol = 'miembro'
         ORDER BY u.nombre ASC
     """).fetchall()
     return jsonify([dict(r) for r in rows])
@@ -290,8 +291,8 @@ def polla_estado():
     ).fetchone()
     if not row:
         return jsonify(ok=False, msg="Usuario no encontrado"), 404
-    if row["rol"] not in ("miembro", "admin"):
-        return jsonify(ok=False, msg="Solo aplica a miembros"), 400
+    if row["rol"] != "miembro":
+        return jsonify(ok=False, msg="Solo aplica a usuarios con rol Miembro"), 400
 
     polla_activo = (nuevo_estado == "activo")
     estado_antes = row["polla_estado"]

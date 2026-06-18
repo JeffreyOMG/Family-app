@@ -335,7 +335,7 @@
               </button>
               {% endif %}
               {% if es_admin %}
-              <button class="rec-rank-block-btn" style="color:var(--accent);margin-left:2px;" onclick="abrirModalEstadoParticipante({{ r.id }},'{{ r.nombre|replace("'","\'") }}','{{ r.polla_estado if r.polla_estado is defined else "activo" }}')" title="Gestionar participación polla">
+              <button class="rec-rank-block-btn" style="color:var(--accent,#7c6af7);margin-left:2px;" onclick="abrirModalEstadoParticipante({{ r.id }},'{{ r.nombre|replace("'","\'") }}','{{ r.polla_estado if r.polla_estado is defined else "activo" }}')" title="Gestionar participación polla">
                 <span class="material-symbols-outlined">manage_accounts</span>
               </button>
               {% endif %}
@@ -808,33 +808,30 @@
 </div>
 
 <!-- ===================== MODAL: BLOQUEAR MIEMBRO ===================== -->
-<div id="modal-bloquear" class="rec-modal-overlay" onclick="cerrarModalBloquear(event)" role="dialog" style="display:none;">
-  <div class="rec-modal-box" onclick="event.stopPropagation()" style="max-width:600px;width:100%;">
-    <div class="rec-modal-header">
-      <div class="rec-modal-title-wrap">
-        <div class="rec-modal-icon" style="background:var(--accent-soft);color:var(--accent);">
-          <span class="material-symbols-outlined">admin_panel_settings</span>
-        </div>
-        <div>
-          <h3>Control de acceso — Recaudación</h3>
-          <p>Bloquea o desbloquea el acceso de miembros a esta sección</p>
-        </div>
+<div id="modal-bloquear" class="modal-fin-overlay" onclick="cerrarModalBloquear(event)" role="dialog" style="display:none;">
+  <div class="modal-fin-box" onclick="event.stopPropagation()" style="max-width:600px;">
+    <div class="modal-fin-header">
+      <div class="modal-fin-title">
+        <span class="material-symbols-outlined" style="color:var(--accent,#7c6af7)">admin_panel_settings</span>
+        Control de acceso — Recaudación
       </div>
-      <button class="rec-modal-close" onclick="cerrarModalBloquear()"><span class="material-symbols-outlined">close</span></button>
+      <button class="modal-fin-close" onclick="cerrarModalBloquear()">
+        <span class="material-symbols-outlined">close</span>
+      </button>
     </div>
-    <div class="rec-modal-body" id="bloqueo-list-body" style="padding:12px 16px;max-height:70vh;">
+    <div class="modal-fin-body" id="bloqueo-list-body" style="padding:12px 16px;">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">
         <input type="text" id="bloqueo-search" placeholder="Buscar miembro…"
           oninput="filtrarListaBloqueo()"
-          style="flex:1;background:var(--bg2,#111118);border:1px solid var(--border);color:var(--text);
+          style="flex:1;background:var(--surface2,#22222e);border:1px solid var(--border);color:var(--text);
                  border-radius:8px;padding:7px 12px;font-size:13px;outline:none;">
         <span id="bloqueo-count-badge" style="font-size:11px;padding:3px 9px;border-radius:12px;
-              background:rgba(255,77,141,.1);border:1px solid rgba(255,77,141,.25);color:var(--accent);
-              white-space:nowrap;"></span>
+              background:rgba(124,106,247,.1);border:1px solid rgba(124,106,247,.25);
+              color:var(--accent,#7c6af7);white-space:nowrap;font-weight:700;"></span>
       </div>
       <div id="bloqueo-list-inner">
         <div style="text-align:center;padding:24px;color:var(--text2);font-size:13px;">
-          <span class="material-symbols-outlined" style="font-size:28px;display:block;margin-bottom:6px;color:var(--accent);">hourglass_empty</span>
+          <span class="material-symbols-outlined" style="font-size:28px;display:block;margin-bottom:6px;color:var(--accent,#7c6af7);">hourglass_empty</span>
           Cargando miembros…
         </div>
       </div>
@@ -1329,8 +1326,8 @@ body.dark-mode .rec-ranking-item.rank-third  { border-color:rgba(205,127,50,.3);
 body.dark-mode .rec-ranking-foto { border-color:var(--border); }
 
 /* ---- MODAL BASE ---- */
-.rec-modal-overlay { position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(4px); }
-.rec-modal-box { background:var(--card,#fff);border-radius:18px;width:100%;max-width:500px;overflow:hidden;box-shadow:0 24px 64px rgba(0,0,0,.25);animation:slideUp .2s ease; }
+.rec-modal-overlay { position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:10000;display:flex;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(4px); }
+.rec-modal-box { background:var(--card, var(--surface,#1e1e2e));border-radius:18px;width:100%;max-width:500px;overflow:hidden;box-shadow:0 24px 64px rgba(0,0,0,.25);animation:slideUp .2s ease; }
 @keyframes slideUp { from{transform:translateY(30px);opacity:0} to{transform:translateY(0);opacity:1} }
 .rec-modal-header { display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border); }
 .rec-modal-title-wrap { display:flex;align-items:center;gap:10px;flex:1;min-width:0; }
@@ -1348,16 +1345,16 @@ body.dark-mode .rec-ranking-foto { border-color:var(--border); }
 .rec-form-group { margin-bottom:14px; }
 .rec-form-label { display:flex;align-items:center;gap:6px;font-size:11.5px;font-weight:700;margin-bottom:7px;color:#444;text-transform:uppercase;letter-spacing:.04em; }
 .rec-form-label .material-symbols-outlined { font-size:15px;color:#666; }
-.rec-input { width:100%;border:1.5px solid var(--border);border-radius:10px;padding:11px 14px;font-size:14px;background:var(--card);color:var(--text);transition:border-color .15s,box-shadow .15s;box-sizing:border-box;font-family:inherit; }
+.rec-input { width:100%;border:1.5px solid #d0d0d0;border-radius:10px;padding:11px 14px;font-size:14px;background:#ffffff;color:#111111;transition:border-color .15s,box-shadow .15s;box-sizing:border-box;font-family:inherit; }
 .rec-input::placeholder { color:#aaa; }
 .rec-input:hover { border-color:#aaa; }
-.rec-input:focus { outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft);background:var(--card); }
+.rec-input:focus { outline:none;border-color:var(--accent,#0095f6);box-shadow:0 0 0 3px rgba(0,149,246,.15);background:var(--bg2,var(--surface,#1a1a22)); }
 .rec-textarea { resize:vertical;min-height:60px; }
 .rec-input-wrap { position:relative; }
 .rec-input-prefix { position:absolute;left:12px;top:50%;transform:translateY(-50%);color:#555;font-weight:700;font-size:15px; }
 .rec-input-wrap .rec-input { padding-left:26px; }
 .rec-upload-area { display:flex;flex-direction:column;align-items:center;justify-content:center;border:2px dashed var(--border);border-radius:12px;padding:20px 16px;cursor:pointer;text-align:center;min-height:80px;transition:border-color .15s; }
-.rec-upload-area:hover { border-color:var(--accent); }
+.rec-upload-area:hover { border-color:var(--accent,#0095f6); }
 .rec-upload-icon { font-size:32px;color:var(--text2);display:block;margin-bottom:6px; }
 .rec-upload-text { font-size:13px;color:var(--text2); }
 .rec-upload-hint { font-size:11px;color:var(--text3,#999);display:block;margin-top:4px; }
@@ -1422,7 +1419,7 @@ body.dark-mode .btn-aporte-principal {
 /* ---- TIPO APORTE GRID ---- */
 .tipo-aporte-grid { display:flex;flex-direction:column;gap:10px; }
 .tipo-aporte-card { display:flex;align-items:center;gap:14px;padding:14px 16px;border:1px solid var(--border);border-radius:14px;background:var(--bg2);cursor:pointer;text-align:left;transition:border-color .15s,box-shadow .15s; }
-.tipo-aporte-card:hover { border-color:var(--accent);box-shadow:0 4px 16px rgba(0,149,246,.12); }
+.tipo-aporte-card:hover { border-color:var(--accent,#0095f6);box-shadow:0 4px 16px rgba(0,149,246,.12); }
 .tipo-icon { width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0; }
 .tipo-info { flex:1;text-align:left; }
 .tipo-info strong {
@@ -1446,14 +1443,14 @@ body.dark-mode .tipo-info strong {
 /* ---- CAJITAS ---- */
 .cajitas-lista { display:flex;flex-direction:column;gap:8px; }
 .cajita-item { display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border:1px solid var(--border);border-radius:12px;background:var(--bg2);cursor:pointer;transition:border-color .15s; }
-.cajita-item:hover { border-color:var(--accent); }
+.cajita-item:hover { border-color:var(--accent,#0095f6); }
 .cajita-item-info strong { display:block;font-size:14px; }
 .cajita-item-info span { font-size:12px;color:var(--text2); }
 .cajita-total { font-weight:700;color:#4caf50;font-size:13px; }
 .miembros-lista { display:flex;flex-direction:column;gap:6px;max-height:150px;overflow-y:auto;border:1px solid var(--border);border-radius:10px;padding:8px; }
 .miembro-check { display:flex;align-items:center;gap:8px;cursor:pointer;padding:4px;border-radius:8px; }
 .miembro-check:hover { background:var(--bg2); }
-.miembro-check input { accent-color:var(--accent); }
+.miembro-check input { accent-color:var(--accent,#0095f6); }
 .miembro-avatar { width:26px;height:26px;border-radius:50%;background:var(--accent-gradient, linear-gradient(135deg,#ff6b9d,#ff4d8d,#c9236a));color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0; }
 
 /* ---- FASES POLLA ---- */
@@ -1477,7 +1474,7 @@ body.dark-mode .tipo-info strong {
 .fase-btn-pagada{width:100%;padding:10px;border:2px solid #4caf50;border-radius:10px;background:rgba(76,175,80,.1);color:#4caf50;font-weight:700;font-size:14px;cursor:default;display:flex;align-items:center;justify-content:center;gap:6px}
 
 /* ===== DARK MODE ===== */
-body.dark-mode .fase-btn{color:var(--text)}
+body.dark-mode .fase-btn{color:#000}
 
 body.dark-mode .fase-btn-pagada{background:rgba(0,166,80,.08);border-color:rgba(0,166,80,.4);color:#4caf50}
 
@@ -1690,6 +1687,21 @@ body.dark-mode .rec-modal-close { background:var(--bg2);border-color:var(--borde
   .rec-modal-footer .rec-btn-submit,
   .rec-modal-footer .rec-btn-danger { flex:1;justify-content:center; }
 
+  /* Modal financiero (invitados, auditoría, participantes, estadísticas,
+     bloqueo): mismo tratamiento full-bottom-sheet que rec-modal en mobile */
+  .modal-fin-overlay { padding:0;align-items:flex-end; }
+  .modal-fin-box {
+    border-radius:20px 20px 0 0;
+    max-height:92vh;
+    max-width:100% !important;
+  }
+  .modal-fin-header { padding:14px 16px; }
+  .modal-fin-body { padding:14px 16px; }
+  .modal-fin-footer { padding:12px 16px;flex-wrap:wrap; }
+  .modal-fin-footer .btn-fin-cancel,
+  .modal-fin-footer .btn-fin-primary { flex:1;justify-content:center; }
+  .inv-tbl-full, .inv-table, .part-table, .audit-table { font-size:11px; }
+
   /* Tipo aporte cards */
   .tipo-aporte-card { padding:12px; }
   .tipo-icon { width:38px;height:38px; }
@@ -1774,6 +1786,13 @@ function show(id) {
 function hide(id) {
   const el = document.getElementById(id);
   if (el) { el.style.display = 'none'; document.body.style.overflow = ''; }
+}
+function fmtCOP(n) {
+  return '$' + Math.round(n || 0).toLocaleString('es-CO');
+}
+function fmtFechaCorta(f) {
+  if (!f) return '—';
+  return String(f).slice(0, 10);
 }
 
 /* ===================== FAMILIA / CAJITAS ===================== */
@@ -2122,11 +2141,11 @@ function renderHistorial(rows) {
       let acciones = '';
       // Botón editar rápido (financiero y admin)
       if (r.tipo === 'evento') {
-        acciones += `<button class="btn-accion" style="color:var(--accent);" onclick="abrirEditarEvento(${r.id},${r.monto||0},'${r.estado||''}')" title="Editar">
+        acciones += `<button class="btn-accion" style="color:var(--accent,#7c6af7);" onclick="abrirEditarEvento(${r.id},${r.monto||0},'${r.estado||''}')" title="Editar">
           <span class="material-symbols-outlined">edit</span>
         </button>`;
       } else if (r.tipo === 'polla') {
-        acciones += `<button class="btn-accion" style="color:var(--accent);" onclick="abrirEditarPolla(${r.id},'${r.estado||''}')" title="Editar estado">
+        acciones += `<button class="btn-accion" style="color:var(--accent,#7c6af7);" onclick="abrirEditarPolla(${r.id},'${r.estado||''}')" title="Editar estado">
           <span class="material-symbols-outlined">edit</span>
         </button>`;
       }
@@ -2683,11 +2702,11 @@ function filtrarRanking(modo) {
 .rec-rank-filter-wrap { display:flex;gap:4px; }
 .rec-rank-filter-btn {
   padding:4px 11px;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;
-  background:var(--card2);border:1px solid var(--border);color:var(--text2);
+  background:var(--surface2);border:1px solid var(--border);color:var(--text2);
   transition:all .15s;
 }
 .rec-rank-filter-btn:hover { border-color:var(--accent);color:var(--text); }
-.rec-rank-filter-btn.active { background:var(--accent-soft);border-color:var(--accent-border);color:var(--accent); }
+.rec-rank-filter-btn.active { background:rgba(124,106,247,.15);border-color:rgba(124,106,247,.4);color:var(--accent); }
 
 /* ── Badge financiero ────────────────────────────────────────────────── */
 
@@ -2695,18 +2714,18 @@ function filtrarRanking(modo) {
 .bloqueo-row {
   display:flex;align-items:center;justify-content:space-between;gap:10px;
   padding:10px 14px;border-radius:10px;margin-bottom:6px;
-  background:var(--card);border:1px solid var(--border);
+  background:var(--surface,#1a1a22);border:1px solid var(--border);
   transition:border-color .15s, background .15s;flex-wrap:wrap;
 }
-.bloqueo-row:hover { border-color:rgba(255,77,141,.3); }
+.bloqueo-row:hover { border-color:rgba(124,106,247,.3); }
 .bloqueo-row--bloqueado { background:rgba(239,68,68,.04);border-color:rgba(239,68,68,.18); }
-.bloqueo-row--destacado { border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft); }
+.bloqueo-row--destacado { border-color:var(--accent,#7c6af7);box-shadow:0 0 0 2px rgba(124,106,247,.15); }
 .bloqueo-row-info { display:flex;align-items:center;gap:10px;min-width:160px; }
 .bloqueo-avatar {
   width:36px;height:36px;border-radius:50%;object-fit:cover;flex-shrink:0;
 }
 .bloqueo-avatar-letra {
-  background:linear-gradient(135deg,var(--accent),#a855f7);
+  background:linear-gradient(135deg,var(--accent,#7c6af7),#a855f7);
   display:flex;align-items:center;justify-content:center;
   font-size:14px;font-weight:700;color:#fff;
 }
@@ -2715,7 +2734,7 @@ function filtrarRanking(modo) {
 .bloqueo-rol-badge {
   padding:1px 6px;border-radius:8px;font-size:10px;font-weight:700;
 }
-.bloqueo-rol-admin   { background:var(--accent-soft);color:var(--accent); }
+.bloqueo-rol-admin   { background:rgba(124,106,247,.15);color:var(--accent,#7c6af7); }
 .bloqueo-rol-miembro { background:rgba(34,197,94,.1);color:#22c55e; }
 .bloqueo-aportado { font-size:12px;font-weight:700;color:var(--text2);margin-right:8px; }
 .bloqueo-row-right { display:flex;align-items:center;gap:10px;flex-wrap:wrap; }
@@ -2741,27 +2760,15 @@ function filtrarRanking(modo) {
 .bloqueo-toggle-desbloquear:hover { background:rgba(34,197,94,.2); }
 
 /* ── Tabla invitados completa ───────────────────────────────────────── */
-.inv-tbl-full { width:100%;border-collapse:collapse;font-size:12px; }
+.inv-tbl-full { width:100%;min-width:920px;border-collapse:collapse;font-size:12px; }
 .inv-tbl-full th {
   text-align:left;padding:9px 10px;font-size:10px;font-weight:700;
   color:var(--text2);text-transform:uppercase;letter-spacing:.4px;
   border-bottom:1px solid var(--border);position:sticky;top:0;
-  background:var(--card);z-index:1;
+  background:var(--surface,#1a1a22);z-index:1;
 }
 .inv-tbl-full td { padding:10px;border-bottom:1px solid var(--border);vertical-align:middle; }
 .inv-tbl-row:hover { background:rgba(255,255,255,.025); }
-.inv-btn-asignar {
-  background:none;border:none;cursor:pointer;color:var(--accent);padding:2px;
-  border-radius:4px;display:inline-flex;align-items:center;
-}
-.inv-btn-asignar:hover { background:rgba(255,77,141,.12); }
-.inv-btn-detalle {
-  background:rgba(255,77,141,.08);border:1px solid rgba(255,77,141,.2);
-  color:var(--accent);border-radius:6px;padding:4px 7px;cursor:pointer;
-  display:inline-flex;align-items:center;
-}
-.inv-btn-detalle:hover { background:rgba(255,77,141,.18); }
-
 /* ── Tabs del modal invitados ───────────────────────────────────────── */
 .inv-tab {
   padding:10px 16px;font-size:13px;font-weight:600;cursor:pointer;
@@ -2769,7 +2776,7 @@ function filtrarRanking(modo) {
   margin-bottom:-1px;transition:all .15s;display:inline-flex;align-items:center;gap:5px;
 }
 .inv-tab:hover { color:var(--text); }
-.inv-tab.active { color:var(--accent);border-bottom-color:var(--accent); }
+.inv-tab.active { color:var(--accent,#7c6af7);border-bottom-color:var(--accent,#7c6af7); }
 
 /* ── Spin animation ─────────────────────────────────────────────────── */
 @keyframes spin { to { transform: rotate(360deg); } }
@@ -2792,29 +2799,38 @@ function filtrarRanking(modo) {
 
 /* ── Modal genérico compartido ──────────────────────────────────────── */
 .modal-fin-overlay {
-  position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:9998;
+  position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:10000;
   display:flex;align-items:center;justify-content:center;padding:16px;
+  backdrop-filter:blur(3px);
 }
+/* Para modales que se abren ENCIMA de otro modal-fin-overlay ya visible
+   (ej: asignar responsable abierto desde dentro de gestión de invitados).
+   Evita depender de z-index inline puntual por cada caso nuevo. */
+.modal-fin-overlay--nested { z-index:10010; }
 .modal-fin-box {
-  background:var(--card);border:1px solid var(--border);
+  background:var(--surface,#1a1a22);border:1px solid var(--border,#2e2e3e);
   border-radius:16px;width:100%;max-width:640px;max-height:90vh;
   display:flex;flex-direction:column;overflow:hidden;
   box-shadow:0 24px 64px rgba(0,0,0,.5);
 }
+/* Modo claro: si --surface es claro, el box hereda bien */
+body:not(.dark-mode) .modal-fin-box {
+  box-shadow:0 24px 64px rgba(0,0,0,.18);
+}
 .modal-fin-header {
   display:flex;align-items:center;justify-content:space-between;
-  padding:18px 20px;border-bottom:1px solid var(--border);flex-shrink:0;
+  padding:18px 20px;border-bottom:1px solid var(--border,#2e2e3e);flex-shrink:0;
 }
 .modal-fin-title { font-size:15px;font-weight:700;display:flex;align-items:center;gap:8px; }
 .modal-fin-close {
-  background:none;border:none;color:var(--text2);cursor:pointer;
+  background:none;border:none;color:var(--text2,#9090aa);cursor:pointer;
   padding:4px;border-radius:6px;display:flex;align-items:center;
 }
-.modal-fin-close:hover { color:var(--text);background:var(--card2); }
+.modal-fin-close:hover { color:var(--text,#f0f0f5);background:var(--surface2,#22222e); }
 .modal-fin-body { overflow-y:auto;padding:20px;flex:1; }
 .modal-fin-footer {
   display:flex;gap:10px;justify-content:flex-end;
-  padding:14px 20px;border-top:1px solid var(--border);flex-shrink:0;
+  padding:14px 20px;border-top:1px solid var(--border,#2e2e3e);flex-shrink:0;
 }
 
 /* ── Tabla de invitados ─────────────────────────────────────────────── */
@@ -2833,13 +2849,13 @@ function filtrarRanking(modo) {
 .part-table td { padding:10px;border-bottom:1px solid var(--border);vertical-align:middle; }
 .part-table tbody tr:hover { background:rgba(255,255,255,.03); }
 .part-estado-select {
-  background:var(--card2);border:1px solid var(--border);
+  background:var(--surface2,#22222e);border:1px solid var(--border);
   color:var(--text);border-radius:6px;padding:4px 8px;font-size:12px;
   cursor:pointer;outline:none;
 }
 
 /* ── Tabla auditoría ────────────────────────────────────────────────── */
-.audit-table { width:100%;border-collapse:collapse;font-size:12px; }
+.audit-table { width:100%;min-width:760px;border-collapse:collapse;font-size:12px; }
 .audit-table th { text-align:left;padding:7px 10px;font-size:10px;font-weight:700;color:var(--text2);text-transform:uppercase;border-bottom:1px solid var(--border); }
 .audit-table td { padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:middle;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
 .audit-table tbody tr:hover { background:rgba(255,255,255,.03); }
@@ -2849,32 +2865,32 @@ function filtrarRanking(modo) {
 .edit-field { display:flex;flex-direction:column;gap:5px; }
 .edit-field label { font-size:12px;font-weight:600;color:var(--text2); }
 .edit-field input, .edit-field select, .edit-field textarea {
-  background:var(--card2);border:1px solid var(--border);
+  background:var(--surface2,#22222e);border:1px solid var(--border);
   color:var(--text);border-radius:8px;padding:8px 12px;font-size:13px;
   width:100%;outline:none;
 }
-.edit-field input:focus, .edit-field select:focus { border-color:var(--accent); }
+.edit-field input:focus, .edit-field select:focus { border-color:var(--accent,#7c6af7); }
 
 /* ── Stats cards en modal ───────────────────────────────────────────── */
 .stats-grid-modal { display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px; }
-.stat-m { background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:14px;text-align:center; }
-.stat-m-val { font-size:22px;font-weight:700;color:var(--accent); }
+.stat-m { background:var(--surface2,#22222e);border:1px solid var(--border);border-radius:10px;padding:14px;text-align:center; }
+.stat-m-val { font-size:22px;font-weight:700;color:var(--accent,#7c6af7); }
 .stat-m-lbl { font-size:11px;color:var(--text2);margin-top:3px; }
 
 /* ── Botones genéricos ──────────────────────────────────────────────── */
 .btn-fin-primary {
   display:inline-flex;align-items:center;gap:6px;
   padding:8px 18px;border-radius:8px;font-size:13px;font-weight:600;
-  background:var(--accent);color:#fff;border:none;cursor:pointer;
+  background:var(--accent,#7c6af7);color:#fff;border:none;cursor:pointer;
 }
 .btn-fin-primary:hover { opacity:.88; }
 .btn-fin-cancel {
   display:inline-flex;align-items:center;gap:6px;
   padding:8px 18px;border-radius:8px;font-size:13px;font-weight:600;
-  background:var(--card2);color:var(--text2);
+  background:var(--surface2,#22222e);color:var(--text2);
   border:1px solid var(--border);cursor:pointer;
 }
-.btn-fin-cancel:hover { border-color:var(--accent);color:var(--text); }
+.btn-fin-cancel:hover { border-color:var(--accent,#7c6af7);color:var(--text); }
 .fin-loading { text-align:center;padding:32px;color:var(--text2);font-size:13px; }
 </style>
 
@@ -2882,19 +2898,19 @@ function filtrarRanking(modo) {
      MODAL: GESTIÓN DE INVITADOS
 ═══════════════════════════════════════════════════════════════════ -->
 <div id="modal-invitados" class="modal-fin-overlay" style="display:none;" onclick="if(event.target===this)hide('modal-invitados')">
-  <div class="modal-fin-box" onclick="event.stopPropagation()" style="max-width:760px;">
+  <div class="modal-fin-box" onclick="event.stopPropagation()" style="max-width:1080px;">
     <div class="modal-fin-header">
       <div class="modal-fin-title">
-        <span class="material-symbols-outlined" style="color:var(--accent)">group</span>
+        <span class="material-symbols-outlined" style="color:var(--accent,#7c6af7)">group</span>
         Gestión de Invitados
         <span id="inv-count-badge" style="margin-left:6px;font-size:11px;padding:2px 9px;border-radius:12px;
-              background:rgba(255,77,141,.1);border:1px solid rgba(255,77,141,.25);
+              background:rgba(124,106,247,.1);border:1px solid rgba(124,106,247,.25);
               color:var(--accent);font-weight:700;"></span>
       </div>
       <div style="display:flex;align-items:center;gap:8px;">
         <input type="text" id="inv-search" placeholder="Buscar…" oninput="filtrarTablaInv()"
-          style="background:var(--card2);border:1px solid var(--border);color:var(--text);
-                 border-radius:8px;padding:6px 11px;font-size:12px;outline:none;width:160px;">
+          style="background:var(--surface2,#22222e);border:1px solid var(--border);color:var(--text);
+                 border-radius:8px;padding:6px 11px;font-size:12px;outline:none;width:150px;">
         <button class="modal-fin-close" onclick="hide('modal-invitados')">
           <span class="material-symbols-outlined">close</span>
         </button>
@@ -2902,18 +2918,18 @@ function filtrarRanking(modo) {
     </div>
 
     <!-- Tabs -->
-    <div style="display:flex;gap:0;border-bottom:1px solid var(--border);padding:0 20px;">
-      <button class="inv-tab active" id="itab-lista" onclick="switchInvTab('lista')">
+    <div style="display:flex;gap:0;border-bottom:1px solid var(--border);padding:0 20px;flex-shrink:0;">
+      <button class="inv-tab active" id="itab-lista"   onclick="switchInvTab('lista')">
         <span class="material-symbols-outlined" style="font-size:15px;vertical-align:middle;">list</span> Lista
       </button>
       <button class="inv-tab" id="itab-resumen" onclick="switchInvTab('resumen')">
-        <span class="material-symbols-outlined" style="font-size:15px;vertical-align:middle;">bar_chart</span> Resumen financiero
+        <span class="material-symbols-outlined" style="font-size:15px;vertical-align:middle;">bar_chart</span> Resumen
       </button>
     </div>
 
-    <div class="modal-fin-body" id="inv-body" style="padding:0;">
+    <div class="modal-fin-body" id="inv-body" style="padding:0;overflow-y:auto;">
       <div class="fin-loading" style="padding:32px;">
-        <span class="material-symbols-outlined" style="font-size:32px;display:block;margin-bottom:8px;">hourglass_empty</span>
+        <span class="material-symbols-outlined" style="font-size:32px;display:block;margin-bottom:8px;color:var(--accent);">hourglass_empty</span>
         Cargando invitados…
       </div>
     </div>
@@ -2947,7 +2963,7 @@ function filtrarRanking(modo) {
   <div class="modal-fin-box" onclick="event.stopPropagation()" style="max-width:420px;">
     <div class="modal-fin-header">
       <div class="modal-fin-title">
-        <span class="material-symbols-outlined" style="color:var(--accent)">manage_accounts</span>
+        <span class="material-symbols-outlined" style="color:var(--accent,#7c6af7)">manage_accounts</span>
         Estado en Polla: <span id="ep-nombre" style="margin-left:4px;color:var(--text2)"></span>
       </div>
       <button class="modal-fin-close" onclick="hide('modal-estado-part')">
@@ -2986,7 +3002,7 @@ function filtrarRanking(modo) {
      MODAL: AUDITORÍA FINANCIERA
 ═══════════════════════════════════════════════════════════════════ -->
 <div id="modal-auditoria" class="modal-fin-overlay" style="display:none;" onclick="if(event.target===this)hide('modal-auditoria')">
-  <div class="modal-fin-box" onclick="event.stopPropagation()" style="max-width:720px;">
+  <div class="modal-fin-box" onclick="event.stopPropagation()" style="max-width:920px;">
     <div class="modal-fin-header">
       <div class="modal-fin-title">
         <span class="material-symbols-outlined" style="color:#22c55e">history</span>
@@ -3029,7 +3045,7 @@ function filtrarRanking(modo) {
   <div class="modal-fin-box" onclick="event.stopPropagation()" style="max-width:400px;">
     <div class="modal-fin-header">
       <div class="modal-fin-title">
-        <span class="material-symbols-outlined" style="color:var(--accent)">edit</span>
+        <span class="material-symbols-outlined" style="color:var(--accent,#7c6af7)">edit</span>
         Editar Evento
       </div>
       <button class="modal-fin-close" onclick="hide('modal-editar-evento')">
@@ -3073,7 +3089,7 @@ function filtrarRanking(modo) {
   <div class="modal-fin-box" onclick="event.stopPropagation()" style="max-width:380px;">
     <div class="modal-fin-header">
       <div class="modal-fin-title">
-        <span class="material-symbols-outlined" style="color:var(--accent)">edit</span>
+        <span class="material-symbols-outlined" style="color:var(--accent,#7c6af7)">edit</span>
         Editar Estado Pago Polla
       </div>
       <button class="modal-fin-close" onclick="hide('modal-editar-polla')">
@@ -3111,30 +3127,25 @@ function filtrarRanking(modo) {
      JS: Nuevos modales y funciones
 ═══════════════════════════════════════════════════════════════════ -->
 <script>
-// ── Helpers ─────────────────────────────────────────────────────────────────
-// show() y hide() reutilizados desde UTILS (líneas anteriores del script principal)
+// ── Helpers nuevos (complementan los existentes) ─────────────────────────────
+// show() y hide() ya definidos en el bloque principal de JS
+// fmtCOP y fmtFechaCorta definidos en el bloque JS principal también
 
-function fmtCOP(n) {
-  return '$' + Math.round(n).toLocaleString('es-CO');
-}
-function fmtFechaCorta(f) {
-  if (!f) return '—';
-  return f.slice(0,10);
-}
 
-// ── Gestión de invitados — versión completa ──────────────────────────────────
+// ── Gestión de invitados ─────────────────────────────────────────────────────
 let _invData = { invitados: [], miembros: [] };
-let _invTab = 'lista';
+let _invTab  = 'lista';
 
 async function abrirModalInvitados() {
   show('modal-invitados');
   const body = document.getElementById('inv-body');
-  body.innerHTML = '<div class="fin-loading" style="padding:32px;"><span class="material-symbols-outlined" style="font-size:32px;display:block;margin-bottom:8px;">hourglass_empty</span>Cargando invitados…</div>';
+  body.innerHTML = '<div class="fin-loading" style="padding:32px;"><span class="material-symbols-outlined" style="font-size:32px;display:block;margin-bottom:8px;color:var(--accent,#7c6af7);">hourglass_empty</span>Cargando invitados…</div>';
   try {
-    const r = await fetch('/api/fin/invitados_detalle');
+    const r = await fetch('/api/fin/invitados');
     _invData = await r.json();
+    if (_invData.ok === false) { body.innerHTML = '<div class="fin-loading">Sin permiso.</div>'; return; }
     const badge = document.getElementById('inv-count-badge');
-    badge.textContent = `${_invData.invitados.length} registrado${_invData.invitados.length !== 1 ? 's' : ''}`;
+    badge.textContent = `${_invData.invitados.length} invitado${_invData.invitados.length !== 1 ? 's' : ''}`;
     renderInvTab(_invTab);
   } catch(e) {
     body.innerHTML = '<div class="fin-loading">Error al cargar invitados.</div>';
@@ -3144,12 +3155,17 @@ async function abrirModalInvitados() {
 function switchInvTab(tab) {
   _invTab = tab;
   document.querySelectorAll('.inv-tab').forEach(t => t.classList.remove('active'));
-  document.getElementById('itab-' + tab)?.classList.add('active');
+  const btn = document.getElementById('itab-' + tab);
+  if (btn) btn.classList.add('active');
   renderInvTab(tab);
 }
+function filtrarTablaInv() { renderInvTab(_invTab); }
 
-function filtrarTablaInv() {
-  renderInvTab(_invTab);
+function invTagMundial(estado) {
+  if (estado === 'aprobado')                    return '<span class="inv-tag-pagado">✓ Aprobado</span>';
+  if (estado && estado.startsWith('pendiente')) return '<span class="inv-tag-pendiente">⏳ Pendiente</span>';
+  if (estado === 'rechazado')                   return '<span class="inv-tag-rechazado">✗ Rechazado</span>';
+  return '<span class="inv-tag-sin">Sin solicitud</span>';
 }
 
 function renderInvTab(tab) {
@@ -3157,199 +3173,140 @@ function renderInvTab(tab) {
   if (!_invData.invitados) return;
   const q = (document.getElementById('inv-search')?.value || '').toLowerCase();
   const lista = _invData.invitados.filter(u =>
-    !q || u.nombre.toLowerCase().includes(q) || (u.usuario||'').toLowerCase().includes(q)
+    !q || (u.nombre||'').toLowerCase().includes(q) || (u.usuario||'').toLowerCase().includes(q)
   );
   if (!lista.length) {
-    body.innerHTML = '<div class="fin-loading" style="padding:32px;">No hay invitados que coincidan.</div>';
+    body.innerHTML = '<div class="fin-loading" style="padding:32px;">No hay invitados registrados.</div>';
     return;
   }
   if (tab === 'lista') {
-    body.innerHTML = `
-      <div style="overflow-x:auto;">
-      <table class="inv-tbl-full">
-        <thead><tr>
-          <th>Invitado</th>
-          <th>Miembro responsable</th>
-          <th>Mundial</th>
-          <th>Aportes</th>
-          <th>Polla pagada</th>
-          <th>Saldo pendiente</th>
-          <th>Estado</th>
-          <th>⚙️</th>
-        </tr></thead>
-        <tbody>
-        ${lista.map(u => `
-          <tr class="inv-tbl-row" id="invrow-${u.id}">
-            <td>
-              <div style="display:flex;align-items:center;gap:8px;">
-                ${u.foto ? `<img src="${u.foto}" style="width:28px;height:28px;border-radius:50%;object-fit:cover;flex-shrink:0;" alt="">` :
-                  `<div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--accent),#a855f7);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;">${(u.nombre||'?')[0].toUpperCase()}</div>`}
-                <div>
-                  <div style="font-weight:600;font-size:13px;">${u.nombre}</div>
-                  <div style="font-size:11px;color:var(--text2);">@${u.usuario||'—'}</div>
-                </div>
-              </div>
-            </td>
-            <td>
-              <div style="display:flex;align-items:center;gap:6px;">
-                <span style="font-size:12px;color:${u.patrocinador_nombre ? 'var(--text)' : 'var(--text3)'};">
-                  ${u.patrocinador_nombre
-                    ? `🤝 ${u.patrocinador_nombre}`
-                    : '<span style="color:var(--text3);font-size:11px;">Sin asignar</span>'}
-                </span>
-                <button class="inv-btn-asignar" onclick="abrirAsignarResponsable(${u.id},'${(u.nombre||'').replace(/'/g,"\\'")}',${u.invitado_de||0})" title="Asignar miembro responsable">
-                  <span class="material-symbols-outlined" style="font-size:14px;">edit</span>
-                </button>
-              </div>
-            </td>
-            <td>${invTagMundial(u.mundial_pagado)}</td>
-            <td style="text-align:center;">
-              <span style="font-size:13px;font-weight:700;">${fmtCOP(u.total_aportes)}</span>
-              <div style="font-size:10px;color:var(--text3);">${u.num_aportes} aporte${u.num_aportes !== 1 ? 's' : ''}</div>
-            </td>
-            <td style="color:#22c55e;font-weight:700;">${fmtCOP(u.polla_pagado)}</td>
-            <td>
-              ${u.saldo_pendiente > 0
-                ? `<span style="color:#ef4444;font-weight:700;">${fmtCOP(u.saldo_pendiente)}</span>`
-                : `<span style="color:#22c55e;font-size:12px;">✅ Al día</span>`}
-            </td>
-            <td>
-              ${u.rec_bloqueado
-                ? '<span class="inv-tag-rechazado">🔒 Bloqueado</span>'
-                : '<span class="inv-tag-pagado">🟢 Activo</span>'}
-            </td>
-            <td>
-              <button class="inv-btn-detalle" onclick="verDetalleInvitado(${u.id},'${(u.nombre||'').replace(/'/g,"\\'")}')">
-                <span class="material-symbols-outlined" style="font-size:14px;">open_in_new</span>
-              </button>
-            </td>
-          </tr>
-        `).join('')}
-        </tbody>
-      </table>
-      </div>`;
-  } else {
-    // Tab resumen financiero — totales agrupados por miembro responsable
-    const porMiembro = {};
-    lista.forEach(u => {
-      const key = u.patrocinador_nombre || '(Sin asignar)';
-      if (!porMiembro[key]) porMiembro[key] = { total: 0, pagado: 0, pendiente: 0, count: 0 };
-      porMiembro[key].total     += (u.total_aportes || 0);
-      porMiembro[key].pagado    += (u.total_pagado  || 0);
-      porMiembro[key].pendiente += (u.saldo_pendiente || 0);
-      porMiembro[key].count++;
-    });
-    const totGlobal    = lista.reduce((s,u) => s + (u.total_aportes||0), 0);
-    const pagadoGlobal = lista.reduce((s,u) => s + (u.total_pagado||0), 0);
-    const pendGlobal   = lista.reduce((s,u) => s + (u.saldo_pendiente||0), 0);
-    body.innerHTML = `
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;padding:16px 20px 0;">
-        <div class="stat-m"><div class="stat-m-val" style="color:#22c55e;">${fmtCOP(totGlobal)}</div><div class="stat-m-lbl">Total registrado</div></div>
-        <div class="stat-m"><div class="stat-m-val" style="color:var(--accent);">${fmtCOP(pagadoGlobal)}</div><div class="stat-m-lbl">Total pagado</div></div>
-        <div class="stat-m"><div class="stat-m-val" style="color:#ef4444;">${fmtCOP(pendGlobal)}</div><div class="stat-m-lbl">Saldo pendiente</div></div>
-        <div class="stat-m"><div class="stat-m-val">${lista.length}</div><div class="stat-m-lbl">Invitados</div></div>
-      </div>
-      <div style="padding:16px 20px;">
-        <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px;">Por miembro responsable</div>
-        ${Object.entries(porMiembro).map(([miembro, d]) => `
-          <div style="background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:8px;">
-            <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
-              <div style="font-weight:700;font-size:13px;">🤝 ${miembro} <span style="color:var(--text2);font-weight:400;font-size:12px;">(${d.count} invitado${d.count!==1?'s':''})</span></div>
-              <div style="display:flex;gap:16px;font-size:12px;flex-wrap:wrap;">
-                <span>Registrado: <strong style="color:#22c55e;">${fmtCOP(d.total)}</strong></span>
-                <span>Pagado: <strong style="color:var(--accent);">${fmtCOP(d.pagado)}</strong></span>
-                ${d.pendiente > 0 ? `<span>Pendiente: <strong style="color:#ef4444;">${fmtCOP(d.pendiente)}</strong></span>` : '<span style="color:#22c55e;">✅ Al día</span>'}
+    body.innerHTML = `<div style="overflow-x:auto;">
+    <table class="inv-tbl-full">
+      <thead><tr>
+        <th>Invitado</th>
+        <th>Responsable</th>
+        <th>Estado</th>
+        <th>Mundial</th>
+        <th>Total aportado</th>
+        <th>Pagado</th>
+        <th>Pendiente</th>
+        <th>Saldo</th>
+        <th>Polla</th>
+        <th>Última act.</th>
+        <th>Modificado por</th>
+      </tr></thead>
+      <tbody>
+      ${lista.map(u => `
+        <tr class="inv-tbl-row">
+          <td>
+            <div style="display:flex;align-items:center;gap:8px;">
+              ${u.foto
+                ? `<img src="${u.foto}" style="width:28px;height:28px;border-radius:50%;object-fit:cover;flex-shrink:0;" alt="">`
+                : `<div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--accent,#7c6af7),#a855f7);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0;">${(u.nombre||'?')[0].toUpperCase()}</div>`}
+              <div>
+                <div style="font-weight:600;font-size:13px;white-space:nowrap;">${u.nombre||'—'}</div>
+                <div style="font-size:11px;color:var(--text2);">@${u.usuario||'—'}</div>
               </div>
             </div>
+          </td>
+          <td>
+            <div style="display:flex;align-items:center;gap:5px;min-width:120px;">
+              <span style="font-size:12px;${u.responsable_nombre ? '' : 'color:var(--text3);'}">
+                ${u.responsable_nombre ? `🤝 ${u.responsable_nombre}` : '— Sin asignar'}
+              </span>
+              <button style="background:none;border:none;cursor:pointer;color:var(--accent,#7c6af7);padding:2px;border-radius:4px;display:inline-flex;align-items:center;"
+                onclick="abrirAsignarResponsable(${u.id},'${u.nombre.replace(/'/g,"\\'")}',${u.invitado_de||0})"
+                title="Cambiar responsable">
+                <span class="material-symbols-outlined" style="font-size:14px;">edit</span>
+              </button>
+            </div>
+          </td>
+          <td>${u.rec_bloqueado ? '<span class="inv-tag-rechazado">🔒 Bloqueado</span>' : '<span class="inv-tag-pagado">🟢 Activo</span>'}</td>
+          <td>${invTagMundial(u.mundial_pagado)}</td>
+          <td style="font-weight:700;text-align:right;white-space:nowrap;">${fmtCOP(u.total_aportes||0)}</td>
+          <td style="color:#22c55e;font-weight:700;text-align:right;white-space:nowrap;">${fmtCOP(u.total_pagado||0)}</td>
+          <td style="color:#eab308;text-align:right;white-space:nowrap;">${fmtCOP(u.polla_pendiente||0)}</td>
+          <td style="text-align:right;white-space:nowrap;">
+            ${(u.saldo_pendiente||0) > 0
+              ? `<span style="color:#ef4444;font-weight:700;">${fmtCOP(u.saldo_pendiente)}</span>`
+              : `<span style="color:#22c55e;font-size:11px;font-weight:600;">✅ Al día</span>`}
+          </td>
+          <td style="text-align:center;">${u.participa_polla ? '<span style="color:#22c55e;font-size:12px;">⚽ Sí</span>' : '<span style="color:var(--text3);font-size:11px;">No</span>'}</td>
+          <td style="color:var(--text2);font-size:11px;white-space:nowrap;">${u.ultima_actualizacion||'—'}</td>
+          <td style="color:var(--text2);font-size:11px;white-space:nowrap;">${u.modificado_por||'—'}</td>
+        </tr>
+      `).join('')}
+      </tbody>
+    </table></div>`;
+  } else {
+    const totReg   = lista.reduce((s,u) => s + (u.total_aportes||0),   0);
+    const totPag   = lista.reduce((s,u) => s + (u.total_pagado||0),    0);
+    const totPend  = lista.reduce((s,u) => s + (u.saldo_pendiente||0), 0);
+    const conPolla = lista.filter(u => u.participa_polla).length;
+    const alDia    = lista.filter(u => (u.saldo_pendiente||0) === 0).length;
+    const porResp  = {};
+    lista.forEach(u => {
+      const k = u.responsable_nombre || '(Sin responsable)';
+      if (!porResp[k]) porResp[k] = { total:0, pagado:0, saldo:0, count:0 };
+      porResp[k].total  += (u.total_aportes||0);
+      porResp[k].pagado += (u.total_pagado||0);
+      porResp[k].saldo  += (u.saldo_pendiente||0);
+      porResp[k].count++;
+    });
+    body.innerHTML = `<div style="padding:20px;">
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:20px;">
+        <div class="stat-m"><div class="stat-m-val">${lista.length}</div><div class="stat-m-lbl">Total invitados</div></div>
+        <div class="stat-m"><div class="stat-m-val" style="color:#22c55e;">${fmtCOP(totReg)}</div><div class="stat-m-lbl">Total registrado</div></div>
+        <div class="stat-m"><div class="stat-m-val" style="color:var(--accent,#7c6af7);">${fmtCOP(totPag)}</div><div class="stat-m-lbl">Total pagado</div></div>
+        <div class="stat-m"><div class="stat-m-val" style="color:#ef4444;">${fmtCOP(totPend)}</div><div class="stat-m-lbl">Saldo pendiente</div></div>
+        <div class="stat-m"><div class="stat-m-val" style="color:#eab308;">⚽ ${conPolla}</div><div class="stat-m-lbl">En polla</div></div>
+        <div class="stat-m"><div class="stat-m-val" style="color:#22c55e;">✅ ${alDia}</div><div class="stat-m-lbl">Al día</div></div>
+      </div>
+      <div style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;">Por miembro responsable</div>
+      ${Object.entries(porResp).map(([resp, d]) => `
+        <div style="background:var(--surface2,#22222e);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:7px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+            <div style="font-weight:700;font-size:13px;">🤝 ${resp}
+              <span style="color:var(--text2);font-weight:400;font-size:12px;">(${d.count} invitado${d.count!==1?'s':''})</span>
+            </div>
+            <div style="display:flex;gap:14px;font-size:12px;flex-wrap:wrap;">
+              <span>Total: <strong style="color:#22c55e;">${fmtCOP(d.total)}</strong></span>
+              <span>Pagado: <strong style="color:var(--accent,#7c6af7);">${fmtCOP(d.pagado)}</strong></span>
+              ${d.saldo > 0
+                ? `<span>Saldo: <strong style="color:#ef4444;">${fmtCOP(d.saldo)}</strong></span>`
+                : '<span style="color:#22c55e;">✅ Sin saldo</span>'}
+            </div>
           </div>
-        `).join('')}
-      </div>`;
+        </div>
+      `).join('')}
+    </div>`;
   }
 }
 
-function invTagMundial(estado) {
-  if (estado === 'aprobado')  return '<span class="inv-tag-pagado">✓ Aprobado</span>';
-  if (estado && estado.startsWith('pendiente')) return '<span class="inv-tag-pendiente">⏳ Pendiente</span>';
-  if (estado === 'rechazado') return '<span class="inv-tag-rechazado">✗ Rechazado</span>';
-  return '<span class="inv-tag-sin">Sin solicitud</span>';
-}
-
-async function verDetalleInvitado(uid, nombre) {
-  // Abre modal de aportes detallado (existente)
-  const r = await fetch(`/api/fin/invitado/${uid}/aportes`);
-  const aportes = await r.json();
-  const u = _invData.invitados.find(x => x.id === uid) || {};
-  // Construir popup rápido
-  const existing = document.getElementById('modal-inv-detalle');
-  if (existing) existing.remove();
-  const html = `
-  <div id="modal-inv-detalle" class="modal-fin-overlay" onclick="if(event.target===this)this.remove()" style="z-index:10001;">
-    <div class="modal-fin-box" onclick="event.stopPropagation()" style="max-width:480px;">
-      <div class="modal-fin-header">
-        <div class="modal-fin-title">
-          <span class="material-symbols-outlined" style="color:var(--accent)">receipt_long</span>
-          Aportes de ${nombre}
-        </div>
-        <button class="modal-fin-close" onclick="document.getElementById('modal-inv-detalle').remove()">
-          <span class="material-symbols-outlined">close</span>
-        </button>
-      </div>
-      <div class="modal-fin-body">
-        <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;">
-          <div class="stat-m" style="flex:1;"><div class="stat-m-val" style="color:#22c55e;">${fmtCOP(u.total_aportes||0)}</div><div class="stat-m-lbl">Total registrado</div></div>
-          <div class="stat-m" style="flex:1;"><div class="stat-m-val" style="color:var(--accent);">${fmtCOP(u.polla_pagado||0)}</div><div class="stat-m-lbl">Polla pagada</div></div>
-          <div class="stat-m" style="flex:1;"><div class="stat-m-val" style="color:#ef4444;">${fmtCOP(u.saldo_pendiente||0)}</div><div class="stat-m-lbl">Pendiente</div></div>
-        </div>
-        ${aportes.length === 0 ? '<div class="fin-loading">Sin aportes registrados.</div>' : `
-        <table style="width:100%;border-collapse:collapse;font-size:12px;">
-          <thead><tr>
-            <th style="text-align:left;padding:6px;border-bottom:1px solid var(--border);color:var(--text2);">Descripción</th>
-            <th style="padding:6px;border-bottom:1px solid var(--border);color:var(--text2);">Monto</th>
-            <th style="padding:6px;border-bottom:1px solid var(--border);color:var(--text2);">Estado</th>
-            <th style="padding:6px;border-bottom:1px solid var(--border);color:var(--text2);">Fecha</th>
-          </tr></thead>
-          <tbody>
-          ${aportes.map(a => `<tr>
-            <td style="padding:7px 6px;border-bottom:1px solid var(--border);">${a.descripcion||'—'}</td>
-            <td style="padding:7px 6px;border-bottom:1px solid var(--border);text-align:center;font-weight:700;color:#22c55e;">${fmtCOP(a.monto)}</td>
-            <td style="padding:7px 6px;border-bottom:1px solid var(--border);text-align:center;">
-              ${a.verificado ? '<span class="inv-tag-pagado">✓</span>' : '<span class="inv-tag-pendiente">⏳</span>'}
-            </td>
-            <td style="padding:7px 6px;border-bottom:1px solid var(--border);color:var(--text2);font-size:11px;">${(a.fecha||'').slice(0,10)}</td>
-          </tr>`).join('')}
-          </tbody>
-        </table>`}
-      </div>
-    </div>
-  </div>`;
-  document.body.insertAdjacentHTML('beforeend', html);
-}
-
-
-
-// ── Asignar miembro responsable de invitado ──────────────────────────────────
-function abrirAsignarResponsable(invId, invNombre, patActual) {
-  const existing = document.getElementById('modal-asignar-resp');
-  if (existing) existing.remove();
-  const opts = [{ id: '', nombre: '— Sin asignar —', usuario: '' },
-    ...(_invData.miembros || [])]
-    .map(m => `<option value="${m.id}" ${Number(m.id) === Number(patActual) ? 'selected' : ''}>${m.nombre}${m.usuario ? ' (@'+m.usuario+')' : ''}</option>`)
+// ── Asignar responsable a invitado ───────────────────────────────────────────
+function abrirAsignarResponsable(invId, invNombre, respActual) {
+  document.getElementById('modal-asignar-resp')?.remove();
+  const opts = [{id:'', nombre:'— Sin responsable —', usuario:''},
+    ..._invData.miembros]
+    .map(m => `<option value="${m.id}" ${Number(m.id)===Number(respActual)?'selected':''}>${m.nombre}${m.usuario?' (@'+m.usuario+')':''}</option>`)
     .join('');
   document.body.insertAdjacentHTML('beforeend', `
-  <div id="modal-asignar-resp" class="modal-fin-overlay" onclick="if(event.target===this)this.remove()" style="z-index:10001;">
+  <div id="modal-asignar-resp" class="modal-fin-overlay modal-fin-overlay--nested" onclick="if(event.target===this)this.remove()">
     <div class="modal-fin-box" onclick="event.stopPropagation()" style="max-width:380px;">
       <div class="modal-fin-header">
         <div class="modal-fin-title">
-          <span class="material-symbols-outlined" style="color:var(--accent)">link</span>
-          Miembro responsable
+          <span class="material-symbols-outlined" style="color:var(--accent,#7c6af7)">link</span>
+          Asignar responsable
         </div>
         <button class="modal-fin-close" onclick="document.getElementById('modal-asignar-resp').remove()">
           <span class="material-symbols-outlined">close</span>
         </button>
       </div>
       <div class="modal-fin-body">
-        <p style="font-size:13px;color:var(--text2);margin-bottom:12px;">¿Qué miembro es responsable de <strong style="color:var(--text)">${invNombre}</strong>?</p>
-        <select id="resp-select-${invId}" style="width:100%;background:var(--card2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:9px 12px;font-size:13px;outline:none;">${opts}</select>
+        <p style="font-size:13px;color:var(--text2);margin-bottom:12px;">
+          Miembro responsable de <strong style="color:var(--text)">${invNombre}</strong>
+        </p>
+        <select id="resp-select-${invId}" style="width:100%;background:var(--surface2,#22222e);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:9px 12px;font-size:13px;outline:none;">${opts}</select>
       </div>
       <div class="modal-fin-footer">
         <button class="btn-fin-cancel" onclick="document.getElementById('modal-asignar-resp').remove()">Cancelar</button>
@@ -3363,24 +3320,17 @@ function abrirAsignarResponsable(invId, invNombre, patActual) {
 
 async function guardarResponsable(invId) {
   const sel = document.getElementById('resp-select-' + invId);
-  const patId = sel?.value ? parseInt(sel.value) : null;
+  const respId = sel?.value ? parseInt(sel.value) : null;
   try {
-    const r = await fetch('/api/fin/asignar_patrocinador', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ invitado_id: invId, patrocinador_id: patId })
+    const r = await fetch('/api/fin/set_responsable', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ invitado_id: invId, responsable_id: respId })
     });
     const d = await r.json();
     document.getElementById('modal-asignar-resp')?.remove();
-    if (d.ok) {
-      mostrarToastFin('Responsable actualizado ✅', true);
-      abrirModalInvitados();
-    } else {
-      mostrarToastFin(d.error || 'Error', false);
-    }
-  } catch(e) {
-    mostrarToastFin('Error de conexión', false);
-  }
+    mostrarToastFin(d.ok ? 'Responsable actualizado ✅' : (d.error||'Error'), d.ok);
+    if (d.ok) abrirModalInvitados();
+  } catch(e) { mostrarToastFin('Error de conexión', false); }
 }
 
 // ── Gestión de participantes polla ───────────────────────────────────────────
@@ -3418,7 +3368,7 @@ async function abrirModalParticipantes() {
           <tr id="part-row-${u.id}">
             <td>
               <div style="display:flex;align-items:center;gap:8px;">
-                ${u.foto ? `<img src="${u.foto}" style="width:26px;height:26px;border-radius:50%;object-fit:cover;" alt="">` : `<div style="width:26px;height:26px;border-radius:50%;background:var(--card2);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:11px;">${(u.nombre||'?')[0].toUpperCase()}</div>`}
+                ${u.foto ? `<img src="${u.foto}" style="width:26px;height:26px;border-radius:50%;object-fit:cover;" alt="">` : `<div style="width:26px;height:26px;border-radius:50%;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:11px;">${(u.nombre||'?')[0].toUpperCase()}</div>`}
                 <div>
                   <div style="font-weight:600;font-size:13px;">${u.nombre}</div>
                   <div style="font-size:11px;color:var(--text2);">@${u.usuario}</div>
@@ -3571,9 +3521,9 @@ async function abrirModalEstadisticas() {
     body.innerHTML = `
       <div class="stats-grid-modal">
         <div class="stat-m"><div class="stat-m-val" style="color:#22c55e;">${fmtCOP(d.total_general)}</div><div class="stat-m-lbl">Total recaudado</div></div>
-        <div class="stat-m"><div class="stat-m-val" style="color:var(--accent);">${fmtCOP(d.meta)}</div><div class="stat-m-lbl">Meta</div></div>
+        <div class="stat-m"><div class="stat-m-val" style="color:var(--accent,#7c6af7);">${fmtCOP(d.meta)}</div><div class="stat-m-lbl">Meta</div></div>
         <div class="stat-m"><div class="stat-m-val" style="color:#f59e0b;">${d.pct}%</div><div class="stat-m-lbl">Progreso</div></div>
-        <div class="stat-m"><div class="stat-m-val" style="color:var(--accent);">${fmtCOP(d.total_eventos)}</div><div class="stat-m-lbl">Eventos verificados</div></div>
+        <div class="stat-m"><div class="stat-m-val" style="color:#0095f6;">${fmtCOP(d.total_eventos)}</div><div class="stat-m-lbl">Eventos verificados</div></div>
         <div class="stat-m"><div class="stat-m-val" style="color:#eab308;">${fmtCOP(d.total_polla)}</div><div class="stat-m-lbl">Polla verificada</div></div>
         <div class="stat-m"><div class="stat-m-val" style="color:#ef4444;">${d.pendientes_verificacion}</div><div class="stat-m-lbl">Pendientes verificación</div></div>
         <div class="stat-m"><div class="stat-m-val">${d.participantes_activos}</div><div class="stat-m-lbl">Participantes activos polla</div></div>
@@ -3675,7 +3625,7 @@ document.addEventListener('keydown', function(e) {
    'modal-auditoria','modal-estadisticas','modal-editar-evento','modal-editar-polla']
     .forEach(id => {
       const el = document.getElementById(id);
-      if (el && el.style.display !== 'none') el.style.display = 'none';
+      if (el && el.style.display !== 'none') hide(id);
     });
 });
 </script>
