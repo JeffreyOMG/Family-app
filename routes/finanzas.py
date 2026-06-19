@@ -268,6 +268,7 @@ def api_historial():
                u.nombre AS usuario, u.rol AS rol, u.foto AS foto_perfil
         FROM polla_pagos pp JOIN usuarios u ON u.id=pp.usuario_id
         WHERE u.rol IN ('miembro', 'admin')
+          AND COALESCE(u.polla_estado, 'activo') != 'excluido'
         ORDER BY pp.fecha DESC
     """).fetchall():
         registros.append({**dict(p), "tipo": "polla"})
@@ -560,6 +561,113 @@ def set_responsable():
 
 
 
+@fin_bp.route("/api/fin/set_estado_invitado", methods=["POST"])
+def set_estado_invitado():
+    """Fija explícitamente el estado (Activo/Bloqueado) de un invitado.
+    A diferencia de /api/admin/bloquear_recaudacion (que solo alterna),
+    este recibe el valor deseado directamente — útil para el modal de edición."""
+    if not _es_admin_o_financiero():
+        return jsonify({"ok": False, "error": "Sin permiso"}), 403
+    data = request.get_json(silent=True) or {}
+    inv_id = data.get("invitado_id")
+    bloqueado = data.get("bloqueado")
+    if not inv_id or bloqueado is None:
+        return jsonify({"ok": False, "error": "invitado_id y bloqueado requeridos"}), 400
+    con = get_db()
+    row = con.execute(
+        "SELECT rec_bloqueado FROM usuarios WHERE id=%s AND rol='invitado'", (inv_id,)
+    ).fetchone()
+    if not row:
+        return jsonify({"ok": False, "error": "Invitado no encontrado"}), 404
+    nuevo = 1 if bloqueado else 0
+    if int(row["rec_bloqueado"] or 0) != nuevo:
+        con.execute("UPDATE usuarios SET rec_bloqueado=%s WHERE id=%s", (nuevo, inv_id))
+        _registrar_auditoria(con, session["uid"], inv_id, "editar_estado_invitado",
+            "rec_bloqueado", row["rec_bloqueado"], nuevo, data.get("motivo", ""))
+        con.commit()
+    return jsonify({"ok": True, "bloqueado": bool(nuevo)})
+
+
+@fin_bp.route("/api/fin/ajustar_finanzas", methods=["POST"])
+def ajustar_finanzas():
+    """Permite a Admin/Financiero fijar manualmente el TOTAL APORTADO y el
+    PAGADO de un invitado. Internamente se registra como ajustes en la
+    tabla `aportes` (sin tocar el esquema) para mantener consistencia con
+    el resto del sistema y quedar reflejado en auditoría/historial.
+    El SALDO se recalcula solo a partir de estos dos valores."""
+    if not _es_admin_o_financiero():
+        return jsonify({"ok": False, "error": "Sin permiso"}), 403
+
+    data = request.get_json(silent=True) or {}
+    inv_id = data.get("invitado_id")
+    if not inv_id:
+        return jsonify({"ok": False, "error": "invitado_id requerido"}), 400
+
+    con = get_db()
+    inv = con.execute(
+        "SELECT id, nombre FROM usuarios WHERE id=%s AND rol='invitado'", (inv_id,)
+    ).fetchone()
+    if not inv:
+        return jsonify({"ok": False, "error": "Invitado no encontrado"}), 404
+
+    motivo = data.get("motivo", "") or "Ajuste manual desde Gestión de Invitados"
+    actor_id = session["uid"]
+    cambios = []
+
+    # Estado actual real
+    actual = con.execute("""
+        SELECT COALESCE(SUM(monto),0) AS total,
+               COALESCE(SUM(CASE WHEN verificado=1 THEN monto ELSE 0 END),0) AS pagado
+        FROM aportes WHERE usuario_id=%s
+    """, (inv_id,)).fetchone()
+    total_actual  = float(actual["total"])
+    pagado_actual = float(actual["pagado"])
+
+    nuevo_total  = data.get("total")
+    nuevo_pagado = data.get("pagado")
+
+    # 1) Ajustar PAGADO primero (esto también afecta el total, por eso se
+    #    corrige el total después con el valor ya actualizado).
+    if nuevo_pagado is not None:
+        try:
+            nuevo_pagado = float(nuevo_pagado)
+            if nuevo_pagado < 0: raise ValueError
+        except (ValueError, TypeError):
+            return jsonify({"ok": False, "error": "Pagado inválido"}), 400
+        delta_pagado = round(nuevo_pagado - pagado_actual, 2)
+        if delta_pagado != 0:
+            con.execute(
+                "INSERT INTO aportes(usuario_id, monto, descripcion, verificado) VALUES(%s,%s,%s,1)",
+                (inv_id, delta_pagado, "Ajuste manual (pagado)")
+            )
+            _registrar_auditoria(con, actor_id, inv_id, "ajustar_pagado_invitado",
+                "pagado", pagado_actual, nuevo_pagado, motivo)
+            total_actual += delta_pagado
+            cambios.append("pagado")
+
+    # 2) Ajustar TOTAL APORTADO al valor deseado (no afecta lo ya pagado).
+    if nuevo_total is not None:
+        try:
+            nuevo_total = float(nuevo_total)
+            if nuevo_total < 0: raise ValueError
+        except (ValueError, TypeError):
+            return jsonify({"ok": False, "error": "Total inválido"}), 400
+        delta_total = round(nuevo_total - total_actual, 2)
+        if delta_total != 0:
+            con.execute(
+                "INSERT INTO aportes(usuario_id, monto, descripcion, verificado) VALUES(%s,%s,%s,0)",
+                (inv_id, delta_total, "Ajuste manual (total)")
+            )
+            _registrar_auditoria(con, actor_id, inv_id, "ajustar_total_invitado",
+                "total_aportado", total_actual, nuevo_total, motivo)
+            cambios.append("total")
+
+    con.commit()
+    if not cambios:
+        return jsonify({"ok": True, "campos": [], "msg": "Sin cambios"})
+    return jsonify({"ok": True, "campos": cambios, "msg": "Valores actualizados"})
+
+
 @fin_bp.route("/api/fin/invitado/<int:uid_target>/aportes")
 def api_invitado_aportes(uid_target):
     """Detalle de aportes de un invitado específico."""
@@ -746,7 +854,7 @@ def api_estadisticas():
         "SELECT COUNT(*) FROM eventos_recaudacion WHERE estado='pendiente'"
     ).fetchone()[0]
     participantes_activos = con.execute(
-        "SELECT COUNT(*) FROM usuarios WHERE rol IN ('miembro','admin') AND COALESCE(polla_activo, TRUE)=TRUE"
+        "SELECT COUNT(*) FROM usuarios WHERE rol IN ('miembro','admin') AND COALESCE(polla_activo, TRUE)=TRUE AND COALESCE(polla_estado,'activo') != 'excluido'"
     ).fetchone()[0]
     invitados_count = con.execute(
         "SELECT COUNT(*) FROM usuarios WHERE rol='invitado'"
