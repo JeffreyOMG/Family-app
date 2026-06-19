@@ -241,7 +241,7 @@
           <span class="rec-polla-precio">${{ "{:,.0f}".format(fase.precio).replace(",",".") }}</span>
         </div>
         <div class="rec-polla-miembros-row">
-          {% for m in miembros if m.rol in ('miembro', 'admin') %}
+          {% for m in miembros if m.rol in ('miembro', 'admin') and (m.polla_estado is not defined or m.polla_estado != 'excluido') %}
           {% set pagado = namespace(ok=false) %}
           {% for p in polla_pagos if p.usuario_id == m.id and p.fase == fase.num %}
             {% set pagado.ok = true %}
@@ -274,7 +274,7 @@
         </div>
         <div class="rec-polla-resumen">
           {% set pagados_count = namespace(n=0) %}
-          {% set miembros_solo = miembros | selectattr('rol', 'in', ['miembro', 'admin']) | list %}
+          {% set miembros_solo = miembros | selectattr('rol', 'in', ['miembro', 'admin']) | rejectattr('polla_estado', 'equalto', 'excluido') | list %}
           {% for m in miembros_solo %}
             {% for p in polla_pagos if p.usuario_id == m.id and p.fase == fase.num %}
               {% set pagados_count.n = pagados_count.n + 1 %}
@@ -1687,9 +1687,8 @@ body.dark-mode .rec-modal-close { background:var(--bg2);border-color:var(--borde
   .rec-modal-footer .rec-btn-submit,
   .rec-modal-footer .rec-btn-danger { flex:1;justify-content:center; }
 
-  /* Modal financiero: bottom-sheet en mobile (left:0 — sidebar oculto) */
+  /* Modal financiero: bottom-sheet en mobile */
   .modal-fin-overlay {
-    left: 0 !important;       /* sidebar oculto en mobile, usar viewport completo */
     padding: 0;
     align-items: flex-end;
   }
@@ -1793,19 +1792,13 @@ function volverAlPrincipal(tipo) {
 }
 
 /* ===================== UTILS ===================== */
-/* Calcula left del sidebar en tiempo real para centrar modales */
-function _sidebarLeft() {
-  const sb = document.querySelector('.sidebar');
-  if (!sb) return 0;
-  const w = window.innerWidth;
-  if (w <= 768) return 0;               // mobile: sidebar oculto
-  return sb.getBoundingClientRect().width;  // 80px o 260px si está expandido
-}
+/* El modal ahora se centra solo con CSS (inset:0 + flex), ya no depende
+   del ancho del sidebar. Se deja la función por compatibilidad con
+   llamadas existentes que aún la referencian. */
+function _sidebarLeft() { return 0; }
 function show(id) {
   const el = document.getElementById(id);
   if (!el) return;
-  const left = _sidebarLeft();
-  el.style.left = left + 'px';
   el.style.display = 'flex';
   document.body.style.overflow = 'hidden';
 }
@@ -1813,17 +1806,6 @@ function hide(id) {
   const el = document.getElementById(id);
   if (el) { el.style.display = 'none'; document.body.style.overflow = ''; }
 }
-/* Actualizar left si el sidebar se expande con hover mientras el modal está abierto */
-(function() {
-  const sb = document.querySelector('.sidebar');
-  if (!sb) return;
-  const obs = new ResizeObserver(() => {
-    document.querySelectorAll('.modal-fin-overlay[style*="flex"]').forEach(m => {
-      if (m.style.display === 'flex') m.style.left = _sidebarLeft() + 'px';
-    });
-  });
-  obs.observe(sb);
-})();
 function fmtCOP(n) {
   return '$' + Math.round(n || 0).toLocaleString('es-CO');
 }
@@ -2797,14 +2779,14 @@ function filtrarRanking(modo) {
 .bloqueo-toggle-desbloquear:hover { background:rgba(34,197,94,.2); }
 
 /* ── Tabla invitados completa ───────────────────────────────────────── */
-.inv-tbl-full { width:100%;min-width:920px;border-collapse:collapse;font-size:12px; }
+.inv-tbl-full { width:100%;min-width:980px;border-collapse:separate;border-spacing:0;font-size:12.5px; }
 .inv-tbl-full th {
-  text-align:left;padding:9px 10px;font-size:10px;font-weight:700;
+  text-align:left;padding:12px 14px;font-size:10px;font-weight:700;
   color:var(--text2);text-transform:uppercase;letter-spacing:.4px;
   border-bottom:1px solid var(--border);position:sticky;top:0;
-  background:var(--surface,#1a1a22);z-index:1;
+  background:var(--surface,#1a1a22);z-index:1;white-space:nowrap;
 }
-.inv-tbl-full td { padding:10px;border-bottom:1px solid var(--border);vertical-align:middle; }
+.inv-tbl-full td { padding:13px 14px;border-bottom:1px solid var(--border);vertical-align:middle; }
 .inv-tbl-row:hover { background:rgba(255,255,255,.025); }
 /* ── Tabs del modal invitados ───────────────────────────────────────── */
 .inv-tab {
@@ -2834,13 +2816,13 @@ function filtrarRanking(modo) {
 .badge-estado-inactivo   { background:rgba(156,163,175,.12);color:#9ca3af;border:1px solid rgba(156,163,175,.25); }
 .badge-estado-desactivado{ background:rgba(156,163,175,.1);color:#9ca3af;border:1px solid rgba(156,163,175,.2); }
 
-/* ══ MODAL-FIN: overlay centrado respetando sidebar ═══════════════════
-   En desktop el sidebar tiene 80px fijos. Usamos left:80px en vez de
-   inset:0 para que el modal se centre en el área real de contenido.    */
+/* ══ MODAL-FIN: overlay centrado en TODO el viewport ═══════════════════
+   El overlay (con su fondo oscuro) cubre toda la pantalla, incluido el
+   sidebar, así el modal siempre queda perfectamente centrado sin
+   depender del ancho real del sidebar (que cambia con hover/responsive). */
 .modal-fin-overlay {
   position: fixed;
-  top: 0; right: 0; bottom: 0;
-  left: 80px;
+  inset: 0;
   background: rgba(0,0,0,.65);
   z-index: 10000;
   display: flex;
@@ -2848,12 +2830,6 @@ function filtrarRanking(modo) {
   justify-content: center;
   padding: 16px;
   backdrop-filter: blur(3px);
-}
-@media (min-width: 769px) and (max-width: 1024px) {
-  .modal-fin-overlay { left: 70px; }   /* sidebar tablet = 70px */
-}
-@media (max-width: 768px) {
-  .modal-fin-overlay { left: 0; }      /* mobile: sidebar oculto */
 }
 .modal-fin-overlay--nested { z-index: 10010; }
 .modal-fin-box {
@@ -2903,10 +2879,15 @@ body.dark-mode .modal-fin-title { color:var(--text,#ffffff); }
 .inv-table th { text-align:left;padding:8px 10px;font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;border-bottom:1px solid var(--border); }
 .inv-table td { padding:10px;border-bottom:1px solid var(--border);vertical-align:middle; }
 .inv-table tbody tr:hover { background:rgba(255,255,255,.03); }
-.inv-tag-pagado    { background:rgba(34,197,94,.12);color:#22c55e;border:1px solid rgba(34,197,94,.25);padding:2px 7px;border-radius:10px;font-size:10px;font-weight:700; }
-.inv-tag-pendiente { background:rgba(234,179,8,.12);color:#eab308;border:1px solid rgba(234,179,8,.25);padding:2px 7px;border-radius:10px;font-size:10px;font-weight:700; }
-.inv-tag-rechazado { background:rgba(239,68,68,.12);color:#ef4444;border:1px solid rgba(239,68,68,.25);padding:2px 7px;border-radius:10px;font-size:10px;font-weight:700; }
-.inv-tag-sin       { background:rgba(100,100,100,.1);color:#777;border:1px solid rgba(100,100,100,.2);padding:2px 7px;border-radius:10px;font-size:10px;font-weight:700; }
+.inv-tag-pagado    { display:inline-flex;align-items:center;gap:4px;white-space:nowrap;background:rgba(34,197,94,.12);color:#22c55e;border:1px solid rgba(34,197,94,.25);padding:3px 9px;border-radius:10px;font-size:10px;font-weight:700;line-height:1.3; }
+.inv-tag-pendiente { display:inline-flex;align-items:center;gap:4px;white-space:nowrap;background:rgba(234,179,8,.12);color:#eab308;border:1px solid rgba(234,179,8,.25);padding:3px 9px;border-radius:10px;font-size:10px;font-weight:700;line-height:1.3; }
+.inv-tag-rechazado { display:inline-flex;align-items:center;gap:4px;white-space:nowrap;background:rgba(239,68,68,.12);color:#ef4444;border:1px solid rgba(239,68,68,.25);padding:3px 9px;border-radius:10px;font-size:10px;font-weight:700;line-height:1.3; }
+.inv-tag-sin       { display:inline-flex;align-items:center;gap:4px;white-space:nowrap;background:rgba(100,100,100,.1);color:#777;border:1px solid rgba(100,100,100,.2);padding:3px 9px;border-radius:10px;font-size:10px;font-weight:700;line-height:1.3; }
+/* ── Icono simple de estado Mundial (reemplaza el pill verboso) ───────── */
+.inv-mundial-icon {
+  display:inline-flex;align-items:center;justify-content:center;
+  width:24px;height:24px;border-radius:50%;font-size:13px;flex-shrink:0;
+}
 
 /* ── Tabla de participantes polla ───────────────────────────────────── */
 .part-table { width:100%;border-collapse:collapse;font-size:13px; }
@@ -2973,6 +2954,11 @@ body.dark-mode .modal-fin-title { color:var(--text,#ffffff); }
               color:var(--accent);font-weight:700;"></span>
       </div>
       <div style="display:flex;align-items:center;gap:8px;">
+        <button onclick="exportarInvitados()" title="Exportar Excel"
+          style="display:flex;align-items:center;gap:5px;padding:6px 12px;border-radius:8px;border:1px solid var(--border);background:var(--surface2,#22222e);color:var(--text);cursor:pointer;font-size:12px;font-weight:600;white-space:nowrap;">
+          <span class="material-symbols-outlined" style="font-size:16px;">download</span>
+          <span>Excel</span>
+        </button>
         <input type="text" id="inv-search" placeholder="Buscar…" oninput="filtrarTablaInv()"
           style="background:var(--surface2,#22222e);border:1px solid var(--border);color:var(--text);
                  border-radius:8px;padding:6px 11px;font-size:12px;outline:none;width:150px;">
@@ -3227,10 +3213,13 @@ function switchInvTab(tab) {
 function filtrarTablaInv() { renderInvTab(_invTab); }
 
 function invTagMundial(estado) {
-  if (estado === 'aprobado')                    return '<span class="inv-tag-pagado">✓ Aprobado</span>';
-  if (estado && estado.startsWith('pendiente')) return '<span class="inv-tag-pendiente">⏳ Pendiente</span>';
-  if (estado === 'rechazado')                   return '<span class="inv-tag-rechazado">✗ Rechazado</span>';
-  return '<span class="inv-tag-sin">Sin solicitud</span>';
+  if (estado === 'aprobado')
+    return `<span class="inv-mundial-icon" style="background:rgba(34,197,94,.12);color:#22c55e;" title="Mundial: Aprobado">✓</span>`;
+  if (estado && estado.startsWith('pendiente'))
+    return `<span class="inv-mundial-icon" style="background:rgba(234,179,8,.12);color:#eab308;" title="Mundial: Pendiente">⏳</span>`;
+  if (estado === 'rechazado')
+    return `<span class="inv-mundial-icon" style="background:rgba(239,68,68,.12);color:#ef4444;" title="Mundial: Rechazado">✗</span>`;
+  return `<span class="inv-mundial-icon" style="background:rgba(100,100,100,.1);color:#777;" title="Mundial: Sin solicitud">–</span>`;
 }
 
 function renderInvTab(tab) {
@@ -3286,8 +3275,8 @@ function renderInvTab(tab) {
               </button>
             </div>
           </td>
-          <td>${u.rec_bloqueado ? '<span class="inv-tag-rechazado">🔒 Bloqueado</span>' : '<span class="inv-tag-pagado">🟢 Activo</span>'}</td>
-          <td>${invTagMundial(u.mundial_pagado)}</td>
+          <td style="text-align:center;">${u.rec_bloqueado ? '<span class="inv-tag-rechazado">🔒 Bloqueado</span>' : '<span class="inv-tag-pagado">🟢 Activo</span>'}</td>
+          <td style="text-align:center;">${invTagMundial(u.mundial_pagado)}</td>
           <td style="font-weight:700;text-align:right;white-space:nowrap;">${fmtCOP(u.total_aportes||0)}</td>
           <td style="color:#22c55e;font-weight:700;text-align:right;white-space:nowrap;">${fmtCOP(u.total_pagado||0)}</td>
           <td style="color:#eab308;text-align:right;white-space:nowrap;">${fmtCOP(u.polla_pendiente||0)}</td>
@@ -3348,7 +3337,156 @@ function renderInvTab(tab) {
   }
 }
 
-// ── Asignar responsable a invitado ───────────────────────────────────────────
+// ── Exportar Excel de invitados ───────────────────────────────────────────────
+async function exportarInvitados() {
+  const inv = _invData.invitados;
+  if (!inv || !inv.length) { alert('No hay invitados para exportar.'); return; }
+
+  if (typeof XLSX === 'undefined') {
+    await new Promise((res, rej) => {
+      const s = document.createElement('script');
+      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+      s.onload = res; s.onerror = rej;
+      document.head.appendChild(s);
+    });
+  }
+
+  const hoy = new Date().toLocaleDateString('es-CO');
+  const wb  = XLSX.utils.book_new();
+
+  // ── Estilos ────────────────────────────────────────────────────────────────
+  const ST = {
+    titulo:  { font:{bold:true,sz:14,color:{rgb:'FFFFFF'}}, fill:{fgColor:{rgb:'7C6AF7'}}, alignment:{horizontal:'center',vertical:'center'} },
+    header:  { font:{bold:true,sz:11,color:{rgb:'FFFFFF'}}, fill:{fgColor:{rgb:'2D2B55'}}, alignment:{horizontal:'center',vertical:'center'}, border:{bottom:{style:'thin',color:{rgb:'9999CC'}}} },
+    celda:   { font:{sz:10}, alignment:{vertical:'center'}, border:{bottom:{style:'thin',color:{rgb:'EEEEEE'}}} },
+    celdaAlt:{ font:{sz:10}, fill:{fgColor:{rgb:'F8F7FF'}}, alignment:{vertical:'center'}, border:{bottom:{style:'thin',color:{rgb:'EEEEEE'}}} },
+    monto:   { font:{bold:true,sz:10,color:{rgb:'1A7A1A'}}, alignment:{horizontal:'right',vertical:'center'}, numFmt:'"$"#,##0', border:{bottom:{style:'thin',color:{rgb:'EEEEEE'}}} },
+    montoAlt:{ font:{bold:true,sz:10,color:{rgb:'1A7A1A'}}, fill:{fgColor:{rgb:'F8F7FF'}}, alignment:{horizontal:'right',vertical:'center'}, numFmt:'"$"#,##0', border:{bottom:{style:'thin',color:{rgb:'EEEEEE'}}} },
+    montoPend:{ font:{bold:true,sz:10,color:{rgb:'CC6600'}}, alignment:{horizontal:'right',vertical:'center'}, numFmt:'"$"#,##0', border:{bottom:{style:'thin',color:{rgb:'EEEEEE'}}} },
+    montoRojo:{ font:{bold:true,sz:10,color:{rgb:'CC0000'}}, alignment:{horizontal:'right',vertical:'center'}, numFmt:'"$"#,##0', border:{bottom:{style:'thin',color:{rgb:'EEEEEE'}}} },
+    verde:   { font:{bold:true,sz:10,color:{rgb:'1A7A1A'}}, fill:{fgColor:{rgb:'E8F5E9'}}, alignment:{horizontal:'center'} },
+    rojo:    { font:{bold:true,sz:10,color:{rgb:'CC0000'}}, fill:{fgColor:{rgb:'FFEBEE'}}, alignment:{horizontal:'center'} },
+    centro:  { font:{sz:10}, alignment:{horizontal:'center',vertical:'center'} },
+    totalLbl:{ font:{bold:true,sz:11}, alignment:{horizontal:'right'} },
+    totalVal:{ font:{bold:true,sz:12,color:{rgb:'7C6AF7'}}, numFmt:'"$"#,##0', alignment:{horizontal:'right'} },
+  };
+
+  function fmtF(f) { return f ? String(f).slice(0,10) : '—'; }
+
+  // ── HOJA 1: Lista completa ─────────────────────────────────────────────────
+  (function() {
+    const COLS = 11;
+    const wsData = [];
+    wsData.push([{v:`👥 GESTIÓN DE INVITADOS — ${hoy}`,t:'s',s:ST.titulo},...Array(COLS-1).fill({v:'',t:'s',s:ST.titulo})]);
+    wsData.push(Array(COLS).fill({v:'',t:'s'}));
+    const hdrs = ['#','Nombre','Usuario','Responsable','Estado','Mundial','Total Reg. (COP)','Total Pag. (COP)','Polla Pend. (COP)','Saldo (COP)','En Polla'];
+    wsData.push(hdrs.map(h => ({v:h,t:'s',s:ST.header})));
+
+    inv.forEach((u, i) => {
+      const alt  = i % 2 === 1;
+      const cSt  = alt ? ST.celdaAlt : ST.celda;
+      const mSt  = alt ? ST.montoAlt : ST.monto;
+      const estado = u.rec_bloqueado ? '🔒 Bloqueado' : '🟢 Activo';
+      const mundialMap = {aprobado:'✓ Aprobado', rechazado:'✗ Rechazado', sin_solicitud:'— Sin solicitud'};
+      const mundial = mundialMap[u.mundial_pagado] || (u.mundial_pagado?.startsWith('pendiente') ? '⏳ Pendiente' : '—');
+      const saldo = u.saldo_pendiente || 0;
+      wsData.push([
+        {v:i+1,                           t:'n', s:cSt},
+        {v:u.nombre||'—',                 t:'s', s:cSt},
+        {v:`@${u.usuario||'—'}`,          t:'s', s:cSt},
+        {v:u.responsable_nombre||'— Sin asignar', t:'s', s:cSt},
+        {v:estado,                        t:'s', s: u.rec_bloqueado ? {...cSt,font:{bold:true,sz:10,color:{rgb:'CC0000'}}} : {...cSt,font:{bold:true,sz:10,color:{rgb:'1A7A1A'}}} },
+        {v:mundial,                       t:'s', s:cSt},
+        {v:u.total_aportes||0,            t:'n', s:mSt},
+        {v:u.total_pagado||0,             t:'n', s:mSt},
+        {v:u.polla_pendiente||0,          t:'n', s: alt ? {...ST.montoAlt,font:{bold:true,sz:10,color:{rgb:'CC6600'}}} : ST.montoPend },
+        {v:saldo,                         t:'n', s: saldo > 0 ? ST.montoRojo : (alt ? {...ST.montoAlt,font:{bold:true,sz:10,color:{rgb:'1A7A1A'}}} : ST.monto) },
+        {v:u.participa_polla ? '⚽ Sí' : 'No', t:'s', s: u.participa_polla ? ST.verde : ST.centro },
+      ]);
+    });
+
+    // Fila de totales
+    const totReg  = inv.reduce((s,u)=>s+(u.total_aportes||0),0);
+    const totPag  = inv.reduce((s,u)=>s+(u.total_pagado||0),0);
+    const totPend = inv.reduce((s,u)=>s+(u.polla_pendiente||0),0);
+    const totSald = inv.reduce((s,u)=>s+(u.saldo_pendiente||0),0);
+    wsData.push([
+      {v:'',t:'s'},{v:'',t:'s'},{v:'',t:'s'},{v:'',t:'s'},{v:'',t:'s'},{v:'TOTALES',t:'s',s:ST.totalLbl},
+      {v:totReg,t:'n',s:ST.totalVal},{v:totPag,t:'n',s:ST.totalVal},
+      {v:totPend,t:'n',s:{...ST.totalVal,font:{bold:true,sz:12,color:{rgb:'CC6600'}}}},
+      {v:totSald,t:'n',s:{...ST.totalVal,font:{bold:true,sz:12,color:{rgb:'CC0000'}}}},
+      {v:'',t:'s'},
+    ]);
+
+    const ws = XLSX.utils.aoa_to_sheet(wsData);
+    ws['!merges'] = [{s:{r:0,c:0},e:{r:0,c:COLS-1}}];
+    ws['!cols']   = [{wch:4},{wch:24},{wch:18},{wch:22},{wch:14},{wch:14},{wch:18},{wch:18},{wch:18},{wch:14},{wch:10}];
+    ws['!rows']   = [{hpx:28},{hpx:5},{hpx:22}];
+    ws['!autofilter'] = {ref: XLSX.utils.encode_range({s:{r:2,c:0},e:{r:2+inv.length,c:COLS-1}})};
+    XLSX.utils.book_append_sheet(wb, ws, '👥 Invitados');
+  })();
+
+  // ── HOJA 2: Resumen por responsable ───────────────────────────────────────
+  (function() {
+    const porResp = {};
+    inv.forEach(u => {
+      const k = u.responsable_nombre || '(Sin responsable)';
+      if (!porResp[k]) porResp[k] = {total:0, pagado:0, pendiente:0, saldo:0, count:0, polla:0};
+      porResp[k].total     += (u.total_aportes||0);
+      porResp[k].pagado    += (u.total_pagado||0);
+      porResp[k].pendiente += (u.polla_pendiente||0);
+      porResp[k].saldo     += (u.saldo_pendiente||0);
+      porResp[k].count++;
+      if (u.participa_polla) porResp[k].polla++;
+    });
+
+    const COLS = 7;
+    const wsData = [];
+    wsData.push([{v:`📊 RESUMEN POR RESPONSABLE — ${hoy}`,t:'s',s:ST.titulo},...Array(COLS-1).fill({v:'',t:'s',s:ST.titulo})]);
+    wsData.push(Array(COLS).fill({v:'',t:'s'}));
+    wsData.push(['Responsable','# Invitados','Total Reg. (COP)','Total Pag. (COP)','Polla Pend. (COP)','Saldo (COP)','En Polla']
+      .map(h=>({v:h,t:'s',s:ST.header})));
+
+    Object.entries(porResp).sort((a,b)=>b[1].count-a[1].count).forEach(([resp, d], i) => {
+      const alt = i % 2 === 1;
+      const cSt = alt ? ST.celdaAlt : ST.celda;
+      wsData.push([
+        {v:`🤝 ${resp}`,         t:'s', s:{...cSt,font:{bold:true,sz:10}}},
+        {v:d.count,              t:'n', s:{...cSt,alignment:{horizontal:'center'}}},
+        {v:d.total,              t:'n', s: alt?ST.montoAlt:ST.monto},
+        {v:d.pagado,             t:'n', s: alt?ST.montoAlt:ST.monto},
+        {v:d.pendiente,          t:'n', s: alt?{...ST.montoAlt,font:{bold:true,sz:10,color:{rgb:'CC6600'}}}:ST.montoPend},
+        {v:d.saldo,              t:'n', s: d.saldo>0? ST.montoRojo : (alt?ST.montoAlt:ST.monto)},
+        {v:d.polla,              t:'n', s:{...cSt,alignment:{horizontal:'center'}}},
+      ]);
+    });
+
+    const totReg  = inv.reduce((s,u)=>s+(u.total_aportes||0),0);
+    const totPag  = inv.reduce((s,u)=>s+(u.total_pagado||0),0);
+    const totPend = inv.reduce((s,u)=>s+(u.polla_pendiente||0),0);
+    const totSald = inv.reduce((s,u)=>s+(u.saldo_pendiente||0),0);
+    wsData.push([
+      {v:'TOTAL GENERAL',t:'s',s:{font:{bold:true,sz:11},fill:{fgColor:{rgb:'EDE9FE'}},alignment:{horizontal:'center'}}},
+      {v:inv.length,t:'n',s:{font:{bold:true,sz:11},fill:{fgColor:{rgb:'EDE9FE'}},alignment:{horizontal:'center'}}},
+      {v:totReg,t:'n',s:{font:{bold:true,sz:11,color:{rgb:'7C6AF7'}},fill:{fgColor:{rgb:'EDE9FE'}},numFmt:'"$"#,##0',alignment:{horizontal:'right'}}},
+      {v:totPag,t:'n',s:{font:{bold:true,sz:11,color:{rgb:'7C6AF7'}},fill:{fgColor:{rgb:'EDE9FE'}},numFmt:'"$"#,##0',alignment:{horizontal:'right'}}},
+      {v:totPend,t:'n',s:{font:{bold:true,sz:11,color:{rgb:'CC6600'}},fill:{fgColor:{rgb:'EDE9FE'}},numFmt:'"$"#,##0',alignment:{horizontal:'right'}}},
+      {v:totSald,t:'n',s:{font:{bold:true,sz:11,color:{rgb:'CC0000'}},fill:{fgColor:{rgb:'EDE9FE'}},numFmt:'"$"#,##0',alignment:{horizontal:'right'}}},
+      {v:'',t:'s',s:{fill:{fgColor:{rgb:'EDE9FE'}}}},
+    ]);
+
+    const ws = XLSX.utils.aoa_to_sheet(wsData);
+    ws['!merges'] = [{s:{r:0,c:0},e:{r:0,c:COLS-1}}];
+    ws['!cols'] = [{wch:26},{wch:12},{wch:18},{wch:18},{wch:18},{wch:16},{wch:10}];
+    ws['!rows'] = [{hpx:28},{hpx:5},{hpx:22}];
+    XLSX.utils.book_append_sheet(wb, ws, '📊 Por Responsable');
+  })();
+
+  const fechaStr = new Date().toISOString().slice(0,10);
+  XLSX.writeFile(wb, `familia-invitados-${fechaStr}.xlsx`);
+}
+
+
 function abrirAsignarResponsable(invId, invNombre, respActual) {
   document.getElementById('modal-asignar-resp')?.remove();
 
@@ -3365,9 +3503,8 @@ function abrirAsignarResponsable(invId, invNombre, respActual) {
   const saldoClr  = saldo > 0 ? '#ef4444' : '#22c55e';
   const saldoTxt  = saldo > 0 ? fmtCOP(saldo) : '✅ Al día';
 
-  const _left = _sidebarLeft();
   document.body.insertAdjacentHTML('beforeend', `
-  <div id="modal-asignar-resp" class="modal-fin-overlay modal-fin-overlay--nested" style="left:${_left}px;" onclick="if(event.target===this)this.remove()">
+  <div id="modal-asignar-resp" class="modal-fin-overlay modal-fin-overlay--nested" onclick="if(event.target===this)this.remove()">
     <div class="modal-fin-box" onclick="event.stopPropagation()" style="max-width:480px;">
       <div class="modal-fin-header">
         <div class="modal-fin-title">
@@ -3391,20 +3528,29 @@ function abrirAsignarResponsable(invId, invNombre, respActual) {
           </div>
         </div>
 
-        <!-- Resumen financiero (solo lectura) -->
+        <!-- Resumen financiero (editable por Admin/Financiero) -->
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
           <div style="background:var(--surface2,#22222e);border:1px solid var(--border);border-radius:8px;padding:10px;text-align:center;">
             <div style="font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">Total</div>
-            <div style="font-weight:700;font-size:13px;color:var(--text);">${fmtCOP(total)}</div>
+            <input type="number" id="total-inv-${invId}" min="0" step="1000" value="${total}"
+              oninput="_recalcSaldoInv(${invId})"
+              style="width:100%;text-align:center;background:transparent;border:none;border-bottom:1px dashed var(--border);
+                     color:var(--text);font-weight:700;font-size:13px;padding:2px 0;outline:none;">
           </div>
           <div style="background:var(--surface2,#22222e);border:1px solid var(--border);border-radius:8px;padding:10px;text-align:center;">
             <div style="font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">Pagado</div>
-            <div style="font-weight:700;font-size:13px;color:#22c55e;">${fmtCOP(pagado)}</div>
+            <input type="number" id="pagado-inv-${invId}" min="0" step="1000" value="${pagado}"
+              oninput="_recalcSaldoInv(${invId})"
+              style="width:100%;text-align:center;background:transparent;border:none;border-bottom:1px dashed #22c55e;
+                     color:#22c55e;font-weight:700;font-size:13px;padding:2px 0;outline:none;">
           </div>
           <div style="background:var(--surface2,#22222e);border:1px solid var(--border);border-radius:8px;padding:10px;text-align:center;">
             <div style="font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">Saldo</div>
-            <div style="font-weight:700;font-size:13px;color:${saldoClr};">${saldoTxt}</div>
+            <div id="saldo-inv-${invId}" style="font-weight:700;font-size:13px;color:${saldoClr};">${saldoTxt}</div>
           </div>
+        </div>
+        <div style="font-size:11px;color:var(--text3);margin-top:-8px;">
+          ✏️ Total y Pagado son editables. El saldo se recalcula al guardar.
         </div>
 
         <!-- Responsable -->
@@ -3416,6 +3562,19 @@ function abrirAsignarResponsable(invId, invNombre, respActual) {
           <select id="resp-select-${invId}"
             style="width:100%;background:var(--surface2,#22222e);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:10px 12px;font-size:13px;outline:none;cursor:pointer;">
             ${opts}
+          </select>
+        </div>
+
+        <!-- Estado -->
+        <div>
+          <label style="font-size:12px;font-weight:600;color:var(--text2);display:block;margin-bottom:6px;text-transform:uppercase;letter-spacing:.4px;">
+            <span class="material-symbols-outlined" style="font-size:14px;vertical-align:middle;">toggle_on</span>
+            Estado
+          </label>
+          <select id="estado-inv-${invId}"
+            style="width:100%;background:var(--surface2,#22222e);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:10px 12px;font-size:13px;outline:none;cursor:pointer;">
+            <option value="0" ${!inv.rec_bloqueado ? 'selected' : ''}>🟢 Activo</option>
+            <option value="1" ${inv.rec_bloqueado ? 'selected' : ''}>🔒 Bloqueado</option>
           </select>
         </div>
 
@@ -3457,13 +3616,42 @@ function abrirAsignarResponsable(invId, invNombre, respActual) {
   </div>`);
 }
 
+function _recalcSaldoInv(invId) {
+  const totalEl  = document.getElementById('total-inv-' + invId);
+  const pagadoEl = document.getElementById('pagado-inv-' + invId);
+  const saldoEl  = document.getElementById('saldo-inv-' + invId);
+  if (!totalEl || !pagadoEl || !saldoEl) return;
+  const total  = parseFloat(totalEl.value)  || 0;
+  const pagado = parseFloat(pagadoEl.value) || 0;
+  const saldo  = Math.max(total - pagado, 0);
+  if (saldo > 0) {
+    saldoEl.style.color = '#ef4444';
+    saldoEl.textContent = fmtCOP(saldo);
+  } else {
+    saldoEl.style.color = '#22c55e';
+    saldoEl.textContent = '✅ Al día';
+  }
+}
+
 async function guardarResponsable(invId) {
-  const sel     = document.getElementById('resp-select-' + invId);
-  const pagoEl  = document.getElementById('pago-manual-' + invId);
-  const notaEl  = document.getElementById('nota-inv-' + invId);
-  const respId  = sel?.value ? parseInt(sel.value) : null;
-  const pagoVal = pagoEl ? parseFloat(pagoEl.value) || 0 : 0;
-  const nota    = notaEl?.value?.trim() || '';
+  const sel       = document.getElementById('resp-select-' + invId);
+  const estadoSel = document.getElementById('estado-inv-' + invId);
+  const pagoEl    = document.getElementById('pago-manual-' + invId);
+  const notaEl    = document.getElementById('nota-inv-' + invId);
+  const totalEl   = document.getElementById('total-inv-' + invId);
+  const pagadoEl  = document.getElementById('pagado-inv-' + invId);
+  const respId    = sel?.value ? parseInt(sel.value) : null;
+  const pagoVal   = pagoEl ? parseFloat(pagoEl.value) || 0 : 0;
+  const nota      = notaEl?.value?.trim() || '';
+
+  const inv            = (_invData.invitados || []).find(u => u.id === invId) || {};
+  const totalOrig      = inv.total_aportes || 0;
+  const pagadoOrig     = inv.total_pagado  || 0;
+  const totalNuevo     = totalEl  ? parseFloat(totalEl.value)  || 0 : totalOrig;
+  const pagadoNuevo    = pagadoEl ? parseFloat(pagadoEl.value) || 0 : pagadoOrig;
+  const hayCambioFin   = totalNuevo !== totalOrig || pagadoNuevo !== pagadoOrig;
+  const bloqueadoNuevo = estadoSel ? estadoSel.value === '1' : !!inv.rec_bloqueado;
+  const hayCambioEstado = bloqueadoNuevo !== !!inv.rec_bloqueado;
 
   try {
     // 1) Guardar responsable
@@ -3477,7 +3665,37 @@ async function guardarResponsable(invId) {
       return;
     }
 
-    // 2) Si hay pago manual, registrarlo como aporte verificado
+    // 2) Estado (Activo/Bloqueado)
+    if (hayCambioEstado) {
+      const re = await fetch('/api/fin/set_estado_invitado', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ invitado_id: invId, bloqueado: bloqueadoNuevo, motivo: nota })
+      });
+      const de = await re.json();
+      if (!de.ok) {
+        mostrarToastFin('Responsable guardado, pero error al cambiar estado: ' + (de.error||''), false);
+        document.getElementById('modal-asignar-resp')?.remove();
+        abrirModalInvitados();
+        return;
+      }
+    }
+
+    // 3) Si Total/Pagado fueron editados, aplicar el ajuste
+    if (hayCambioFin) {
+      const rf = await fetch('/api/fin/ajustar_finanzas', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ invitado_id: invId, total: totalNuevo, pagado: pagadoNuevo, motivo: nota })
+      });
+      const df = await rf.json();
+      if (!df.ok) {
+        mostrarToastFin('Cambios guardados, pero error al ajustar finanzas: ' + (df.error||''), false);
+        document.getElementById('modal-asignar-resp')?.remove();
+        abrirModalInvitados();
+        return;
+      }
+    }
+
+    // 4) Si hay pago manual adicional, registrarlo como aporte verificado
     if (pagoVal > 0) {
       const rp = await fetch('/api/fin/aporte_manual', {
         method:'POST', headers:{'Content-Type':'application/json'},
@@ -3485,7 +3703,7 @@ async function guardarResponsable(invId) {
       });
       const dp = await rp.json();
       if (!dp.ok) {
-        mostrarToastFin('Responsable guardado, pero error al registrar pago: ' + (dp.error||''), false);
+        mostrarToastFin('Cambios guardados, pero error al registrar pago: ' + (dp.error||''), false);
         document.getElementById('modal-asignar-resp')?.remove();
         abrirModalInvitados();
         return;
