@@ -1687,9 +1687,8 @@ body.dark-mode .rec-modal-close { background:var(--bg2);border-color:var(--borde
   .rec-modal-footer .rec-btn-submit,
   .rec-modal-footer .rec-btn-danger { flex:1;justify-content:center; }
 
-  /* Modal financiero: bottom-sheet en mobile (left:0 — sidebar oculto) */
+  /* Modal financiero: bottom-sheet en mobile */
   .modal-fin-overlay {
-    left: 0 !important;       /* sidebar oculto en mobile, usar viewport completo */
     padding: 0;
     align-items: flex-end;
   }
@@ -1793,19 +1792,13 @@ function volverAlPrincipal(tipo) {
 }
 
 /* ===================== UTILS ===================== */
-/* Calcula left del sidebar en tiempo real para centrar modales */
-function _sidebarLeft() {
-  const sb = document.querySelector('.sidebar');
-  if (!sb) return 0;
-  const w = window.innerWidth;
-  if (w <= 768) return 0;               // mobile: sidebar oculto
-  return sb.getBoundingClientRect().width;  // 80px o 260px si está expandido
-}
+/* El modal ahora se centra solo con CSS (inset:0 + flex), ya no depende
+   del ancho del sidebar. Se deja la función por compatibilidad con
+   llamadas existentes que aún la referencian. */
+function _sidebarLeft() { return 0; }
 function show(id) {
   const el = document.getElementById(id);
   if (!el) return;
-  const left = _sidebarLeft();
-  el.style.left = left + 'px';
   el.style.display = 'flex';
   document.body.style.overflow = 'hidden';
 }
@@ -1813,17 +1806,6 @@ function hide(id) {
   const el = document.getElementById(id);
   if (el) { el.style.display = 'none'; document.body.style.overflow = ''; }
 }
-/* Actualizar left si el sidebar se expande con hover mientras el modal está abierto */
-(function() {
-  const sb = document.querySelector('.sidebar');
-  if (!sb) return;
-  const obs = new ResizeObserver(() => {
-    document.querySelectorAll('.modal-fin-overlay[style*="flex"]').forEach(m => {
-      if (m.style.display === 'flex') m.style.left = _sidebarLeft() + 'px';
-    });
-  });
-  obs.observe(sb);
-})();
 function fmtCOP(n) {
   return '$' + Math.round(n || 0).toLocaleString('es-CO');
 }
@@ -2834,13 +2816,13 @@ function filtrarRanking(modo) {
 .badge-estado-inactivo   { background:rgba(156,163,175,.12);color:#9ca3af;border:1px solid rgba(156,163,175,.25); }
 .badge-estado-desactivado{ background:rgba(156,163,175,.1);color:#9ca3af;border:1px solid rgba(156,163,175,.2); }
 
-/* ══ MODAL-FIN: overlay centrado respetando sidebar ═══════════════════
-   En desktop el sidebar tiene 80px fijos. Usamos left:80px en vez de
-   inset:0 para que el modal se centre en el área real de contenido.    */
+/* ══ MODAL-FIN: overlay centrado en TODO el viewport ═══════════════════
+   El overlay (con su fondo oscuro) cubre toda la pantalla, incluido el
+   sidebar, así el modal siempre queda perfectamente centrado sin
+   depender del ancho real del sidebar (que cambia con hover/responsive). */
 .modal-fin-overlay {
   position: fixed;
-  top: 0; right: 0; bottom: 0;
-  left: 80px;
+  inset: 0;
   background: rgba(0,0,0,.65);
   z-index: 10000;
   display: flex;
@@ -2848,12 +2830,6 @@ function filtrarRanking(modo) {
   justify-content: center;
   padding: 16px;
   backdrop-filter: blur(3px);
-}
-@media (min-width: 769px) and (max-width: 1024px) {
-  .modal-fin-overlay { left: 70px; }   /* sidebar tablet = 70px */
-}
-@media (max-width: 768px) {
-  .modal-fin-overlay { left: 0; }      /* mobile: sidebar oculto */
 }
 .modal-fin-overlay--nested { z-index: 10010; }
 .modal-fin-box {
@@ -3365,9 +3341,8 @@ function abrirAsignarResponsable(invId, invNombre, respActual) {
   const saldoClr  = saldo > 0 ? '#ef4444' : '#22c55e';
   const saldoTxt  = saldo > 0 ? fmtCOP(saldo) : '✅ Al día';
 
-  const _left = _sidebarLeft();
   document.body.insertAdjacentHTML('beforeend', `
-  <div id="modal-asignar-resp" class="modal-fin-overlay modal-fin-overlay--nested" style="left:${_left}px;" onclick="if(event.target===this)this.remove()">
+  <div id="modal-asignar-resp" class="modal-fin-overlay modal-fin-overlay--nested" onclick="if(event.target===this)this.remove()">
     <div class="modal-fin-box" onclick="event.stopPropagation()" style="max-width:480px;">
       <div class="modal-fin-header">
         <div class="modal-fin-title">
@@ -3391,20 +3366,29 @@ function abrirAsignarResponsable(invId, invNombre, respActual) {
           </div>
         </div>
 
-        <!-- Resumen financiero (solo lectura) -->
+        <!-- Resumen financiero (editable por Admin/Financiero) -->
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
           <div style="background:var(--surface2,#22222e);border:1px solid var(--border);border-radius:8px;padding:10px;text-align:center;">
             <div style="font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">Total</div>
-            <div style="font-weight:700;font-size:13px;color:var(--text);">${fmtCOP(total)}</div>
+            <input type="number" id="total-inv-${invId}" min="0" step="1000" value="${total}"
+              oninput="_recalcSaldoInv(${invId})"
+              style="width:100%;text-align:center;background:transparent;border:none;border-bottom:1px dashed var(--border);
+                     color:var(--text);font-weight:700;font-size:13px;padding:2px 0;outline:none;">
           </div>
           <div style="background:var(--surface2,#22222e);border:1px solid var(--border);border-radius:8px;padding:10px;text-align:center;">
             <div style="font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">Pagado</div>
-            <div style="font-weight:700;font-size:13px;color:#22c55e;">${fmtCOP(pagado)}</div>
+            <input type="number" id="pagado-inv-${invId}" min="0" step="1000" value="${pagado}"
+              oninput="_recalcSaldoInv(${invId})"
+              style="width:100%;text-align:center;background:transparent;border:none;border-bottom:1px dashed #22c55e;
+                     color:#22c55e;font-weight:700;font-size:13px;padding:2px 0;outline:none;">
           </div>
           <div style="background:var(--surface2,#22222e);border:1px solid var(--border);border-radius:8px;padding:10px;text-align:center;">
             <div style="font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">Saldo</div>
-            <div style="font-weight:700;font-size:13px;color:${saldoClr};">${saldoTxt}</div>
+            <div id="saldo-inv-${invId}" style="font-weight:700;font-size:13px;color:${saldoClr};">${saldoTxt}</div>
           </div>
+        </div>
+        <div style="font-size:11px;color:var(--text3);margin-top:-8px;">
+          ✏️ Total y Pagado son editables. El saldo se recalcula al guardar.
         </div>
 
         <!-- Responsable -->
@@ -3457,13 +3441,39 @@ function abrirAsignarResponsable(invId, invNombre, respActual) {
   </div>`);
 }
 
+function _recalcSaldoInv(invId) {
+  const totalEl  = document.getElementById('total-inv-' + invId);
+  const pagadoEl = document.getElementById('pagado-inv-' + invId);
+  const saldoEl  = document.getElementById('saldo-inv-' + invId);
+  if (!totalEl || !pagadoEl || !saldoEl) return;
+  const total  = parseFloat(totalEl.value)  || 0;
+  const pagado = parseFloat(pagadoEl.value) || 0;
+  const saldo  = Math.max(total - pagado, 0);
+  if (saldo > 0) {
+    saldoEl.style.color = '#ef4444';
+    saldoEl.textContent = fmtCOP(saldo);
+  } else {
+    saldoEl.style.color = '#22c55e';
+    saldoEl.textContent = '✅ Al día';
+  }
+}
+
 async function guardarResponsable(invId) {
-  const sel     = document.getElementById('resp-select-' + invId);
-  const pagoEl  = document.getElementById('pago-manual-' + invId);
-  const notaEl  = document.getElementById('nota-inv-' + invId);
-  const respId  = sel?.value ? parseInt(sel.value) : null;
-  const pagoVal = pagoEl ? parseFloat(pagoEl.value) || 0 : 0;
-  const nota    = notaEl?.value?.trim() || '';
+  const sel       = document.getElementById('resp-select-' + invId);
+  const pagoEl    = document.getElementById('pago-manual-' + invId);
+  const notaEl    = document.getElementById('nota-inv-' + invId);
+  const totalEl   = document.getElementById('total-inv-' + invId);
+  const pagadoEl  = document.getElementById('pagado-inv-' + invId);
+  const respId    = sel?.value ? parseInt(sel.value) : null;
+  const pagoVal   = pagoEl ? parseFloat(pagoEl.value) || 0 : 0;
+  const nota      = notaEl?.value?.trim() || '';
+
+  const inv          = (_invData.invitados || []).find(u => u.id === invId) || {};
+  const totalOrig    = inv.total_aportes || 0;
+  const pagadoOrig   = inv.total_pagado  || 0;
+  const totalNuevo   = totalEl  ? parseFloat(totalEl.value)  || 0 : totalOrig;
+  const pagadoNuevo  = pagadoEl ? parseFloat(pagadoEl.value) || 0 : pagadoOrig;
+  const hayCambioFin = totalNuevo !== totalOrig || pagadoNuevo !== pagadoOrig;
 
   try {
     // 1) Guardar responsable
@@ -3477,7 +3487,22 @@ async function guardarResponsable(invId) {
       return;
     }
 
-    // 2) Si hay pago manual, registrarlo como aporte verificado
+    // 2) Si Total/Pagado fueron editados, aplicar el ajuste
+    if (hayCambioFin) {
+      const rf = await fetch('/api/fin/ajustar_finanzas', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ invitado_id: invId, total: totalNuevo, pagado: pagadoNuevo, motivo: nota })
+      });
+      const df = await rf.json();
+      if (!df.ok) {
+        mostrarToastFin('Responsable guardado, pero error al ajustar finanzas: ' + (df.error||''), false);
+        document.getElementById('modal-asignar-resp')?.remove();
+        abrirModalInvitados();
+        return;
+      }
+    }
+
+    // 3) Si hay pago manual adicional, registrarlo como aporte verificado
     if (pagoVal > 0) {
       const rp = await fetch('/api/fin/aporte_manual', {
         method:'POST', headers:{'Content-Type':'application/json'},
@@ -3485,7 +3510,7 @@ async function guardarResponsable(invId) {
       });
       const dp = await rp.json();
       if (!dp.ok) {
-        mostrarToastFin('Responsable guardado, pero error al registrar pago: ' + (dp.error||''), false);
+        mostrarToastFin('Cambios guardados, pero error al registrar pago: ' + (dp.error||''), false);
         document.getElementById('modal-asignar-resp')?.remove();
         abrirModalInvitados();
         return;
