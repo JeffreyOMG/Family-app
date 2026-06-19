@@ -560,33 +560,6 @@ def set_responsable():
 
 
 
-@fin_bp.route("/api/fin/set_estado_invitado", methods=["POST"])
-def set_estado_invitado():
-    """Fija explícitamente el estado (Activo/Bloqueado) de un invitado.
-    A diferencia de /api/admin/bloquear_recaudacion (que solo alterna),
-    este recibe el valor deseado directamente — útil para el modal de edición."""
-    if not _es_admin_o_financiero():
-        return jsonify({"ok": False, "error": "Sin permiso"}), 403
-    data = request.get_json(silent=True) or {}
-    inv_id = data.get("invitado_id")
-    bloqueado = data.get("bloqueado")
-    if not inv_id or bloqueado is None:
-        return jsonify({"ok": False, "error": "invitado_id y bloqueado requeridos"}), 400
-    con = get_db()
-    row = con.execute(
-        "SELECT rec_bloqueado FROM usuarios WHERE id=%s AND rol='invitado'", (inv_id,)
-    ).fetchone()
-    if not row:
-        return jsonify({"ok": False, "error": "Invitado no encontrado"}), 404
-    nuevo = 1 if bloqueado else 0
-    if int(row["rec_bloqueado"] or 0) != nuevo:
-        con.execute("UPDATE usuarios SET rec_bloqueado=%s WHERE id=%s", (nuevo, inv_id))
-        _registrar_auditoria(con, session["uid"], inv_id, "editar_estado_invitado",
-            "rec_bloqueado", row["rec_bloqueado"], nuevo, data.get("motivo", ""))
-        con.commit()
-    return jsonify({"ok": True, "bloqueado": bool(nuevo)})
-
-
 @fin_bp.route("/api/fin/ajustar_finanzas", methods=["POST"])
 def ajustar_finanzas():
     """Permite a Admin/Financiero fijar manualmente el TOTAL APORTADO y el

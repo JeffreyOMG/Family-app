@@ -3473,7 +3473,6 @@ function _recalcSaldoInv(invId) {
 
 async function guardarResponsable(invId) {
   const sel       = document.getElementById('resp-select-' + invId);
-  const estadoSel = document.getElementById('estado-inv-' + invId);
   const pagoEl    = document.getElementById('pago-manual-' + invId);
   const notaEl    = document.getElementById('nota-inv-' + invId);
   const totalEl   = document.getElementById('total-inv-' + invId);
@@ -3482,14 +3481,12 @@ async function guardarResponsable(invId) {
   const pagoVal   = pagoEl ? parseFloat(pagoEl.value) || 0 : 0;
   const nota      = notaEl?.value?.trim() || '';
 
-  const inv            = (_invData.invitados || []).find(u => u.id === invId) || {};
-  const totalOrig      = inv.total_aportes || 0;
-  const pagadoOrig     = inv.total_pagado  || 0;
-  const totalNuevo     = totalEl  ? parseFloat(totalEl.value)  || 0 : totalOrig;
-  const pagadoNuevo    = pagadoEl ? parseFloat(pagadoEl.value) || 0 : pagadoOrig;
-  const hayCambioFin   = totalNuevo !== totalOrig || pagadoNuevo !== pagadoOrig;
-  const bloqueadoNuevo = estadoSel ? estadoSel.value === '1' : !!inv.rec_bloqueado;
-  const hayCambioEstado = bloqueadoNuevo !== !!inv.rec_bloqueado;
+  const inv          = (_invData.invitados || []).find(u => u.id === invId) || {};
+  const totalOrig    = inv.total_aportes || 0;
+  const pagadoOrig   = inv.total_pagado  || 0;
+  const totalNuevo   = totalEl  ? parseFloat(totalEl.value)  || 0 : totalOrig;
+  const pagadoNuevo  = pagadoEl ? parseFloat(pagadoEl.value) || 0 : pagadoOrig;
+  const hayCambioFin = totalNuevo !== totalOrig || pagadoNuevo !== pagadoOrig;
 
   try {
     // 1) Guardar responsable
@@ -3503,22 +3500,7 @@ async function guardarResponsable(invId) {
       return;
     }
 
-    // 2) Estado (Activo/Bloqueado)
-    if (hayCambioEstado) {
-      const re = await fetch('/api/fin/set_estado_invitado', {
-        method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ invitado_id: invId, bloqueado: bloqueadoNuevo, motivo: nota })
-      });
-      const de = await re.json();
-      if (!de.ok) {
-        mostrarToastFin('Responsable guardado, pero error al cambiar estado: ' + (de.error||''), false);
-        document.getElementById('modal-asignar-resp')?.remove();
-        abrirModalInvitados();
-        return;
-      }
-    }
-
-    // 3) Si Total/Pagado fueron editados, aplicar el ajuste
+    // 2) Si Total/Pagado fueron editados, aplicar el ajuste
     if (hayCambioFin) {
       const rf = await fetch('/api/fin/ajustar_finanzas', {
         method:'POST', headers:{'Content-Type':'application/json'},
@@ -3526,14 +3508,14 @@ async function guardarResponsable(invId) {
       });
       const df = await rf.json();
       if (!df.ok) {
-        mostrarToastFin('Cambios guardados, pero error al ajustar finanzas: ' + (df.error||''), false);
+        mostrarToastFin('Responsable guardado, pero error al ajustar finanzas: ' + (df.error||''), false);
         document.getElementById('modal-asignar-resp')?.remove();
         abrirModalInvitados();
         return;
       }
     }
 
-    // 4) Si hay pago manual adicional, registrarlo como aporte verificado
+    // 3) Si hay pago manual adicional, registrarlo como aporte verificado
     if (pagoVal > 0) {
       const rp = await fetch('/api/fin/aporte_manual', {
         method:'POST', headers:{'Content-Type':'application/json'},
