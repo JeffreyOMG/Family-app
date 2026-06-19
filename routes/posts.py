@@ -222,7 +222,7 @@ def _guardar_post():
     if not texto and not media and not has_poll and not gif_url:
         return None
 
-    if texto and len(texto) > 800:
+    if texto and len(texto) > 3000:
         return None   # silently reject oversized text (frontend already blocks it)
 
     visibilidad = request.form.get('visibilidad', 'general')

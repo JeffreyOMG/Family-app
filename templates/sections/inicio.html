@@ -710,7 +710,7 @@
         <div class="mc-char-bar">
           <div class="mc-char-fill" id="mc-char-fill"></div>
         </div>
-        <span class="mc-char-count"><span id="mc-chars">0</span>/800</span>
+        <span class="mc-char-count"><span id="mc-chars">0</span>/3000</span>
       </div>
     </div>
 
@@ -5693,7 +5693,7 @@ async function submitComposer(){
   const hasMedia = _mediaFiles.length > 0 || !!_gifFile || hasGiphyGif;
   const hasPoll  = !!getPollData();
   if(!texto && !hasMedia && !hasPoll){ mostrarToast('Escribe algo o adjunta media','err'); return; }
-  if(texto.length > 800){ mostrarToast('El texto supera los 800 caracteres','err'); return; }
+  if(texto.length > 3000){ mostrarToast('El texto supera los 3000 caracteres','err'); return; }
 
   const btn = document.getElementById('btn-publicar-modal');
   if(btn){ btn.disabled=true; btn.textContent='Publicando...'; }
