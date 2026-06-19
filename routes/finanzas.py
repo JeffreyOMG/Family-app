@@ -538,6 +538,7 @@ def set_responsable():
     data = request.get_json(silent=True) or {}
     inv_id  = data.get("invitado_id")
     resp_id = data.get("responsable_id")  # None = quitar responsable
+    nota    = data.get("nota", "")
     if not inv_id:
         return jsonify({"ok": False, "error": "invitado_id requerido"}), 400
     con = get_db()
@@ -549,7 +550,8 @@ def set_responsable():
         return jsonify({"ok": False, "error": "Invitado no encontrado"}), 404
     con.execute("UPDATE usuarios SET invitado_de=%s WHERE id=%s", (resp_id or None, inv_id))
     _registrar_auditoria(con, session["uid"], inv_id,
-        "asignar_responsable", "invitado_de", str(row["invitado_de"]), str(resp_id or ""))
+        "asignar_responsable", "invitado_de", str(row["invitado_de"]),
+        str(resp_id or "") + (f" | nota: {nota}" if nota else ""))
     con.commit()
     return jsonify({"ok": True, "msg": "Responsable actualizado"})
 
@@ -761,3 +763,45 @@ def api_estadisticas():
         "meta": float(meta),
         "pct": round(float(total_general) / float(meta) * 100, 1) if meta > 0 else 0,
     })
+
+@fin_bp.route("/api/fin/aporte_manual", methods=["POST"])
+def aporte_manual():
+    """Registra un pago manual verificado para un invitado.
+    Solo accesible por admin o financiero."""
+    if not _es_admin_o_financiero():
+        return jsonify({"ok": False, "error": "Sin permiso"}), 403
+
+    data = request.get_json(silent=True) or {}
+    uid_target = data.get("usuario_id")
+    monto      = data.get("monto", 0)
+    nota       = data.get("nota", "Pago manual")
+
+    if not uid_target or float(monto) <= 0:
+        return jsonify({"ok": False, "error": "usuario_id y monto requeridos"}), 400
+
+    con = get_db()
+    # Verificar que el target existe y es invitado
+    target = con.execute(
+        "SELECT id, nombre, rol FROM usuarios WHERE id=%s", (uid_target,)
+    ).fetchone()
+    if not target or target["rol"] != "invitado":
+        return jsonify({"ok": False, "error": "Usuario no encontrado o no es invitado"}), 400
+
+    actor_id = session["uid"]
+    monto_f  = float(monto)
+
+    # Insertar aporte ya verificado
+    con.execute("""
+        INSERT INTO aportes (usuario_id, monto, descripcion, verificado, fecha)
+        VALUES (%s, %s, %s, 1, NOW())
+    """, (uid_target, monto_f, nota))
+
+    # Auditoría
+    con.execute("""
+        INSERT INTO auditoria_financiera
+            (actor_id, target_id, accion, campo, valor_antes, valor_despues, fecha)
+        VALUES (%s, %s, %s, %s, %s, %s, NOW())
+    """, (actor_id, uid_target, "pago_manual", "monto", "0", str(monto_f)))
+
+    con.commit()
+    return jsonify({"ok": True, "msg": f"Pago de ${monto_f:,.0f} registrado para {target['nombre']}"})

@@ -1793,14 +1793,37 @@ function volverAlPrincipal(tipo) {
 }
 
 /* ===================== UTILS ===================== */
+/* Calcula left del sidebar en tiempo real para centrar modales */
+function _sidebarLeft() {
+  const sb = document.querySelector('.sidebar');
+  if (!sb) return 0;
+  const w = window.innerWidth;
+  if (w <= 768) return 0;               // mobile: sidebar oculto
+  return sb.getBoundingClientRect().width;  // 80px o 260px si está expandido
+}
 function show(id) {
   const el = document.getElementById(id);
-  if (el) { el.style.display = 'flex'; document.body.style.overflow = 'hidden'; }
+  if (!el) return;
+  const left = _sidebarLeft();
+  el.style.left = left + 'px';
+  el.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
 }
 function hide(id) {
   const el = document.getElementById(id);
   if (el) { el.style.display = 'none'; document.body.style.overflow = ''; }
 }
+/* Actualizar left si el sidebar se expande con hover mientras el modal está abierto */
+(function() {
+  const sb = document.querySelector('.sidebar');
+  if (!sb) return;
+  const obs = new ResizeObserver(() => {
+    document.querySelectorAll('.modal-fin-overlay[style*="flex"]').forEach(m => {
+      if (m.style.display === 'flex') m.style.left = _sidebarLeft() + 'px';
+    });
+  });
+  obs.observe(sb);
+})();
 function fmtCOP(n) {
   return '$' + Math.round(n || 0).toLocaleString('es-CO');
 }
@@ -3328,32 +3351,106 @@ function renderInvTab(tab) {
 // ── Asignar responsable a invitado ───────────────────────────────────────────
 function abrirAsignarResponsable(invId, invNombre, respActual) {
   document.getElementById('modal-asignar-resp')?.remove();
+
+  // Buscar datos actuales del invitado
+  const inv = (_invData.invitados || []).find(u => u.id === invId) || {};
   const opts = [{id:'', nombre:'— Sin responsable —', usuario:''},
     ..._invData.miembros]
     .map(m => `<option value="${m.id}" ${Number(m.id)===Number(respActual)?'selected':''}>${m.nombre}${m.usuario?' (@'+m.usuario+')':''}</option>`)
     .join('');
+
+  const saldo     = inv.saldo_pendiente || 0;
+  const pagado    = inv.total_pagado    || 0;
+  const total     = inv.total_aportes   || 0;
+  const saldoClr  = saldo > 0 ? '#ef4444' : '#22c55e';
+  const saldoTxt  = saldo > 0 ? fmtCOP(saldo) : '✅ Al día';
+
+  const _left = _sidebarLeft();
   document.body.insertAdjacentHTML('beforeend', `
-  <div id="modal-asignar-resp" class="modal-fin-overlay modal-fin-overlay--nested" onclick="if(event.target===this)this.remove()">
-    <div class="modal-fin-box" onclick="event.stopPropagation()" style="max-width:380px;">
+  <div id="modal-asignar-resp" class="modal-fin-overlay modal-fin-overlay--nested" style="left:${_left}px;" onclick="if(event.target===this)this.remove()">
+    <div class="modal-fin-box" onclick="event.stopPropagation()" style="max-width:480px;">
       <div class="modal-fin-header">
         <div class="modal-fin-title">
-          <span class="material-symbols-outlined" style="color:var(--accent,#7c6af7)">link</span>
-          Asignar responsable
+          <span class="material-symbols-outlined" style="color:var(--accent,#7c6af7)">manage_accounts</span>
+          Editar invitado
         </div>
         <button class="modal-fin-close" onclick="document.getElementById('modal-asignar-resp').remove()">
           <span class="material-symbols-outlined">close</span>
         </button>
       </div>
-      <div class="modal-fin-body">
-        <p style="font-size:13px;color:var(--text2);margin-bottom:12px;">
-          Miembro responsable de <strong style="color:var(--text)">${invNombre}</strong>
-        </p>
-        <select id="resp-select-${invId}" style="width:100%;background:var(--surface2,#22222e);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:9px 12px;font-size:13px;outline:none;">${opts}</select>
+      <div class="modal-fin-body" style="padding:20px;display:flex;flex-direction:column;gap:16px;">
+
+        <!-- Nombre del invitado -->
+        <div style="display:flex;align-items:center;gap:10px;padding:12px;background:var(--surface2,#22222e);border-radius:10px;border:1px solid var(--border);">
+          <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--accent,#7c6af7),#a855f7);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#fff;flex-shrink:0;">
+            ${(invNombre||'?')[0].toUpperCase()}
+          </div>
+          <div>
+            <div style="font-weight:700;font-size:14px;color:var(--text);">${invNombre}</div>
+            <div style="font-size:11px;color:var(--text2);">Invitado</div>
+          </div>
+        </div>
+
+        <!-- Resumen financiero (solo lectura) -->
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
+          <div style="background:var(--surface2,#22222e);border:1px solid var(--border);border-radius:8px;padding:10px;text-align:center;">
+            <div style="font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">Total</div>
+            <div style="font-weight:700;font-size:13px;color:var(--text);">${fmtCOP(total)}</div>
+          </div>
+          <div style="background:var(--surface2,#22222e);border:1px solid var(--border);border-radius:8px;padding:10px;text-align:center;">
+            <div style="font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">Pagado</div>
+            <div style="font-weight:700;font-size:13px;color:#22c55e;">${fmtCOP(pagado)}</div>
+          </div>
+          <div style="background:var(--surface2,#22222e);border:1px solid var(--border);border-radius:8px;padding:10px;text-align:center;">
+            <div style="font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">Saldo</div>
+            <div style="font-weight:700;font-size:13px;color:${saldoClr};">${saldoTxt}</div>
+          </div>
+        </div>
+
+        <!-- Responsable -->
+        <div>
+          <label style="font-size:12px;font-weight:600;color:var(--text2);display:block;margin-bottom:6px;text-transform:uppercase;letter-spacing:.4px;">
+            <span class="material-symbols-outlined" style="font-size:14px;vertical-align:middle;">link</span>
+            Miembro responsable
+          </label>
+          <select id="resp-select-${invId}"
+            style="width:100%;background:var(--surface2,#22222e);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:10px 12px;font-size:13px;outline:none;cursor:pointer;">
+            ${opts}
+          </select>
+        </div>
+
+        <!-- Ajuste de saldo (si debe) -->
+        ${saldo > 0 ? `
+        <div>
+          <label style="font-size:12px;font-weight:600;color:var(--text2);display:block;margin-bottom:6px;text-transform:uppercase;letter-spacing:.4px;">
+            <span class="material-symbols-outlined" style="font-size:14px;vertical-align:middle;">payments</span>
+            Registrar pago manual (opcional)
+          </label>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <span style="color:var(--text2);font-size:13px;">$</span>
+            <input type="number" id="pago-manual-${invId}" min="0" step="1000"
+              placeholder="Monto a aplicar…"
+              style="flex:1;background:var(--surface2,#22222e);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:10px 12px;font-size:13px;outline:none;"
+            />
+          </div>
+          <div style="font-size:11px;color:var(--text2);margin-top:4px;">Saldo pendiente actual: <strong style="color:#ef4444;">${fmtCOP(saldo)}</strong></div>
+        </div>` : ''}
+
+        <!-- Nota -->
+        <div>
+          <label style="font-size:12px;font-weight:600;color:var(--text2);display:block;margin-bottom:6px;text-transform:uppercase;letter-spacing:.4px;">
+            <span class="material-symbols-outlined" style="font-size:14px;vertical-align:middle;">notes</span>
+            Nota (opcional)
+          </label>
+          <textarea id="nota-inv-${invId}" rows="2" placeholder="Observación o motivo del cambio…"
+            style="width:100%;background:var(--surface2,#22222e);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:10px 12px;font-size:13px;outline:none;resize:vertical;font-family:inherit;box-sizing:border-box;"></textarea>
+        </div>
+
       </div>
       <div class="modal-fin-footer">
         <button class="btn-fin-cancel" onclick="document.getElementById('modal-asignar-resp').remove()">Cancelar</button>
         <button class="btn-fin-primary" onclick="guardarResponsable(${invId})">
-          <span class="material-symbols-outlined">save</span> Guardar
+          <span class="material-symbols-outlined">save</span> Guardar cambios
         </button>
       </div>
     </div>
@@ -3361,17 +3458,45 @@ function abrirAsignarResponsable(invId, invNombre, respActual) {
 }
 
 async function guardarResponsable(invId) {
-  const sel = document.getElementById('resp-select-' + invId);
-  const respId = sel?.value ? parseInt(sel.value) : null;
+  const sel     = document.getElementById('resp-select-' + invId);
+  const pagoEl  = document.getElementById('pago-manual-' + invId);
+  const notaEl  = document.getElementById('nota-inv-' + invId);
+  const respId  = sel?.value ? parseInt(sel.value) : null;
+  const pagoVal = pagoEl ? parseFloat(pagoEl.value) || 0 : 0;
+  const nota    = notaEl?.value?.trim() || '';
+
   try {
+    // 1) Guardar responsable
     const r = await fetch('/api/fin/set_responsable', {
       method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ invitado_id: invId, responsable_id: respId })
+      body: JSON.stringify({ invitado_id: invId, responsable_id: respId, nota })
     });
     const d = await r.json();
+    if (!d.ok) {
+      mostrarToastFin(d.error || 'Error al guardar', false);
+      return;
+    }
+
+    // 2) Si hay pago manual, registrarlo como aporte verificado
+    if (pagoVal > 0) {
+      const rp = await fetch('/api/fin/aporte_manual', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ usuario_id: invId, monto: pagoVal, nota: nota || 'Pago manual desde gestión de invitados' })
+      });
+      const dp = await rp.json();
+      if (!dp.ok) {
+        mostrarToastFin('Responsable guardado, pero error al registrar pago: ' + (dp.error||''), false);
+        document.getElementById('modal-asignar-resp')?.remove();
+        abrirModalInvitados();
+        return;
+      }
+      mostrarToastFin('Guardado ✅ — Pago de ' + fmtCOP(pagoVal) + ' registrado', true);
+    } else {
+      mostrarToastFin('Cambios guardados ✅', true);
+    }
+
     document.getElementById('modal-asignar-resp')?.remove();
-    mostrarToastFin(d.ok ? 'Responsable actualizado ✅' : (d.error||'Error'), d.ok);
-    if (d.ok) abrirModalInvitados();
+    abrirModalInvitados();
   } catch(e) { mostrarToastFin('Error de conexión', false); }
 }
 
