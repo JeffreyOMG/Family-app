@@ -854,7 +854,7 @@ def api_estadisticas():
         "SELECT COUNT(*) FROM eventos_recaudacion WHERE estado='pendiente'"
     ).fetchone()[0]
     participantes_activos = con.execute(
-        "SELECT COUNT(*) FROM usuarios WHERE rol IN ('miembro','admin') AND COALESCE(polla_activo, TRUE)=TRUE AND COALESCE(polla_estado,'activo') != 'excluido'"
+        "SELECT COUNT(*) FROM usuarios WHERE rol='miembro' AND COALESCE(polla_activo, TRUE)=TRUE AND COALESCE(polla_estado,'activo') != 'excluido'"
     ).fetchone()[0]
     invitados_count = con.execute(
         "SELECT COUNT(*) FROM usuarios WHERE rol='invitado'"

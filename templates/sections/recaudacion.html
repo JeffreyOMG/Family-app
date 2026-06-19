@@ -241,7 +241,7 @@
           <span class="rec-polla-precio">${{ "{:,.0f}".format(fase.precio).replace(",",".") }}</span>
         </div>
         <div class="rec-polla-miembros-row">
-          {% for m in miembros if m.rol in ('miembro', 'admin') and (m.polla_estado is not defined or m.polla_estado != 'excluido') %}
+          {% for m in miembros if m.rol == 'miembro' and (m.polla_estado is not defined or m.polla_estado != 'excluido') %}
           {% set pagado = namespace(ok=false) %}
           {% for p in polla_pagos if p.usuario_id == m.id and p.fase == fase.num %}
             {% set pagado.ok = true %}
@@ -274,7 +274,7 @@
         </div>
         <div class="rec-polla-resumen">
           {% set pagados_count = namespace(n=0) %}
-          {% set miembros_solo = miembros | selectattr('rol', 'in', ['miembro', 'admin']) | rejectattr('polla_estado', 'equalto', 'excluido') | list %}
+          {% set miembros_solo = miembros | selectattr('rol', 'equalto', 'miembro') | rejectattr('polla_estado', 'equalto', 'excluido') | list %}
           {% for m in miembros_solo %}
             {% for p in polla_pagos if p.usuario_id == m.id and p.fase == fase.num %}
               {% set pagados_count.n = pagados_count.n + 1 %}
@@ -2456,7 +2456,7 @@ async function exportarHistorial() {
     const totEv   = eventos.reduce((a,r)=>a+(r.monto||0),0);
     const totPo   = polla.reduce((a,r)=>a+(PRECIOS_POLLA[r.fase]||r.monto||0),0);
     const totFam  = familia.reduce((a,r)=>a+(r.monto||0),0);
-    const totGral = totEv + totPo + totFam;
+    const totGral = totEv + totFam; // No incluye polla (la polla se reporta aparte)
 
     // Ranking por persona
     const rankMap = {};
@@ -2474,15 +2474,18 @@ async function exportarHistorial() {
     // Totales por categoría
     wsData.push([{v:'CATEGORÍA',t:'s',s:ST.header},{v:'REGISTROS',t:'s',s:ST.header},{v:'TOTAL (COP)',t:'s',s:ST.header}]);
     wsData.push([{v:'📅 Eventos',t:'s',s:ST.celda},{v:eventos.length,t:'n',s:ST.celda},{v:totEv,t:'n',s:ST.monto}]);
-    wsData.push([{v:'⚽ Polla Mundialista',t:'s',s:ST.celdaAlt},{v:polla.length,t:'n',s:ST.celdaAlt},{v:totPo,t:'n',s:ST.montoAlt}]);
-    wsData.push([{v:'🏠 Familia',t:'s',s:ST.celda},{v:familia.length,t:'n',s:ST.celda},{v:totFam,t:'n',s:ST.monto}]);
+    wsData.push([{v:'🏠 Familia',t:'s',s:ST.celdaAlt},{v:familia.length,t:'n',s:ST.celdaAlt},{v:totFam,t:'n',s:ST.montoAlt}]);
     wsData.push([
-      {v:'TOTAL GENERAL',t:'s',s:{font:{bold:true,sz:12},fill:{fgColor:{rgb:'FFE0EC'}},alignment:{horizontal:'center'}}},
-      {v:rows.length,    t:'n',s:{font:{bold:true,sz:12},fill:{fgColor:{rgb:'FFE0EC'}},alignment:{horizontal:'center'}}},
+      {v:'TOTAL RECAUDADO (Eventos + Familia)',t:'s',s:{font:{bold:true,sz:12},fill:{fgColor:{rgb:'FFE0EC'}},alignment:{horizontal:'center'}}},
+      {v:eventos.length + familia.length, t:'n',s:{font:{bold:true,sz:12},fill:{fgColor:{rgb:'FFE0EC'}},alignment:{horizontal:'center'}}},
       {v:totGral,        t:'n',s:{font:{bold:true,sz:12,color:{rgb:'C9236A'}},fill:{fgColor:{rgb:'FFE0EC'}},numFmt:'"$"#,##0',alignment:{horizontal:'right'}}},
     ]);
 
     wsData.push([{v:'',t:'s'},{v:'',t:'s'},{v:'',t:'s'}]);
+
+    wsData.push([{v:'⚽ Polla Mundialista (no incluida en el total recaudado)',t:'s',s:{font:{italic:true,sz:9,color:{rgb:'777777'}},alignment:{horizontal:'left'}}},{v:'',t:'s'},{v:'',t:'s'}]);
+    wsData.push([{v:'⚽ Polla Mundialista',t:'s',s:ST.celda},{v:polla.length,t:'n',s:ST.celda},{v:totPo,t:'n',s:ST.monto}]);
+
     wsData.push([{v:'',t:'s'},{v:'',t:'s'},{v:'',t:'s'}]);
 
     // Ranking
@@ -2502,7 +2505,7 @@ async function exportarHistorial() {
     const ws = XLSX.utils.aoa_to_sheet(wsData);
     ws['!merges'] = [
       {s:{r:0,c:0},e:{r:0,c:2}},
-      {s:{r:9,c:0},e:{r:9,c:2}},
+      {s:{r:10,c:0},e:{r:10,c:2}},
     ];
     ws['!cols'] = [{wch:22},{wch:16},{wch:22}];
     XLSX.utils.book_append_sheet(wb, ws, '📊 Resumen');
