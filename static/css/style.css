@@ -830,7 +830,7 @@ textarea.form-input{
     align-items:center;
 }
 
-.main-content > *:not(.rec-modal-overlay) {
+.main-content > *:not(.rec-modal-overlay):not(.modal-fin-overlay) {
     max-width: 1060px;
     width: 100%;
 }
