@@ -1625,73 +1625,236 @@ body.dark-mode .miembros-lista { border-color:var(--border); }
 body.dark-mode .rec-modal-close { background:var(--bg2);border-color:var(--border);color:var(--text2); }
 
 /* ======================================================
-   MOBILE — RESPONSIVE
+   TABLET — RESPONSIVE (601px – 900px)
 ====================================================== */
-@media (max-width: 768px) {
-  /* Header */
-  .rec-header { flex-direction:column;align-items:flex-start;gap:10px; }
-  .rec-header-title h1 { font-size:1.25rem; }
-  .rec-header-actions { width:100%;display:flex;flex-direction:column;gap:8px; }
-  .btn-aporte-principal { width:100%;justify-content:center; }
-  .btn-admin-meta { width:100%;justify-content:center; }
-
-  /* Stats grid: 2 columnas */
-  .rec-stats { grid-template-columns:repeat(2,1fr);gap:10px; }
-  .rec-stat { padding:12px; }
-  .rec-stat-value { font-size:1rem; }
-
-  /* Progress card: apilado */
-  .rec-progress-card { flex-direction:column;gap:16px; }
-  .rec-pig-section { width:100%;justify-content:center; }
-  .rec-progress-info { width:100%;min-width:0; }
-
-  /* Filtros: columna */
-  .rec-table-header { flex-direction:column;gap:10px;align-items:flex-start; }
-  .rec-filtros { flex-direction:column;gap:8px;width:100%; }
-  .rec-filtro-input { width:100%;box-sizing:border-box; }
-  .rec-filtro-input input { width:100%; }
-  .rec-select-filter,
-  .rec-date-input { width:100%;box-sizing:border-box; }
-  .rec-filtros-fechas { width:100%;display:grid;grid-template-columns:1fr 1fr;gap:6px; }
-  .rec-filtros-btns { width:100%;justify-content:flex-end;flex-wrap:wrap; }
-  .rec-btn-export { flex:1;justify-content:center; }
-
-  /* Tabla: scroll horizontal con col ocultas en móvil */
-  .rec-table-wrap { overflow-x:auto;-webkit-overflow-scrolling:touch; }
-  .tabla-aportes { min-width:420px; }
-  .col-desc { display:none; }
-  .col-fecha { display:none; }
-
-  /* Mobile refinements para pantallas muy angostas */
-  .rec-stats { grid-template-columns:1fr; }
-  .rec-filtros-fechas { grid-template-columns:1fr; }
-  .rec-table-header { width:100%; }
-  .rec-filtros-btns { justify-content:flex-start; }
-  .rec-table-wrap { min-width:auto; }
-  .tabla-aportes { min-width:360px; }
-
-  /* Modal: full screen en mobile */
-  .rec-modal-overlay { padding:0;align-items:flex-end; }
-  .rec-modal-box {
-    border-radius:20px 20px 0 0;
-    max-height:92vh;
-    max-width:100%;
+@media (min-width: 601px) and (max-width: 900px) {
+  /* Header: dos filas limpias */
+  .rec-header { flex-direction:column; align-items:flex-start; gap:12px; }
+  .rec-header-title h1 { font-size:1.4rem; }
+  .rec-header-actions {
+    width:100%;
     display:flex;
-    flex-direction:column;
+    flex-direction:row;
+    flex-wrap:wrap;
+    gap:8px;
+    align-items:center;
   }
-  .rec-modal-body { flex:1;overflow-y:auto; }
-  .rec-modal-header { padding:14px 16px; }
-  .rec-modal-body { padding:14px 16px; }
-  .rec-modal-footer { padding:12px 16px;flex-wrap:wrap; }
+  /* Botón aporte: destaca, crece al final */
+  .btn-aporte-principal { margin-left:auto; }
+  /* Botones admin: tamaño normal, no full-width */
+  .btn-admin-meta,
+  .btn-admin-control { flex-shrink:0; }
+
+  /* Stats: 4 columnas en tablet */
+  .rec-stats { grid-template-columns:repeat(4,1fr); gap:10px; }
+  .rec-stat { padding:13px 14px; gap:10px; }
+  .rec-stat-icon { width:38px; height:38px; }
+  .rec-stat-value { font-size:1.05rem; }
+
+  /* Progress: lado a lado igual que desktop */
+  .rec-progress-card { flex-direction:row; gap:24px; align-items:center; }
+  .rec-pig-section { min-width:100px; }
+
+  /* Filtros: fila con wrap */
+  .rec-table-header { flex-direction:row; flex-wrap:wrap; gap:10px; }
+  .rec-filtros { flex-direction:row; flex-wrap:wrap; gap:8px; width:auto; }
+  .rec-filtro-input { min-width:160px; }
+  .rec-select-filter { min-width:140px; }
+  .rec-filtros-fechas { grid-template-columns:1fr 1fr; }
+
+  /* Tabla: colapsa col-soporte pero mantiene fecha y desc */
+  .col-soporte { display:none; }
+  .rec-table-wrap { overflow-x:auto; -webkit-overflow-scrolling:touch; }
+  .tabla-aportes { min-width:480px; }
+
+  /* Ranking: mantiene row */
+  .rec-ranking-top { flex-direction:row; }
+  .rec-ranking-item { padding:12px 14px; }
+
+  /* Modal: centrado, no bottom-sheet */
+  .rec-modal-overlay { padding:20px; align-items:center; }
+  .rec-modal-box { border-radius:18px; max-width:520px; max-height:88vh; }
+
+  /* Polla chips: envuelven bien */
+  .rec-polla-miembros-row { gap:6px; }
+
+  /* Content card: padding cómodo */
+  .content-card { padding:18px; }
+}
+
+/* ======================================================
+   MOBILE — RESPONSIVE (≤ 600px)
+====================================================== */
+@media (max-width: 600px) {
+  /* ── Header ── */
+  .rec-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+    padding-bottom: 16px;
+    margin-bottom: 16px;
+  }
+  .rec-header-title { gap: 8px; }
+  .rec-header-title h1 { font-size: 1.2rem; }
+  .rec-header-title .material-symbols-outlined { font-size: 24px; }
+
+  /* Acciones: fila con 2 botones por línea, aporte abajo a full */
+  .rec-header-actions {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  /* Si solo hay 1 botón admin, que ocupe todo el ancho */
+  .rec-header-actions > *:only-child { grid-column: 1/-1; }
+  /* Botón aporte siempre a full width abajo */
+  .btn-aporte-principal {
+    grid-column: 1 / -1;
+    justify-content: center;
+    font-size: 14px;
+    padding: 11px 16px;
+  }
+  .btn-admin-meta,
+  .btn-admin-control { font-size: 12px; padding: 9px 12px; justify-content: center; }
+  /* Dropdown del admin: abre hacia abajo, no se sale de pantalla */
+  .admin-ctrl-menu { right: auto; left: 0; min-width: 200px; }
+
+  /* Badge financiero */
+  .badge-financiero { font-size: 11px; padding: 3px 8px; }
+
+  /* ── Stats: 2 columnas compactas ── */
+  .rec-stats { grid-template-columns: repeat(2,1fr); gap: 8px; margin-bottom: 14px; }
+  .rec-stat { padding: 11px 12px; gap: 10px; border-radius: 12px; }
+  .rec-stat-icon { width: 36px; height: 36px; border-radius: 9px; flex-shrink: 0; }
+  .rec-stat-icon .material-symbols-outlined { font-size: 18px; }
+  .rec-stat-label { font-size: 10px; }
+  .rec-stat-value { font-size: .95rem; }
+
+  /* ── Progress card: apilado ── */
+  .rec-progress-card { flex-direction: column; gap: 14px; padding: 16px; }
+  .rec-pig-section { width: 100%; justify-content: center; }
+  .rec-progress-info { width: 100%; min-width: 0; }
+  .rec-prog-label { font-size: 13px; margin-bottom: 10px; }
+  .rec-prog-bar-wrap { gap: 8px; }
+  .rec-bar-track { height: 14px; }
+  .rec-prog-numbers { font-size: 11px; }
+  .pig-pct { font-size: 1.1rem; }
+  .pig-status { font-size: 11px; }
+
+  /* ── Historial — filtros ── */
+  .rec-table-header {
+    flex-direction: column;
+    gap: 10px;
+    align-items: flex-start;
+    width: 100%;
+  }
+  .rec-table-header h3 { font-size: .9rem; }
+  .rec-filtros { flex-direction: column; gap: 7px; width: 100%; }
+  .rec-filtro-input { width: 100%; box-sizing: border-box; }
+  .rec-filtro-input input { width: 100%; font-size: 15px; }
+  .rec-select-filter,
+  .rec-date-input { width: 100%; box-sizing: border-box; font-size: 15px; }
+  .rec-filtros-fechas { width: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .rec-filtros-btns { width: 100%; justify-content: flex-end; gap: 6px; }
+  .rec-btn-export { flex: 1; justify-content: center; }
+  .rec-export-txt { display: none; }
+  .rec-filtro-clear { min-width: 44px; justify-content: center; }
+
+  /* ── Tabla de aportes ── */
+  .rec-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; border-radius: 10px; }
+  .tabla-aportes { min-width: 320px; font-size: 12px; }
+  .tabla-aportes th { padding: 8px 8px; font-size: 10px; }
+  .tabla-aportes td { padding: 9px 8px; }
+  .col-desc { display: none; }
+  .col-fecha { display: none; }
+  .col-soporte { display: none; }
+  .rec-avatar { width: 26px; height: 26px; font-size: 10px; }
+  .rec-avatar-foto { width: 26px; height: 26px; }
+  .rec-monto { font-size: 12px; }
+  .btn-accion { width: 28px; height: 28px; }
+  .btn-accion .material-symbols-outlined { font-size: 15px; }
+
+  /* ── Ranking Comunitario ── */
+  .rec-ranking-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+  .rec-ranking-header > div { width: 100%; }
+  .rec-rank-filter-wrap { display: flex; gap: 6px; flex-wrap: wrap; width: 100%; }
+  .rec-rank-filter-btn { flex: 1; text-align: center; font-size: 12px; padding: 6px 8px; }
+  .rec-ranking-item {
+    padding: 11px 12px;
+    gap: 10px;
+    border-radius: 12px;
+  }
+  .rec-ranking-medal { font-size: 18px; width: 24px; }
+  .rank-num { font-size: 11px; }
+  .rec-ranking-foto,
+  .rec-ranking-avatar { width: 34px; height: 34px; font-size: 13px; }
+  /* Nombre y monto en la misma fila — no apilar */
+  .rec-ranking-top {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 4px;
+    margin-bottom: 5px;
+  }
+  .rec-ranking-name { font-size: 13px; }
+  .rec-ranking-amount { font-size: 13px; margin-left: 4px; white-space: nowrap; }
+  /* Barra de ranking */
+  .rank-bar-track { height: 5px; }
+  /* Botón bloquear en ranking: siempre visible en mobile (no depende de hover) */
+  .rec-rank-block-btn { opacity: 0.7; width: 26px; height: 26px; }
+
+  /* ── Polla fases — chips ── */
+  .rec-polla-header { flex-direction: column; align-items: flex-start; gap: 8px; margin-bottom: 14px; }
+  .rec-polla-fase-bloque { padding: 12px; border-radius: 12px; }
+  .rec-polla-fase-label { font-size: 12px; gap: 6px; }
+  .rec-polla-miembros-row { gap: 5px; }
+  .rec-polla-chip { padding: 4px 8px 4px 4px; font-size: 11px; gap: 4px; }
+  .rec-chip-foto,
+  .rec-chip-avatar { width: 20px; height: 20px; }
+  .rec-chip-nombre { max-width: 56px; }
+  .rec-polla-resumen { font-size: 11px; gap: 8px; }
+
+  /* ── Tipo aporte cards ── */
+  .tipo-aporte-card { padding: 11px; gap: 10px; }
+  .tipo-icon { width: 36px; height: 36px; }
+  .tipo-titulo { font-size: 13px; }
+  .tipo-desc { font-size: 11px; }
+
+  /* ── Fases polla modal ── */
+  .fase-card { padding: 12px; }
+  .fase-header { gap: 8px; }
+  .fase-info strong { font-size: 13px; }
+  .fase-precio { font-size: 13px; }
+  .fase-btn,
+  .fase-btn-pagada { padding: 9px; font-size: 13px; }
+
+  /* ── Familia tabs ── */
+  .familia-tabs { gap: 6px; }
+  .familia-tab { font-size: 12px; padding: 7px 10px; }
+
+  /* ── Modal: bottom-sheet ── */
+  .rec-modal-overlay { padding: 0; align-items: flex-end; }
+  .rec-modal-box {
+    border-radius: 20px 20px 0 0;
+    max-height: 92vh;
+    max-width: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+  .rec-modal-body { flex: 1; overflow-y: auto; padding: 14px 16px; }
+  .rec-modal-header { padding: 14px 16px; }
+  .rec-modal-footer { padding: 12px 16px; flex-wrap: wrap; }
   .rec-modal-footer .rec-btn-cancel,
   .rec-modal-footer .rec-btn-submit,
-  .rec-modal-footer .rec-btn-danger { flex:1;justify-content:center; }
+  .rec-modal-footer .rec-btn-danger { flex: 1; justify-content: center; min-height: 44px; }
 
-  /* Modal financiero: bottom-sheet en mobile */
-  .modal-fin-overlay {
-    padding: 0;
-    align-items: flex-end;
-  }
+  /* Modal financiero: bottom-sheet */
+  .modal-fin-overlay { padding: 0; align-items: flex-end; }
   .modal-fin-box {
     border-radius: 20px 20px 0 0;
     max-height: 88vh;
@@ -1699,58 +1862,50 @@ body.dark-mode .rec-modal-close { background:var(--bg2);border-color:var(--borde
     width: 100%;
   }
   .modal-fin-header { padding: 14px 16px; }
-  .modal-fin-body   { padding: 0; }          /* el scroll horizontal funciona mejor sin padding lateral */
+  .modal-fin-body { padding: 0; }
   .modal-fin-footer { padding: 12px 16px; flex-wrap: wrap; }
   .modal-fin-footer .btn-fin-cancel,
   .modal-fin-footer .btn-fin-primary { flex: 1; justify-content: center; }
 
-  /* Tablas: scroll horizontal con fuente reducida */
-  .inv-tbl-full  { font-size: 11px; min-width: 680px; }
-  .audit-table   { font-size: 11px; min-width: 580px; }
+  /* Tablas internas modales */
+  .inv-tbl-full  { font-size: 11px; min-width: 620px; }
+  .audit-table   { font-size: 11px; min-width: 560px; }
   .inv-table, .part-table { font-size: 11px; }
+  .modal-fin-body > div[style*="overflow-x"] { padding-bottom: 8px; }
 
-  /* Contenedor scroll horizontal con padding interior visual */
-  .modal-fin-body > div[style*="overflow-x"] {
-    padding-bottom: 8px;
-  }
+  /* ── Formularios dentro de modales ── */
+  .rec-form-label { font-size: 11px; }
+  .rec-input { font-size: 15px; padding: 10px 12px; }
+  .rec-input-wrap .rec-input { padding-left: 24px; }
+  .rec-preset-btn { font-size: 11px; padding: 5px 10px; }
+  .rec-meta-presets { gap: 6px; }
 
-
-  /* Tipo aporte cards */
-  .tipo-aporte-card { padding:12px; }
-  .tipo-icon { width:38px;height:38px; }
-
-  /* Fases polla */
-  .fase-header { flex-wrap:wrap;gap:8px; }
-  .fase-precio { width:100%;text-align:right;font-size:13px; }
-
-  /* Familia tabs */
-  .familia-tab { font-size:12px;padding:7px; }
-
-  /* Ranking */
-  .rec-ranking-top { flex-direction:column;gap:2px; }
-  .rec-ranking-amount { font-size:13px; }
-
-  /* Export txt en mobile: solo icono */
-  .rec-export-txt { display:none; }
+  /* ── Content card ── */
+  .content-card { padding: 14px; border-radius: 14px; margin-bottom: 12px; }
 }
 
-@media (max-width: 420px) {
-  /* Stats: 2 columnas en pantallas pequeñas */
-  .rec-stats { grid-template-columns:1fr 1fr; }
-  .rec-stat-icon { width:36px;height:36px; }
-  .rec-stat-value { font-size:.95rem; }
-  .rec-modal-title-wrap h3 { font-size:14px; }
-}
-
-@media (max-width: 360px) {
-  .rec-stats { grid-template-columns:1fr; }
-  .rec-header-title h1 { font-size:1.1rem; }
-  .rec-filtros-fechas { grid-template-columns:1fr; }
-  .rec-filtros-btns { justify-content:flex-start; }
-  .rec-table-header { width:100%; }
-  .tabla-aportes { min-width:320px; }
-  .rec-export-txt { display:none; }
-  .rec-modal-title-wrap h3 { font-size:13px; }
+/* ── Ultra-pequeño (≤ 380px) ── */
+@media (max-width: 380px) {
+  .rec-header-title h1 { font-size: 1.05rem; }
+  .rec-stats { gap: 6px; }
+  .rec-stat { padding: 10px; gap: 8px; }
+  .rec-stat-label { font-size: 9px; }
+  .rec-stat-value { font-size: .88rem; }
+  .rec-stat-icon { width: 32px; height: 32px; }
+  .rec-ranking-item { padding: 10px 10px; gap: 8px; }
+  .rec-ranking-name { font-size: 12px; }
+  .rec-ranking-amount { font-size: 12px; }
+  .rec-ranking-foto,
+  .rec-ranking-avatar { width: 30px; height: 30px; }
+  .rec-chip-nombre { max-width: 44px; }
+  .btn-admin-meta,
+  .btn-admin-control { font-size: 11px; padding: 8px 10px; }
+  .content-card { padding: 12px; border-radius: 12px; }
+  .rec-filtros-fechas { grid-template-columns: 1fr; }
+  .tabla-aportes { min-width: 280px; }
+  .rec-modal-title-wrap h3 { font-size: 13px; }
+  .rec-polla-chip { font-size: 10px; }
+  .rec-chip-nombre { max-width: 40px; }
 }
 </style>
 
