@@ -2779,14 +2779,14 @@ function filtrarRanking(modo) {
 .bloqueo-toggle-desbloquear:hover { background:rgba(34,197,94,.2); }
 
 /* ── Tabla invitados completa ───────────────────────────────────────── */
-.inv-tbl-full { width:100%;min-width:920px;border-collapse:collapse;font-size:12px; }
+.inv-tbl-full { width:100%;min-width:980px;border-collapse:separate;border-spacing:0;font-size:12.5px; }
 .inv-tbl-full th {
-  text-align:left;padding:9px 10px;font-size:10px;font-weight:700;
+  text-align:left;padding:12px 14px;font-size:10px;font-weight:700;
   color:var(--text2);text-transform:uppercase;letter-spacing:.4px;
   border-bottom:1px solid var(--border);position:sticky;top:0;
-  background:var(--surface,#1a1a22);z-index:1;
+  background:var(--surface,#1a1a22);z-index:1;white-space:nowrap;
 }
-.inv-tbl-full td { padding:10px;border-bottom:1px solid var(--border);vertical-align:middle; }
+.inv-tbl-full td { padding:13px 14px;border-bottom:1px solid var(--border);vertical-align:middle; }
 .inv-tbl-row:hover { background:rgba(255,255,255,.025); }
 /* ── Tabs del modal invitados ───────────────────────────────────────── */
 .inv-tab {
@@ -2879,10 +2879,15 @@ body.dark-mode .modal-fin-title { color:var(--text,#ffffff); }
 .inv-table th { text-align:left;padding:8px 10px;font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;border-bottom:1px solid var(--border); }
 .inv-table td { padding:10px;border-bottom:1px solid var(--border);vertical-align:middle; }
 .inv-table tbody tr:hover { background:rgba(255,255,255,.03); }
-.inv-tag-pagado    { background:rgba(34,197,94,.12);color:#22c55e;border:1px solid rgba(34,197,94,.25);padding:2px 7px;border-radius:10px;font-size:10px;font-weight:700; }
-.inv-tag-pendiente { background:rgba(234,179,8,.12);color:#eab308;border:1px solid rgba(234,179,8,.25);padding:2px 7px;border-radius:10px;font-size:10px;font-weight:700; }
-.inv-tag-rechazado { background:rgba(239,68,68,.12);color:#ef4444;border:1px solid rgba(239,68,68,.25);padding:2px 7px;border-radius:10px;font-size:10px;font-weight:700; }
-.inv-tag-sin       { background:rgba(100,100,100,.1);color:#777;border:1px solid rgba(100,100,100,.2);padding:2px 7px;border-radius:10px;font-size:10px;font-weight:700; }
+.inv-tag-pagado    { display:inline-flex;align-items:center;gap:4px;white-space:nowrap;background:rgba(34,197,94,.12);color:#22c55e;border:1px solid rgba(34,197,94,.25);padding:3px 9px;border-radius:10px;font-size:10px;font-weight:700;line-height:1.3; }
+.inv-tag-pendiente { display:inline-flex;align-items:center;gap:4px;white-space:nowrap;background:rgba(234,179,8,.12);color:#eab308;border:1px solid rgba(234,179,8,.25);padding:3px 9px;border-radius:10px;font-size:10px;font-weight:700;line-height:1.3; }
+.inv-tag-rechazado { display:inline-flex;align-items:center;gap:4px;white-space:nowrap;background:rgba(239,68,68,.12);color:#ef4444;border:1px solid rgba(239,68,68,.25);padding:3px 9px;border-radius:10px;font-size:10px;font-weight:700;line-height:1.3; }
+.inv-tag-sin       { display:inline-flex;align-items:center;gap:4px;white-space:nowrap;background:rgba(100,100,100,.1);color:#777;border:1px solid rgba(100,100,100,.2);padding:3px 9px;border-radius:10px;font-size:10px;font-weight:700;line-height:1.3; }
+/* ── Icono simple de estado Mundial (reemplaza el pill verboso) ───────── */
+.inv-mundial-icon {
+  display:inline-flex;align-items:center;justify-content:center;
+  width:24px;height:24px;border-radius:50%;font-size:13px;flex-shrink:0;
+}
 
 /* ── Tabla de participantes polla ───────────────────────────────────── */
 .part-table { width:100%;border-collapse:collapse;font-size:13px; }
@@ -3203,10 +3208,13 @@ function switchInvTab(tab) {
 function filtrarTablaInv() { renderInvTab(_invTab); }
 
 function invTagMundial(estado) {
-  if (estado === 'aprobado')                    return '<span class="inv-tag-pagado">✓ Aprobado</span>';
-  if (estado && estado.startsWith('pendiente')) return '<span class="inv-tag-pendiente">⏳ Pendiente</span>';
-  if (estado === 'rechazado')                   return '<span class="inv-tag-rechazado">✗ Rechazado</span>';
-  return '<span class="inv-tag-sin">Sin solicitud</span>';
+  if (estado === 'aprobado')
+    return `<span class="inv-mundial-icon" style="background:rgba(34,197,94,.12);color:#22c55e;" title="Mundial: Aprobado">✓</span>`;
+  if (estado && estado.startsWith('pendiente'))
+    return `<span class="inv-mundial-icon" style="background:rgba(234,179,8,.12);color:#eab308;" title="Mundial: Pendiente">⏳</span>`;
+  if (estado === 'rechazado')
+    return `<span class="inv-mundial-icon" style="background:rgba(239,68,68,.12);color:#ef4444;" title="Mundial: Rechazado">✗</span>`;
+  return `<span class="inv-mundial-icon" style="background:rgba(100,100,100,.1);color:#777;" title="Mundial: Sin solicitud">–</span>`;
 }
 
 function renderInvTab(tab) {
@@ -3262,8 +3270,8 @@ function renderInvTab(tab) {
               </button>
             </div>
           </td>
-          <td>${u.rec_bloqueado ? '<span class="inv-tag-rechazado">🔒 Bloqueado</span>' : '<span class="inv-tag-pagado">🟢 Activo</span>'}</td>
-          <td>${invTagMundial(u.mundial_pagado)}</td>
+          <td style="text-align:center;">${u.rec_bloqueado ? '<span class="inv-tag-rechazado">🔒 Bloqueado</span>' : '<span class="inv-tag-pagado">🟢 Activo</span>'}</td>
+          <td style="text-align:center;">${invTagMundial(u.mundial_pagado)}</td>
           <td style="font-weight:700;text-align:right;white-space:nowrap;">${fmtCOP(u.total_aportes||0)}</td>
           <td style="color:#22c55e;font-weight:700;text-align:right;white-space:nowrap;">${fmtCOP(u.total_pagado||0)}</td>
           <td style="color:#eab308;text-align:right;white-space:nowrap;">${fmtCOP(u.polla_pendiente||0)}</td>
@@ -3473,6 +3481,7 @@ function _recalcSaldoInv(invId) {
 
 async function guardarResponsable(invId) {
   const sel       = document.getElementById('resp-select-' + invId);
+  const estadoSel = document.getElementById('estado-inv-' + invId);
   const pagoEl    = document.getElementById('pago-manual-' + invId);
   const notaEl    = document.getElementById('nota-inv-' + invId);
   const totalEl   = document.getElementById('total-inv-' + invId);
@@ -3481,12 +3490,14 @@ async function guardarResponsable(invId) {
   const pagoVal   = pagoEl ? parseFloat(pagoEl.value) || 0 : 0;
   const nota      = notaEl?.value?.trim() || '';
 
-  const inv          = (_invData.invitados || []).find(u => u.id === invId) || {};
-  const totalOrig    = inv.total_aportes || 0;
-  const pagadoOrig   = inv.total_pagado  || 0;
-  const totalNuevo   = totalEl  ? parseFloat(totalEl.value)  || 0 : totalOrig;
-  const pagadoNuevo  = pagadoEl ? parseFloat(pagadoEl.value) || 0 : pagadoOrig;
-  const hayCambioFin = totalNuevo !== totalOrig || pagadoNuevo !== pagadoOrig;
+  const inv            = (_invData.invitados || []).find(u => u.id === invId) || {};
+  const totalOrig      = inv.total_aportes || 0;
+  const pagadoOrig     = inv.total_pagado  || 0;
+  const totalNuevo     = totalEl  ? parseFloat(totalEl.value)  || 0 : totalOrig;
+  const pagadoNuevo    = pagadoEl ? parseFloat(pagadoEl.value) || 0 : pagadoOrig;
+  const hayCambioFin   = totalNuevo !== totalOrig || pagadoNuevo !== pagadoOrig;
+  const bloqueadoNuevo = estadoSel ? estadoSel.value === '1' : !!inv.rec_bloqueado;
+  const hayCambioEstado = bloqueadoNuevo !== !!inv.rec_bloqueado;
 
   try {
     // 1) Guardar responsable
@@ -3500,7 +3511,22 @@ async function guardarResponsable(invId) {
       return;
     }
 
-    // 2) Si Total/Pagado fueron editados, aplicar el ajuste
+    // 2) Estado (Activo/Bloqueado)
+    if (hayCambioEstado) {
+      const re = await fetch('/api/fin/set_estado_invitado', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ invitado_id: invId, bloqueado: bloqueadoNuevo, motivo: nota })
+      });
+      const de = await re.json();
+      if (!de.ok) {
+        mostrarToastFin('Responsable guardado, pero error al cambiar estado: ' + (de.error||''), false);
+        document.getElementById('modal-asignar-resp')?.remove();
+        abrirModalInvitados();
+        return;
+      }
+    }
+
+    // 3) Si Total/Pagado fueron editados, aplicar el ajuste
     if (hayCambioFin) {
       const rf = await fetch('/api/fin/ajustar_finanzas', {
         method:'POST', headers:{'Content-Type':'application/json'},
@@ -3508,14 +3534,14 @@ async function guardarResponsable(invId) {
       });
       const df = await rf.json();
       if (!df.ok) {
-        mostrarToastFin('Responsable guardado, pero error al ajustar finanzas: ' + (df.error||''), false);
+        mostrarToastFin('Cambios guardados, pero error al ajustar finanzas: ' + (df.error||''), false);
         document.getElementById('modal-asignar-resp')?.remove();
         abrirModalInvitados();
         return;
       }
     }
 
-    // 3) Si hay pago manual adicional, registrarlo como aporte verificado
+    // 4) Si hay pago manual adicional, registrarlo como aporte verificado
     if (pagoVal > 0) {
       const rp = await fetch('/api/fin/aporte_manual', {
         method:'POST', headers:{'Content-Type':'application/json'},
