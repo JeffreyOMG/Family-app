@@ -288,6 +288,28 @@
     </div>
   </div>
 
+  <!-- RESUMEN INVITADOS -->
+  <div class="content-card rec-inv-resumen-card" id="rec-inv-resumen-card" style="display:none;" data-usuario-id="{{ usuario.id }}">
+    <div class="rec-inv-resumen-header">
+      <div class="rec-inv-resumen-title">
+        <span class="rec-inv-resumen-icon">🤝</span>
+        <div>
+          <h3>Invitados — Saldos</h3>
+          <p>Lo que cada miembro debe por sus invitados</p>
+        </div>
+      </div>
+      <div id="rec-inv-alerta-wrap" style="display:none;">
+        <div class="rec-inv-alerta-badge">
+          <span class="material-symbols-outlined" style="font-size:16px;animation:pulsarAlerta 1.4s ease-in-out infinite;">warning</span>
+          <span id="rec-inv-alerta-txt">Tienes saldo pendiente</span>
+        </div>
+      </div>
+    </div>
+    <div class="rec-inv-chips-wrap" id="rec-inv-chips-wrap">
+      <!-- chips cargados por JS -->
+    </div>
+  </div>
+
   <!-- RANKING -->
   <div class="content-card">
     <div class="rec-ranking-header">
@@ -1910,6 +1932,156 @@ body.dark-mode .rec-modal-close { background:var(--bg2);border-color:var(--borde
 }
 
 /* ── Ultra-pequeño (≤ 380px) ── */
+/* ======================================================
+   RESUMEN INVITADOS — CARD
+====================================================== */
+.rec-inv-resumen-card { }
+.rec-inv-resumen-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.rec-inv-resumen-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.rec-inv-resumen-icon { font-size: 22px; flex-shrink: 0; }
+.rec-inv-resumen-title h3 { margin: 0; font-size: 1rem; font-weight: 700; }
+.rec-inv-resumen-title p  { margin: 0; font-size: 12px; color: var(--text2); }
+
+/* Alerta personal */
+@keyframes pulsarAlerta {
+  0%, 100% { opacity: 1; }
+  50% { opacity: .45; }
+}
+.rec-inv-alerta-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 30px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(135deg, #f97316, #ea580c);
+  box-shadow: 0 4px 14px rgba(249,115,22,.4);
+  animation: pulsarAlerta 1.4s ease-in-out infinite;
+  white-space: nowrap;
+}
+
+/* Contenedor de chips */
+.rec-inv-chips-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+/* Chip de miembro con invitados */
+.rec-inv-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px 8px 8px;
+  border-radius: 40px;
+  border: 1.5px solid;
+  font-size: 13px;
+  font-weight: 600;
+  transition: transform .12s, box-shadow .12s;
+  position: relative;
+  cursor: default;
+}
+.rec-inv-chip:hover { transform: scale(1.03); box-shadow: 0 4px 14px rgba(0,0,0,.1); }
+
+/* Al día */
+.rec-inv-chip.aldia {
+  background: rgba(34,197,94,.08);
+  border-color: rgba(34,197,94,.35);
+  color: var(--text);
+}
+/* Debe */
+.rec-inv-chip.debe {
+  background: rgba(249,115,22,.1);
+  border-color: rgba(249,115,22,.45);
+  color: var(--text);
+}
+/* Yo mismo y debo → más destacado */
+.rec-inv-chip.debe.es-yo {
+  background: rgba(249,115,22,.18);
+  border-color: #f97316;
+  box-shadow: 0 0 0 3px rgba(249,115,22,.2);
+}
+
+/* Avatar dentro del chip */
+.rec-inv-chip-foto {
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  border: 1.5px solid rgba(255,255,255,.15);
+}
+.rec-inv-chip-avatar {
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  background: var(--accent-gradient, linear-gradient(135deg,#ff6b9d,#ff4d8d,#c9236a));
+  color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700;
+  flex-shrink: 0;
+}
+
+/* Nombre */
+.rec-inv-chip-nombre {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 90px;
+}
+
+/* Monto */
+.rec-inv-chip-monto {
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  padding: 2px 8px;
+  border-radius: 20px;
+  margin-left: 2px;
+}
+.aldia .rec-inv-chip-monto {
+  color: #22c55e;
+  background: rgba(34,197,94,.12);
+}
+.debe .rec-inv-chip-monto {
+  color: #f97316;
+  background: rgba(249,115,22,.14);
+}
+
+/* Cantidad de invitados */
+.rec-inv-chip-count {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text2);
+  white-space: nowrap;
+}
+
+/* Dark mode */
+body.dark-mode .rec-inv-chip.aldia { background: rgba(34,197,94,.07); border-color: rgba(34,197,94,.3); }
+body.dark-mode .rec-inv-chip.debe  { background: rgba(249,115,22,.1); border-color: rgba(249,115,22,.4); }
+body.dark-mode .rec-inv-chip.debe.es-yo { background: rgba(249,115,22,.16); border-color: #f97316; }
+
+/* Mobile */
+@media (max-width: 600px) {
+  .rec-inv-chip-nombre { max-width: 68px; }
+  .rec-inv-chip { padding: 6px 10px 6px 6px; gap: 6px; font-size: 12px; }
+  .rec-inv-chip-foto,
+  .rec-inv-chip-avatar { width: 24px; height: 24px; }
+}
+
+/* ──────────────────────────────────────────────────── */
+
 @media (max-width: 380px) {
   .rec-header-title h1 { font-size: 1.05rem; }
   .rec-stats { gap: 6px; }
@@ -2699,8 +2871,84 @@ async function exportarHistorial() {
 // Cargar historial al iniciar
 document.addEventListener('DOMContentLoaded', function() {
   cargarHistorial();
+  cargarResumenInvitados();
 });
 if (document.getElementById('sec-recaudacion')) cargarHistorial();
+
+/* ===================== RESUMEN INVITADOS CARD ===================== */
+async function cargarResumenInvitados() {
+  try {
+    const r = await fetch('/api/fin/invitados');
+    const data = await r.json();
+    if (!data || data.ok === false || !data.invitados || !data.invitados.length) return;
+
+    const invitados = data.invitados;
+
+    // Agrupar por responsable (invitado_de → nombre del responsable)
+    const porResp = {};
+    invitados.forEach(u => {
+      const key = u.invitado_de || 0;
+      const nombre = u.responsable_nombre || '(Sin responsable)';
+      const foto   = u.responsable_foto || null;
+      if (!porResp[key]) {
+        porResp[key] = {
+          id: key,
+          nombre,
+          foto,
+          saldo: 0,
+          count: 0,
+        };
+      }
+      porResp[key].saldo += (u.saldo_pendiente || 0);
+      porResp[key].count++;
+    });
+
+    const grupos = Object.values(porResp).sort((a,b) => b.saldo - a.saldo);
+    if (!grupos.length) return;
+
+    // ID del usuario actual (inyectado en el template o leído de un data atributo)
+    const elYo = document.getElementById('rec-inv-resumen-card');
+    const miId = parseInt(elYo?.dataset.usuarioId || '0', 10);
+
+    // ¿El usuario actual tiene saldo pendiente?
+    const yoDebo = grupos.find(g => g.id === miId && g.saldo > 0);
+
+    // Mostrar alerta personal
+    const alertaWrap = document.getElementById('rec-inv-alerta-wrap');
+    const alertaTxt  = document.getElementById('rec-inv-alerta-txt');
+    if (yoDebo && alertaWrap && alertaTxt) {
+      alertaTxt.textContent = `¡Tenés ${fmtCOP(yoDebo.saldo)} pendiente de tus invitados!`;
+      alertaWrap.style.display = 'block';
+    }
+
+    // Render chips
+    const wrap = document.getElementById('rec-inv-chips-wrap');
+    if (!wrap) return;
+    wrap.innerHTML = grupos.map(g => {
+      const esYo   = g.id === miId;
+      const debe   = g.saldo > 0;
+      const clase  = debe ? (esYo ? 'debe es-yo' : 'debe') : 'aldia';
+      const montoTxt = debe ? fmtCOP(g.saldo) : '✅ Al día';
+      const avatarHtml = g.foto
+        ? `<img src="${g.foto}" class="rec-inv-chip-foto" alt="${g.nombre[0]?.toUpperCase()||'?'}">`
+        : `<div class="rec-inv-chip-avatar">${(g.nombre[0]||'?').toUpperCase()}</div>`;
+      const primerNombre = g.nombre.split(' ')[0];
+      const countTxt = `${g.count} inv.`;
+      return `
+        <div class="rec-inv-chip ${clase}" title="${g.nombre} · ${g.count} invitado${g.count!==1?'s':''}">
+          ${avatarHtml}
+          <span class="rec-inv-chip-nombre">${primerNombre}</span>
+          <span class="rec-inv-chip-count">${countTxt}</span>
+          <span class="rec-inv-chip-monto">${montoTxt}</span>
+        </div>`;
+    }).join('');
+
+    // Mostrar la card
+    elYo.style.display = '';
+  } catch(e) {
+    // Silencioso — si no hay invitados o no hay permiso, simplemente no se muestra
+  }
+}
 
 /* ===================== QUITAR PAGO POLLA (ADMIN) ===================== */
 let _quitarPollaData = null;
