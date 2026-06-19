@@ -710,7 +710,7 @@
         <div class="mc-char-bar">
           <div class="mc-char-fill" id="mc-char-fill"></div>
         </div>
-        <span class="mc-char-count"><span id="mc-chars">0</span>/800</span>
+        <span class="mc-char-count"><span id="mc-chars">0</span>/3000</span>
       </div>
     </div>
 
@@ -3190,6 +3190,8 @@ body.dark-mode .post-badge-privado { background: rgba(139,92,246,.2); color: #a7
   outline: none;
   font-family: var(--font);
   min-height: 90px;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 .mc-textarea::placeholder { color: var(--text3); }
 /* placeholder para contenteditable */
@@ -5278,7 +5280,7 @@ function cerrarComposer(){
 function onComposerInput(){
   const len = mcGetText().length;
   document.getElementById('mc-chars').textContent = len;
-  const pct = (len/800)*100;
+  const pct = (len/3000)*100;
   const fill = document.getElementById('mc-char-fill');
   fill.style.width = Math.min(pct,100)+'%';
   fill.style.background = pct>90 ? '#e03030' : pct>70 ? '#d97706' : 'var(--text)';
@@ -5693,7 +5695,7 @@ async function submitComposer(){
   const hasMedia = _mediaFiles.length > 0 || !!_gifFile || hasGiphyGif;
   const hasPoll  = !!getPollData();
   if(!texto && !hasMedia && !hasPoll){ mostrarToast('Escribe algo o adjunta media','err'); return; }
-  if(texto.length > 800){ mostrarToast('El texto supera los 800 caracteres','err'); return; }
+  if(texto.length > 3000){ mostrarToast('El texto supera los 3000 caracteres','err'); return; }
 
   const btn = document.getElementById('btn-publicar-modal');
   if(btn){ btn.disabled=true; btn.textContent='Publicando...'; }
