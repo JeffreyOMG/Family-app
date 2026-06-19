@@ -182,16 +182,22 @@ def get_ctx(uid, con, extra=None):
         for c in comentarios_rows:
             comentarios_por_post.setdefault(c["post_id"], []).append(dict(c))
 
-    total_global  = con.execute("SELECT COALESCE(SUM(monto),0) FROM aportes").fetchone()[0]
-    total_aportes = con.execute("SELECT COALESCE(SUM(monto),0) FROM aportes WHERE usuario_id=%s", (uid,)).fetchone()[0]
+    total_global  = con.execute(
+        "SELECT COALESCE(SUM(monto),0) FROM eventos_recaudacion WHERE estado='verificado'"
+    ).fetchone()[0]
+    total_aportes = con.execute(
+        "SELECT COALESCE(SUM(monto),0) FROM eventos_recaudacion WHERE usuario_id=%s AND estado='verificado'",
+        (uid,)
+    ).fetchone()[0]
     cfg_meta = con.execute("SELECT valor FROM config WHERE clave='meta_recaudacion'").fetchone()
     META = float(cfg_meta["valor"]) if cfg_meta else 500000
     pct  = min(round((total_global / META) * 100, 1), 100) if META > 0 else 0
     ranking = [dict(r, porcentaje=min(round((r["total"] / META) * 100, 1), 100)) for r in con.execute("""
-        SELECT u.id, u.nombre, u.rol, u.foto AS foto_perfil, COALESCE(SUM(a.monto),0) AS total,
+        SELECT u.id, u.nombre, u.rol, u.foto AS foto_perfil,
+               COALESCE(SUM(CASE WHEN er.estado='verificado' THEN er.monto ELSE 0 END),0) AS total,
                COALESCE(u.polla_activo, TRUE) AS polla_activo,
                COALESCE(u.polla_estado, 'activo') AS polla_estado
-        FROM usuarios u LEFT JOIN aportes a ON a.usuario_id=u.id
+        FROM usuarios u LEFT JOIN eventos_recaudacion er ON er.usuario_id=u.id
         WHERE u.rol IN ('miembro', 'admin') AND COALESCE(u.rec_bloqueado, 0) = 0
         GROUP BY u.id, u.nombre, u.rol, u.foto, u.polla_activo, u.polla_estado ORDER BY total DESC
     """).fetchall()]
