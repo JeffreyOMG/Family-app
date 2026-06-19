@@ -2593,7 +2593,6 @@ async function exportarHistorial() {
   const rows = _historialData;
   if (!rows.length) { alert('No hay datos para exportar.'); return; }
 
-  // Cargar SheetJS dinámicamente si no está disponible
   if (typeof XLSX === 'undefined') {
     await new Promise((res, rej) => {
       const s = document.createElement('script');
@@ -2607,265 +2606,249 @@ async function exportarHistorial() {
   const hoy = new Date().toLocaleDateString('es-CO');
   const wb = XLSX.utils.book_new();
 
-  // ── Estilos reutilizables ──────────────────────────────────────────
-  const ST = {
-    titulo: { font:{bold:true, sz:14, color:{rgb:'FFFFFF'}}, fill:{fgColor:{rgb:'C9236A'}}, alignment:{horizontal:'center',vertical:'center'} },
-    header: { font:{bold:true, sz:11, color:{rgb:'FFFFFF'}}, fill:{fgColor:{rgb:'333333'}}, alignment:{horizontal:'center',vertical:'center'}, border:{bottom:{style:'thin',color:{rgb:'999999'}}} },
-    subHeader: { font:{bold:true, sz:10, color:{rgb:'FFFFFF'}}, fill:{fgColor:{rgb:'555555'}}, alignment:{horizontal:'center'} },
-    celda:  { font:{sz:10}, alignment:{vertical:'center', wrapText:false}, border:{bottom:{style:'thin',color:{rgb:'EEEEEE'}}} },
-    monto:  { font:{bold:true, sz:10, color:{rgb:'1A7A1A'}}, alignment:{horizontal:'right',vertical:'center'}, numFmt:'"$"#,##0', border:{bottom:{style:'thin',color:{rgb:'EEEEEE'}}} },
-    montoNeg: { font:{bold:true,sz:10,color:{rgb:'CC0000'}}, alignment:{horizontal:'right',vertical:'center'}, numFmt:'"$"#,##0', border:{bottom:{style:'thin',color:{rgb:'EEEEEE'}}} },
-    badgeVer: { font:{bold:true,sz:9,color:{rgb:'1A7A1A'}}, fill:{fgColor:{rgb:'E8F5E9'}}, alignment:{horizontal:'center'} },
-    badgePend:{ font:{bold:true,sz:9,color:{rgb:'E65100'}}, fill:{fgColor:{rgb:'FFF3E0'}}, alignment:{horizontal:'center'} },
-    badgePag: { font:{bold:true,sz:9,color:{rgb:'1A5276'}}, fill:{fgColor:{rgb:'EBF5FB'}}, alignment:{horizontal:'center'} },
-    celdaAlt: { font:{sz:10}, fill:{fgColor:{rgb:'FAFAFA'}}, alignment:{vertical:'center'}, border:{bottom:{style:'thin',color:{rgb:'EEEEEE'}}} },
-    montoAlt: { font:{bold:true,sz:10,color:{rgb:'1A7A1A'}}, fill:{fgColor:{rgb:'FAFAFA'}}, alignment:{horizontal:'right',vertical:'center'}, numFmt:'"$"#,##0', border:{bottom:{style:'thin',color:{rgb:'EEEEEE'}}} },
+  const C = {
+    rosa:'C9236A', rosaClaro:'FFE0EC', rosaPastel:'FFF0F6',
+    grisOsc:'2C2C2C', grisMed:'888888', grisCla:'F2F2F2', blanco:'FFFFFF',
+    verdeOsc:'0D5C2E', verde:'1A7A1A', verdePas:'E8F5E9',
+    amar:'B8860B', amarPas:'FFFDE7',
+    azul:'1A5276', azulPas:'EBF5FB',
+    borde:'DDDDDD', bordeOsc:'BBBBBB',
   };
 
-  function fmtFecha(f) { return f ? f.slice(0,10) : '—'; }
+  function bd(color) {
+    color = color||'DDDDDD';
+    const l={style:'thin',color:{rgb:color}};
+    return {top:l,bottom:l,left:l,right:l};
+  }
+
+  const ST = {
+    titulo:   {font:{bold:true,sz:15,name:'Arial',color:{rgb:C.blanco}},    fill:{fgColor:{rgb:C.rosa}},    alignment:{horizontal:'center',vertical:'center'}},
+    subtitulo:{font:{bold:true,sz:10,name:'Arial',color:{rgb:C.grisMed}},   fill:{fgColor:{rgb:C.grisCla}}, alignment:{horizontal:'left',vertical:'center'}, border:bd(C.borde)},
+    header:   {font:{bold:true,sz:10,name:'Arial',color:{rgb:C.blanco}},    fill:{fgColor:{rgb:C.grisOsc}}, alignment:{horizontal:'center',vertical:'center'},border:bd(C.grisOsc)},
+    celda:    {font:{sz:10,name:'Arial'},                                    alignment:{vertical:'center'},  border:bd(C.borde)},
+    celdaAlt: {font:{sz:10,name:'Arial'}, fill:{fgColor:{rgb:'FAFAFA'}},    alignment:{vertical:'center'},  border:bd(C.borde)},
+    centro:   {font:{sz:10,name:'Arial'},                                    alignment:{horizontal:'center',vertical:'center'}, border:bd(C.borde)},
+    centroAlt:{font:{sz:10,name:'Arial'}, fill:{fgColor:{rgb:'FAFAFA'}},    alignment:{horizontal:'center',vertical:'center'}, border:bd(C.borde)},
+    monto:    {font:{bold:true,sz:10,name:'Arial',color:{rgb:C.verde}},     alignment:{horizontal:'right',vertical:'center'}, numFmt:'"$"#,##0', border:bd(C.borde)},
+    montoAlt: {font:{bold:true,sz:10,name:'Arial',color:{rgb:C.verde}},     fill:{fgColor:{rgb:'FAFAFA'}},  alignment:{horizontal:'right',vertical:'center'}, numFmt:'"$"#,##0', border:bd(C.borde)},
+    badgeVer: {font:{bold:true,sz:9,name:'Arial',color:{rgb:C.verdeOsc}},   fill:{fgColor:{rgb:C.verdePas}},alignment:{horizontal:'center',vertical:'center'}, border:bd(C.bordeOsc)},
+    badgePend:{font:{bold:true,sz:9,name:'Arial',color:{rgb:C.amar}},       fill:{fgColor:{rgb:C.amarPas}}, alignment:{horizontal:'center',vertical:'center'}, border:bd(C.bordeOsc)},
+    badgePag: {font:{bold:true,sz:9,name:'Arial',color:{rgb:C.azul}},       fill:{fgColor:{rgb:C.azulPas}}, alignment:{horizontal:'center',vertical:'center'}, border:bd(C.bordeOsc)},
+    totalFila:{font:{bold:true,sz:11,name:'Arial',color:{rgb:C.grisOsc}},   fill:{fgColor:{rgb:C.rosaClaro}},alignment:{horizontal:'right',vertical:'center'}, border:bd(C.rosa)},
+    totalVal: {font:{bold:true,sz:12,name:'Arial',color:{rgb:C.rosa}},      fill:{fgColor:{rgb:C.rosaClaro}},alignment:{horizontal:'right',vertical:'center'}, numFmt:'"$"#,##0', border:bd(C.rosa)},
+    vacio:    {fill:{fgColor:{rgb:C.grisCla}}, border:bd(C.borde)},
+  };
+
+  function fmtFecha(f) { return f ? String(f).slice(0,10) : '\u2014'; }
   function fmtHora(f) {
-    if (!f) return '—';
+    if (!f) return '\u2014';
     const d = new Date(f);
-    return isNaN(d) ? f.slice(11,16)||'—' : d.toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit'});
+    return isNaN(d) ? (String(f).slice(11,16)||'\u2014') : d.toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit'});
   }
   function estadoBadge(e) {
-    if (e === 'verificado') return '✓ Verificado';
-    if (e === 'pagado')     return '✅ Pagado';
-    return '⏳ Pendiente';
+    if (e==='verificado') return '\u2713 Verificado';
+    if (e==='pagado')     return '\u2705 Pagado';
+    return '\u23f3 Pendiente';
   }
   function estadoSt(e) {
-    if (e === 'verificado') return ST.badgeVer;
-    if (e === 'pagado')     return ST.badgePag;
+    if (e==='verificado') return ST.badgeVer;
+    if (e==='pagado')     return ST.badgePag;
     return ST.badgePend;
   }
 
-  function aplicarEstiloRango(ws, fila, col0, col1, estilo) {
-    for (let c = col0; c <= col1; c++) {
-      const addr = XLSX.utils.encode_cell({r:fila, c});
-      if (!ws[addr]) ws[addr] = {v:'', t:'s'};
-      ws[addr].s = estilo;
-    }
-  }
-
-  // ─────────────────────────────────────────────────────────────────
   // HOJA 1 — HISTORIAL COMPLETO
-  // ─────────────────────────────────────────────────────────────────
   (function() {
-    const wsData = [];
     const COLS = 8;
+    const wsData = [];
+    wsData.push([{v:'HISTORIAL COMPLETO DE APORTES',t:'s',s:ST.titulo},...Array(COLS-1).fill({v:'',t:'s',s:ST.titulo})]);
+    wsData.push([{v:`Generado el ${hoy}  \u2022  ${rows.length} registro(s)`,t:'s',s:ST.subtitulo},...Array(COLS-1).fill({v:'',t:'s',s:ST.subtitulo})]);
+    wsData.push(Array(COLS).fill({v:'',t:'s',s:ST.vacio}));
+    wsData.push(['#','USUARIO','TIPO','DESCRIPCI\u00d3N','MONTO (COP)','FECHA','HORA','ESTADO'].map(h=>({v:h,t:'s',s:ST.header})));
 
-    // Fila 0: título
-    wsData.push([{v:`📋 HISTORIAL COMPLETO DE APORTES — Generado ${hoy}`,t:'s',s:ST.titulo},...Array(COLS-1).fill({v:'',t:'s',s:ST.titulo})]);
-    // Fila 1: vacía
-    wsData.push(Array(COLS).fill({v:'',t:'s'}));
-    // Fila 2: encabezados
-    const hdrs = ['#','Usuario','Tipo','Descripción','Monto (COP)','Fecha','Hora','Estado'];
-    wsData.push(hdrs.map(h => ({v:h, t:'s', s:ST.header})));
-
-    rows.forEach((r, i) => {
-      const desc = r.tipo === 'evento'
-        ? (r.nombre_evento || '—')
-        : r.tipo === 'familia'
-        ? (r.descripcion || r.cajita_nombre || '—')
-        : `Polla Fase ${r.fase}`;
-      const tipoLabel = r.tipo === 'evento' ? '📅 Evento' : r.tipo === 'familia' ? '🏠 Familia' : `⚽ Polla F${r.fase}`;
-      const montoReal = (r.tipo === 'polla' && r.fase && PRECIOS_POLLA[r.fase]) ? PRECIOS_POLLA[r.fase] : (r.monto || 0);
-      const alt = i % 2 === 1;
-      const cSt = alt ? ST.celdaAlt : ST.celda;
-      const mSt = alt ? ST.montoAlt : ST.monto;
+    rows.forEach((r,i)=>{
+      const desc = r.tipo==='evento'?(r.nombre_evento||'\u2014'):r.tipo==='familia'?(r.descripcion||r.cajita_nombre||'\u2014'):`Polla \u2014 Fase ${r.fase}`;
+      const tipoLabel = r.tipo==='evento'?'📅 Evento':r.tipo==='familia'?'🏠 Familia':`⚽ Polla F${r.fase}`;
+      const montoReal = (r.tipo==='polla'&&r.fase&&PRECIOS_POLLA[r.fase])?PRECIOS_POLLA[r.fase]:(r.monto||0);
+      const alt=i%2===1;
+      const cSt=alt?ST.celdaAlt:ST.celda;
       wsData.push([
-        {v: i+1,           t:'n', s: cSt},
-        {v: r.usuario||'—',t:'s', s: cSt},
-        {v: tipoLabel,     t:'s', s: cSt},
-        {v: desc,          t:'s', s: cSt},
-        {v: montoReal,     t:'n', s: mSt},
-        {v: fmtFecha(r.fecha), t:'s', s: cSt},
-        {v: fmtHora(r.fecha),  t:'s', s: cSt},
-        {v: estadoBadge(r.estado), t:'s', s: estadoSt(r.estado)},
+        {v:i+1,              t:'n',s:alt?ST.centroAlt:ST.centro},
+        {v:r.usuario||'\u2014',t:'s',s:cSt},
+        {v:tipoLabel,        t:'s',s:{...cSt,alignment:{horizontal:'center',vertical:'center'}}},
+        {v:desc,             t:'s',s:cSt},
+        {v:montoReal,        t:'n',s:alt?ST.montoAlt:ST.monto},
+        {v:fmtFecha(r.fecha),t:'s',s:{...cSt,alignment:{horizontal:'center',vertical:'center'}}},
+        {v:fmtHora(r.fecha), t:'s',s:{...cSt,alignment:{horizontal:'center',vertical:'center'}}},
+        {v:estadoBadge(r.estado),t:'s',s:estadoSt(r.estado)},
       ]);
     });
 
-    // Fila total
-    const totalMonto = rows.reduce((acc, r) => {
-      const m = (r.tipo === 'polla' && r.fase && PRECIOS_POLLA[r.fase]) ? PRECIOS_POLLA[r.fase] : (r.monto||0);
-      return acc + m;
-    }, 0);
+    const totalMonto=rows.reduce((acc,r)=>{const m=(r.tipo==='polla'&&r.fase&&PRECIOS_POLLA[r.fase])?PRECIOS_POLLA[r.fase]:(r.monto||0);return acc+m;},0);
+    wsData.push(Array(COLS).fill({v:'',t:'s',s:ST.vacio}));
     wsData.push([
-      {v:'',t:'s'},{v:'',t:'s'},{v:'',t:'s'},
-      {v:'TOTAL', t:'s', s:{font:{bold:true,sz:11},alignment:{horizontal:'right'}}},
-      {v: totalMonto, t:'n', s:{font:{bold:true,sz:11,color:{rgb:'C9236A'}},numFmt:'"$"#,##0',alignment:{horizontal:'right'}}},
-      {v:'',t:'s'},{v:'',t:'s'},{v:'',t:'s'},
+      ...Array(3).fill({v:'',t:'s',s:ST.totalFila}),
+      {v:'TOTAL GENERAL',t:'s',s:{...ST.totalFila,alignment:{horizontal:'right',vertical:'center'}}},
+      {v:totalMonto,t:'n',s:ST.totalVal},
+      ...Array(3).fill({v:'',t:'s',s:ST.totalFila}),
     ]);
 
-    const ws = XLSX.utils.aoa_to_sheet(wsData);
-    // Merge título
-    ws['!merges'] = [{s:{r:0,c:0}, e:{r:0,c:COLS-1}}];
-    ws['!cols'] = [{wch:5},{wch:20},{wch:14},{wch:35},{wch:16},{wch:12},{wch:8},{wch:16}];
-    ws['!rows'] = [{hpx:28}, {hpx:6}, {hpx:22}];
-    // Auto-filter en fila de headers
-    ws['!autofilter'] = {ref: XLSX.utils.encode_range({s:{r:2,c:0}, e:{r:2+rows.length,c:COLS-1}})};
-    XLSX.utils.book_append_sheet(wb, ws, '📋 Historial Completo');
+    const ws=XLSX.utils.aoa_to_sheet(wsData);
+    ws['!merges']=[{s:{r:0,c:0},e:{r:0,c:COLS-1}},{s:{r:1,c:0},e:{r:1,c:COLS-1}},{s:{r:2,c:0},e:{r:2,c:COLS-1}}];
+    ws['!cols']=[{wch:5},{wch:22},{wch:14},{wch:38},{wch:17},{wch:13},{wch:9},{wch:17}];
+    ws['!rows']=[{hpx:32},{hpx:20},{hpx:8},{hpx:24},...rows.map(()=>({hpx:20})),{hpx:8},{hpx:26}];
+    ws['!autofilter']={ref:XLSX.utils.encode_range({s:{r:3,c:0},e:{r:3+rows.length,c:COLS-1}})};
+    XLSX.utils.book_append_sheet(wb,ws,'📋 Historial Completo');
   })();
 
-  // ─────────────────────────────────────────────────────────────────
-  // HOJA 2 — RECAUDACIÓN POR EVENTOS
-  // ─────────────────────────────────────────────────────────────────
+  // HOJA 2 — EVENTOS
   (function() {
-    const eventos = rows.filter(r => r.tipo === 'evento');
-    const wsData = [];
-    const COLS = 7;
-    wsData.push([{v:`📅 RECAUDACIÓN POR EVENTOS — ${hoy}`,t:'s',s:ST.titulo},...Array(COLS-1).fill({v:'',t:'s',s:ST.titulo})]);
-    wsData.push(Array(COLS).fill({v:'',t:'s'}));
-    wsData.push(['#','Usuario','Nombre Evento','Descripción','Monto (COP)','Fecha','Estado']
-      .map(h => ({v:h,t:'s',s:ST.header})));
+    const eventos=rows.filter(r=>r.tipo==='evento');
+    const COLS=7;
+    const wsData=[];
+    wsData.push([{v:'RECAUDACI\u00d3N POR EVENTOS',t:'s',s:ST.titulo},...Array(COLS-1).fill({v:'',t:'s',s:ST.titulo})]);
+    wsData.push([{v:`Generado el ${hoy}  \u2022  ${eventos.length} evento(s)`,t:'s',s:ST.subtitulo},...Array(COLS-1).fill({v:'',t:'s',s:ST.subtitulo})]);
+    wsData.push(Array(COLS).fill({v:'',t:'s',s:ST.vacio}));
+    wsData.push(['#','USUARIO','NOMBRE DEL EVENTO','DESCRIPCI\u00d3N','MONTO (COP)','FECHA','ESTADO'].map(h=>({v:h,t:'s',s:ST.header})));
 
     if (eventos.length) {
-      eventos.forEach((r, i) => {
-        const alt = i % 2 === 1;
-        const cSt = alt ? ST.celdaAlt : ST.celda;
+      eventos.forEach((r,i)=>{
+        const alt=i%2===1;
+        const cSt=alt?ST.celdaAlt:ST.celda;
         wsData.push([
-          {v:i+1,                      t:'n', s:cSt},
-          {v:r.usuario||'—',           t:'s', s:cSt},
-          {v:r.nombre_evento||'—',     t:'s', s:cSt},
-          {v:r.descripcion||'—',       t:'s', s:cSt},
-          {v:r.monto||0,               t:'n', s: alt?ST.montoAlt:ST.monto},
-          {v:fmtFecha(r.fecha),        t:'s', s:cSt},
-          {v:estadoBadge(r.estado),    t:'s', s:estadoSt(r.estado)},
+          {v:i+1,                  t:'n',s:alt?ST.centroAlt:ST.centro},
+          {v:r.usuario||'\u2014',  t:'s',s:cSt},
+          {v:r.nombre_evento||'\u2014',t:'s',s:{...cSt,font:{bold:true,sz:10,name:'Arial'}}},
+          {v:r.descripcion||'\u2014',t:'s',s:cSt},
+          {v:r.monto||0,           t:'n',s:alt?ST.montoAlt:ST.monto},
+          {v:fmtFecha(r.fecha),    t:'s',s:{...cSt,alignment:{horizontal:'center',vertical:'center'}}},
+          {v:estadoBadge(r.estado),t:'s',s:estadoSt(r.estado)},
         ]);
       });
-      const tot = eventos.reduce((a,r)=>a+(r.monto||0),0);
-      wsData.push([{v:'',t:'s'},{v:'',t:'s'},{v:'',t:'s'},{v:'TOTAL',t:'s',s:{font:{bold:true,sz:11},alignment:{horizontal:'right'}}},{v:tot,t:'n',s:{font:{bold:true,sz:11,color:{rgb:'C9236A'}},numFmt:'"$"#,##0',alignment:{horizontal:'right'}}},{v:'',t:'s'},{v:'',t:'s'}]);
+      const tot=eventos.reduce((a,r)=>a+(r.monto||0),0);
+      wsData.push(Array(COLS).fill({v:'',t:'s',s:ST.vacio}));
+      wsData.push([...Array(3).fill({v:'',t:'s',s:ST.totalFila}),{v:'TOTAL EVENTOS',t:'s',s:{...ST.totalFila,alignment:{horizontal:'right',vertical:'center'}}},{v:tot,t:'n',s:ST.totalVal},...Array(2).fill({v:'',t:'s',s:ST.totalFila})]);
     } else {
-      wsData.push([{v:'Sin registros de eventos aún.',t:'s',s:{font:{italic:true},alignment:{horizontal:'center'}}},...Array(COLS-1).fill({v:'',t:'s'})]);
+      wsData.push([{v:'Sin registros de eventos a\u00fan.',t:'s',s:{font:{italic:true,sz:10},alignment:{horizontal:'center'}}},...Array(COLS-1).fill({v:'',t:'s'})]);
     }
 
-    const ws = XLSX.utils.aoa_to_sheet(wsData);
-    ws['!merges'] = [{s:{r:0,c:0},e:{r:0,c:COLS-1}}];
-    ws['!cols'] = [{wch:5},{wch:20},{wch:28},{wch:35},{wch:16},{wch:12},{wch:16}];
-    ws['!autofilter'] = {ref: XLSX.utils.encode_range({s:{r:2,c:0}, e:{r:2+eventos.length,c:COLS-1}})};
-    XLSX.utils.book_append_sheet(wb, ws, '📅 Eventos');
+    const ws=XLSX.utils.aoa_to_sheet(wsData);
+    ws['!merges']=[{s:{r:0,c:0},e:{r:0,c:COLS-1}},{s:{r:1,c:0},e:{r:1,c:COLS-1}},{s:{r:2,c:0},e:{r:2,c:COLS-1}}];
+    ws['!cols']=[{wch:5},{wch:22},{wch:30},{wch:36},{wch:17},{wch:13},{wch:17}];
+    ws['!rows']=[{hpx:32},{hpx:20},{hpx:8},{hpx:24},...eventos.map(()=>({hpx:20}))];
+    ws['!autofilter']={ref:XLSX.utils.encode_range({s:{r:3,c:0},e:{r:3+eventos.length,c:COLS-1}})};
+    XLSX.utils.book_append_sheet(wb,ws,'📅 Eventos');
   })();
 
-  // ─────────────────────────────────────────────────────────────────
   // HOJA 3 — POLLA MUNDIALISTA
-  // ─────────────────────────────────────────────────────────────────
   (function() {
-    const polla = rows.filter(r => r.tipo === 'polla');
-    const wsData = [];
-    const COLS = 7;
-    wsData.push([{v:`⚽ POLLA MUNDIALISTA — ${hoy}`,t:'s',s:ST.titulo},...Array(COLS-1).fill({v:'',t:'s',s:ST.titulo})]);
-    wsData.push(Array(COLS).fill({v:'',t:'s'}));
+    const polla=rows.filter(r=>r.tipo==='polla');
+    const COLS=7;
+    const wsData=[];
+    const faseNombres={1:'Grupos',2:'Eliminatorias',3:'Semifinal y Final'};
+    const faseInfo={font:{bold:true,sz:9,name:'Arial',color:{rgb:C.amar}},fill:{fgColor:{rgb:C.amarPas}},alignment:{horizontal:'center',vertical:'center'},border:bd(C.bordeOsc)};
 
-    // Info de fases
-    const infoFases = [
-      {v:'Fase 1 — Grupos: $30.000',t:'s',s:{font:{bold:true,sz:9},fill:{fgColor:{rgb:'FFF9C4'}}}},
-      {v:'Fase 2 — Eliminatorias: $20.000',t:'s',s:{font:{bold:true,sz:9},fill:{fgColor:{rgb:'FFF9C4'}}}},
-      {v:'Fase 3 — Semifinal y Final: $10.000',t:'s',s:{font:{bold:true,sz:9},fill:{fgColor:{rgb:'FFF9C4'}}}},
-      ...Array(COLS-3).fill({v:'',t:'s',s:{fill:{fgColor:{rgb:'FFF9C4'}}}})
-    ];
-    wsData.push(infoFases);
-    wsData.push(Array(COLS).fill({v:'',t:'s'}));
-
-    wsData.push(['#','Usuario','Fase','Descripción Fase','Monto (COP)','Fecha','Estado']
-      .map(h => ({v:h,t:'s',s:ST.header})));
+    wsData.push([{v:'POLLA MUNDIALISTA',t:'s',s:ST.titulo},...Array(COLS-1).fill({v:'',t:'s',s:ST.titulo})]);
+    wsData.push([{v:`Generado el ${hoy}  \u2022  ${polla.length} pago(s)`,t:'s',s:ST.subtitulo},...Array(COLS-1).fill({v:'',t:'s',s:ST.subtitulo})]);
+    wsData.push([
+      {v:'Fase 1 \u2014 Grupos: $30.000',t:'s',s:faseInfo},
+      {v:'Fase 2 \u2014 Eliminatorias: $20.000',t:'s',s:faseInfo},
+      {v:'Fase 3 \u2014 Semifinal y Final: $10.000',t:'s',s:faseInfo},
+      ...Array(COLS-3).fill({v:'',t:'s',s:{fill:{fgColor:{rgb:C.amarPas}},border:bd(C.bordeOsc)}})
+    ]);
+    wsData.push(Array(COLS).fill({v:'',t:'s',s:ST.vacio}));
+    wsData.push(['#','USUARIO','FASE','DESCRIPCI\u00d3N','MONTO (COP)','FECHA','ESTADO'].map(h=>({v:h,t:'s',s:ST.header})));
 
     if (polla.length) {
-      const faseNombres = {1:'Grupos',2:'Eliminatorias',3:'Semifinal y Final'};
-      polla.forEach((r, i) => {
-        const alt = i % 2 === 1;
-        const cSt = alt ? ST.celdaAlt : ST.celda;
-        const monto = PRECIOS_POLLA[r.fase] || r.monto || 0;
+      polla.forEach((r,i)=>{
+        const alt=i%2===1;
+        const cSt=alt?ST.celdaAlt:ST.celda;
+        const monto=PRECIOS_POLLA[r.fase]||r.monto||0;
         wsData.push([
-          {v:i+1,                                    t:'n', s:cSt},
-          {v:r.usuario||'—',                          t:'s', s:cSt},
-          {v:`Fase ${r.fase}`,                         t:'s', s:cSt},
-          {v:`${faseNombres[r.fase]||'—'}`,            t:'s', s:cSt},
-          {v:monto,                                   t:'n', s: alt?ST.montoAlt:ST.monto},
-          {v:fmtFecha(r.fecha),                       t:'s', s:cSt},
-          {v:estadoBadge(r.estado),                   t:'s', s:estadoSt(r.estado)},
+          {v:i+1,                       t:'n',s:alt?ST.centroAlt:ST.centro},
+          {v:r.usuario||'\u2014',       t:'s',s:cSt},
+          {v:`Fase ${r.fase}`,          t:'s',s:{...cSt,alignment:{horizontal:'center',vertical:'center'}}},
+          {v:faseNombres[r.fase]||'\u2014',t:'s',s:cSt},
+          {v:monto,                     t:'n',s:alt?ST.montoAlt:ST.monto},
+          {v:fmtFecha(r.fecha),         t:'s',s:{...cSt,alignment:{horizontal:'center',vertical:'center'}}},
+          {v:estadoBadge(r.estado),     t:'s',s:estadoSt(r.estado)},
         ]);
       });
-      const tot = polla.reduce((a,r)=>a+(PRECIOS_POLLA[r.fase]||r.monto||0),0);
-      wsData.push([{v:'',t:'s'},{v:'',t:'s'},{v:'',t:'s'},{v:'TOTAL',t:'s',s:{font:{bold:true,sz:11},alignment:{horizontal:'right'}}},{v:tot,t:'n',s:{font:{bold:true,sz:11,color:{rgb:'C9236A'}},numFmt:'"$"#,##0',alignment:{horizontal:'right'}}},{v:'',t:'s'},{v:'',t:'s'}]);
+      const tot=polla.reduce((a,r)=>a+(PRECIOS_POLLA[r.fase]||r.monto||0),0);
+      wsData.push(Array(COLS).fill({v:'',t:'s',s:ST.vacio}));
+      wsData.push([...Array(3).fill({v:'',t:'s',s:ST.totalFila}),{v:'TOTAL POLLA',t:'s',s:{...ST.totalFila,alignment:{horizontal:'right',vertical:'center'}}},{v:tot,t:'n',s:ST.totalVal},...Array(2).fill({v:'',t:'s',s:ST.totalFila})]);
     } else {
-      wsData.push([{v:'Sin inscripciones aún.',t:'s',s:{font:{italic:true},alignment:{horizontal:'center'}}},...Array(COLS-1).fill({v:'',t:'s'})]);
+      wsData.push([{v:'Sin inscripciones a\u00fan.',t:'s',s:{font:{italic:true,sz:10},alignment:{horizontal:'center'}}},...Array(COLS-1).fill({v:'',t:'s'})]);
     }
 
-    const ws = XLSX.utils.aoa_to_sheet(wsData);
-    ws['!merges'] = [{s:{r:0,c:0},e:{r:0,c:COLS-1}},{s:{r:2,c:0},e:{r:2,c:COLS-1}}];
-    ws['!cols'] = [{wch:5},{wch:22},{wch:10},{wch:28},{wch:16},{wch:12},{wch:16}];
-    ws['!autofilter'] = {ref: XLSX.utils.encode_range({s:{r:5,c:0}, e:{r:5+polla.length,c:COLS-1}})};
-    XLSX.utils.book_append_sheet(wb, ws, '⚽ Polla Mundialista');
+    const ws=XLSX.utils.aoa_to_sheet(wsData);
+    ws['!merges']=[{s:{r:0,c:0},e:{r:0,c:COLS-1}},{s:{r:1,c:0},e:{r:1,c:COLS-1}},{s:{r:3,c:0},e:{r:3,c:COLS-1}}];
+    ws['!cols']=[{wch:5},{wch:22},{wch:10},{wch:28},{wch:17},{wch:13},{wch:17}];
+    ws['!rows']=[{hpx:32},{hpx:20},{hpx:22},{hpx:8},{hpx:24},...polla.map(()=>({hpx:20}))];
+    ws['!autofilter']={ref:XLSX.utils.encode_range({s:{r:4,c:0},e:{r:4+polla.length,c:COLS-1}})};
+    XLSX.utils.book_append_sheet(wb,ws,'⚽ Polla Mundialista');
   })();
 
-  // ─────────────────────────────────────────────────────────────────
-  // HOJA 4 — RESUMEN
-  // ─────────────────────────────────────────────────────────────────
+  // HOJA 4 — RESUMEN EJECUTIVO
   (function() {
-    const eventos = rows.filter(r => r.tipo === 'evento');
-    const polla   = rows.filter(r => r.tipo === 'polla');
-    const familia = rows.filter(r => r.tipo === 'familia');
-    const totEv   = eventos.reduce((a,r)=>a+(r.monto||0),0);
-    const totPo   = polla.reduce((a,r)=>a+(PRECIOS_POLLA[r.fase]||r.monto||0),0);
-    const totFam  = familia.reduce((a,r)=>a+(r.monto||0),0);
-    const totGral = totEv + totFam; // No incluye polla (la polla se reporta aparte)
+    const eventos=rows.filter(r=>r.tipo==='evento');
+    const polla=rows.filter(r=>r.tipo==='polla');
+    const familia=rows.filter(r=>r.tipo==='familia');
+    const totEv=eventos.reduce((a,r)=>a+(r.monto||0),0);
+    const totPo=polla.reduce((a,r)=>a+(PRECIOS_POLLA[r.fase]||r.monto||0),0);
+    const totFam=familia.reduce((a,r)=>a+(r.monto||0),0);
+    const totGral=totEv+totFam;
+    const rankMap={};
+    rows.forEach(r=>{if(!r.usuario)return;const m=(r.tipo==='polla'&&r.fase&&PRECIOS_POLLA[r.fase])?PRECIOS_POLLA[r.fase]:(r.monto||0);rankMap[r.usuario]=(rankMap[r.usuario]||0)+m;});
+    const ranking=Object.entries(rankMap).sort((a,b)=>b[1]-a[1]);
 
-    // Ranking por persona
-    const rankMap = {};
-    rows.forEach(r => {
-      if (!r.usuario) return;
-      const m = (r.tipo === 'polla' && r.fase && PRECIOS_POLLA[r.fase]) ? PRECIOS_POLLA[r.fase] : (r.monto||0);
-      rankMap[r.usuario] = (rankMap[r.usuario]||0) + m;
-    });
-    const ranking = Object.entries(rankMap).sort((a,b)=>b[1]-a[1]);
+    const COLS=4;
+    const wsData=[];
+    wsData.push([{v:'RESUMEN EJECUTIVO',t:'s',s:ST.titulo},...Array(COLS-1).fill({v:'',t:'s',s:ST.titulo})]);
+    wsData.push([{v:`Generado el ${hoy}`,t:'s',s:ST.subtitulo},...Array(COLS-1).fill({v:'',t:'s',s:ST.subtitulo})]);
+    wsData.push(Array(COLS).fill({v:'',t:'s',s:ST.vacio}));
 
-    const wsData = [];
-    wsData.push([{v:`📊 RESUMEN FINANCIERO — ${hoy}`,t:'s',s:ST.titulo},{v:'',t:'s',s:ST.titulo},{v:'',t:'s',s:ST.titulo}]);
-    wsData.push([{v:'',t:'s'},{v:'',t:'s'},{v:'',t:'s'}]);
+    wsData.push([{v:'CATEGOR\u00cdA',t:'s',s:ST.header},{v:'REGISTROS',t:'s',s:ST.header},{v:'MONTO TOTAL (COP)',t:'s',s:ST.header},{v:'',t:'s',s:ST.header}]);
 
-    // Totales por categoría
-    wsData.push([{v:'CATEGORÍA',t:'s',s:ST.header},{v:'REGISTROS',t:'s',s:ST.header},{v:'TOTAL (COP)',t:'s',s:ST.header}]);
-    wsData.push([{v:'📅 Eventos',t:'s',s:ST.celda},{v:eventos.length,t:'n',s:ST.celda},{v:totEv,t:'n',s:ST.monto}]);
-    wsData.push([{v:'🏠 Familia',t:'s',s:ST.celdaAlt},{v:familia.length,t:'n',s:ST.celdaAlt},{v:totFam,t:'n',s:ST.montoAlt}]);
-    wsData.push([
-      {v:'TOTAL RECAUDADO (Eventos + Familia)',t:'s',s:{font:{bold:true,sz:12},fill:{fgColor:{rgb:'FFE0EC'}},alignment:{horizontal:'center'}}},
-      {v:eventos.length + familia.length, t:'n',s:{font:{bold:true,sz:12},fill:{fgColor:{rgb:'FFE0EC'}},alignment:{horizontal:'center'}}},
-      {v:totGral,        t:'n',s:{font:{bold:true,sz:12,color:{rgb:'C9236A'}},fill:{fgColor:{rgb:'FFE0EC'}},numFmt:'"$"#,##0',alignment:{horizontal:'right'}}},
-    ]);
+    const sc=(fill,tc)=>({font:{sz:10,name:'Arial',color:{rgb:tc||'2C2C2C'}},fill:{fgColor:{rgb:fill}},alignment:{vertical:'center'},border:bd(C.borde)});
+    const sm=(fill,tc)=>({font:{bold:true,sz:10,name:'Arial',color:{rgb:tc||C.verde}},fill:{fgColor:{rgb:fill}},alignment:{horizontal:'right',vertical:'center'},numFmt:'"$"#,##0',border:bd(C.borde)});
+    const sn=(fill)=>({font:{bold:true,sz:10,name:'Arial'},fill:{fgColor:{rgb:fill}},alignment:{horizontal:'center',vertical:'center'},border:bd(C.borde)});
 
-    wsData.push([{v:'',t:'s'},{v:'',t:'s'},{v:'',t:'s'}]);
+    wsData.push([{v:'📅 Eventos',t:'s',s:sc('FFFFFF')},{v:eventos.length,t:'n',s:sn('FFFFFF')},{v:totEv,t:'n',s:sm('FFFFFF')},{v:'',t:'s',s:sc('FFFFFF')}]);
+    wsData.push([{v:'🏠 Familia (Cajitas)',t:'s',s:sc('F7F7F7')},{v:familia.length,t:'n',s:sn('F7F7F7')},{v:totFam,t:'n',s:sm('F7F7F7')},{v:'',t:'s',s:sc('F7F7F7')}]);
 
-    wsData.push([{v:'⚽ Polla Mundialista (no incluida en el total recaudado)',t:'s',s:{font:{italic:true,sz:9,color:{rgb:'777777'}},alignment:{horizontal:'left'}}},{v:'',t:'s'},{v:'',t:'s'}]);
-    wsData.push([{v:'⚽ Polla Mundialista',t:'s',s:ST.celda},{v:polla.length,t:'n',s:ST.celda},{v:totPo,t:'n',s:ST.monto}]);
+    const sTL={font:{bold:true,sz:12,name:'Arial',color:{rgb:C.blanco}},fill:{fgColor:{rgb:C.rosa}},alignment:{horizontal:'right',vertical:'center'},border:bd(C.rosa)};
+    const sTN={font:{bold:true,sz:12,name:'Arial',color:{rgb:C.blanco}},fill:{fgColor:{rgb:C.rosa}},alignment:{horizontal:'center',vertical:'center'},border:bd(C.rosa)};
+    const sTV={font:{bold:true,sz:13,name:'Arial',color:{rgb:C.blanco}},fill:{fgColor:{rgb:C.rosa}},alignment:{horizontal:'right',vertical:'center'},numFmt:'"$"#,##0',border:bd(C.rosa)};
+    wsData.push([{v:'💰 TOTAL RECAUDADO',t:'s',s:sTL},{v:eventos.length+familia.length,t:'n',s:sTN},{v:totGral,t:'n',s:sTV},{v:'',t:'s',s:{fill:{fgColor:{rgb:C.rosa}},border:bd(C.rosa)}}]);
+    wsData.push(Array(COLS).fill({v:'',t:'s',s:ST.vacio}));
+    wsData.push([{v:'⚽ Polla Mundialista (no incluida en el total recaudado)',t:'s',s:{font:{italic:true,sz:9,name:'Arial',color:{rgb:C.grisMed}},alignment:{horizontal:'left'}}},...Array(COLS-1).fill({v:'',t:'s'})]);
+    wsData.push([{v:'⚽ Polla Mundialista',t:'s',s:sc(C.azulPas,C.azul)},{v:polla.length,t:'n',s:sn(C.azulPas)},{v:totPo,t:'n',s:sm(C.azulPas,C.azul)},{v:'',t:'s',s:sc(C.azulPas)}]);
+    wsData.push(Array(COLS).fill({v:'',t:'s',s:ST.vacio}));
 
-    wsData.push([{v:'',t:'s'},{v:'',t:'s'},{v:'',t:'s'}]);
-
-    // Ranking
-    wsData.push([{v:'🏆 RANKING DE APORTES',t:'s',s:ST.titulo},{v:'',t:'s',s:ST.titulo},{v:'',t:'s',s:ST.titulo}]);
-    wsData.push([{v:'Posición',t:'s',s:ST.header},{v:'Participante',t:'s',s:ST.header},{v:'Total Aportado (COP)',t:'s',s:ST.header}]);
-    const medallas = ['🥇','🥈','🥉'];
-    ranking.forEach(([nombre, total], i) => {
-      const alt = i % 2 === 1;
-      const cSt = alt ? ST.celdaAlt : ST.celda;
+    wsData.push([{v:'🏆 RANKING DE APORTES',t:'s',s:ST.titulo},...Array(COLS-1).fill({v:'',t:'s',s:ST.titulo})]);
+    wsData.push([{v:'POSICI\u00d3N',t:'s',s:ST.header},{v:'PARTICIPANTE',t:'s',s:ST.header},{v:'TOTAL APORTADO (COP)',t:'s',s:ST.header},{v:'',t:'s',s:ST.header}]);
+    const medallas=['🥇','🥈','🥉'];
+    const podioFill=['FFF8E1','F5F5F5','FBE9E7'];
+    ranking.forEach(([nombre,total],i)=>{
+      const f=podioFill[i]||(i%2===1?'FAFAFA':'FFFFFF');
       wsData.push([
-        {v:`${medallas[i]||'#'+(i+1)} ${i+1}`,t:'s',s:{...cSt,alignment:{horizontal:'center'}}},
-        {v:nombre,t:'s',s:cSt},
-        {v:total,t:'n',s: alt?ST.montoAlt:ST.monto},
+        {v:`${medallas[i]||'  #'+(i+1)}`,t:'s',s:{font:{bold:i<3,sz:10,name:'Arial'},fill:{fgColor:{rgb:f}},alignment:{horizontal:'center',vertical:'center'},border:bd(C.borde)}},
+        {v:nombre,t:'s',s:{font:{bold:i<3,sz:10,name:'Arial'},fill:{fgColor:{rgb:f}},alignment:{vertical:'center'},border:bd(C.borde)}},
+        {v:total,t:'n',s:{font:{bold:true,sz:10,name:'Arial',color:{rgb:i===0?C.rosa:C.verde}},fill:{fgColor:{rgb:f}},alignment:{horizontal:'right',vertical:'center'},numFmt:'"$"#,##0',border:bd(C.borde)}},
+        {v:'',t:'s',s:{fill:{fgColor:{rgb:f}},border:bd(C.borde)}},
       ]);
     });
 
-    const ws = XLSX.utils.aoa_to_sheet(wsData);
-    ws['!merges'] = [
-      {s:{r:0,c:0},e:{r:0,c:2}},
-      {s:{r:10,c:0},e:{r:10,c:2}},
-    ];
-    ws['!cols'] = [{wch:22},{wch:16},{wch:22}];
-    XLSX.utils.book_append_sheet(wb, ws, '📊 Resumen');
+    const ws=XLSX.utils.aoa_to_sheet(wsData);
+    const ro=12;
+    ws['!merges']=[{s:{r:0,c:0},e:{r:0,c:COLS-1}},{s:{r:1,c:0},e:{r:1,c:COLS-1}},{s:{r:2,c:0},e:{r:2,c:COLS-1}},{s:{r:8,c:0},e:{r:8,c:COLS-1}},{s:{r:ro,c:0},e:{r:ro,c:COLS-1}}];
+    ws['!cols']=[{wch:28},{wch:14},{wch:24},{wch:4}];
+    ws['!rows']=[{hpx:32},{hpx:20},{hpx:8},{hpx:24},{hpx:22},{hpx:22},{hpx:28},{hpx:8},{hpx:18},{hpx:22},{hpx:8},{hpx:18},{hpx:32},{hpx:24},...ranking.map(()=>({hpx:22}))];
+    XLSX.utils.book_append_sheet(wb,ws,'📊 Resumen');
   })();
 
-  // ─── Descargar ──────────────────────────────────────────────────
-  const fechaStr = new Date().toISOString().slice(0,10);
-  XLSX.writeFile(wb, `familia-aportes-${fechaStr}.xlsx`);
+  const fechaStr=new Date().toISOString().slice(0,10);
+  XLSX.writeFile(wb,`familia-aportes-${fechaStr}.xlsx`);
 }
 
 // Cargar historial al iniciar
@@ -3781,136 +3764,163 @@ async function exportarInvitados() {
   const hoy = new Date().toLocaleDateString('es-CO');
   const wb  = XLSX.utils.book_new();
 
-  // ── Estilos ────────────────────────────────────────────────────────────────
-  const ST = {
-    titulo:  { font:{bold:true,sz:14,color:{rgb:'FFFFFF'}}, fill:{fgColor:{rgb:'7C6AF7'}}, alignment:{horizontal:'center',vertical:'center'} },
-    header:  { font:{bold:true,sz:11,color:{rgb:'FFFFFF'}}, fill:{fgColor:{rgb:'2D2B55'}}, alignment:{horizontal:'center',vertical:'center'}, border:{bottom:{style:'thin',color:{rgb:'9999CC'}}} },
-    celda:   { font:{sz:10}, alignment:{vertical:'center'}, border:{bottom:{style:'thin',color:{rgb:'EEEEEE'}}} },
-    celdaAlt:{ font:{sz:10}, fill:{fgColor:{rgb:'F8F7FF'}}, alignment:{vertical:'center'}, border:{bottom:{style:'thin',color:{rgb:'EEEEEE'}}} },
-    monto:   { font:{bold:true,sz:10,color:{rgb:'1A7A1A'}}, alignment:{horizontal:'right',vertical:'center'}, numFmt:'"$"#,##0', border:{bottom:{style:'thin',color:{rgb:'EEEEEE'}}} },
-    montoAlt:{ font:{bold:true,sz:10,color:{rgb:'1A7A1A'}}, fill:{fgColor:{rgb:'F8F7FF'}}, alignment:{horizontal:'right',vertical:'center'}, numFmt:'"$"#,##0', border:{bottom:{style:'thin',color:{rgb:'EEEEEE'}}} },
-    montoPend:{ font:{bold:true,sz:10,color:{rgb:'CC6600'}}, alignment:{horizontal:'right',vertical:'center'}, numFmt:'"$"#,##0', border:{bottom:{style:'thin',color:{rgb:'EEEEEE'}}} },
-    montoRojo:{ font:{bold:true,sz:10,color:{rgb:'CC0000'}}, alignment:{horizontal:'right',vertical:'center'}, numFmt:'"$"#,##0', border:{bottom:{style:'thin',color:{rgb:'EEEEEE'}}} },
-    verde:   { font:{bold:true,sz:10,color:{rgb:'1A7A1A'}}, fill:{fgColor:{rgb:'E8F5E9'}}, alignment:{horizontal:'center'} },
-    rojo:    { font:{bold:true,sz:10,color:{rgb:'CC0000'}}, fill:{fgColor:{rgb:'FFEBEE'}}, alignment:{horizontal:'center'} },
-    centro:  { font:{sz:10}, alignment:{horizontal:'center',vertical:'center'} },
-    totalLbl:{ font:{bold:true,sz:11}, alignment:{horizontal:'right'} },
-    totalVal:{ font:{bold:true,sz:12,color:{rgb:'7C6AF7'}}, numFmt:'"$"#,##0', alignment:{horizontal:'right'} },
+  const C = {
+    morado:'7C6AF7', moradoOsc:'2D2B55', moradoPas:'EDE9FE', moradoCla:'F8F7FF',
+    verde:'1A7A1A', verdeOsc:'0D5C2E', verdePas:'E8F5E9',
+    rojo:'CC0000', rojoPas:'FFEBEE',
+    naranja:'CC6600', naranjaPas:'FFF3E0',
+    azul:'1A5276', azulPas:'EBF5FB',
+    grisOsc:'2C2C2C', grisMed:'666666', grisCla:'F2F2F2',
+    blanco:'FFFFFF', borde:'DDDDDD', bordeOsc:'BBBBBB',
   };
 
-  function fmtF(f) { return f ? String(f).slice(0,10) : '—'; }
+  function bd(color) {
+    color = color||'DDDDDD';
+    const l={style:'thin',color:{rgb:color}};
+    return {top:l,bottom:l,left:l,right:l};
+  }
 
-  // ── HOJA 1: Lista completa ─────────────────────────────────────────────────
+  const ST = {
+    titulo:   {font:{bold:true,sz:15,name:'Arial',color:{rgb:C.blanco}},   fill:{fgColor:{rgb:C.morado}},    alignment:{horizontal:'center',vertical:'center'}},
+    subtitulo:{font:{bold:true,sz:10,name:'Arial',color:{rgb:C.grisMed}},  fill:{fgColor:{rgb:C.grisCla}},   alignment:{horizontal:'left',vertical:'center'}, border:bd(C.borde)},
+    header:   {font:{bold:true,sz:10,name:'Arial',color:{rgb:C.blanco}},   fill:{fgColor:{rgb:C.moradoOsc}}, alignment:{horizontal:'center',vertical:'center'},border:bd(C.moradoOsc)},
+    celda:    {font:{sz:10,name:'Arial'},                                   alignment:{vertical:'center'},    border:bd(C.borde)},
+    celdaAlt: {font:{sz:10,name:'Arial'}, fill:{fgColor:{rgb:C.moradoCla}},alignment:{vertical:'center'},    border:bd(C.borde)},
+    centro:   {font:{sz:10,name:'Arial'},                                   alignment:{horizontal:'center',vertical:'center'}, border:bd(C.borde)},
+    centroAlt:{font:{sz:10,name:'Arial'}, fill:{fgColor:{rgb:C.moradoCla}},alignment:{horizontal:'center',vertical:'center'}, border:bd(C.borde)},
+    monto:    {font:{bold:true,sz:10,name:'Arial',color:{rgb:C.verde}},    alignment:{horizontal:'right',vertical:'center'},  numFmt:'"$"#,##0', border:bd(C.borde)},
+    montoAlt: {font:{bold:true,sz:10,name:'Arial',color:{rgb:C.verde}},    fill:{fgColor:{rgb:C.moradoCla}}, alignment:{horizontal:'right',vertical:'center'},  numFmt:'"$"#,##0', border:bd(C.borde)},
+    montoPend:{font:{bold:true,sz:10,name:'Arial',color:{rgb:C.naranja}},  alignment:{horizontal:'right',vertical:'center'},  numFmt:'"$"#,##0', border:bd(C.borde)},
+    montoRojo:{font:{bold:true,sz:10,name:'Arial',color:{rgb:C.rojo}},     alignment:{horizontal:'right',vertical:'center'},  numFmt:'"$"#,##0', border:bd(C.borde)},
+    badgeVer: {font:{bold:true,sz:9,name:'Arial',color:{rgb:C.verdeOsc}},  fill:{fgColor:{rgb:C.verdePas}},  alignment:{horizontal:'center',vertical:'center'}, border:bd(C.bordeOsc)},
+    badgeBloq:{font:{bold:true,sz:9,name:'Arial',color:{rgb:C.rojo}},      fill:{fgColor:{rgb:C.rojoPas}},   alignment:{horizontal:'center',vertical:'center'}, border:bd(C.bordeOsc)},
+    badgePolla:{font:{bold:true,sz:9,name:'Arial',color:{rgb:C.azul}},     fill:{fgColor:{rgb:C.azulPas}},   alignment:{horizontal:'center',vertical:'center'}, border:bd(C.bordeOsc)},
+    vacio:    {fill:{fgColor:{rgb:C.grisCla}}, border:bd(C.borde)},
+    totalFila:{font:{bold:true,sz:11,name:'Arial',color:{rgb:C.grisOsc}},  fill:{fgColor:{rgb:C.moradoPas}}, alignment:{horizontal:'right',vertical:'center'},  border:bd(C.morado)},
+    totalVal: {font:{bold:true,sz:12,name:'Arial',color:{rgb:C.morado}},   fill:{fgColor:{rgb:C.moradoPas}}, alignment:{horizontal:'right',vertical:'center'},  numFmt:'"$"#,##0', border:bd(C.morado)},
+    totalRojo:{font:{bold:true,sz:12,name:'Arial',color:{rgb:C.rojo}},     fill:{fgColor:{rgb:C.rojoPas}},   alignment:{horizontal:'right',vertical:'center'},  numFmt:'"$"#,##0', border:bd(C.rojo)},
+    totalNar: {font:{bold:true,sz:12,name:'Arial',color:{rgb:C.naranja}},  fill:{fgColor:{rgb:C.naranjaPas}},alignment:{horizontal:'right',vertical:'center'},  numFmt:'"$"#,##0', border:bd(C.borde)},
+  };
+
+  function fmtF(f) { return f ? String(f).slice(0,10) : '\u2014'; }
+
+  // HOJA 1 — Lista completa
   (function() {
-    const COLS = 11;
-    const wsData = [];
-    wsData.push([{v:`👥 GESTIÓN DE INVITADOS — ${hoy}`,t:'s',s:ST.titulo},...Array(COLS-1).fill({v:'',t:'s',s:ST.titulo})]);
-    wsData.push(Array(COLS).fill({v:'',t:'s'}));
-    const hdrs = ['#','Nombre','Usuario','Responsable','Estado','Mundial','Total Reg. (COP)','Total Pag. (COP)','Polla Pend. (COP)','Saldo (COP)','En Polla'];
-    wsData.push(hdrs.map(h => ({v:h,t:'s',s:ST.header})));
+    const COLS=11;
+    const wsData=[];
+    wsData.push([{v:'GESTI\u00d3N DE INVITADOS',t:'s',s:ST.titulo},...Array(COLS-1).fill({v:'',t:'s',s:ST.titulo})]);
+    wsData.push([{v:`Generado el ${hoy}  \u2022  ${inv.length} invitado(s)`,t:'s',s:ST.subtitulo},...Array(COLS-1).fill({v:'',t:'s',s:ST.subtitulo})]);
+    wsData.push(Array(COLS).fill({v:'',t:'s',s:ST.vacio}));
+    wsData.push(['#','NOMBRE','USUARIO','RESPONSABLE','ESTADO','MUNDIAL','TOTAL REG. (COP)','TOTAL PAG. (COP)','POLLA PEND. (COP)','SALDO (COP)','EN POLLA'].map(h=>({v:h,t:'s',s:ST.header})));
 
-    inv.forEach((u, i) => {
-      const alt  = i % 2 === 1;
-      const cSt  = alt ? ST.celdaAlt : ST.celda;
-      const mSt  = alt ? ST.montoAlt : ST.monto;
-      const estado = u.rec_bloqueado ? '🔒 Bloqueado' : '🟢 Activo';
-      const mundialMap = {aprobado:'✓ Aprobado', rechazado:'✗ Rechazado', sin_solicitud:'— Sin solicitud'};
-      const mundial = mundialMap[u.mundial_pagado] || (u.mundial_pagado?.startsWith('pendiente') ? '⏳ Pendiente' : '—');
-      const saldo = u.saldo_pendiente || 0;
+    inv.forEach((u,i)=>{
+      const alt=i%2===1;
+      const cSt=alt?ST.celdaAlt:ST.celda;
+      const mSt=alt?ST.montoAlt:ST.monto;
+      const estado=u.rec_bloqueado?'🔒 Bloqueado':'🟢 Activo';
+      const mundialMap={aprobado:'\u2713 Aprobado',rechazado:'\u2717 Rechazado',sin_solicitud:'\u2014 Sin solicitud'};
+      const mundial=mundialMap[u.mundial_pagado]||(u.mundial_pagado?.startsWith('pendiente')?'\u23f3 Pendiente':'\u2014');
+      const saldo=u.saldo_pendiente||0;
+      const pend=u.polla_pendiente||0;
       wsData.push([
-        {v:i+1,                           t:'n', s:cSt},
-        {v:u.nombre||'—',                 t:'s', s:cSt},
-        {v:`@${u.usuario||'—'}`,          t:'s', s:cSt},
-        {v:u.responsable_nombre||'— Sin asignar', t:'s', s:cSt},
-        {v:estado,                        t:'s', s: u.rec_bloqueado ? {...cSt,font:{bold:true,sz:10,color:{rgb:'CC0000'}}} : {...cSt,font:{bold:true,sz:10,color:{rgb:'1A7A1A'}}} },
-        {v:mundial,                       t:'s', s:cSt},
-        {v:u.total_aportes||0,            t:'n', s:mSt},
-        {v:u.total_pagado||0,             t:'n', s:mSt},
-        {v:u.polla_pendiente||0,          t:'n', s: alt ? {...ST.montoAlt,font:{bold:true,sz:10,color:{rgb:'CC6600'}}} : ST.montoPend },
-        {v:saldo,                         t:'n', s: saldo > 0 ? ST.montoRojo : (alt ? {...ST.montoAlt,font:{bold:true,sz:10,color:{rgb:'1A7A1A'}}} : ST.monto) },
-        {v:u.participa_polla ? '⚽ Sí' : 'No', t:'s', s: u.participa_polla ? ST.verde : ST.centro },
+        {v:i+1,                                    t:'n',s:alt?ST.centroAlt:ST.centro},
+        {v:u.nombre||'\u2014',                     t:'s',s:{...cSt,font:{bold:true,sz:10,name:'Arial'}}},
+        {v:`@${u.usuario||'\u2014'}`,              t:'s',s:{...cSt,font:{sz:10,name:'Arial',color:{rgb:C.grisMed}}}},
+        {v:u.responsable_nombre||'\u2014 Sin asignar',t:'s',s:cSt},
+        {v:estado,                                 t:'s',s:u.rec_bloqueado?ST.badgeBloq:ST.badgeVer},
+        {v:mundial,                                t:'s',s:{...cSt,alignment:{horizontal:'center',vertical:'center'}}},
+        {v:u.total_aportes||0,                     t:'n',s:mSt},
+        {v:u.total_pagado||0,                      t:'n',s:mSt},
+        {v:pend,                                   t:'n',s:pend>0?(alt?{...ST.montoPend,fill:{fgColor:{rgb:C.moradoCla}}}:ST.montoPend):mSt},
+        {v:saldo,                                  t:'n',s:saldo>0?(alt?{...ST.montoRojo,fill:{fgColor:{rgb:C.moradoCla}}}:ST.montoRojo):mSt},
+        {v:u.participa_polla?'⚽ Sí':'No',        t:'s',s:u.participa_polla?ST.badgePolla:{...cSt,alignment:{horizontal:'center',vertical:'center'}}},
       ]);
     });
 
-    // Fila de totales
-    const totReg  = inv.reduce((s,u)=>s+(u.total_aportes||0),0);
-    const totPag  = inv.reduce((s,u)=>s+(u.total_pagado||0),0);
-    const totPend = inv.reduce((s,u)=>s+(u.polla_pendiente||0),0);
-    const totSald = inv.reduce((s,u)=>s+(u.saldo_pendiente||0),0);
+    const totReg=inv.reduce((s,u)=>s+(u.total_aportes||0),0);
+    const totPag=inv.reduce((s,u)=>s+(u.total_pagado||0),0);
+    const totPend=inv.reduce((s,u)=>s+(u.polla_pendiente||0),0);
+    const totSald=inv.reduce((s,u)=>s+(u.saldo_pendiente||0),0);
+    wsData.push(Array(COLS).fill({v:'',t:'s',s:ST.vacio}));
     wsData.push([
-      {v:'',t:'s'},{v:'',t:'s'},{v:'',t:'s'},{v:'',t:'s'},{v:'',t:'s'},{v:'TOTALES',t:'s',s:ST.totalLbl},
-      {v:totReg,t:'n',s:ST.totalVal},{v:totPag,t:'n',s:ST.totalVal},
-      {v:totPend,t:'n',s:{...ST.totalVal,font:{bold:true,sz:12,color:{rgb:'CC6600'}}}},
-      {v:totSald,t:'n',s:{...ST.totalVal,font:{bold:true,sz:12,color:{rgb:'CC0000'}}}},
-      {v:'',t:'s'},
+      {v:'',t:'s',s:ST.totalFila},{v:'',t:'s',s:ST.totalFila},{v:'',t:'s',s:ST.totalFila},
+      {v:'',t:'s',s:ST.totalFila},{v:'',t:'s',s:ST.totalFila},
+      {v:'TOTALES',t:'s',s:{...ST.totalFila,alignment:{horizontal:'right',vertical:'center'}}},
+      {v:totReg, t:'n',s:ST.totalVal},
+      {v:totPag, t:'n',s:ST.totalVal},
+      {v:totPend,t:'n',s:ST.totalNar},
+      {v:totSald,t:'n',s:totSald>0?ST.totalRojo:ST.totalVal},
+      {v:'',t:'s',s:ST.totalFila},
     ]);
 
-    const ws = XLSX.utils.aoa_to_sheet(wsData);
-    ws['!merges'] = [{s:{r:0,c:0},e:{r:0,c:COLS-1}}];
-    ws['!cols']   = [{wch:4},{wch:24},{wch:18},{wch:22},{wch:14},{wch:14},{wch:18},{wch:18},{wch:18},{wch:14},{wch:10}];
-    ws['!rows']   = [{hpx:28},{hpx:5},{hpx:22}];
-    ws['!autofilter'] = {ref: XLSX.utils.encode_range({s:{r:2,c:0},e:{r:2+inv.length,c:COLS-1}})};
-    XLSX.utils.book_append_sheet(wb, ws, '👥 Invitados');
+    const ws=XLSX.utils.aoa_to_sheet(wsData);
+    ws['!merges']=[{s:{r:0,c:0},e:{r:0,c:COLS-1}},{s:{r:1,c:0},e:{r:1,c:COLS-1}},{s:{r:2,c:0},e:{r:2,c:COLS-1}}];
+    ws['!cols']=[{wch:5},{wch:24},{wch:18},{wch:22},{wch:14},{wch:15},{wch:18},{wch:18},{wch:18},{wch:15},{wch:10}];
+    ws['!rows']=[{hpx:32},{hpx:20},{hpx:8},{hpx:24},...inv.map(()=>({hpx:20})),{hpx:8},{hpx:26}];
+    ws['!autofilter']={ref:XLSX.utils.encode_range({s:{r:3,c:0},e:{r:3+inv.length,c:COLS-1}})};
+    XLSX.utils.book_append_sheet(wb,ws,'👥 Invitados');
   })();
 
-  // ── HOJA 2: Resumen por responsable ───────────────────────────────────────
+  // HOJA 2 — Resumen por responsable
   (function() {
-    const porResp = {};
-    inv.forEach(u => {
-      const k = u.responsable_nombre || '(Sin responsable)';
-      if (!porResp[k]) porResp[k] = {total:0, pagado:0, pendiente:0, saldo:0, count:0, polla:0};
-      porResp[k].total     += (u.total_aportes||0);
-      porResp[k].pagado    += (u.total_pagado||0);
-      porResp[k].pendiente += (u.polla_pendiente||0);
-      porResp[k].saldo     += (u.saldo_pendiente||0);
+    const porResp={};
+    inv.forEach(u=>{
+      const k=u.responsable_nombre||'(Sin responsable)';
+      if(!porResp[k]) porResp[k]={total:0,pagado:0,pendiente:0,saldo:0,count:0,polla:0};
+      porResp[k].total+=(u.total_aportes||0);
+      porResp[k].pagado+=(u.total_pagado||0);
+      porResp[k].pendiente+=(u.polla_pendiente||0);
+      porResp[k].saldo+=(u.saldo_pendiente||0);
       porResp[k].count++;
-      if (u.participa_polla) porResp[k].polla++;
+      if(u.participa_polla) porResp[k].polla++;
     });
+    const entries=Object.entries(porResp).sort((a,b)=>b[1].count-a[1].count);
 
-    const COLS = 7;
-    const wsData = [];
-    wsData.push([{v:`📊 RESUMEN POR RESPONSABLE — ${hoy}`,t:'s',s:ST.titulo},...Array(COLS-1).fill({v:'',t:'s',s:ST.titulo})]);
-    wsData.push(Array(COLS).fill({v:'',t:'s'}));
-    wsData.push(['Responsable','# Invitados','Total Reg. (COP)','Total Pag. (COP)','Polla Pend. (COP)','Saldo (COP)','En Polla']
-      .map(h=>({v:h,t:'s',s:ST.header})));
+    const COLS=7;
+    const wsData=[];
+    wsData.push([{v:'RESUMEN POR RESPONSABLE',t:'s',s:ST.titulo},...Array(COLS-1).fill({v:'',t:'s',s:ST.titulo})]);
+    wsData.push([{v:`Generado el ${hoy}  \u2022  ${entries.length} responsable(s)`,t:'s',s:ST.subtitulo},...Array(COLS-1).fill({v:'',t:'s',s:ST.subtitulo})]);
+    wsData.push(Array(COLS).fill({v:'',t:'s',s:ST.vacio}));
+    wsData.push(['RESPONSABLE','# INVITADOS','TOTAL REG. (COP)','TOTAL PAG. (COP)','POLLA PEND. (COP)','SALDO (COP)','EN POLLA'].map(h=>({v:h,t:'s',s:ST.header})));
 
-    Object.entries(porResp).sort((a,b)=>b[1].count-a[1].count).forEach(([resp, d], i) => {
-      const alt = i % 2 === 1;
-      const cSt = alt ? ST.celdaAlt : ST.celda;
+    entries.forEach(([resp,d],i)=>{
+      const alt=i%2===1;
+      const cSt=alt?ST.celdaAlt:ST.celda;
       wsData.push([
-        {v:`🤝 ${resp}`,         t:'s', s:{...cSt,font:{bold:true,sz:10}}},
-        {v:d.count,              t:'n', s:{...cSt,alignment:{horizontal:'center'}}},
-        {v:d.total,              t:'n', s: alt?ST.montoAlt:ST.monto},
-        {v:d.pagado,             t:'n', s: alt?ST.montoAlt:ST.monto},
-        {v:d.pendiente,          t:'n', s: alt?{...ST.montoAlt,font:{bold:true,sz:10,color:{rgb:'CC6600'}}}:ST.montoPend},
-        {v:d.saldo,              t:'n', s: d.saldo>0? ST.montoRojo : (alt?ST.montoAlt:ST.monto)},
-        {v:d.polla,              t:'n', s:{...cSt,alignment:{horizontal:'center'}}},
+        {v:`🤝 ${resp}`,t:'s',s:{...cSt,font:{bold:true,sz:10,name:'Arial'}}},
+        {v:d.count,     t:'n',s:alt?ST.centroAlt:ST.centro},
+        {v:d.total,     t:'n',s:alt?ST.montoAlt:ST.monto},
+        {v:d.pagado,    t:'n',s:alt?ST.montoAlt:ST.monto},
+        {v:d.pendiente, t:'n',s:d.pendiente>0?(alt?{...ST.montoPend,fill:{fgColor:{rgb:C.moradoCla}}}:ST.montoPend):(alt?ST.montoAlt:ST.monto)},
+        {v:d.saldo,     t:'n',s:d.saldo>0?(alt?{...ST.montoRojo,fill:{fgColor:{rgb:C.moradoCla}}}:ST.montoRojo):(alt?ST.montoAlt:ST.monto)},
+        {v:d.polla,     t:'n',s:alt?ST.centroAlt:ST.centro},
       ]);
     });
 
-    const totReg  = inv.reduce((s,u)=>s+(u.total_aportes||0),0);
-    const totPag  = inv.reduce((s,u)=>s+(u.total_pagado||0),0);
-    const totPend = inv.reduce((s,u)=>s+(u.polla_pendiente||0),0);
-    const totSald = inv.reduce((s,u)=>s+(u.saldo_pendiente||0),0);
+    const totReg=inv.reduce((s,u)=>s+(u.total_aportes||0),0);
+    const totPag=inv.reduce((s,u)=>s+(u.total_pagado||0),0);
+    const totPend=inv.reduce((s,u)=>s+(u.polla_pendiente||0),0);
+    const totSald=inv.reduce((s,u)=>s+(u.saldo_pendiente||0),0);
+    wsData.push(Array(COLS).fill({v:'',t:'s',s:ST.vacio}));
     wsData.push([
-      {v:'TOTAL GENERAL',t:'s',s:{font:{bold:true,sz:11},fill:{fgColor:{rgb:'EDE9FE'}},alignment:{horizontal:'center'}}},
-      {v:inv.length,t:'n',s:{font:{bold:true,sz:11},fill:{fgColor:{rgb:'EDE9FE'}},alignment:{horizontal:'center'}}},
-      {v:totReg,t:'n',s:{font:{bold:true,sz:11,color:{rgb:'7C6AF7'}},fill:{fgColor:{rgb:'EDE9FE'}},numFmt:'"$"#,##0',alignment:{horizontal:'right'}}},
-      {v:totPag,t:'n',s:{font:{bold:true,sz:11,color:{rgb:'7C6AF7'}},fill:{fgColor:{rgb:'EDE9FE'}},numFmt:'"$"#,##0',alignment:{horizontal:'right'}}},
-      {v:totPend,t:'n',s:{font:{bold:true,sz:11,color:{rgb:'CC6600'}},fill:{fgColor:{rgb:'EDE9FE'}},numFmt:'"$"#,##0',alignment:{horizontal:'right'}}},
-      {v:totSald,t:'n',s:{font:{bold:true,sz:11,color:{rgb:'CC0000'}},fill:{fgColor:{rgb:'EDE9FE'}},numFmt:'"$"#,##0',alignment:{horizontal:'right'}}},
-      {v:'',t:'s',s:{fill:{fgColor:{rgb:'EDE9FE'}}}},
+      {v:'TOTAL GENERAL',t:'s',s:{...ST.totalFila,alignment:{horizontal:'left',vertical:'center'}}},
+      {v:inv.length,t:'n',s:{...ST.totalFila,alignment:{horizontal:'center',vertical:'center'}}},
+      {v:totReg, t:'n',s:ST.totalVal},
+      {v:totPag, t:'n',s:ST.totalVal},
+      {v:totPend,t:'n',s:ST.totalNar},
+      {v:totSald,t:'n',s:totSald>0?ST.totalRojo:ST.totalVal},
+      {v:'',t:'s',s:ST.totalFila},
     ]);
 
-    const ws = XLSX.utils.aoa_to_sheet(wsData);
-    ws['!merges'] = [{s:{r:0,c:0},e:{r:0,c:COLS-1}}];
-    ws['!cols'] = [{wch:26},{wch:12},{wch:18},{wch:18},{wch:18},{wch:16},{wch:10}];
-    ws['!rows'] = [{hpx:28},{hpx:5},{hpx:22}];
-    XLSX.utils.book_append_sheet(wb, ws, '📊 Por Responsable');
+    const ws=XLSX.utils.aoa_to_sheet(wsData);
+    ws['!merges']=[{s:{r:0,c:0},e:{r:0,c:COLS-1}},{s:{r:1,c:0},e:{r:1,c:COLS-1}},{s:{r:2,c:0},e:{r:2,c:COLS-1}}];
+    ws['!cols']=[{wch:28},{wch:13},{wch:18},{wch:18},{wch:18},{wch:16},{wch:10}];
+    ws['!rows']=[{hpx:32},{hpx:20},{hpx:8},{hpx:24},...entries.map(()=>({hpx:20})),{hpx:8},{hpx:26}];
+    XLSX.utils.book_append_sheet(wb,ws,'📊 Por Responsable');
   })();
 
-  const fechaStr = new Date().toISOString().slice(0,10);
-  XLSX.writeFile(wb, `familia-invitados-${fechaStr}.xlsx`);
+  const fechaStr=new Date().toISOString().slice(0,10);
+  XLSX.writeFile(wb,`familia-invitados-${fechaStr}.xlsx`);
 }
 
 
