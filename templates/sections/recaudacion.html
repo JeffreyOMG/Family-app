@@ -1671,9 +1671,34 @@ body.dark-mode .rec-modal-close { background:var(--bg2);border-color:var(--borde
   .rec-ranking-top { flex-direction:row; }
   .rec-ranking-item { padding:12px 14px; }
 
-  /* Modal: centrado, no bottom-sheet */
+  /* Modal rec: centrado, no bottom-sheet */
   .rec-modal-overlay { padding:20px; align-items:center; }
   .rec-modal-box { border-radius:18px; max-width:520px; max-height:88vh; }
+
+  /* Modal financiero (invitados, auditoría…): centrado, máximo ancho disponible */
+  .modal-fin-overlay { padding:16px; align-items:center; }
+  .modal-fin-box {
+    max-width: min(98vw, 860px) !important;
+    max-height: 88vh;
+    border-radius: 14px;
+  }
+  .modal-fin-header { padding: 14px 16px; }
+  .modal-fin-body { padding: 0; }
+
+  /* Tabla invitados en tablet: scroll horizontal, fuente compacta */
+  .inv-tbl-full { font-size: 11.5px; min-width: 620px; }
+  .inv-tbl-full th { padding: 10px 10px; font-size: 9.5px; }
+  .inv-tbl-full td { padding: 10px 10px; }
+
+  /* Buscador del modal invitados más angosto */
+  #modal-invitados .modal-fin-header > div:last-child { flex-wrap: wrap; gap: 6px; }
+  #modal-invitados #inv-search { width: 120px; }
+
+  /* Auditoría */
+  .audit-table { font-size: 11px; min-width: 500px; }
+
+  /* Stats resumen: 3 columnas */
+  .stats-grid-modal { grid-template-columns: repeat(3,1fr); }
 
   /* Polla chips: envuelven bien */
   .rec-polla-miembros-row { gap:6px; }
@@ -2937,7 +2962,7 @@ function filtrarRanking(modo) {
 .bloqueo-toggle-desbloquear:hover { background:rgba(34,197,94,.2); }
 
 /* ── Tabla invitados completa ───────────────────────────────────────── */
-.inv-tbl-full { width:100%;min-width:980px;border-collapse:separate;border-spacing:0;font-size:12.5px; }
+.inv-tbl-full { width:100%;min-width:720px;border-collapse:separate;border-spacing:0;font-size:12.5px; }
 .inv-tbl-full th {
   text-align:left;padding:12px 14px;font-size:10px;font-weight:700;
   color:var(--text2);text-transform:uppercase;letter-spacing:.4px;
@@ -3401,9 +3426,7 @@ function renderInvTab(tab) {
         <th>Mundial</th>
         <th>Total aportado</th>
         <th>Pagado</th>
-        <th>Pendiente</th>
         <th>Saldo</th>
-        <th>Polla</th>
         <th>Última act.</th>
         <th>Modificado por</th>
       </tr></thead>
@@ -3437,13 +3460,11 @@ function renderInvTab(tab) {
           <td style="text-align:center;">${invTagMundial(u.mundial_pagado)}</td>
           <td style="font-weight:700;text-align:right;white-space:nowrap;">${fmtCOP(u.total_aportes||0)}</td>
           <td style="color:#22c55e;font-weight:700;text-align:right;white-space:nowrap;">${fmtCOP(u.total_pagado||0)}</td>
-          <td style="color:#eab308;text-align:right;white-space:nowrap;">${fmtCOP(u.polla_pendiente||0)}</td>
           <td style="text-align:right;white-space:nowrap;">
             ${(u.saldo_pendiente||0) > 0
               ? `<span style="color:#ef4444;font-weight:700;">${fmtCOP(u.saldo_pendiente)}</span>`
               : `<span style="color:#22c55e;font-size:11px;font-weight:600;">✅ Al día</span>`}
           </td>
-          <td style="text-align:center;">${u.participa_polla ? '<span style="color:#22c55e;font-size:12px;">⚽ Sí</span>' : '<span style="color:var(--text3);font-size:11px;">No</span>'}</td>
           <td style="color:var(--text2);font-size:11px;white-space:nowrap;">${u.ultima_actualizacion||'—'}</td>
           <td style="color:var(--text2);font-size:11px;white-space:nowrap;">${u.modificado_por||'—'}</td>
         </tr>
