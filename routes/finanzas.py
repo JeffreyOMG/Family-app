@@ -844,23 +844,27 @@ def api_estadisticas():
         return jsonify({"ok": False, "error": "Sin permiso"}), 403
     con = get_db()
 
-    # ── Tabla aportes: suma TODO (miembros + invitados), sin duplicar polla
-    #    porque polla_pagos es tabla separada que NO vive en aportes
+    # ── Aportes PAGADOS de MIEMBROS/ADMIN (solo verificados) ─────────────────
     total_aportes_miembros = float(con.execute("""
         SELECT COALESCE(SUM(a.monto),0)
         FROM aportes a
         JOIN usuarios u ON u.id = a.usuario_id
         WHERE u.rol IN ('miembro','admin')
+          AND a.verificado = 1
     """).fetchone()[0])
 
+    # ── Aportes PAGADOS de INVITADOS (solo verificados)
+    #    NOTA: los invitados registran todo en tabla aportes (incluyendo polla),
+    #    NO tienen registros en polla_pagos. No duplicar.
     total_aportes_invitados = float(con.execute("""
         SELECT COALESCE(SUM(a.monto),0)
         FROM aportes a
         JOIN usuarios u ON u.id = a.usuario_id
         WHERE u.rol = 'invitado'
+          AND a.verificado = 1
     """).fetchone()[0])
 
-    # ── Polla: tabla separada, nunca duplica con aportes ─────────────────────
+    # ── Polla PAGADA de MIEMBROS (tabla polla_pagos, separada de aportes) ────
     total_polla_miembros = float(con.execute("""
         SELECT COALESCE(SUM(pp.monto),0)
         FROM polla_pagos pp
@@ -870,24 +874,17 @@ def api_estadisticas():
           AND COALESCE(u.polla_estado,'activo') != 'excluido'
     """).fetchone()[0])
 
-    total_polla_invitados = float(con.execute("""
-        SELECT COALESCE(SUM(pp.monto),0)
-        FROM polla_pagos pp
-        JOIN usuarios u ON u.id = pp.usuario_id
-        WHERE u.rol = 'invitado'
-          AND pp.estado IN ('verificado','pagado')
-    """).fetchone()[0])
+    # Los invitados NO tienen polla_pagos — ya está en sus aportes arriba
+    total_polla_invitados = 0.0
+    total_polla = total_polla_miembros
 
-    total_polla = total_polla_miembros + total_polla_invitados
-
-    # ── Eventos verificados (ya incluidos dentro de aportes, solo informativo)
+    # ── Eventos verificados (informativo) ────────────────────────────────────
     total_eventos = float(con.execute(
         "SELECT COALESCE(SUM(monto),0) FROM eventos_recaudacion WHERE estado='verificado'"
     ).fetchone()[0])
 
-    # ── SUMA TOTAL BRUTA: aportes miembros + aportes invitados + polla ───────
-    #    (sin duplicar: cada fuente es una tabla distinta)
-    suma_total_bruta = total_aportes_miembros + total_aportes_invitados + total_polla
+    # ── SUMA TOTAL BRUTA: solo lo efectivamente pagado/verificado ────────────
+    suma_total_bruta = total_aportes_miembros + total_aportes_invitados + total_polla_miembros
 
     # ── DEDUCCIONES FIJAS ────────────────────────────────────────────────────
     DEDUCCION_PREMIO = 290000.0

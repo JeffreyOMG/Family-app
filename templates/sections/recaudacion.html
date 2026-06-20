@@ -4345,23 +4345,19 @@ async function abrirModalEstadisticas() {
     body.innerHTML = `
       <!-- ── TODO LO RECAUDADO ──────────────────────────────────────── -->
       <div style="margin-bottom:14px;">
-        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-muted,#888);margin-bottom:8px;">📥 Todo lo recaudado</div>
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-muted,#888);margin-bottom:8px;">📥 Todo lo recaudado (pagado/verificado)</div>
         <div class="stats-grid-modal">
           <div class="stat-m">
             <div class="stat-m-val" style="color:#22c55e;">${fmtCOP(d.total_aportes_miembros)}</div>
-            <div class="stat-m-lbl">Aportes miembros</div>
+            <div class="stat-m-lbl">Pagado miembros</div>
           </div>
           <div class="stat-m">
             <div class="stat-m-val" style="color:#0095f6;">${fmtCOP(d.total_aportes_invitados)}</div>
-            <div class="stat-m-lbl">Aportes invitados</div>
+            <div class="stat-m-lbl">Pagado invitados</div>
           </div>
           <div class="stat-m">
             <div class="stat-m-val" style="color:#eab308;">${fmtCOP(d.total_polla_miembros)}</div>
             <div class="stat-m-lbl">Polla miembros</div>
-          </div>
-          <div class="stat-m">
-            <div class="stat-m-val" style="color:#f59e0b;">${fmtCOP(d.total_polla_invitados)}</div>
-            <div class="stat-m-lbl">Polla invitados</div>
           </div>
         </div>
         <div style="background:var(--surface2,#2a2a2a);border-radius:10px;padding:12px 16px;margin-top:8px;display:flex;justify-content:space-between;align-items:center;">
