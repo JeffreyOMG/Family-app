@@ -839,37 +839,152 @@ def api_auditoria():
 
 @fin_bp.route("/api/fin/estadisticas")
 def api_estadisticas():
-    """Estadísticas de recaudación para Admin y Financiero."""
+    """Estadísticas completas de recaudación para Admin y Financiero."""
     if not _es_admin_o_financiero():
         return jsonify({"ok": False, "error": "Sin permiso"}), 403
     con = get_db()
-    total_general = con.execute("SELECT COALESCE(SUM(monto),0) FROM aportes").fetchone()[0]
-    total_eventos = con.execute(
+
+    # ── Tabla aportes: suma TODO (miembros + invitados), sin duplicar polla
+    #    porque polla_pagos es tabla separada que NO vive en aportes
+    total_aportes_miembros = float(con.execute("""
+        SELECT COALESCE(SUM(a.monto),0)
+        FROM aportes a
+        JOIN usuarios u ON u.id = a.usuario_id
+        WHERE u.rol IN ('miembro','admin')
+    """).fetchone()[0])
+
+    total_aportes_invitados = float(con.execute("""
+        SELECT COALESCE(SUM(a.monto),0)
+        FROM aportes a
+        JOIN usuarios u ON u.id = a.usuario_id
+        WHERE u.rol = 'invitado'
+    """).fetchone()[0])
+
+    # ── Polla: tabla separada, nunca duplica con aportes ─────────────────────
+    total_polla_miembros = float(con.execute("""
+        SELECT COALESCE(SUM(pp.monto),0)
+        FROM polla_pagos pp
+        JOIN usuarios u ON u.id = pp.usuario_id
+        WHERE u.rol IN ('miembro','admin')
+          AND pp.estado IN ('verificado','pagado')
+          AND COALESCE(u.polla_estado,'activo') != 'excluido'
+    """).fetchone()[0])
+
+    total_polla_invitados = float(con.execute("""
+        SELECT COALESCE(SUM(pp.monto),0)
+        FROM polla_pagos pp
+        JOIN usuarios u ON u.id = pp.usuario_id
+        WHERE u.rol = 'invitado'
+          AND pp.estado IN ('verificado','pagado')
+    """).fetchone()[0])
+
+    total_polla = total_polla_miembros + total_polla_invitados
+
+    # ── Eventos verificados (ya incluidos dentro de aportes, solo informativo)
+    total_eventos = float(con.execute(
         "SELECT COALESCE(SUM(monto),0) FROM eventos_recaudacion WHERE estado='verificado'"
-    ).fetchone()[0]
-    total_polla = con.execute(
-        "SELECT COALESCE(SUM(monto),0) FROM polla_pagos WHERE estado='verificado'"
-    ).fetchone()[0]
-    pendientes = con.execute(
+    ).fetchone()[0])
+
+    # ── SUMA TOTAL BRUTA: aportes miembros + aportes invitados + polla ───────
+    #    (sin duplicar: cada fuente es una tabla distinta)
+    suma_total_bruta = total_aportes_miembros + total_aportes_invitados + total_polla
+
+    # ── DEDUCCIONES FIJAS ────────────────────────────────────────────────────
+    DEDUCCION_PREMIO = 290000.0
+    DEDUCCION_OTRO   = 150000.0
+    total_deducciones = DEDUCCION_PREMIO + DEDUCCION_OTRO
+
+    # ── TOTAL NETO ───────────────────────────────────────────────────────────
+    total_neto = suma_total_bruta - total_deducciones
+
+    # ── Conteos ──────────────────────────────────────────────────────────────
+    pendientes = int(con.execute(
         "SELECT COUNT(*) FROM eventos_recaudacion WHERE estado='pendiente'"
-    ).fetchone()[0]
-    participantes_activos = con.execute(
-        "SELECT COUNT(*) FROM usuarios WHERE rol='miembro' AND COALESCE(polla_activo, TRUE)=TRUE AND COALESCE(polla_estado,'activo') != 'excluido'"
-    ).fetchone()[0]
-    invitados_count = con.execute(
+    ).fetchone()[0])
+
+    total_miembros_count = int(con.execute(
+        "SELECT COUNT(*) FROM usuarios WHERE rol IN ('miembro','admin')"
+    ).fetchone()[0])
+
+    participantes_polla = int(con.execute(
+        "SELECT COUNT(*) FROM usuarios WHERE rol='miembro' AND COALESCE(polla_estado,'activo') != 'excluido'"
+    ).fetchone()[0])
+
+    invitados_count = int(con.execute(
         "SELECT COUNT(*) FROM usuarios WHERE rol='invitado'"
-    ).fetchone()[0]
+    ).fetchone()[0])
+
+    invitados_activos = int(con.execute(
+        "SELECT COUNT(*) FROM usuarios WHERE rol='invitado' AND COALESCE(rec_bloqueado,0)=0"
+    ).fetchone()[0])
+
+    # ── Detalle por miembro (para Excel) ─────────────────────────────────────
+    detalle_miembros = [dict(r) for r in con.execute("""
+        SELECT u.nombre, u.usuario, u.rol,
+               COALESCE(SUM(a.monto),0) AS total_aportes,
+               COALESCE(SUM(CASE WHEN a.verificado=1 THEN a.monto ELSE 0 END),0) AS pagado
+        FROM usuarios u
+        LEFT JOIN aportes a ON a.usuario_id = u.id
+        WHERE u.rol IN ('miembro','admin')
+        GROUP BY u.id, u.nombre, u.usuario, u.rol
+        ORDER BY total_aportes DESC
+    """).fetchall()]
+
+    detalle_invitados = [dict(r) for r in con.execute("""
+        SELECT u.nombre, u.usuario,
+               resp.nombre AS responsable,
+               COALESCE(SUM(a.monto),0) AS total_aportes,
+               COALESCE(SUM(CASE WHEN a.verificado=1 THEN a.monto ELSE 0 END),0) AS pagado
+        FROM usuarios u
+        LEFT JOIN usuarios resp ON resp.id = u.invitado_de
+        LEFT JOIN aportes a ON a.usuario_id = u.id
+        WHERE u.rol = 'invitado'
+        GROUP BY u.id, u.nombre, u.usuario, resp.nombre
+        ORDER BY total_aportes DESC
+    """).fetchall()]
+
+    detalle_polla = [dict(r) for r in con.execute("""
+        SELECT u.nombre, u.usuario, u.rol,
+               COUNT(pp.id) AS fases_pagadas,
+               COALESCE(SUM(pp.monto),0) AS total_polla
+        FROM usuarios u
+        JOIN polla_pagos pp ON pp.usuario_id = u.id
+        WHERE pp.estado IN ('verificado','pagado')
+        GROUP BY u.id, u.nombre, u.usuario, u.rol
+        ORDER BY total_polla DESC
+    """).fetchall()]
+
+    # ── Meta ─────────────────────────────────────────────────────────────────
     cfg_meta = con.execute("SELECT valor FROM config WHERE clave='meta_recaudacion'").fetchone()
     meta = float(cfg_meta["valor"]) if cfg_meta else 500000
+
     return jsonify({
-        "total_general": float(total_general),
-        "total_eventos": float(total_eventos),
-        "total_polla": float(total_polla),
-        "pendientes_verificacion": int(pendientes),
-        "participantes_activos": int(participantes_activos),
-        "invitados_count": int(invitados_count),
-        "meta": float(meta),
-        "pct": round(float(total_general) / float(meta) * 100, 1) if meta > 0 else 0,
+        "total_aportes_miembros":  total_aportes_miembros,
+        "total_aportes_invitados": total_aportes_invitados,
+        "total_polla_miembros":    total_polla_miembros,
+        "total_polla_invitados":   total_polla_invitados,
+        "total_polla":             total_polla,
+        "total_eventos":           total_eventos,
+        "suma_total_bruta":        suma_total_bruta,
+        "deduccion_premio":        DEDUCCION_PREMIO,
+        "deduccion_otro":          DEDUCCION_OTRO,
+        "total_deducciones":       total_deducciones,
+        "total_neto":              total_neto,
+        "total_miembros_count":    total_miembros_count,
+        "participantes_polla":     participantes_polla,
+        "invitados_count":         invitados_count,
+        "invitados_activos":       invitados_activos,
+        "pendientes_verificacion": pendientes,
+        "detalle_miembros":        detalle_miembros,
+        "detalle_invitados":       detalle_invitados,
+        "detalle_polla":           detalle_polla,
+        "meta":                    meta,
+        "pct":                     round(total_neto / meta * 100, 1) if meta > 0 else 0,
+        # aliases legacy
+        "total_general":           suma_total_bruta,
+        "total_miembros":          total_aportes_miembros,
+        "total_invitados":         total_aportes_invitados,
+        "participantes_activos":   participantes_polla,
     })
 
 @fin_bp.route("/api/fin/aporte_manual", methods=["POST"])

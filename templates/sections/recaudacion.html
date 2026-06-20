@@ -3487,7 +3487,7 @@ body.dark-mode .modal-fin-title { color:var(--text,#ffffff); }
      MODAL: ESTADÍSTICAS DE RECAUDACIÓN
 ═══════════════════════════════════════════════════════════════════ -->
 <div id="modal-estadisticas" class="modal-fin-overlay" style="display:none;" onclick="if(event.target===this)hide('modal-estadisticas')">
-  <div class="modal-fin-box" onclick="event.stopPropagation()" style="max-width:480px;">
+  <div class="modal-fin-box" onclick="event.stopPropagation()" style="max-width:560px;">
     <div class="modal-fin-header">
       <div class="modal-fin-title">
         <span class="material-symbols-outlined" style="color:#f59e0b">bar_chart</span>
@@ -4332,6 +4332,7 @@ async function abrirModalAuditoria() {
 }
 
 // ── Estadísticas ─────────────────────────────────────────────────────────────
+let _statsData = null;
 async function abrirModalEstadisticas() {
   show('modal-estadisticas');
   const body = document.getElementById('stats-body');
@@ -4340,21 +4341,288 @@ async function abrirModalEstadisticas() {
     const r = await fetch('/api/fin/estadisticas');
     const d = await r.json();
     if (d.ok === false) { body.innerHTML = '<div class="fin-loading">Sin permiso.</div>'; return; }
+    _statsData = d;
     body.innerHTML = `
-      <div class="stats-grid-modal">
-        <div class="stat-m"><div class="stat-m-val" style="color:#22c55e;">${fmtCOP(d.total_general)}</div><div class="stat-m-lbl">Total recaudado</div></div>
-        <div class="stat-m"><div class="stat-m-val" style="color:var(--accent,#7c6af7);">${fmtCOP(d.meta)}</div><div class="stat-m-lbl">Meta</div></div>
-        <div class="stat-m"><div class="stat-m-val" style="color:#f59e0b;">${d.pct}%</div><div class="stat-m-lbl">Progreso</div></div>
-        <div class="stat-m"><div class="stat-m-val" style="color:#0095f6;">${fmtCOP(d.total_eventos)}</div><div class="stat-m-lbl">Eventos verificados</div></div>
-        <div class="stat-m"><div class="stat-m-val" style="color:#eab308;">${fmtCOP(d.total_polla)}</div><div class="stat-m-lbl">Polla verificada</div></div>
-        <div class="stat-m"><div class="stat-m-val" style="color:#ef4444;">${d.pendientes_verificacion}</div><div class="stat-m-lbl">Pendientes verificación</div></div>
-        <div class="stat-m"><div class="stat-m-val">${d.participantes_activos}</div><div class="stat-m-lbl">Participantes activos polla</div></div>
-        <div class="stat-m"><div class="stat-m-val" style="color:#eab308;">${d.invitados_count}</div><div class="stat-m-lbl">Invitados registrados</div></div>
+      <!-- ── TODO LO RECAUDADO ──────────────────────────────────────── -->
+      <div style="margin-bottom:14px;">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-muted,#888);margin-bottom:8px;">📥 Todo lo recaudado</div>
+        <div class="stats-grid-modal">
+          <div class="stat-m">
+            <div class="stat-m-val" style="color:#22c55e;">${fmtCOP(d.total_aportes_miembros)}</div>
+            <div class="stat-m-lbl">Aportes miembros</div>
+          </div>
+          <div class="stat-m">
+            <div class="stat-m-val" style="color:#0095f6;">${fmtCOP(d.total_aportes_invitados)}</div>
+            <div class="stat-m-lbl">Aportes invitados</div>
+          </div>
+          <div class="stat-m">
+            <div class="stat-m-val" style="color:#eab308;">${fmtCOP(d.total_polla_miembros)}</div>
+            <div class="stat-m-lbl">Polla miembros</div>
+          </div>
+          <div class="stat-m">
+            <div class="stat-m-val" style="color:#f59e0b;">${fmtCOP(d.total_polla_invitados)}</div>
+            <div class="stat-m-lbl">Polla invitados</div>
+          </div>
+        </div>
+        <div style="background:var(--surface2,#2a2a2a);border-radius:10px;padding:12px 16px;margin-top:8px;display:flex;justify-content:space-between;align-items:center;">
+          <span style="font-size:13px;color:var(--text-muted,#aaa);">Suma bruta total</span>
+          <span style="font-size:18px;font-weight:800;color:#22c55e;">${fmtCOP(d.suma_total_bruta)}</span>
+        </div>
+      </div>
+
+      <!-- ── DEDUCCIONES ────────────────────────────────────────────── -->
+      <div style="margin-bottom:14px;">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-muted,#888);margin-bottom:8px;">📤 Deducciones</div>
+        <div style="background:var(--surface2,#2a2a2a);border-radius:10px;padding:10px 16px;display:flex;flex-direction:column;gap:6px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <span style="font-size:13px;color:var(--text-muted,#aaa);">🏆 Premio polla</span>
+            <span style="font-size:14px;font-weight:700;color:#ef4444;">- ${fmtCOP(d.deduccion_premio)}</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <span style="font-size:13px;color:var(--text-muted,#aaa);">💸 Otro gasto</span>
+            <span style="font-size:14px;font-weight:700;color:#ef4444;">- ${fmtCOP(d.deduccion_otro)}</span>
+          </div>
+          <div style="border-top:1px solid var(--border,#333);margin-top:4px;padding-top:6px;display:flex;justify-content:space-between;align-items:center;">
+            <span style="font-size:13px;color:var(--text-muted,#aaa);">Total deducciones</span>
+            <span style="font-size:15px;font-weight:800;color:#ef4444;">- ${fmtCOP(d.total_deducciones)}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── TOTAL NETO ─────────────────────────────────────────────── -->
+      <div style="background:linear-gradient(135deg,#16a34a22,#22c55e11);border:1.5px solid #22c55e55;border-radius:12px;padding:14px 18px;margin-bottom:14px;text-align:center;">
+        <div style="font-size:12px;color:#86efac;margin-bottom:4px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;">💰 Total neto recaudado</div>
+        <div style="font-size:28px;font-weight:900;color:#22c55e;">${fmtCOP(d.total_neto)}</div>
+        <div style="font-size:12px;color:#86efac;margin-top:4px;">Meta: ${fmtCOP(d.meta)} &nbsp;|&nbsp; ${d.pct}% alcanzado</div>
+      </div>
+
+      <!-- ── PERSONAS ───────────────────────────────────────────────── -->
+      <div style="margin-bottom:4px;">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-muted,#888);margin-bottom:8px;">👥 Personas</div>
+        <div class="stats-grid-modal">
+          <div class="stat-m"><div class="stat-m-val">${d.total_miembros_count}</div><div class="stat-m-lbl">Miembros</div></div>
+          <div class="stat-m"><div class="stat-m-val" style="color:#eab308;">${d.invitados_count}</div><div class="stat-m-lbl">Invitados total</div></div>
+          <div class="stat-m"><div class="stat-m-val" style="color:#22c55e;">${d.invitados_activos}</div><div class="stat-m-lbl">Invitados activos</div></div>
+          <div class="stat-m"><div class="stat-m-val" style="color:#0095f6;">${d.participantes_polla}</div><div class="stat-m-lbl">Juegan polla</div></div>
+          <div class="stat-m"><div class="stat-m-val" style="color:#ef4444;">${d.pendientes_verificacion}</div><div class="stat-m-lbl">Eventos pendientes</div></div>
+        </div>
+      </div>
+
+      <!-- ── BOTÓN EXPORTAR ─────────────────────────────────────────── -->
+      <div style="margin-top:16px;">
+        <button onclick="exportarEstadisticasExcel()" style="width:100%;background:#16a34a;color:#fff;border:none;border-radius:10px;padding:12px 0;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:opacity .2s;" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">
+          <span class="material-symbols-outlined" style="font-size:18px;">download</span>
+          Exportar Excel completo
+        </button>
       </div>
     `;
   } catch(e) {
     body.innerHTML = '<div class="fin-loading">Error al cargar estadísticas.</div>';
   }
+}
+
+async function exportarEstadisticasExcel() {
+  const d = _statsData;
+  if (!d) { alert('Carga las estadísticas primero.'); return; }
+
+  if (typeof XLSX === 'undefined') {
+    await new Promise((res, rej) => {
+      const s = document.createElement('script');
+      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+      s.onload = res; s.onerror = rej;
+      document.head.appendChild(s);
+    });
+  }
+
+  const hoy = new Date().toLocaleDateString('es-CO');
+  const wb  = XLSX.utils.book_new();
+
+  const C = {
+    verde:'16A34A', verdeOsc:'0D5C2E', verdePas:'E8F5E9', verdeCla:'F0FDF4',
+    rojo:'DC2626', rojoPas:'FEE2E2',
+    azul:'1A5276', azulPas:'EBF5FB',
+    amar:'B8860B', amarPas:'FFFDE7',
+    morado:'7C6AF7', moradoPas:'EDE9FE',
+    grisOsc:'1F2937', grisMed:'6B7280', grisCla:'F9FAFB',
+    blanco:'FFFFFF', borde:'E5E7EB', bordeOsc:'D1D5DB',
+  };
+  function bd(c) { const l={style:'thin',color:{rgb:c||C.borde}}; return {top:l,bottom:l,left:l,right:l}; }
+  const ST = {
+    titulo:   {font:{bold:true,sz:16,name:'Arial',color:{rgb:C.blanco}},  fill:{fgColor:{rgb:C.verde}},    alignment:{horizontal:'center',vertical:'center'}},
+    sub:      {font:{sz:10,name:'Arial',color:{rgb:C.grisMed}},           fill:{fgColor:{rgb:C.grisCla}},  alignment:{horizontal:'left',vertical:'center'}, border:bd(C.borde)},
+    seccion:  {font:{bold:true,sz:11,name:'Arial',color:{rgb:C.blanco}},  fill:{fgColor:{rgb:C.grisOsc}},  alignment:{horizontal:'left',vertical:'center'}},
+    header:   {font:{bold:true,sz:10,name:'Arial',color:{rgb:C.blanco}},  fill:{fgColor:{rgb:C.azul}},     alignment:{horizontal:'center',vertical:'center'}, border:bd(C.azul)},
+    lbl:      {font:{sz:10,name:'Arial',color:{rgb:C.grisOsc}},                                            alignment:{horizontal:'left',vertical:'center'},  border:bd(C.borde)},
+    val:      {font:{bold:true,sz:11,name:'Arial',color:{rgb:C.verdeOsc}},                                 alignment:{horizontal:'right',vertical:'center'}, numFmt:'"$"#,##0', border:bd(C.borde)},
+    valRojo:  {font:{bold:true,sz:11,name:'Arial',color:{rgb:C.rojo}},                                     alignment:{horizontal:'right',vertical:'center'}, numFmt:'"$"#,##0', border:bd(C.borde)},
+    valMorado:{font:{bold:true,sz:11,name:'Arial',color:{rgb:C.morado}},                                   alignment:{horizontal:'right',vertical:'center'}, numFmt:'"$"#,##0', border:bd(C.morado)},
+    totBruto: {font:{bold:true,sz:12,name:'Arial',color:{rgb:C.verdeOsc}},fill:{fgColor:{rgb:C.verdePas}}, alignment:{horizontal:'right',vertical:'center'}, numFmt:'"$"#,##0', border:bd(C.verde)},
+    totNeto:  {font:{bold:true,sz:14,name:'Arial',color:{rgb:C.verde}},   fill:{fgColor:{rgb:C.verdePas}}, alignment:{horizontal:'right',vertical:'center'}, numFmt:'"$"#,##0', border:bd(C.verde)},
+    totNLbl:  {font:{bold:true,sz:12,name:'Arial',color:{rgb:C.verde}},   fill:{fgColor:{rgb:C.verdePas}}, alignment:{horizontal:'left',vertical:'center'},  border:bd(C.verde)},
+    celda:    {font:{sz:10,name:'Arial'}, alignment:{vertical:'center'},   border:bd(C.borde)},
+    celdaAlt: {font:{sz:10,name:'Arial'}, fill:{fgColor:{rgb:C.grisCla}}, alignment:{vertical:'center'},   border:bd(C.borde)},
+    monto:    {font:{bold:true,sz:10,name:'Arial',color:{rgb:C.verdeOsc}},alignment:{horizontal:'right',vertical:'center'}, numFmt:'"$"#,##0', border:bd(C.borde)},
+    montoAlt: {font:{bold:true,sz:10,name:'Arial',color:{rgb:C.verdeOsc}},fill:{fgColor:{rgb:C.grisCla}},  alignment:{horizontal:'right',vertical:'center'}, numFmt:'"$"#,##0', border:bd(C.borde)},
+    vacio:    {fill:{fgColor:{rgb:C.grisCla}}, border:bd(C.borde)},
+    num:      {font:{sz:10,name:'Arial'}, alignment:{horizontal:'center',vertical:'center'}, border:bd(C.borde)},
+    numAlt:   {font:{sz:10,name:'Arial'}, fill:{fgColor:{rgb:C.grisCla}}, alignment:{horizontal:'center',vertical:'center'}, border:bd(C.borde)},
+  };
+  function v(val,s,t='n'){return {v:val,t:t,s:s};}
+  function vs(val,s){return {v:val,t:'s',s:s};}
+
+  // ═══════════════════════════════════════════════════════════
+  // HOJA 1 — RESUMEN FINANCIERO
+  // ═══════════════════════════════════════════════════════════
+  (function(){
+    const COLS=3;
+    const ws=[];
+    const e=()=>vs('',ST.vacio);
+    const row=(...cells)=>cells;
+
+    ws.push([vs('RESUMEN FINANCIERO — FAMILIA',ST.titulo),vs('',ST.titulo),vs('',ST.titulo)]);
+    ws.push([vs(`Generado el ${hoy}`,ST.sub),vs('',ST.sub),vs('',ST.sub)]);
+    ws.push([e(),e(),e()]);
+
+    // Ingresos
+    ws.push([vs('📥 INGRESOS',ST.seccion),vs('',ST.seccion),vs('',ST.seccion)]);
+    ws.push([vs('Concepto',ST.header),vs('Monto (COP)',ST.header),vs('',ST.header)]);
+    ws.push([vs('Aportes miembros/admin',ST.lbl),  v(d.total_aportes_miembros, ST.val), e()]);
+    ws.push([vs('Aportes invitados',ST.lbl),        v(d.total_aportes_invitados,ST.val), e()]);
+    ws.push([vs('Polla — miembros',ST.lbl),         v(d.total_polla_miembros,   ST.val), e()]);
+    ws.push([vs('Polla — invitados',ST.lbl),        v(d.total_polla_invitados,  ST.val), e()]);
+    ws.push([vs('SUMA BRUTA TOTAL',{...ST.lbl,font:{bold:true,sz:11,name:'Arial'}}), v(d.suma_total_bruta,ST.totBruto), e()]);
+    ws.push([e(),e(),e()]);
+
+    // Deducciones
+    ws.push([vs('📤 DEDUCCIONES',ST.seccion),vs('',ST.seccion),vs('',ST.seccion)]);
+    ws.push([vs('Concepto',ST.header),vs('Monto (COP)',ST.header),vs('',ST.header)]);
+    ws.push([vs('🏆 Premio polla',ST.lbl), v(d.deduccion_premio,ST.valRojo), e()]);
+    ws.push([vs('💸 Otro gasto',ST.lbl),   v(d.deduccion_otro,  ST.valRojo), e()]);
+    ws.push([vs('TOTAL DEDUCCIONES',{...ST.lbl,font:{bold:true,sz:11,name:'Arial'}}), v(d.total_deducciones,{...ST.valRojo,font:{bold:true,sz:12,name:'Arial',color:{rgb:C.rojo}}}), e()]);
+    ws.push([e(),e(),e()]);
+
+    // Neto
+    ws.push([vs('💰 TOTAL NETO RECAUDADO',ST.totNLbl), v(d.total_neto,ST.totNeto), vs(`Meta: $${d.meta.toLocaleString('es-CO')} (${d.pct}%)`,{font:{sz:10,name:'Arial',color:{rgb:C.grisMed}},alignment:{horizontal:'center',vertical:'center'},border:bd(C.borde)})]);
+    ws.push([e(),e(),e()]);
+
+    // Personas
+    ws.push([vs('👥 PERSONAS',ST.seccion),vs('',ST.seccion),vs('',ST.seccion)]);
+    ws.push([vs('Concepto',ST.header),vs('Cantidad',ST.header),vs('',ST.header)]);
+    [
+      ['Miembros/admin registrados', d.total_miembros_count],
+      ['Participantes polla',         d.participantes_polla],
+      ['Invitados total',             d.invitados_count],
+      ['Invitados activos',           d.invitados_activos],
+      ['Invitados bloqueados',        d.invitados_count - d.invitados_activos],
+      ['Eventos pendientes verif.',   d.pendientes_verificacion],
+    ].forEach(([lbl,cnt],i)=>{
+      ws.push([vs(lbl,i%2?ST.celdaAlt:ST.celda), {v:cnt,t:'n',s:i%2?ST.numAlt:ST.num}, e()]);
+    });
+
+    const sheet = XLSX.utils.aoa_to_sheet(ws);
+    sheet['!cols']=[{wch:36},{wch:22},{wch:26}];
+    // merges: titulo, sub, secciones, neto row col0-1 ya escritos en 3 cols
+    sheet['!merges']=[
+      {s:{r:0,c:0},e:{r:0,c:2}},{s:{r:1,c:0},e:{r:1,c:2}},{s:{r:2,c:0},e:{r:2,c:2}},
+      {s:{r:3,c:0},e:{r:3,c:2}},{s:{r:11,c:0},e:{r:11,c:2}},{s:{r:17,c:0},e:{r:17,c:2}},
+      {s:{r:22,c:0},e:{r:22,c:2}},
+    ];
+    sheet['!rows'] = [{hpt:28},{hpt:18}];
+    XLSX.utils.book_append_sheet(wb, sheet, 'Resumen');
+  })();
+
+  // ═══════════════════════════════════════════════════════════
+  // HOJA 2 — DETALLE MIEMBROS
+  // ═══════════════════════════════════════════════════════════
+  (function(){
+    const miembros = d.detalle_miembros || [];
+    const ws=[];
+    ws.push([vs('DETALLE MIEMBROS / ADMIN',ST.titulo),vs('',ST.titulo),vs('',ST.titulo),vs('',ST.titulo)]);
+    ws.push([vs(`Generado el ${hoy}`,ST.sub),vs('',ST.sub),vs('',ST.sub),vs('',ST.sub)]);
+    ws.push([vs('',ST.vacio),vs('',ST.vacio),vs('',ST.vacio),vs('',ST.vacio)]);
+    ws.push(['#','NOMBRE','USUARIO','ROL','TOTAL APORTES','PAGADO VERIF.'].map(h=>vs(h,ST.header)));
+    miembros.forEach((m,i)=>{
+      const alt=i%2===1;
+      ws.push([
+        {v:i+1,t:'n',s:alt?ST.numAlt:ST.num},
+        vs(m.nombre||'',alt?ST.celdaAlt:ST.celda),
+        vs('@'+(m.usuario||''),alt?ST.celdaAlt:ST.celda),
+        vs(m.rol||'',alt?ST.celdaAlt:ST.celda),
+        v(m.total_aportes||0, alt?ST.montoAlt:ST.monto),
+        v(m.pagado||0,        alt?ST.montoAlt:ST.monto),
+      ]);
+    });
+    // Total
+    const sumA = miembros.reduce((s,m)=>s+(m.total_aportes||0),0);
+    const sumP = miembros.reduce((s,m)=>s+(m.pagado||0),0);
+    ws.push([vs('',ST.vacio),vs('TOTAL',{...ST.lbl,font:{bold:true,sz:11,name:'Arial'}}),vs('',ST.vacio),vs('',ST.vacio),v(sumA,ST.totBruto),v(sumP,ST.totBruto)]);
+    const sheet=XLSX.utils.aoa_to_sheet(ws);
+    sheet['!cols']=[{wch:5},{wch:28},{wch:20},{wch:10},{wch:20},{wch:20}];
+    sheet['!merges']=[{s:{r:0,c:0},e:{r:0,c:5}},{s:{r:1,c:0},e:{r:1,c:5}},{s:{r:2,c:0},e:{r:2,c:5}}];
+    XLSX.utils.book_append_sheet(wb,sheet,'Miembros');
+  })();
+
+  // ═══════════════════════════════════════════════════════════
+  // HOJA 3 — DETALLE INVITADOS
+  // ═══════════════════════════════════════════════════════════
+  (function(){
+    const inv = d.detalle_invitados || [];
+    const ws=[];
+    ws.push([vs('DETALLE INVITADOS',ST.titulo),...Array(4).fill(vs('',ST.titulo))]);
+    ws.push([vs(`Generado el ${hoy}`,ST.sub),...Array(4).fill(vs('',ST.sub))]);
+    ws.push([...Array(5).fill(vs('',ST.vacio))]);
+    ws.push(['#','NOMBRE','USUARIO','RESPONSABLE','TOTAL APORTES','PAGADO VERIF.'].map(h=>vs(h,ST.header)));
+    inv.forEach((m,i)=>{
+      const alt=i%2===1;
+      ws.push([
+        {v:i+1,t:'n',s:alt?ST.numAlt:ST.num},
+        vs(m.nombre||'',alt?ST.celdaAlt:ST.celda),
+        vs('@'+(m.usuario||''),alt?ST.celdaAlt:ST.celda),
+        vs(m.responsable||'—',alt?ST.celdaAlt:ST.celda),
+        v(m.total_aportes||0,alt?ST.montoAlt:ST.monto),
+        v(m.pagado||0,       alt?ST.montoAlt:ST.monto),
+      ]);
+    });
+    const sumA=inv.reduce((s,m)=>s+(m.total_aportes||0),0);
+    const sumP=inv.reduce((s,m)=>s+(m.pagado||0),0);
+    ws.push([vs('',ST.vacio),vs('TOTAL',{...ST.lbl,font:{bold:true,sz:11,name:'Arial'}}),vs('',ST.vacio),vs('',ST.vacio),v(sumA,ST.totBruto),v(sumP,ST.totBruto)]);
+    const sheet=XLSX.utils.aoa_to_sheet(ws);
+    sheet['!cols']=[{wch:5},{wch:28},{wch:20},{wch:22},{wch:20},{wch:20}];
+    sheet['!merges']=[{s:{r:0,c:0},e:{r:0,c:5}},{s:{r:1,c:0},e:{r:1,c:5}},{s:{r:2,c:0},e:{r:2,c:5}}];
+    XLSX.utils.book_append_sheet(wb,sheet,'Invitados');
+  })();
+
+  // ═══════════════════════════════════════════════════════════
+  // HOJA 4 — POLLA
+  // ═══════════════════════════════════════════════════════════
+  (function(){
+    const polla = d.detalle_polla || [];
+    const ws=[];
+    ws.push([vs('PAGOS POLLA',ST.titulo),...Array(3).fill(vs('',ST.titulo))]);
+    ws.push([vs(`Generado el ${hoy}`,ST.sub),...Array(3).fill(vs('',ST.sub))]);
+    ws.push([...Array(4).fill(vs('',ST.vacio))]);
+    ws.push(['#','NOMBRE','USUARIO','ROL','FASES PAGADAS','TOTAL POLLA'].map(h=>vs(h,ST.header)));
+    polla.forEach((m,i)=>{
+      const alt=i%2===1;
+      ws.push([
+        {v:i+1,t:'n',s:alt?ST.numAlt:ST.num},
+        vs(m.nombre||'',alt?ST.celdaAlt:ST.celda),
+        vs('@'+(m.usuario||''),alt?ST.celdaAlt:ST.celda),
+        vs(m.rol||'',alt?ST.celdaAlt:ST.celda),
+        {v:m.fases_pagadas||0,t:'n',s:alt?ST.numAlt:ST.num},
+        v(m.total_polla||0,alt?ST.montoAlt:ST.monto),
+      ]);
+    });
+    const sumP=polla.reduce((s,m)=>s+(m.total_polla||0),0);
+    ws.push([vs('',ST.vacio),vs('TOTAL',{...ST.lbl,font:{bold:true,sz:11,name:'Arial'}}),vs('',ST.vacio),vs('',ST.vacio),vs('',ST.vacio),v(sumP,ST.totBruto)]);
+    const sheet=XLSX.utils.aoa_to_sheet(ws);
+    sheet['!cols']=[{wch:5},{wch:28},{wch:20},{wch:12},{wch:16},{wch:20}];
+    sheet['!merges']=[{s:{r:0,c:0},e:{r:0,c:5}},{s:{r:1,c:0},e:{r:1,c:5}},{s:{r:2,c:0},e:{r:2,c:5}}];
+    XLSX.utils.book_append_sheet(wb,sheet,'Polla');
+  })();
+
+  const fecha=new Date().toISOString().slice(0,10);
+  XLSX.writeFile(wb, `Recaudacion_Familia_${fecha}.xlsx`);
 }
 
 // ── Editar evento rápido ─────────────────────────────────────────────────────
