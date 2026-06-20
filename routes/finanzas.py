@@ -844,13 +844,13 @@ def api_estadisticas():
         return jsonify({"ok": False, "error": "Sin permiso"}), 403
     con = get_db()
 
-    # ── Aportes PAGADOS de MIEMBROS/ADMIN (solo verificados) ─────────────────
+    # ── Aportes de MIEMBROS/ADMIN (tabla aportes, sin filtro verificado
+    #    porque los miembros registran via eventos_recaudacion que tiene su propio estado)
     total_aportes_miembros = float(con.execute("""
         SELECT COALESCE(SUM(a.monto),0)
         FROM aportes a
         JOIN usuarios u ON u.id = a.usuario_id
         WHERE u.rol IN ('miembro','admin')
-          AND a.verificado = 1
     """).fetchone()[0])
 
     # ── Aportes PAGADOS de INVITADOS (solo verificados)
