@@ -1,6 +1,7 @@
 from flask import Blueprint, render_template, request, redirect, session, jsonify
 from database import get_db
 from functools import wraps
+from werkzeug.security import generate_password_hash
 
 admin_bp = Blueprint("admin", __name__)
 
@@ -313,6 +314,35 @@ def polla_estado():
     }
     return jsonify(ok=True, msg=msgs.get(nuevo_estado, "Estado actualizado"),
                    polla_activo=polla_activo, polla_estado=nuevo_estado)
+
+
+# ── Resetear contraseña ──────────────────────────────────────────────────────
+
+@admin_bp.route("/admin/resetear_password", methods=["POST"])
+@admin_required
+def resetear_password():
+    """Admin asigna una nueva contraseña temporal a un usuario."""
+    uid_target  = request.form.get("uid", type=int)
+    nueva_pwd   = request.form.get("nueva_password", "").strip()
+
+    if not uid_target or not nueva_pwd:
+        return jsonify(ok=False, msg="Datos inválidos"), 400
+    if len(nueva_pwd) < 8:
+        return jsonify(ok=False, msg="La contraseña debe tener al menos 8 caracteres"), 400
+    if uid_target == session.get("uid"):
+        return jsonify(ok=False, msg="Para cambiar tu propia contraseña usa Ajustes"), 403
+
+    con = get_db()
+    row = con.execute("SELECT nombre FROM usuarios WHERE id=%s", (uid_target,)).fetchone()
+    if not row:
+        return jsonify(ok=False, msg="Usuario no encontrado"), 404
+
+    nuevo_hash = generate_password_hash(nueva_pwd)
+    con.execute("UPDATE usuarios SET password=%s WHERE id=%s", (nuevo_hash, uid_target))
+    _registrar_auditoria(con, session["uid"], uid_target,
+        "resetear_password", "password", "***", "***", "Reset por admin")
+    con.commit()
+    return jsonify(ok=True, msg=f"Contraseña de {row['nombre']} actualizada correctamente")
 
 
 # ── Auditoría ─────────────────────────────────────────────────────────────────

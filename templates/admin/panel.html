@@ -248,6 +248,11 @@
           <button class="act-btn act-btn--del" onclick="eliminar({{ u.id }}, '{{ u.nombre }}')">
             <span class="material-symbols-outlined">delete</span>
           </button>
+          <button class="act-btn" style="color:#f97316;border-color:rgba(249,115,22,.4)"
+                  onclick="abrirResetPassword({{ u.id }}, '{{ u.nombre }}')"
+                  title="Resetear contraseña">
+            <span class="material-symbols-outlined">lock_reset</span> Clave
+          </button>
           {% if u.get('verified') %}
           <button class="act-btn act-btn--verified-on"
                   onclick="toggleVerificado({{ u.id }}, this)"
@@ -1305,6 +1310,65 @@ function filtrar() {
   cargarParticipantes();
   cargarAuditoria();
 })();
+</script>
+
+<!-- ── Modal Reset Contraseña ─────────────────────────────────── -->
+<div id="modal-reset-pwd" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9999;align-items:center;justify-content:center;">
+  <div style="background:#1e1e2e;border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:28px 32px;width:100%;max-width:380px;box-shadow:0 20px 60px rgba(0,0,0,.5)">
+    <h3 style="margin:0 0 6px;font-size:1.1rem;color:#f1f1f1">🔑 Resetear contraseña</h3>
+    <p id="reset-nombre-label" style="margin:0 0 18px;font-size:.85rem;color:#a0a0b8"></p>
+    <label style="display:block;font-size:.8rem;color:#a0a0b8;margin-bottom:6px">Nueva contraseña (mín. 8 caracteres)</label>
+    <input id="reset-pwd-input" type="text" placeholder="Escribe la nueva contraseña..."
+      style="width:100%;box-sizing:border-box;padding:10px 12px;background:#2a2a3e;border:1px solid rgba(255,255,255,.15);border-radius:8px;color:#f1f1f1;font-size:.95rem;outline:none;margin-bottom:18px">
+    <div style="display:flex;gap:10px;justify-content:flex-end">
+      <button onclick="cerrarResetPassword()"
+        style="padding:8px 18px;border-radius:8px;border:1px solid rgba(255,255,255,.15);background:transparent;color:#a0a0b8;cursor:pointer;font-size:.9rem">
+        Cancelar
+      </button>
+      <button onclick="confirmarResetPassword()"
+        style="padding:8px 18px;border-radius:8px;border:none;background:#f97316;color:#fff;cursor:pointer;font-size:.9rem;font-weight:600">
+        Guardar contraseña
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+let _resetUid = null;
+
+function abrirResetPassword(uid, nombre) {
+  _resetUid = uid;
+  document.getElementById('reset-nombre-label').textContent = 'Usuario: ' + nombre;
+  document.getElementById('reset-pwd-input').value = '';
+  const modal = document.getElementById('modal-reset-pwd');
+  modal.style.display = 'flex';
+  setTimeout(() => document.getElementById('reset-pwd-input').focus(), 50);
+}
+
+function cerrarResetPassword() {
+  document.getElementById('modal-reset-pwd').style.display = 'none';
+  _resetUid = null;
+}
+
+async function confirmarResetPassword() {
+  const pwd = document.getElementById('reset-pwd-input').value.trim();
+  if (!pwd || pwd.length < 8) {
+    alert('La contraseña debe tener al menos 8 caracteres.');
+    return;
+  }
+  const r = await post('/admin/resetear_password', { uid: _resetUid, nueva_password: pwd });
+  if (r.ok) {
+    cerrarResetPassword();
+    alert('✅ ' + r.msg);
+  } else {
+    alert('❌ ' + (r.msg || 'Error al resetear la contraseña'));
+  }
+}
+
+// Cerrar modal al hacer clic fuera
+document.getElementById('modal-reset-pwd').addEventListener('click', function(e) {
+  if (e.target === this) cerrarResetPassword();
+});
 </script>
 </body>
 </html>
