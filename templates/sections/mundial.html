@@ -3219,6 +3219,10 @@ function _renderBracket(bracket, eliPartidos) {
     return `<div class="bk-col bk-col--centro">
       <div class="bk-col-label">Final</div>
       <div class="bk-col-body bk-col-body--centro">
+        <div class="bk-final-header">
+          <img src="/static/world-cup-white.webp" class="bk-trophy-img" alt="Copa del Mundo" />
+          <div class="bk-ganador-label">CAMPEÓN</div>
+        </div>
         <div class="bk-group bk-group--final">
           <div class="bk-sw bk-sw--final">${_card(104, {hideId:true})}</div>
         </div>
@@ -3299,6 +3303,26 @@ function _renderBracket(bracket, eliPartidos) {
       gap: 2px;
     }
     .bk-group--final { flex: 0 0 auto; justify-content: center; }
+    .bk-final-header {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      margin-bottom: 6px;
+    }
+    .bk-trophy-img {
+      width: 54px;
+      height: auto;
+      filter: drop-shadow(0 0 8px rgba(255,215,0,0.45));
+    }
+    .bk-ganador-label {
+      font-family: 'Bebas Neue','DM Sans',sans-serif;
+      font-size: .78rem;
+      letter-spacing: .12em;
+      color: #FFD700;
+      text-align: center;
+      text-transform: uppercase;
+    }
     .bk-group--3rd   { flex: 0 0 auto; justify-content: center; }
 
     /* slot-wrap: centres the card inside the group slot */
