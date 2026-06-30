@@ -2444,6 +2444,17 @@
       .replace(/^<tr[^>]*>/, '').replace(/<\/tr>$/, '');
   }
 
+  // ── Helper: pide a Cloudinary una versión nítida/recortada del avatar ─
+  // Inserta una transformación (w_96,h_96,c_fill,g_face,q_auto,f_auto,dpr_auto)
+  // justo después de "/upload/" para que la foto se vea bien incluso en
+  // pantallas retina, en vez de mostrar la imagen original recortada a lo bruto.
+  function _rkv2SharpFoto(url) {
+    if (!url) return url;
+    if (url.indexOf('res.cloudinary.com') === -1 || url.indexOf('/upload/') === -1) return url;
+    if (/\/upload\/[^/]*w_/.test(url)) return url; // ya trae una transformación, no duplicar
+    return url.replace('/upload/', '/upload/w_96,h_96,c_fill,g_face,q_auto:best,f_auto,dpr_auto/');
+  }
+
   // ── HTML de una fila ─────────────────────────────────────────────────
   function _rkv2RowHTML(r, showPen, maxPron, tab) {
     const esYo = (+r.id === +_MI_ID_RKV2);
@@ -2464,11 +2475,10 @@
     else
       cambioHTML = `<span class="rkv2__cambio rkv2__cambio--eq" title="Sin cambio">—</span>`;
 
-    // Avatar — vuelve a usar la URL original tal cual (la transformación de
-    // Cloudinary se quitó porque rompía las fotos firmadas). Si por algún
-    // motivo la imagen falla, cae automáticamente al ícono por defecto.
+    // Avatar — pide a Cloudinary una versión nítida y bien recortada (evita el
+    // efecto "pixelado" que se veía en pantallas de PC/retina con la URL cruda)
     const avatarHTML = r.foto
-      ? `<img class="rkv2__avatar" src="${_esc(r.foto)}" alt="" loading="lazy" onerror="this.outerHTML='&lt;div class=&quot;rkv2__avatar&quot;&gt;👤&lt;/div&gt;'">`
+      ? `<img class="rkv2__avatar" src="${_esc(_rkv2SharpFoto(r.foto))}" alt="" loading="lazy">`
       : `<div class="rkv2__avatar">👤</div>`;
 
     // Barra de participación
