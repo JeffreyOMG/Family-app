@@ -1566,13 +1566,22 @@ def ranking_mundial_v2():
     # ── Últimos 5 resultados reales por usuario ───────────────────────────
     # Une grupos y eliminatorias, ordena por partido_id DESC, toma los 5 más recientes
     # partido_id de eli se desplaza +1000 para que queden después cronológicamente
+    # Orden cronológico real de los 16avos (no numérico — IDs 74,77 van DESPUÉS del 76,75)
+    # Luego el resto de fases en orden de juego
+    _ELI_ORDEN_CRONO = {
+        73:1001, 76:1002, 74:1003, 75:1004, 78:1005, 77:1006, 79:1007, 80:1008,
+        82:1009, 81:1010, 84:1011, 83:1012, 85:1013, 88:1014, 86:1015, 87:1016,
+        90:1017, 89:1018, 91:1019, 92:1020, 93:1021, 94:1022, 95:1023, 96:1024,
+        97:1025, 98:1026, 99:1027,100:1028,101:1029,102:1030,103:1031,104:1032,
+    }
+
     ult5_rows = con.execute("""
         SELECT usuario_id, puntos, partido_id AS pid, 'g' AS fase
         FROM pronosticos pr
         JOIN partidos_mundial pm ON pm.id = pr.partido_id
              AND pm.bloqueado=1 AND pm.goles_local IS NOT NULL
         UNION ALL
-        SELECT usuario_id, puntos, partido_id + 1000 AS pid, 'e' AS fase
+        SELECT usuario_id, puntos, partido_id AS pid, 'e' AS fase
         FROM pronosticos_eli pr
         JOIN partidos_eliminacion pe ON pe.id = pr.partido_id
              AND pe.bloqueado=1 AND pe.goles_local IS NOT NULL
@@ -1581,7 +1590,12 @@ def ranking_mundial_v2():
     from collections import defaultdict
     _ult5 = defaultdict(list)
     for row in ult5_rows:
-        _ult5[row["usuario_id"]].append((row["pid"], row["puntos"], row["fase"]))
+        # Para eliminatorias: usar posición cronológica real; para grupos: ID directo
+        if row["fase"] == 'e':
+            sort_key = _ELI_ORDEN_CRONO.get(row["pid"], 1000 + row["pid"])
+        else:
+            sort_key = row["pid"]
+        _ult5[row["usuario_id"]].append((sort_key, row["puntos"], row["fase"]))
 
     def _to_label(puntos, fase):
         if fase == 'g':
@@ -1595,7 +1609,7 @@ def ranking_mundial_v2():
 
     ult5_map = {}
     for uid, entries in _ult5.items():
-        # Los 5 más recientes (mayor pid = más reciente), luego invertir: izq=antiguo, der=reciente
+        # Los 5 más recientes (mayor sort_key = más reciente), luego invertir: izq=antiguo, der=reciente
         recent = sorted(entries, key=lambda x: -x[0])[:5]
         recent.reverse()
         ult5_map[uid] = [_to_label(p, f) for _, p, f in recent]
