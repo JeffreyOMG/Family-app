@@ -1998,14 +1998,39 @@
 
       /* ── Panel de estadísticas expandible ─────────── */
       .rkv2__mas-btn {
-        background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.14);
-        color: rgba(255,255,255,.55); border-radius: 6px;
-        padding: 3px 8px; font-size: .72rem; cursor: pointer;
-        transition: background .15s, color .15s; white-space: nowrap;
+        background: linear-gradient(135deg, rgba(255,77,141,.14), rgba(255,77,141,.05));
+        border: 1px solid rgba(255,77,141,.32);
+        color: var(--accent, #ff4d8d); border-radius: 20px;
+        padding: 4px 10px 4px 11px; font-size: .68rem; font-weight: 700;
+        letter-spacing: .01em; cursor: pointer; white-space: nowrap;
+        display: inline-flex; align-items: center; gap: 4px;
+        transition: background .15s, transform .1s;
       }
-      .rkv2__mas-btn:hover { background: rgba(255,255,255,.14); color: #fff; }
-      body:not(.dark-mode) .rkv2__mas-btn { background: rgba(0,0,0,.05); border-color: rgba(0,0,0,.12); color: rgba(0,0,0,.5); }
-      body:not(.dark-mode) .rkv2__mas-btn:hover { background: rgba(0,0,0,.09); color: rgba(0,0,0,.8); }
+      .rkv2__mas-btn:hover { background: rgba(255,77,141,.22); }
+      .rkv2__mas-btn:active { transform: scale(.94); }
+      .rkv2__mas-btn .rkv2__mas-ic { font-size: .6rem; transition: transform .25s ease; display: inline-block; }
+      .rkv2__mas-btn.is-open .rkv2__mas-ic { transform: rotate(180deg); }
+      body:not(.dark-mode) .rkv2__mas-btn { background: rgba(255,77,141,.08); border-color: rgba(255,77,141,.28); }
+      body:not(.dark-mode) .rkv2__mas-btn:hover { background: rgba(255,77,141,.16); }
+
+      .rkv2__chip {
+        display: inline-flex; align-items: center; gap: 3px;
+        padding: 1.5px 7px; border-radius: 8px;
+        font-size: .62rem; font-weight: 700; margin-right: 4px; margin-top: 2px;
+        white-space: nowrap;
+      }
+      .rkv2__chip--green { background: rgba(76,175,80,.15); color: #4caf50; }
+      .rkv2__chip--blue  { background: rgba(33,150,243,.15); color: #2196f3; }
+
+      .rkv2__leader-box {
+        grid-column: 1/-1; display: flex; flex-direction: column; gap: 2px;
+        padding: 9px 12px; border-radius: 8px;
+        background: rgba(255,255,255,.04); border-left: 3px solid #f5c518;
+      }
+      body:not(.dark-mode) .rkv2__leader-box { background: rgba(0,0,0,.03); }
+      .rkv2__leader-title { font-size: .78rem; font-weight: 800; line-height: 1.2; }
+      .rkv2__leader-desc { font-size: .68rem; color: rgba(255,255,255,.55); line-height: 1.35; }
+      body:not(.dark-mode) .rkv2__leader-desc { color: rgba(0,0,0,.5); }
 
       .rkv2__stats-row td {
         padding: 0 !important;
@@ -2328,7 +2353,7 @@
       <td style="text-align:right;opacity:.62;font-size:.81rem;">${r.exactos}</td>
       <td style="text-align:right;opacity:.62;font-size:.81rem;">${r.ganadores}</td>
       <td style="min-width:52px;">${partHTML}</td>
-      <td><button class="rkv2__mas-btn" onclick="_rkv2ToggleStats('${r.id}', '${tab}', this)">+ Más</button></td>
+      <td><button class="rkv2__mas-btn" onclick="_rkv2ToggleStats('${r.id}', '${tab}', this)">Más <span class="rkv2__mas-ic">▾</span></button></td>
     </tr>`;
   }
 
@@ -2357,10 +2382,12 @@
     const existingRow = panel.querySelector('tr.rkv2__stats-row[data-stats-uid="' + uid + '"]');
     if (existingRow) {
       existingRow.remove();
-      btn.textContent = '+ Más';
+      btn.classList.remove('is-open');
+      btn.innerHTML = 'Más <span class="rkv2__mas-ic">▾</span>';
       return;
     }
-    btn.textContent = '– Menos';
+    btn.classList.add('is-open');
+    btn.innerHTML = 'Menos <span class="rkv2__mas-ic">▾</span>';
     const keyMap = { global: 'ranking_global', grupos: 'ranking_grupos', eli: 'ranking_eli' };
     const rows = (_rkv2Cache || {})[keyMap[tab]] || [];
     const r = rows.find(x => String(x.id) === String(uid));
@@ -2380,10 +2407,57 @@
     const pctFallo    = hechos > 0 ? Math.round(fallos    / hechos * 100) : 0;
     const pctPart     = total  > 0 ? Math.round(hechos    / total  * 100) : 0;
     const pctSin      = total  > 0 ? Math.round(sinPron   / total  * 100) : 0;
-    const allPts      = rows.map(x => x.puntos || 0);
-    const maxPts      = Math.max(...allPts, 1);
-    const pctPrimero  = Math.round((r.puntos / maxPts) * 100);
     const colSpan     = (tab !== 'grupos') ? 9 : 8;
+
+    // ── Comparación real contra el líder (no por puesto, por puntos + desempates oficiales) ──
+    const leader = rows.find(x => x.posicion === 1) || rows[0] || r;
+    const isLeader = String(leader.id) === String(r.id);
+    const ptsDiff = (leader.puntos || 0) - (r.puntos || 0);
+
+    let leaderColor = '#f5c518', leaderTitle = '', leaderDesc = '', leaderPct = 0;
+
+    if (isLeader) {
+      leaderTitle = '🏆 Vas líder';
+      leaderDesc  = 'Tienes la mayor cantidad de puntos del ranking.';
+      leaderColor = '#f5c518';
+      leaderPct   = 100;
+    } else if (ptsDiff > 0) {
+      leaderTitle = `Faltan ${ptsDiff} pts para alcanzar a ${leader.nombre}`;
+      leaderDesc  = `${leader.nombre} lleva ${leader.puntos} pts y ${r.nombre || 'este usuario'} lleva ${r.puntos} pts. Necesita sumar ${ptsDiff} pts más que ${leader.nombre} de aquí en adelante (por ejemplo, acertando más exactos o ganadores) para quedar 1°.`;
+      leaderColor = '#f5c518';
+      leaderPct   = Math.max(0, Math.min(100, Math.round((r.puntos / Math.max(leader.puntos, 1)) * 100)));
+    } else {
+      // Empatados en puntos → aplicar criterios oficiales de desempate en orden
+      const criterios = [
+        { label: 'penales acertados',    valR: r.penales || 0,         valL: leader.penales || 0 },
+        { label: 'resultados exactos',   valR: exactos,                valL: leader.exactos || 0 },
+        { label: 'ganadores acertados',  valR: ganadores,              valL: leader.ganadores || 0 },
+        { label: 'partidos sin pronosticar', valR: sinPron, valL: leader.sin_pronosticar || 0, lowerBetter: true },
+      ];
+      let resuelto = null;
+      for (const c of criterios) {
+        const lBetter = c.lowerBetter ? (c.valL < c.valR) : (c.valL > c.valR);
+        const rBetter = c.lowerBetter ? (c.valR < c.valL) : (c.valR > c.valL);
+        if (lBetter) { resuelto = { ganaLider: true,  c }; break; }
+        if (rBetter) { resuelto = { ganaLider: false, c }; break; }
+      }
+      if (!resuelto) {
+        leaderTitle = '🤝 Empate total con el líder';
+        leaderDesc  = 'Mismos puntos y mismos criterios de desempate. La FIFA definiría por sorteo.';
+        leaderColor = '#9c9c9c';
+        leaderPct   = 100;
+      } else if (resuelto.ganaLider) {
+        leaderTitle = '⚠️ Empatado en puntos, pero vas detrás';
+        leaderDesc  = `${leader.nombre} te supera en ${resuelto.c.label} (${resuelto.c.valL} vs ${resuelto.c.valR}). En caso de empatar de nuevo, necesitas superarlo ahí para quedar 1°.`;
+        leaderColor = '#ef5350';
+        leaderPct   = 75;
+      } else {
+        leaderTitle = '🥇 Empatado en puntos, pero vas adelante';
+        leaderDesc  = `Superas a ${leader.nombre} en ${resuelto.c.label} (${resuelto.c.valR} vs ${resuelto.c.valL}), ese es el primer criterio de desempate.`;
+        leaderColor = '#4caf50';
+        leaderPct   = 100;
+      }
+    }
 
     const statsRow = document.createElement('tr');
     statsRow.className = 'rkv2__stats-row';
@@ -2392,7 +2466,7 @@
       <div class="rkv2__stat-item">
         <span class="rkv2__stat-label">Aciertos totales</span>
         <span class="rkv2__stat-val" style="color:#4caf50">${aciertos} <small style="font-size:.65rem;opacity:.7">${pctAcierto}%</small></span>
-        <span class="rkv2__stat-sub">${exactos} exactos + ${ganadores} ganador</span>
+        <span class="rkv2__stat-sub"><span class="rkv2__chip rkv2__chip--green">⚽ ${exactos} exactos</span><span class="rkv2__chip rkv2__chip--blue">✓ ${ganadores} ganador</span></span>
         <span class="rkv2__stat-bar"><span class="rkv2__stat-fill rkv2__stat-fill--green" style="width:${pctAcierto}%"></span></span>
       </div>
       <div class="rkv2__stat-item">
@@ -2426,10 +2500,14 @@
         <span class="rkv2__stat-bar"><span class="rkv2__stat-fill rkv2__stat-fill--pink" style="width:${pctPart}%"></span></span>
       </div>
       <div class="rkv2__stat-item">
-        <span class="rkv2__stat-label">% de quedar 1°</span>
-        <span class="rkv2__stat-val" style="color:#f5c518">${pctPrimero}%</span>
+        <span class="rkv2__stat-label">Frente al líder</span>
+        <span class="rkv2__stat-val" style="color:${leaderColor}">${isLeader ? '🏆' : (ptsDiff > 0 ? '-' + ptsDiff + ' pts' : '0 pts')}</span>
         <span class="rkv2__stat-sub">Pos. ${r.posicion} de ${rows.length}</span>
-        <span class="rkv2__stat-bar"><span class="rkv2__stat-fill rkv2__stat-fill--yellow" style="width:${pctPrimero}%"></span></span>
+        <span class="rkv2__stat-bar"><span class="rkv2__stat-fill" style="width:${leaderPct}%;background:${leaderColor}"></span></span>
+      </div>
+      <div class="rkv2__leader-box" style="border-left-color:${leaderColor}">
+        <span class="rkv2__leader-title" style="color:${leaderColor}">${leaderTitle}</span>
+        <span class="rkv2__leader-desc">${leaderDesc}</span>
       </div>
       <div class="rkv2__stats-legend">
         <span class="rkv2__stats-legend-item"><span class="rkv2__stats-legend-dot" style="background:#4caf50"></span>Exacto</span>
@@ -3294,7 +3372,7 @@ const _MI_ID = {{ usuario.id }};
 // FASE ELIMINATORIA — PRONÓSTICOS
 // ══════════════════════════════════════════
 const _RONDA_IDS = {
-  r16:    [73,76,74,75,78,77,79,80,82,81,84,83,85,88,86,87],
+  r16:    [73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88],
   octavos:[89,90,91,92,93,94,95,96],
   cuartos:[97,98,99,100],
   semis:  [101,102],
@@ -3354,7 +3432,7 @@ function _renderEliRonda(ronda) {
     return;
   }
 
-  const parts = _eliData.filter(p => ids.includes(p.id)).sort((a,b) => ids.indexOf(a.id) - ids.indexOf(b.id));
+  const parts = _eliData.filter(p => ids.includes(p.id));
   if (!parts.length) {
     wrap.innerHTML = '<p style="text-align:center;opacity:.5;padding:30px;">Partidos aún no disponibles</p>'; return;
   }
@@ -3530,7 +3608,7 @@ async function _loadAdminEli() {
     _tercerosPorGrupo = data.terceros_por_grupo || {};
     const fases = ['Dieciseisavos','Octavos','Cuartos','Semifinales','Tercer puesto','Final'];
     wrap.innerHTML = fases.map(fase => {
-      const _faseIds = _RONDA_IDS[{Dieciseisavos:'r16',Octavos:'octavos',Cuartos:'cuartos',Semifinales:'semis'}[fase]] || []; const ps = data.partidos.filter(p => p.fase === fase).sort((a,b) => _faseIds.length ? _faseIds.indexOf(a.id)-_faseIds.indexOf(b.id) : a.id-b.id);
+      const ps = data.partidos.filter(p => p.fase === fase);
       if (!ps.length) return '';
       return `<div class="eli-ronda-label">${fase}</div>
         ${ps.map(p => _adminEliCardHTML(p)).join('')}`;
