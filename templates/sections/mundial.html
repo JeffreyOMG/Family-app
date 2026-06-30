@@ -2820,15 +2820,18 @@
 
     </div></td>`;
 
-    // Animar círculo SVG después de insertar en DOM
-    requestAnimationFrame(() => {
-      const el = document.getElementById(circleId);
-      if (el) {
-        const fill = el.querySelector('.rkv2__prob-circle__fill');
-        if (fill) setTimeout(() => { fill.style.strokeDashoffset = fill.dataset.offset; }, 80);
-      }
-    });
+    // Insertar primero en el DOM, luego animar el círculo
     tr.insertAdjacentElement('afterend', statsRow);
+
+    requestAnimationFrame(() => {
+      setTimeout(() => {
+        const el = document.getElementById(circleId);
+        if (el) {
+          const fill = el.querySelector('.rkv2__prob-circle__fill');
+          if (fill) fill.style.strokeDashoffset = fill.dataset.offset;
+        }
+      }, 80);
+    });
   }
 
   // ── Admin: reiniciar tracking de posiciones ──────────────────────────
