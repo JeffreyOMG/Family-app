@@ -1637,27 +1637,19 @@
     <style>
       /* ── Sub-tabs ─────────────────────────────────────── */
       .rkv2__tabs {
-        display: flex; gap: 4px; margin-bottom: 18px;
-        background: rgba(255,255,255,.045);
-        border: 1px solid rgba(255,255,255,.08);
-        border-radius: 16px; padding: 4px;
-        backdrop-filter: blur(6px);
-      }
-      body:not(.dark-mode) .rkv2__tabs {
-        background: rgba(0,0,0,.035); border-color: rgba(0,0,0,.08);
+        display: flex; gap: 6px; margin-bottom: 16px;
       }
       .rkv2__tab-btn {
-        flex: 1; min-width: 0; padding: 10px 8px;
-        background: transparent;
-        border: 1.5px solid transparent;
-        border-radius: 12px;
+        flex: 1; min-width: 0; padding: 9px 8px;
+        background: rgba(255,255,255,.06);
+        border: 1.5px solid rgba(255,255,255,.1);
+        border-radius: 10px;
         color: rgba(255,255,255,.55);
         font-family: 'DM Sans', sans-serif; font-size: .82rem;
-        cursor: pointer; transition: background .2s ease, border-color .2s ease, color .2s ease, box-shadow .2s ease, transform .12s ease;
-        display: flex; align-items: center; justify-content: center; gap: 5px;
+        cursor: pointer; transition: background .18s, border-color .18s, color .18s;
+        display: flex; align-items: center; justify-content: center; gap: 4px;
         white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
       }
-      .rkv2__tab-btn:active { transform: scale(.96); }
       @media (max-width: 480px) {
         .rkv2__tabs { gap: 4px; }
         .rkv2__tab-btn { font-size: .72rem; padding: 8px 4px; border-radius: 8px; }
@@ -1668,68 +1660,50 @@
         .rkv2__help-btn { width: 32px; height: 32px; flex-shrink: 0; }
       }
       .rkv2__tab-btn.active {
-        background: var(--accent, #ff4d8d);
-        border-color: transparent;
-        color: #fff; font-weight: 700;
-        box-shadow: 0 3px 10px -2px color-mix(in srgb, var(--accent, #ff4d8d) 60%, transparent);
+        background: var(--accent-soft, rgba(255,77,141,.12));
+        border-color: var(--accent-border, rgba(255,77,141,.45));
+        color: var(--accent, #ff4d8d); font-weight: 600;
       }
       .rkv2__tab-btn:hover:not(.active) {
-        background: rgba(255,255,255,.08); color: rgba(255,255,255,.85);
+        background: rgba(255,255,255,.1); color: rgba(255,255,255,.8);
       }
       .rkv2__panel { display: none; }
       .rkv2__panel.active { display: block; }
 
       /* ── Tabla ────────────────────────────────────────── */
-      .rkv2__wrap {
-        overflow-x: auto;
-        border-radius: 18px;
-        background: rgba(255,255,255,.025);
-        border: 1px solid rgba(255,255,255,.07);
-        box-shadow: 0 4px 24px rgba(0,0,0,.10);
-      }
-      body:not(.dark-mode) .rkv2__wrap {
-        background: rgba(0,0,0,.015); border-color: rgba(0,0,0,.07);
-        box-shadow: 0 4px 18px rgba(0,0,0,.05);
-      }
+      .rkv2__wrap { overflow-x: auto; }
       .rkv2__table {
         width: 100%; border-collapse: collapse;
         font-family: 'DM Sans', sans-serif; font-size: .84rem;
       }
       .rkv2__table th {
-        text-align: left; font-size: .64rem; letter-spacing: .07em;
-        color: rgba(255,255,255,.34); font-weight: 700;
-        padding: 13px 8px 11px;
+        text-align: left; font-size: .68rem; letter-spacing: .04em;
+        color: rgba(255,255,255,.32); font-weight: 500;
+        padding: 5px 6px 9px;
         border-bottom: 1px solid rgba(255,255,255,.08);
         text-transform: uppercase; white-space: nowrap;
       }
       .rkv2__table th.th-r { text-align: right; }
       .rkv2__table td {
-        padding: 12px 8px;
+        padding: 9px 6px;
         border-bottom: 1px solid rgba(255,255,255,.05);
         vertical-align: middle;
-        transition: background .2s ease;
+        transition: background .35s;
       }
       .rkv2__table tr:last-child td { border-bottom: none; }
-      .rkv2__table tbody tr { transition: background .15s ease; }
 
       /* Fila del usuario actual */
       .rkv2__table tr.rkv2__yo td {
         background: var(--accent-soft, rgba(255,77,141,.08));
       }
-      .rkv2__table tr.rkv2__yo td:first-child {
-        box-shadow: inset 3px 0 0 var(--accent, #ff4d8d);
-      }
 
       /* ── Top 3 highlight ──────────────────────────────── */
-      .rkv2__table tr[data-pos="1"] td { background: linear-gradient(90deg, rgba(245,197,24,.14), rgba(245,197,24,.03)); position: relative; }
-      .rkv2__table tr[data-pos="2"] td { background: linear-gradient(90deg, rgba(200,200,200,.09), rgba(200,200,200,.02)); }
-      .rkv2__table tr[data-pos="3"] td { background: linear-gradient(90deg, rgba(205,127,50,.1), rgba(205,127,50,.02)); }
-      .rkv2__table tr[data-pos="1"] td:first-child { box-shadow: inset 3px 0 0 #f5c518; }
-      .rkv2__table tr[data-pos="2"] td:first-child { box-shadow: inset 3px 0 0 #c8c8c8; }
-      .rkv2__table tr[data-pos="3"] td:first-child { box-shadow: inset 3px 0 0 #cd7f32; }
-      .rkv2__table tr[data-pos="1"]:hover td { background: linear-gradient(90deg, rgba(245,197,24,.2), rgba(245,197,24,.05)); }
-      .rkv2__table tr[data-pos="2"]:hover td { background: linear-gradient(90deg, rgba(200,200,200,.14), rgba(200,200,200,.03)); }
-      .rkv2__table tr[data-pos="3"]:hover td { background: linear-gradient(90deg, rgba(205,127,50,.16), rgba(205,127,50,.03)); }
+      .rkv2__table tr[data-pos="1"] td { background: rgba(245,197,24,.10); }
+      .rkv2__table tr[data-pos="2"] td { background: rgba(200,200,200,.06); }
+      .rkv2__table tr[data-pos="3"] td { background: rgba(205,127,50,.07); }
+      .rkv2__table tr[data-pos="1"]:hover td { background: rgba(245,197,24,.16); }
+      .rkv2__table tr[data-pos="2"]:hover td { background: rgba(200,200,200,.11); }
+      .rkv2__table tr[data-pos="3"]:hover td { background: rgba(205,127,50,.13); }
 
       /* Flash de highlight cuando cambia posición */
       @keyframes rkv2-flash-up   { 0%{background:rgba(76,175,80,.22)}  100%{background:transparent} }
@@ -1761,21 +1735,10 @@
         display: flex; align-items: center; gap: 7px; min-width: 110px;
       }
       .rkv2__avatar {
-        width: 34px; height: 34px; border-radius: 50%; object-fit: cover;
+        width: 26px; height: 26px; border-radius: 50%; object-fit: cover;
         background: rgba(255,255,255,.08); flex-shrink: 0;
-        display: flex; align-items: center; justify-content: center; font-size: .9rem;
-        border: 1.5px solid rgba(255,255,255,.12);
-        /* Evita el efecto "pixelado": el navegador re-escala con suavizado de alta
-           calidad en vez del nearest-neighbor que usa por defecto en algunos casos */
-        image-rendering: auto;
-        -ms-interpolation-mode: bicubic;
-        transform: translateZ(0);
-        backface-visibility: hidden;
+        display: flex; align-items: center; justify-content: center; font-size: .8rem;
       }
-      body:not(.dark-mode) .rkv2__avatar { border-color: rgba(0,0,0,.1); }
-      tr[data-pos="1"] .rkv2__avatar { border-color: #f5c518; box-shadow: 0 0 0 2px rgba(245,197,24,.18); }
-      tr[data-pos="2"] .rkv2__avatar { border-color: #c8c8c8; }
-      tr[data-pos="3"] .rkv2__avatar { border-color: #cd7f32; }
       .rkv2__player-name { font-weight: 500; line-height: 1.2; max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block; }
       .rkv2__yo-badge { color: var(--accent, #ff4d8d); font-size: .66rem; margin-left: 3px; }
 
@@ -1786,12 +1749,10 @@
       .rkv2__ver-mas-btn {
         display: inline-flex; align-items: center; gap: 8px;
         background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.13);
-        color: rgba(255,255,255,.75); font-size: .82rem; font-weight: 600;
-        border-radius: 24px; padding: 9px 18px; cursor: pointer;
-        transition: background .18s, border-color .18s, color .18s, transform .12s;
-        box-shadow: 0 2px 8px rgba(0,0,0,.12);
+        color: rgba(255,255,255,.75); font-size: .82rem; font-weight: 500;
+        border-radius: 20px; padding: 8px 18px; cursor: pointer;
+        transition: background .18s, border-color .18s, color .18s;
       }
-      .rkv2__ver-mas-btn:active { transform: scale(.97); }
       .rkv2__ver-mas-btn:hover {
         background: rgba(255,255,255,.12); border-color: rgba(255,255,255,.3);
         color: #fff;
@@ -1889,12 +1850,10 @@
 
       /* ── Puntos ───────────────────────────────────────── */
       .rkv2__pts {
-        font-family: 'Bebas Neue', sans-serif; font-size: 1.15rem;
+        font-family: 'Bebas Neue', sans-serif; font-size: 1.05rem;
         color: #f5c518; text-align: right;
-        letter-spacing: .02em;
       }
-      tr[data-pos="1"] .rkv2__pts { font-size: 1.35rem; text-shadow: 0 0 14px rgba(245,197,24,.45); }
-      tr[data-pos="2"] .rkv2__pts, tr[data-pos="3"] .rkv2__pts { font-size: 1.2rem; }
+      tr[data-pos="1"] .rkv2__pts { font-size: 1.2rem; }
 
       /* ── Participación ────────────────────────────────── */
       .rkv2__part {
@@ -2016,68 +1975,12 @@
 
       /* ── Responsive ───────────────────────────────────── */
       @media (max-width: 480px) {
-        .rkv2__table th, .rkv2__table td { padding: 10px 4px; }
-        .rkv2__player { min-width: 78px; }
-        .rkv2__player-name { max-width: 92px; font-size: .86rem; }
+        .rkv2__table th, .rkv2__table td { padding: 8px 4px; }
+        .rkv2__player { min-width: 90px; }
         .rkv2__part-bar { display: none; }
         .rkv2__ult { gap: 2px; }
         .rkv2__dot { width: 16px; height: 16px; font-size: .55rem; }
         .rkv2__stats-inner { padding-left: 10px; grid-template-columns: repeat(3, 1fr); }
-
-        /* Prioridad móvil: #, Jugador y Pts (con su flechita de cambio) quedan
-           fijos a la izquierda; el resto (Recientes, Pen, ⚽, ✓, Part., Más)
-           se revela haciendo scroll horizontal dentro de .rkv2__wrap. */
-        .rkv2__table { min-width: 560px; }
-        .rkv2__wrap { -webkit-overflow-scrolling: touch; }
-
-        .rkv2__table th:nth-child(1), .rkv2__table td:nth-child(1),
-        .rkv2__table th:nth-child(2), .rkv2__table td:nth-child(2),
-        .rkv2__table th:nth-child(3), .rkv2__table td:nth-child(3) {
-          position: sticky;
-          /* Usa el mismo color real de la tarjeta (var(--card)) en vez de un
-             hex fijo: antes quedaba un color distinto al fondo real y se veía
-             una "costura" fea al hacer scroll horizontal en móvil. */
-          background: var(--card);
-          z-index: 2;
-        }
-        .rkv2__table th:nth-child(1), .rkv2__table td:nth-child(1) { left: 0; min-width: 38px; }
-        .rkv2__table th:nth-child(2), .rkv2__table td:nth-child(2) { left: 38px; min-width: 92px; }
-        .rkv2__table th:nth-child(3), .rkv2__table td:nth-child(3) { left: 130px; min-width: 50px; z-index: 3; }
-        /* Sombra que marca el límite del área fija para indicar que hay más a la derecha */
-        .rkv2__table th:nth-child(3)::after, .rkv2__table td:nth-child(3)::after {
-          content: ''; position: absolute; top: 0; right: -10px; bottom: 0; width: 10px;
-          background: linear-gradient(90deg, rgba(0,0,0,.18), transparent);
-          pointer-events: none;
-        }
-        body:not(.dark-mode) .rkv2__table th:nth-child(3)::after, body:not(.dark-mode) .rkv2__table td:nth-child(3)::after {
-          background: linear-gradient(90deg, rgba(0,0,0,.1), transparent);
-        }
-        .rkv2__table td:nth-child(3) { position: sticky; }
-        .rkv2__table tr[data-pos="1"] td:nth-child(1),
-        .rkv2__table tr[data-pos="1"] td:nth-child(2),
-        .rkv2__table tr[data-pos="1"] td:nth-child(3) { background: color-mix(in srgb, #f5c518 16%, var(--card)); }
-        .rkv2__table tr[data-pos="2"] td:nth-child(1),
-        .rkv2__table tr[data-pos="2"] td:nth-child(2),
-        .rkv2__table tr[data-pos="2"] td:nth-child(3) { background: color-mix(in srgb, #c8c8c8 14%, var(--card)); }
-        .rkv2__table tr[data-pos="3"] td:nth-child(1),
-        .rkv2__table tr[data-pos="3"] td:nth-child(2),
-        .rkv2__table tr[data-pos="3"] td:nth-child(3) { background: color-mix(in srgb, #cd7f32 14%, var(--card)); }
-        .rkv2__table tr.rkv2__yo td:nth-child(1),
-        .rkv2__table tr.rkv2__yo td:nth-child(2),
-        .rkv2__table tr.rkv2__yo td:nth-child(3) {
-          background: color-mix(in srgb, var(--accent, #ff4d8d) 14%, var(--card));
-        }
-
-        .rkv2__pos-cell { min-width: 34px; gap: 2px; }
-        .rkv2__cambio { font-size: .58rem; }
-        .rkv2__mas-btn { padding: 5px 9px 5px 10px; font-size: .64rem; }
-        .rkv2__pts { font-size: 1.05rem; }
-        tr[data-pos="1"] .rkv2__pts { font-size: 1.2rem; }
-      }
-
-      @media (max-width: 360px) {
-        .rkv2__player-name { max-width: 72px; }
-        .rkv2__avatar { width: 28px; height: 28px; }
       }
 
       /* ── Últimos resultados (bolitas tipo FIFA) ───────────── */
@@ -2444,17 +2347,6 @@
       .replace(/^<tr[^>]*>/, '').replace(/<\/tr>$/, '');
   }
 
-  // ── Helper: pide a Cloudinary una versión nítida/recortada del avatar ─
-  // Inserta una transformación (w_96,h_96,c_fill,g_face,q_auto,f_auto,dpr_auto)
-  // justo después de "/upload/" para que la foto se vea bien incluso en
-  // pantallas retina, en vez de mostrar la imagen original recortada a lo bruto.
-  function _rkv2SharpFoto(url) {
-    if (!url) return url;
-    if (url.indexOf('res.cloudinary.com') === -1 || url.indexOf('/upload/') === -1) return url;
-    if (/\/upload\/[^/]*w_/.test(url)) return url; // ya trae una transformación, no duplicar
-    return url.replace('/upload/', '/upload/w_96,h_96,c_fill,g_face,q_auto:best,f_auto,dpr_auto/');
-  }
-
   // ── HTML de una fila ─────────────────────────────────────────────────
   function _rkv2RowHTML(r, showPen, maxPron, tab) {
     const esYo = (+r.id === +_MI_ID_RKV2);
@@ -2475,10 +2367,9 @@
     else
       cambioHTML = `<span class="rkv2__cambio rkv2__cambio--eq" title="Sin cambio">—</span>`;
 
-    // Avatar — pide a Cloudinary una versión nítida y bien recortada (evita el
-    // efecto "pixelado" que se veía en pantallas de PC/retina con la URL cruda)
+    // Avatar
     const avatarHTML = r.foto
-      ? `<img class="rkv2__avatar" src="${_esc(_rkv2SharpFoto(r.foto))}" alt="" loading="lazy">`
+      ? `<img class="rkv2__avatar" src="${_esc(r.foto)}" alt="" loading="lazy">`
       : `<div class="rkv2__avatar">👤</div>`;
 
     // Barra de participación
