@@ -1638,24 +1638,26 @@
       /* ── Sub-tabs ─────────────────────────────────────── */
       .rkv2__tabs {
         display: flex; gap: 4px; margin-bottom: 18px;
-        background: rgba(255,255,255,.04);
+        background: rgba(255,255,255,.045);
         border: 1px solid rgba(255,255,255,.08);
-        border-radius: 14px; padding: 4px;
+        border-radius: 16px; padding: 4px;
+        backdrop-filter: blur(6px);
       }
       body:not(.dark-mode) .rkv2__tabs {
         background: rgba(0,0,0,.035); border-color: rgba(0,0,0,.08);
       }
       .rkv2__tab-btn {
-        flex: 1; min-width: 0; padding: 9px 8px;
+        flex: 1; min-width: 0; padding: 10px 8px;
         background: transparent;
         border: 1.5px solid transparent;
-        border-radius: 10px;
+        border-radius: 12px;
         color: rgba(255,255,255,.55);
         font-family: 'DM Sans', sans-serif; font-size: .82rem;
-        cursor: pointer; transition: background .2s ease, border-color .2s ease, color .2s ease, box-shadow .2s ease;
+        cursor: pointer; transition: background .2s ease, border-color .2s ease, color .2s ease, box-shadow .2s ease, transform .12s ease;
         display: flex; align-items: center; justify-content: center; gap: 5px;
         white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
       }
+      .rkv2__tab-btn:active { transform: scale(.96); }
       @media (max-width: 480px) {
         .rkv2__tabs { gap: 4px; }
         .rkv2__tab-btn { font-size: .72rem; padding: 8px 4px; border-radius: 8px; }
@@ -1680,30 +1682,32 @@
       /* ── Tabla ────────────────────────────────────────── */
       .rkv2__wrap {
         overflow-x: auto;
-        border-radius: 16px;
+        border-radius: 18px;
         background: rgba(255,255,255,.025);
         border: 1px solid rgba(255,255,255,.07);
+        box-shadow: 0 4px 24px rgba(0,0,0,.10);
       }
       body:not(.dark-mode) .rkv2__wrap {
         background: rgba(0,0,0,.015); border-color: rgba(0,0,0,.07);
+        box-shadow: 0 4px 18px rgba(0,0,0,.05);
       }
       .rkv2__table {
         width: 100%; border-collapse: collapse;
         font-family: 'DM Sans', sans-serif; font-size: .84rem;
       }
       .rkv2__table th {
-        text-align: left; font-size: .66rem; letter-spacing: .05em;
-        color: rgba(255,255,255,.34); font-weight: 600;
-        padding: 12px 8px 10px;
+        text-align: left; font-size: .64rem; letter-spacing: .07em;
+        color: rgba(255,255,255,.34); font-weight: 700;
+        padding: 13px 8px 11px;
         border-bottom: 1px solid rgba(255,255,255,.08);
         text-transform: uppercase; white-space: nowrap;
       }
       .rkv2__table th.th-r { text-align: right; }
       .rkv2__table td {
-        padding: 11px 8px;
+        padding: 12px 8px;
         border-bottom: 1px solid rgba(255,255,255,.05);
         vertical-align: middle;
-        transition: background .25s ease;
+        transition: background .2s ease;
       }
       .rkv2__table tr:last-child td { border-bottom: none; }
       .rkv2__table tbody tr { transition: background .15s ease; }
@@ -1757,10 +1761,16 @@
         display: flex; align-items: center; gap: 7px; min-width: 110px;
       }
       .rkv2__avatar {
-        width: 30px; height: 30px; border-radius: 50%; object-fit: cover;
+        width: 34px; height: 34px; border-radius: 50%; object-fit: cover;
         background: rgba(255,255,255,.08); flex-shrink: 0;
-        display: flex; align-items: center; justify-content: center; font-size: .85rem;
+        display: flex; align-items: center; justify-content: center; font-size: .9rem;
         border: 1.5px solid rgba(255,255,255,.12);
+        /* Evita el efecto "pixelado": el navegador re-escala con suavizado de alta
+           calidad en vez del nearest-neighbor que usa por defecto en algunos casos */
+        image-rendering: auto;
+        -ms-interpolation-mode: bicubic;
+        transform: translateZ(0);
+        backface-visibility: hidden;
       }
       body:not(.dark-mode) .rkv2__avatar { border-color: rgba(0,0,0,.1); }
       tr[data-pos="1"] .rkv2__avatar { border-color: #f5c518; box-shadow: 0 0 0 2px rgba(245,197,24,.18); }
@@ -2024,13 +2034,11 @@
         .rkv2__table th:nth-child(2), .rkv2__table td:nth-child(2),
         .rkv2__table th:nth-child(3), .rkv2__table td:nth-child(3) {
           position: sticky;
-          background: #15182a;
+          /* Usa el mismo color real de la tarjeta (var(--card)) en vez de un
+             hex fijo: antes quedaba un color distinto al fondo real y se veía
+             una "costura" fea al hacer scroll horizontal en móvil. */
+          background: var(--card);
           z-index: 2;
-        }
-        body:not(.dark-mode) .rkv2__table th:nth-child(1), body:not(.dark-mode) .rkv2__table td:nth-child(1),
-        body:not(.dark-mode) .rkv2__table th:nth-child(2), body:not(.dark-mode) .rkv2__table td:nth-child(2),
-        body:not(.dark-mode) .rkv2__table th:nth-child(3), body:not(.dark-mode) .rkv2__table td:nth-child(3) {
-          background: #ffffff;
         }
         .rkv2__table th:nth-child(1), .rkv2__table td:nth-child(1) { left: 0; min-width: 38px; }
         .rkv2__table th:nth-child(2), .rkv2__table td:nth-child(2) { left: 38px; min-width: 92px; }
@@ -2047,31 +2055,17 @@
         .rkv2__table td:nth-child(3) { position: sticky; }
         .rkv2__table tr[data-pos="1"] td:nth-child(1),
         .rkv2__table tr[data-pos="1"] td:nth-child(2),
-        .rkv2__table tr[data-pos="1"] td:nth-child(3) { background: #2a230a; }
+        .rkv2__table tr[data-pos="1"] td:nth-child(3) { background: color-mix(in srgb, #f5c518 16%, var(--card)); }
         .rkv2__table tr[data-pos="2"] td:nth-child(1),
         .rkv2__table tr[data-pos="2"] td:nth-child(2),
-        .rkv2__table tr[data-pos="2"] td:nth-child(3) { background: #1d1d22; }
+        .rkv2__table tr[data-pos="2"] td:nth-child(3) { background: color-mix(in srgb, #c8c8c8 14%, var(--card)); }
         .rkv2__table tr[data-pos="3"] td:nth-child(1),
         .rkv2__table tr[data-pos="3"] td:nth-child(2),
-        .rkv2__table tr[data-pos="3"] td:nth-child(3) { background: #241a0e; }
-        body:not(.dark-mode) .rkv2__table tr[data-pos="1"] td:nth-child(1),
-        body:not(.dark-mode) .rkv2__table tr[data-pos="1"] td:nth-child(2),
-        body:not(.dark-mode) .rkv2__table tr[data-pos="1"] td:nth-child(3) { background: #fdf6e0; }
-        body:not(.dark-mode) .rkv2__table tr[data-pos="2"] td:nth-child(1),
-        body:not(.dark-mode) .rkv2__table tr[data-pos="2"] td:nth-child(2),
-        body:not(.dark-mode) .rkv2__table tr[data-pos="2"] td:nth-child(3) { background: #f4f4f4; }
-        body:not(.dark-mode) .rkv2__table tr[data-pos="3"] td:nth-child(1),
-        body:not(.dark-mode) .rkv2__table tr[data-pos="3"] td:nth-child(2),
-        body:not(.dark-mode) .rkv2__table tr[data-pos="3"] td:nth-child(3) { background: #fbf1e6; }
+        .rkv2__table tr[data-pos="3"] td:nth-child(3) { background: color-mix(in srgb, #cd7f32 14%, var(--card)); }
         .rkv2__table tr.rkv2__yo td:nth-child(1),
         .rkv2__table tr.rkv2__yo td:nth-child(2),
         .rkv2__table tr.rkv2__yo td:nth-child(3) {
-          background: color-mix(in srgb, var(--accent, #ff4d8d) 14%, #15182a);
-        }
-        body:not(.dark-mode) .rkv2__table tr.rkv2__yo td:nth-child(1),
-        body:not(.dark-mode) .rkv2__table tr.rkv2__yo td:nth-child(2),
-        body:not(.dark-mode) .rkv2__table tr.rkv2__yo td:nth-child(3) {
-          background: color-mix(in srgb, var(--accent, #ff4d8d) 10%, #ffffff);
+          background: color-mix(in srgb, var(--accent, #ff4d8d) 14%, var(--card));
         }
 
         .rkv2__pos-cell { min-width: 34px; gap: 2px; }
@@ -2083,7 +2077,7 @@
 
       @media (max-width: 360px) {
         .rkv2__player-name { max-width: 72px; }
-        .rkv2__avatar { width: 26px; height: 26px; }
+        .rkv2__avatar { width: 28px; height: 28px; }
       }
 
       /* ── Últimos resultados (bolitas tipo FIFA) ───────────── */
@@ -2450,6 +2444,17 @@
       .replace(/^<tr[^>]*>/, '').replace(/<\/tr>$/, '');
   }
 
+  // ── Helper: pide a Cloudinary una versión nítida/recortada del avatar ─
+  // Inserta una transformación (w_96,h_96,c_fill,g_face,q_auto,f_auto,dpr_auto)
+  // justo después de "/upload/" para que la foto se vea bien incluso en
+  // pantallas retina, en vez de mostrar la imagen original recortada a lo bruto.
+  function _rkv2SharpFoto(url) {
+    if (!url) return url;
+    if (url.indexOf('res.cloudinary.com') === -1 || url.indexOf('/upload/') === -1) return url;
+    if (/\/upload\/[^/]*w_/.test(url)) return url; // ya trae una transformación, no duplicar
+    return url.replace('/upload/', '/upload/w_96,h_96,c_fill,g_face,q_auto:best,f_auto,dpr_auto/');
+  }
+
   // ── HTML de una fila ─────────────────────────────────────────────────
   function _rkv2RowHTML(r, showPen, maxPron, tab) {
     const esYo = (+r.id === +_MI_ID_RKV2);
@@ -2470,9 +2475,10 @@
     else
       cambioHTML = `<span class="rkv2__cambio rkv2__cambio--eq" title="Sin cambio">—</span>`;
 
-    // Avatar
+    // Avatar — pide a Cloudinary una versión nítida y bien recortada (evita el
+    // efecto "pixelado" que se veía en pantallas de PC/retina con la URL cruda)
     const avatarHTML = r.foto
-      ? `<img class="rkv2__avatar" src="${_esc(r.foto)}" alt="" loading="lazy">`
+      ? `<img class="rkv2__avatar" src="${_esc(_rkv2SharpFoto(r.foto))}" alt="" loading="lazy">`
       : `<div class="rkv2__avatar">👤</div>`;
 
     // Barra de participación
