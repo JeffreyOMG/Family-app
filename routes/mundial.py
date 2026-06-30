@@ -470,6 +470,7 @@ def _ensure_eliminacion_table(con):
 
     _add_column_safe("partidos_eliminacion", "penales_ganador", "TEXT DEFAULT NULL")
     _add_column_safe("partidos_eliminacion", "clasificado_obsoleto", "INTEGER DEFAULT 0")
+    _add_column_safe("partidos_eliminacion", "orden", "INTEGER DEFAULT 0")
 
     con.execute("""
         CREATE TABLE IF NOT EXISTS pronosticos_eli (
@@ -508,21 +509,28 @@ def _ensure_eliminacion_table(con):
 def _seed_eliminacion(con):
     from mundial_bracket import DIECISEISAVOS, OCTAVOS, CUARTOS, SEMIFINALES, TERCER_PUESTO, FINAL
     filas = []
+    orden = 0
     for p in DIECISEISAVOS:
-        filas.append((p["id"], "Dieciseisavos", p["slot_l"], p["slot_v"], p["fecha"], p["sede"]))
+        orden += 1
+        filas.append((p["id"], "Dieciseisavos", p["slot_l"], p["slot_v"], p["fecha"], p["sede"], orden))
     for p in OCTAVOS:
-        filas.append((p["id"], "Octavos", f"G{p['dep1']}", f"G{p['dep2']}", p["fecha"], p["sede"]))
+        orden += 1
+        filas.append((p["id"], "Octavos", f"G{p['dep1']}", f"G{p['dep2']}", p["fecha"], p["sede"], orden))
     for p in CUARTOS:
-        filas.append((p["id"], "Cuartos", f"G{p['dep1']}", f"G{p['dep2']}", p["fecha"], p["sede"]))
+        orden += 1
+        filas.append((p["id"], "Cuartos", f"G{p['dep1']}", f"G{p['dep2']}", p["fecha"], p["sede"], orden))
     for p in SEMIFINALES:
-        filas.append((p["id"], "Semifinales", f"G{p['dep1']}", f"G{p['dep2']}", p["fecha"], p["sede"]))
-    filas.append((TERCER_PUESTO["id"], "Tercer puesto", f"P{TERCER_PUESTO['dep1']}", f"P{TERCER_PUESTO['dep2']}", TERCER_PUESTO["fecha"], TERCER_PUESTO["sede"]))
-    filas.append((FINAL["id"], "Final", f"G{FINAL['dep1']}", f"G{FINAL['dep2']}", FINAL["fecha"], FINAL["sede"]))
+        orden += 1
+        filas.append((p["id"], "Semifinales", f"G{p['dep1']}", f"G{p['dep2']}", p["fecha"], p["sede"], orden))
+    orden += 1
+    filas.append((TERCER_PUESTO["id"], "Tercer puesto", f"P{TERCER_PUESTO['dep1']}", f"P{TERCER_PUESTO['dep2']}", TERCER_PUESTO["fecha"], TERCER_PUESTO["sede"], orden))
+    orden += 1
+    filas.append((FINAL["id"], "Final", f"G{FINAL['dep1']}", f"G{FINAL['dep2']}", FINAL["fecha"], FINAL["sede"], orden))
     for fila in filas:
         con.execute("""
-            INSERT INTO partidos_eliminacion(id, fase, slot_local, slot_visit, fecha, sede)
-            VALUES (%s, %s, %s, %s, %s, %s)
-            ON CONFLICT (id) DO UPDATE SET fecha=EXCLUDED.fecha, sede=EXCLUDED.sede
+            INSERT INTO partidos_eliminacion(id, fase, slot_local, slot_visit, fecha, sede, orden)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
+            ON CONFLICT (id) DO UPDATE SET fecha=EXCLUDED.fecha, sede=EXCLUDED.sede, orden=EXCLUDED.orden
         """, fila)
     con.commit()
 
@@ -544,7 +552,7 @@ def api_eliminacion_datos():
                pr.penales_ganador AS p_penales
         FROM partidos_eliminacion pe
         LEFT JOIN pronosticos_eli pr ON pr.partido_id=pe.id AND pr.usuario_id=%s
-        ORDER BY pe.id
+        ORDER BY pe.orden
     """, (uid,)).fetchall()]
 
     terceros_por_grupo = _get_terceros_por_grupo(con)
@@ -1566,7 +1574,7 @@ def ranking_mundial_v2():
     # ── Últimos 5 resultados reales por usuario ───────────────────────────
     # Une grupos y eliminatorias, ordena por partido_id DESC, toma los 5 más recientes
     # partido_id de eli se desplaza +1000 para que queden después cronológicamente
-    # Orden cronológico real de los 16avos (no numérico — IDs 74,77 van DESPUÉS del 76,75)
+        # Orden cronológico real de los 16avos (no numérico — IDs 74,77 van DESPUÉS del 76,75)
     # Luego el resto de fases en orden de juego
     _ELI_ORDEN_CRONO = {
         73:1001, 76:1002, 74:1003, 75:1004, 78:1005, 77:1006, 79:1007, 80:1008,
@@ -1581,7 +1589,7 @@ def ranking_mundial_v2():
         JOIN partidos_mundial pm ON pm.id = pr.partido_id
              AND pm.bloqueado=1 AND pm.goles_local IS NOT NULL
         UNION ALL
-        SELECT usuario_id, puntos, partido_id AS pid, 'e' AS fase
+        SELECT usuario_id, puntos, COALESCE(pe.orden, pe.id) + 1000 AS pid, 'e' AS fase
         FROM pronosticos_eli pr
         JOIN partidos_eliminacion pe ON pe.id = pr.partido_id
              AND pe.bloqueado=1 AND pe.goles_local IS NOT NULL
@@ -1590,12 +1598,7 @@ def ranking_mundial_v2():
     from collections import defaultdict
     _ult5 = defaultdict(list)
     for row in ult5_rows:
-        # Para eliminatorias: usar posición cronológica real; para grupos: ID directo
-        if row["fase"] == 'e':
-            sort_key = _ELI_ORDEN_CRONO.get(row["pid"], 1000 + row["pid"])
-        else:
-            sort_key = row["pid"]
-        _ult5[row["usuario_id"]].append((sort_key, row["puntos"], row["fase"]))
+        _ult5[row["usuario_id"]].append((row["pid"], row["puntos"], row["fase"]))
 
     def _to_label(puntos, fase):
         if fase == 'g':
@@ -1609,7 +1612,7 @@ def ranking_mundial_v2():
 
     ult5_map = {}
     for uid, entries in _ult5.items():
-        # Los 5 más recientes (mayor sort_key = más reciente), luego invertir: izq=antiguo, der=reciente
+        # Los 5 más recientes (mayor pid = más reciente), luego invertir: izq=antiguo, der=reciente
         recent = sorted(entries, key=lambda x: -x[0])[:5]
         recent.reverse()
         ult5_map[uid] = [_to_label(p, f) for _, p, f in recent]
