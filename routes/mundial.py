@@ -1606,7 +1606,8 @@ def ranking_mundial_v2():
             if puntos == 1: return 'G'
             return 'F'
         else:
-            if puntos in (3, 4): return 'E'
+            if puntos == 4: return 'P'   # exacto en empate + ganador de penales acertado
+            if puntos == 3: return 'E'
             if puntos == 1: return 'G'
             return 'F'
 
