@@ -2222,11 +2222,11 @@
             <th></th>
           </tr></thead>
           <tbody>
-            ${visible.map(r => _rkv2RowHTML(r, showPen, maxPron)).join('')}
+            ${visible.map(r => _rkv2RowHTML(r, showPen, maxPron, tab)).join('')}
             ${(hayMas && miRow) ? `
             <tr><td colspan="9" style="padding:0;"></td></tr>
             <tr class="rkv2__yo rkv2__yo-preview" title="Tu posición actual">
-              ${_rkv2RowCells(miRow, showPen, maxPron)}
+              ${_rkv2RowCells(miRow, showPen, maxPron, tab)}
             </tr>` : ''}
           </tbody>
         </table>
@@ -2261,13 +2261,13 @@
     if (rows.length) _rkv2Render(tab, rows, {});
   }
 
-  function _rkv2RowCells(r, showPen, maxPron) {
-    return _rkv2RowHTML(r, showPen, maxPron)
+  function _rkv2RowCells(r, showPen, maxPron, tab) {
+    return _rkv2RowHTML(r, showPen, maxPron, tab)
       .replace(/^<tr[^>]*>/, '').replace(/<\/tr>$/, '');
   }
 
   // ── HTML de una fila ─────────────────────────────────────────────────
-  function _rkv2RowHTML(r, showPen, maxPron) {
+  function _rkv2RowHTML(r, showPen, maxPron, tab) {
     const esYo = (+r.id === +_MI_ID_RKV2);
 
     // Medalla
