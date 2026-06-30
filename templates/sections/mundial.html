@@ -1406,6 +1406,9 @@
     <button class="tab-btn" onclick="mundialTab('ranking', this)">
       <span class="material-symbols-outlined">emoji_events</span> Ranking
     </button>
+    <button class="tab-btn" onclick="mundialTab('ver-pron', this); vpronInit()">
+      <span class="material-symbols-outlined">visibility</span> Ver Pronósticos
+    </button>
     {% if usuario.rol == 'admin' %}
     <button class="tab-btn tab-btn-admin" onclick="mundialTab('admin', this)">
       <span class="material-symbols-outlined">admin_panel_settings</span> Admin
@@ -2282,6 +2285,242 @@
     btn.disabled = false;
   }
   </script>
+
+  <!-- ════════════════════════════════════════
+       TAB: VER PRONÓSTICOS
+  ════════════════════════════════════════ -->
+  <div id="mtab-ver-pron" class="mtab" style="display:none;">
+    <style>
+      /* ── Ver Pronósticos ── */
+      .vpron-top { display:flex; gap:.5rem; flex-wrap:wrap; align-items:center; margin-bottom:1rem; }
+      .vpron-search { flex:1; min-width:160px; padding:.45rem .75rem; border-radius:8px; border:1px solid rgba(255,255,255,.15); background:rgba(255,255,255,.06); color:inherit; font-size:.85rem; }
+      .vpron-search::placeholder { opacity:.45; }
+      .vpron-fase-tabs { display:flex; gap:.4rem; flex-wrap:wrap; margin-bottom:.75rem; }
+      .vpron-fase-btn { padding:.35rem .9rem; border-radius:20px; border:1px solid rgba(245,197,24,.3); background:transparent; color:inherit; font-size:.8rem; cursor:pointer; transition:all .15s; }
+      .vpron-fase-btn.active { background:#f5c518; color:#111; border-color:#f5c518; font-weight:600; }
+      .vpron-sub-tabs { display:flex; gap:.35rem; flex-wrap:wrap; margin-bottom:1rem; }
+      .vpron-sub-btn { padding:.3rem .75rem; border-radius:14px; border:1px solid rgba(255,255,255,.15); background:rgba(255,255,255,.05); color:inherit; font-size:.78rem; cursor:pointer; transition:all .15s; }
+      .vpron-sub-btn.active { background:rgba(245,197,24,.18); border-color:#f5c518; color:#f5c518; font-weight:600; }
+      .vpron-partido-blk { background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.08); border-radius:10px; margin-bottom:1rem; overflow:hidden; }
+      .vpron-partido-hdr { background:rgba(245,197,24,.08); padding:.5rem .85rem; display:flex; align-items:center; gap:.5rem; font-size:.82rem; font-weight:600; border-bottom:1px solid rgba(255,255,255,.07); }
+      .vpron-partido-hdr .vpron-score { font-size:.95rem; color:#f5c518; margin-left:auto; white-space:nowrap; }
+      .vpron-partido-hdr .vpron-penales-res { font-size:.72rem; background:rgba(245,197,24,.15); color:#f5c518; padding:.15rem .45rem; border-radius:8px; margin-left:.35rem; }
+      .vpron-row { display:grid; grid-template-columns:2rem 1fr auto auto; align-items:center; gap:.5rem; padding:.45rem .85rem; border-top:1px solid rgba(255,255,255,.04); font-size:.83rem; }
+      .vpron-row:first-child { border-top:none; }
+      .vpron-avatar { width:26px; height:26px; border-radius:50%; object-fit:cover; background:rgba(255,255,255,.1); }
+      .vpron-avatar-ph { width:26px; height:26px; border-radius:50%; background:rgba(255,255,255,.12); display:flex; align-items:center; justify-content:center; font-size:.7rem; color:rgba(255,255,255,.5); flex-shrink:0; }
+      .vpron-nombre { font-size:.82rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+      .vpron-pron-score { font-size:.85rem; font-weight:600; white-space:nowrap; }
+      .vpron-pts { font-size:.75rem; font-weight:700; width:2rem; text-align:center; border-radius:6px; padding:.15rem 0; }
+      .vpron-pts.p5 { background:rgba(34,197,94,.18); color:#22c55e; }
+      .vpron-pts.p3 { background:rgba(59,130,246,.18); color:#60a5fa; }
+      .vpron-pts.p1 { background:rgba(245,197,24,.18); color:#f5c518; }
+      .vpron-pts.p0 { background:rgba(239,68,68,.12); color:#f87171; }
+      .vpron-pts.p4 { background:rgba(168,85,247,.2); color:#c084fc; }
+      .vpron-penal-tag { font-size:.7rem; background:rgba(168,85,247,.18); color:#c084fc; padding:.1rem .4rem; border-radius:6px; margin-left:.25rem; }
+      .vpron-empty { text-align:center; color:rgba(255,255,255,.35); padding:2.5rem 1rem; font-size:.9rem; }
+      .vpron-loading { text-align:center; color:rgba(255,255,255,.35); padding:2rem 1rem; }
+      body:not(.dark-mode) .vpron-search { background:rgba(0,0,0,.04); border-color:rgba(0,0,0,.15); }
+      body:not(.dark-mode) .vpron-partido-blk { background:rgba(0,0,0,.02); border-color:rgba(0,0,0,.08); }
+      body:not(.dark-mode) .vpron-partido-hdr { background:rgba(245,197,24,.07); }
+      body:not(.dark-mode) .vpron-row { border-color:rgba(0,0,0,.05); }
+      body:not(.dark-mode) .vpron-sub-btn { background:rgba(0,0,0,.04); border-color:rgba(0,0,0,.12); }
+      @media(max-width:480px){
+        .vpron-row { grid-template-columns:2rem 1fr auto auto; gap:.35rem; }
+        .vpron-nombre { font-size:.78rem; }
+      }
+    </style>
+
+    <div class="vpron-top">
+      <input class="vpron-search" id="vpron-q" type="text" placeholder="Buscar participante..." oninput="vpronFiltrar()">
+    </div>
+
+    <!-- Pestañas Grupos / Eliminatorias -->
+    <div class="vpron-fase-tabs">
+      <button class="vpron-fase-btn active" onclick="vpronFase('grupos', this)">⚽ Grupos</button>
+      <button class="vpron-fase-btn" onclick="vpronFase('eli', this)">🏆 Eliminatorias</button>
+    </div>
+
+    <!-- Sub-tabs Grupos: A…L -->
+    <div class="vpron-sub-tabs" id="vpron-sub-grupos">
+      <button class="vpron-sub-btn active" onclick="vpronSubGrupo('TODOS', this)">Todos</button>
+      <button class="vpron-sub-btn" onclick="vpronSubGrupo('A', this)">A</button>
+      <button class="vpron-sub-btn" onclick="vpronSubGrupo('B', this)">B</button>
+      <button class="vpron-sub-btn" onclick="vpronSubGrupo('C', this)">C</button>
+      <button class="vpron-sub-btn" onclick="vpronSubGrupo('D', this)">D</button>
+      <button class="vpron-sub-btn" onclick="vpronSubGrupo('E', this)">E</button>
+      <button class="vpron-sub-btn" onclick="vpronSubGrupo('F', this)">F</button>
+      <button class="vpron-sub-btn" onclick="vpronSubGrupo('G', this)">G</button>
+      <button class="vpron-sub-btn" onclick="vpronSubGrupo('H', this)">H</button>
+      <button class="vpron-sub-btn" onclick="vpronSubGrupo('I', this)">I</button>
+      <button class="vpron-sub-btn" onclick="vpronSubGrupo('J', this)">J</button>
+      <button class="vpron-sub-btn" onclick="vpronSubGrupo('K', this)">K</button>
+      <button class="vpron-sub-btn" onclick="vpronSubGrupo('L', this)">L</button>
+    </div>
+
+    <!-- Sub-tabs Eliminatorias -->
+    <div class="vpron-sub-tabs" id="vpron-sub-eli" style="display:none;">
+      <button class="vpron-sub-btn active" onclick="vpronSubEli('TODOS', this)">Todos</button>
+      <button class="vpron-sub-btn" onclick="vpronSubEli('16avos', this)">16avos</button>
+      <button class="vpron-sub-btn" onclick="vpronSubEli('Octavos', this)">Octavos</button>
+      <button class="vpron-sub-btn" onclick="vpronSubEli('Cuartos', this)">Cuartos</button>
+      <button class="vpron-sub-btn" onclick="vpronSubEli('Semis', this)">Semis</button>
+      <button class="vpron-sub-btn" onclick="vpronSubEli('Final', this)">Final</button>
+    </div>
+
+    <div id="vpron-content">
+      <div class="vpron-loading">Cargando pronósticos…</div>
+    </div>
+
+    <script>
+    (function(){
+      let _vpronData    = null;   // todos los datos cargados
+      let _vpronFase    = 'grupos';
+      let _vpronSubG    = 'TODOS';
+      let _vpronSubE    = 'TODOS';
+      let _vpronInited  = false;
+
+      window.vpronInit = async function() {
+        if (_vpronInited) { vpronRender(); return; }
+        _vpronInited = true;
+        try {
+          const res  = await fetch('/api/buscar/pronosticos');
+          const json = await res.json();
+          _vpronData = json.ok ? json.data : [];
+        } catch(e) {
+          _vpronData = [];
+        }
+        vpronRender();
+      };
+
+      window.vpronFase = function(fase, btn) {
+        _vpronFase = fase;
+        document.querySelectorAll('.vpron-fase-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById('vpron-sub-grupos').style.display = fase === 'grupos' ? 'flex' : 'none';
+        document.getElementById('vpron-sub-eli').style.display    = fase === 'eli'    ? 'flex' : 'none';
+        vpronRender();
+      };
+
+      window.vpronSubGrupo = function(g, btn) {
+        _vpronSubG = g;
+        document.querySelectorAll('#vpron-sub-grupos .vpron-sub-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        vpronRender();
+      };
+
+      window.vpronSubEli = function(f, btn) {
+        _vpronSubE = f;
+        document.querySelectorAll('#vpron-sub-eli .vpron-sub-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        vpronRender();
+      };
+
+      window.vpronFiltrar = function() { vpronRender(); };
+
+      // Normalizar fases eliminatorias (la BD puede traer r16, Ronda de 16, etc.)
+      function normFase(f) {
+        if (!f) return '';
+        const fl = f.toLowerCase();
+        if (fl.includes('16') || fl === 'r16') return '16avos';
+        if (fl.includes('octavo'))  return 'Octavos';
+        if (fl.includes('cuarto'))  return 'Cuartos';
+        if (fl.includes('semi'))    return 'Semis';
+        if (fl.includes('final') && !fl.includes('semi') && !fl.includes('cuarto')) return 'Final';
+        return f;
+      }
+
+      function ptsCls(p) {
+        if (p === 5) return 'p5';
+        if (p === 4) return 'p4';
+        if (p === 3) return 'p3';
+        if (p === 1) return 'p1';
+        return 'p0';
+      }
+
+      function vpronRender() {
+        const cont = document.getElementById('vpron-content');
+        if (!_vpronData) { cont.innerHTML = '<div class="vpron-loading">Cargando…</div>'; return; }
+
+        const q = (document.getElementById('vpron-q')?.value || '').toLowerCase().trim();
+
+        // Filtrar por fase principal
+        let datos = _vpronData.filter(r => {
+          if (_vpronFase === 'grupos') return r.fase === 'Grupos';
+          return r.fase === 'Eliminatoria';
+        });
+
+        // Filtrar por sub-tab
+        if (_vpronFase === 'grupos' && _vpronSubG !== 'TODOS') {
+          datos = datos.filter(r => (r.grupo || '').toUpperCase() === _vpronSubG);
+        }
+        if (_vpronFase === 'eli' && _vpronSubE !== 'TODOS') {
+          datos = datos.filter(r => normFase(r.grupo) === _vpronSubE);
+        }
+
+        // Filtrar por nombre
+        if (q) {
+          datos = datos.filter(r =>
+            (r.usuario_nombre || '').toLowerCase().includes(q) ||
+            (r.usuario_handle || '').toLowerCase().includes(q)
+          );
+        }
+
+        if (!datos.length) {
+          cont.innerHTML = '<div class="vpron-empty">Sin pronósticos disponibles para esta selección.</div>';
+          return;
+        }
+
+        // Agrupar por partido_id
+        const porPartido = {};
+        datos.forEach(r => {
+          const k = r.partido_id;
+          if (!porPartido[k]) porPartido[k] = { meta: r, filas: [] };
+          porPartido[k].filas.push(r);
+        });
+
+        let html = '';
+        Object.values(porPartido).forEach(blk => {
+          const m = blk.meta;
+          const resPen = m.res_penales ? `<span class="vpron-penales-res">Pen: ${m.res_penales}</span>` : '';
+          html += `
+            <div class="vpron-partido-blk">
+              <div class="vpron-partido-hdr">
+                <span>${m.local} vs ${m.visitante}</span>
+                ${_vpronFase === 'eli' ? `<span style="font-size:.72rem;opacity:.55;margin-left:.3rem">${normFase(m.grupo)}</span>` : `<span style="font-size:.72rem;opacity:.55;margin-left:.3rem">Grupo ${m.grupo}</span>`}
+                <span class="vpron-score">${m.res_local} – ${m.res_visit}${resPen}</span>
+              </div>`;
+
+          blk.filas.forEach(r => {
+            const foto = r.usuario_foto
+              ? `<img src="${r.usuario_foto}" class="vpron-avatar" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
+              : '';
+            const ph = `<div class="vpron-avatar-ph" style="${r.usuario_foto ? 'display:none' : ''}">${(r.usuario_nombre||'?')[0].toUpperCase()}</div>`;
+
+            // Penales del pronóstico
+            let penTag = '';
+            if (r.p_penales) {
+              const acierto = r.res_penales && r.p_penales === r.res_penales ? '✅' : '❌';
+              penTag = `<span class="vpron-penal-tag">${acierto} Pen: ${r.p_penales}</span>`;
+            }
+
+            html += `
+              <div class="vpron-row">
+                <div style="position:relative;width:26px;height:26px">${foto}${ph}</div>
+                <div class="vpron-nombre">${r.usuario_nombre}<span style="opacity:.45;font-size:.75rem"> @${r.usuario_handle}</span>${penTag}</div>
+                <div class="vpron-pron-score">${r.p_local ?? '?'} – ${r.p_vis ?? '?'}</div>
+                <div class="vpron-pts ${ptsCls(r.puntos)}">${r.puntos ?? '-'}</div>
+              </div>`;
+          });
+
+          html += '</div>';
+        });
+
+        cont.innerHTML = html;
+      }
+    })();
+    </script>
+  </div>
 
   <!-- ════════════════════════════════════════
        TAB: ADMIN

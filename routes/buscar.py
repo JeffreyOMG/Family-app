@@ -77,7 +77,9 @@ def api_buscar_pronosticos():
             pr.goles_local  AS p_local,
             pr.goles_visitante AS p_vis,
             pr.puntos       AS puntos,
-            pm.id           AS partido_id
+            pm.id           AS partido_id,
+            NULL            AS res_penales,
+            NULL            AS p_penales
         FROM pronosticos pr
         JOIN usuarios u          ON u.id  = pr.usuario_id
         JOIN partidos_mundial pm ON pm.id = pr.partido_id
@@ -109,7 +111,9 @@ def api_buscar_pronosticos():
             pe_pr.goles_local  AS p_local,
             pe_pr.goles_visit  AS p_vis,
             pe_pr.puntos    AS puntos,
-            pe.id           AS partido_id
+            pe.id           AS partido_id,
+            pe.penales_ganador  AS res_penales,
+            pe_pr.penales_ganador AS p_penales
         FROM pronosticos_eli pe_pr
         JOIN usuarios u              ON u.id  = pe_pr.usuario_id
         JOIN partidos_eliminacion pe ON pe.id = pe_pr.partido_id
@@ -148,6 +152,8 @@ def api_buscar_pronosticos():
             "puntos":          r["puntos"],
             "partido_id":      r["partido_id"],
             "fase":            "Grupos",
+            "res_penales":     None,
+            "p_penales":       None,
         })
     for r in con.execute(sql_eli, params_e).fetchall():
         resultados.append({
@@ -164,6 +170,8 @@ def api_buscar_pronosticos():
             "puntos":          r["puntos"],
             "partido_id":      r["partido_id"],
             "fase":            "Eliminatoria",
+            "res_penales":     r["res_penales"],
+            "p_penales":       r["p_penales"],
         })
 
     # Grupos disponibles para el filtro (solo fase de grupos con resultados)
