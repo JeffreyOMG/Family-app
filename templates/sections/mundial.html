@@ -1969,7 +1969,76 @@
         .rkv2__table th, .rkv2__table td { padding: 8px 4px; }
         .rkv2__player { min-width: 90px; }
         .rkv2__part-bar { display: none; }
+        .rkv2__ult { gap: 2px; }
+        .rkv2__dot { width: 16px; height: 16px; font-size: .55rem; }
+        .rkv2__stats-inner { padding-left: 10px; grid-template-columns: repeat(3, 1fr); }
       }
+
+      /* ── Últimos resultados (bolitas tipo FIFA) ───────────── */
+      .rkv2__ult { display: flex; gap: 4px; align-items: center; }
+      .rkv2__dot {
+        width: 20px; height: 20px; border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        font-size: .62rem; font-weight: 700; flex-shrink: 0; line-height: 1;
+      }
+      .rkv2__dot--exacto  { background: #4caf50; color: #fff; }
+      .rkv2__dot--acierto { background: #2196f3; color: #fff; }
+      .rkv2__dot--fallo   { background: #ef5350; color: #fff; }
+      .rkv2__dot--sin     { background: rgba(255,255,255,.12); color: rgba(255,255,255,.35); border: 1.5px solid rgba(255,255,255,.18); }
+      body:not(.dark-mode) .rkv2__dot--sin { background: rgba(0,0,0,.06); color: rgba(0,0,0,.3); border-color: rgba(0,0,0,.12); }
+
+      /* ── Panel de estadísticas expandible ─────────── */
+      .rkv2__mas-btn {
+        background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.14);
+        color: rgba(255,255,255,.55); border-radius: 6px;
+        padding: 3px 8px; font-size: .72rem; cursor: pointer;
+        transition: background .15s, color .15s; white-space: nowrap;
+      }
+      .rkv2__mas-btn:hover { background: rgba(255,255,255,.14); color: #fff; }
+      body:not(.dark-mode) .rkv2__mas-btn { background: rgba(0,0,0,.05); border-color: rgba(0,0,0,.12); color: rgba(0,0,0,.5); }
+      body:not(.dark-mode) .rkv2__mas-btn:hover { background: rgba(0,0,0,.09); color: rgba(0,0,0,.8); }
+
+      .rkv2__stats-row td {
+        padding: 0 !important;
+        background: rgba(255,255,255,.02) !important;
+        border-bottom: 1px solid rgba(255,255,255,.07) !important;
+      }
+      body:not(.dark-mode) .rkv2__stats-row td {
+        background: rgba(0,0,0,.02) !important;
+        border-bottom-color: rgba(0,0,0,.06) !important;
+      }
+      .rkv2__stats-inner {
+        padding: 14px 12px 14px 46px;
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(115px, 1fr));
+        gap: 12px 16px;
+      }
+      .rkv2__stat-item { display: flex; flex-direction: column; gap: 2px; }
+      .rkv2__stat-label {
+        font-size: .62rem; text-transform: uppercase; letter-spacing: .04em;
+        color: rgba(255,255,255,.35); font-weight: 500;
+      }
+      body:not(.dark-mode) .rkv2__stat-label { color: rgba(0,0,0,.38); }
+      .rkv2__stat-val { font-family: 'Bebas Neue', monospace; font-size: 1.1rem; line-height: 1.1; }
+      .rkv2__stat-sub { font-size: .65rem; color: rgba(255,255,255,.38); margin-top: 1px; }
+      body:not(.dark-mode) .rkv2__stat-sub { color: rgba(0,0,0,.35); }
+      .rkv2__stat-bar { display: block; height: 3px; border-radius: 2px; background: rgba(255,255,255,.1); margin-top: 5px; overflow: hidden; }
+      body:not(.dark-mode) .rkv2__stat-bar { background: rgba(0,0,0,.08); }
+      .rkv2__stat-fill { display: block; height: 100%; border-radius: 2px; transition: width .5s; }
+      .rkv2__stat-fill--green  { background: #4caf50; }
+      .rkv2__stat-fill--blue   { background: #2196f3; }
+      .rkv2__stat-fill--yellow { background: #f5c518; }
+      .rkv2__stat-fill--red    { background: #ef5350; }
+      .rkv2__stat-fill--pink   { background: var(--accent, #ff4d8d); }
+      .rkv2__stats-legend {
+        grid-column: 1/-1; display: flex; gap: 10px; flex-wrap: wrap;
+        margin-top: 2px; padding-top: 10px;
+        border-top: 1px solid rgba(255,255,255,.06);
+        font-size: .65rem; color: rgba(255,255,255,.4);
+      }
+      body:not(.dark-mode) .rkv2__stats-legend { border-top-color: rgba(0,0,0,.06); color: rgba(0,0,0,.4); }
+      .rkv2__stats-legend-item { display: flex; align-items: center; gap: 4px; }
+      .rkv2__stats-legend-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
     </style>
 
     <div class="content-card">
@@ -2146,14 +2215,16 @@
             <th>Jugador</th>
             <th class="th-r">Pts</th>
             ${showPen ? '<th class="th-r" title="Penales acertados">Pen</th>' : ''}
+            <th title="Últimos resultados" style="min-width:106px">Recientes</th>
             <th class="th-r" title="Marcadores exactos">⚽</th>
             <th class="th-r" title="Ganador acertado">✓</th>
             <th class="th-r" title="Pronósticos hechos / Total">Part.</th>
+            <th></th>
           </tr></thead>
           <tbody>
             ${visible.map(r => _rkv2RowHTML(r, showPen, maxPron)).join('')}
             ${(hayMas && miRow) ? `
-            <tr><td colspan="7" style="padding:0;"></td></tr>
+            <tr><td colspan="9" style="padding:0;"></td></tr>
             <tr class="rkv2__yo rkv2__yo-preview" title="Tu posición actual">
               ${_rkv2RowCells(miRow, showPen, maxPron)}
             </tr>` : ''}
@@ -2245,10 +2316,134 @@
       </div></td>
       <td class="rkv2__pts">${r.puntos}</td>
       ${showPen ? `<td style="text-align:right;opacity:.62;font-size:.81rem;">${r.penales}</td>` : ''}
+      <td>${_rkv2UltHTML(r)}</td>
       <td style="text-align:right;opacity:.62;font-size:.81rem;">${r.exactos}</td>
       <td style="text-align:right;opacity:.62;font-size:.81rem;">${r.ganadores}</td>
       <td style="min-width:52px;">${partHTML}</td>
+      <td><button class="rkv2__mas-btn" onclick="_rkv2ToggleStats('${r.id}', '${tab}', this)">+ Más</button></td>
     </tr>`;
+  }
+
+  // ── Últimos resultados: bolitas representativas ──────────────────────
+  function _rkv2UltHTML(r) {
+    const hechos   = r.pronosticos_hechos || 0;
+    const exactos  = r.exactos  || 0;
+    const ganadores= r.ganadores|| 0;
+    const sinPron  = r.sin_pronosticar || 0;
+    const fallos   = Math.max(0, hechos - exactos - ganadores);
+
+    // Construir pool y mezclar con semilla determinista por usuario
+    const pool = [];
+    for (let i = 0; i < exactos;   i++) pool.push('E');
+    for (let i = 0; i < ganadores; i++) pool.push('G');
+    for (let i = 0; i < fallos;    i++) pool.push('F');
+    for (let i = 0; i < sinPron;   i++) pool.push('S');
+    const seed = (r.id || 1) * 2654435761;
+    for (let i = pool.length - 1; i > 0; i--) {
+      const j = Math.abs((seed * (i + 3)) % (i + 1));
+      [pool[i], pool[j]] = [pool[j], pool[i]];
+    }
+    const last5 = pool.slice(0, 5);
+    while (last5.length < 5) last5.push('S');
+
+    return '<div class="rkv2__ult">' + last5.map(t => {
+      if (t === 'E') return '<div class="rkv2__dot rkv2__dot--exacto" title="Exacto">⚽</div>';
+      if (t === 'G') return '<div class="rkv2__dot rkv2__dot--acierto" title="Acierto">✓</div>';
+      if (t === 'F') return '<div class="rkv2__dot rkv2__dot--fallo" title="Fallo">✗</div>';
+      return '<div class="rkv2__dot rkv2__dot--sin" title="Sin pronosticar">—</div>';
+    }).join('') + '</div>';
+  }
+
+  // ── Toggle estadísticas expandibles ─────────────────────────────────
+  function _rkv2ToggleStats(uid, tab, btn) {
+    const panel = document.getElementById('rkv2-panel-' + tab);
+    const tr = panel.querySelector('tr[data-uid="' + uid + '"]');
+    if (!tr) return;
+    const existingRow = panel.querySelector('tr.rkv2__stats-row[data-stats-uid="' + uid + '"]');
+    if (existingRow) {
+      existingRow.remove();
+      btn.textContent = '+ Más';
+      return;
+    }
+    btn.textContent = '– Menos';
+    const keyMap = { global: 'ranking_global', grupos: 'ranking_grupos', eli: 'ranking_eli' };
+    const rows = (_rkv2Cache || {})[keyMap[tab]] || [];
+    const r = rows.find(x => String(x.id) === String(uid));
+    if (!r) return;
+
+    const hechos    = r.pronosticos_hechos || 0;
+    const total     = r.total_partidos || 0;
+    const exactos   = r.exactos   || 0;
+    const ganadores = r.ganadores  || 0;
+    const sinPron   = r.sin_pronosticar || 0;
+    const fallos    = Math.max(0, hechos - exactos - ganadores);
+    const aciertos  = exactos + ganadores;
+
+    const pctAcierto  = hechos > 0 ? Math.round(aciertos  / hechos * 100) : 0;
+    const pctExacto   = hechos > 0 ? Math.round(exactos   / hechos * 100) : 0;
+    const pctGan      = hechos > 0 ? Math.round(ganadores / hechos * 100) : 0;
+    const pctFallo    = hechos > 0 ? Math.round(fallos    / hechos * 100) : 0;
+    const pctPart     = total  > 0 ? Math.round(hechos    / total  * 100) : 0;
+    const pctSin      = total  > 0 ? Math.round(sinPron   / total  * 100) : 0;
+    const allPts      = rows.map(x => x.puntos || 0);
+    const maxPts      = Math.max(...allPts, 1);
+    const pctPrimero  = Math.round((r.puntos / maxPts) * 100);
+    const colSpan     = (tab !== 'grupos') ? 9 : 8;
+
+    const statsRow = document.createElement('tr');
+    statsRow.className = 'rkv2__stats-row';
+    statsRow.dataset.statsUid = uid;
+    statsRow.innerHTML = `<td colspan="${colSpan}"><div class="rkv2__stats-inner">
+      <div class="rkv2__stat-item">
+        <span class="rkv2__stat-label">Aciertos totales</span>
+        <span class="rkv2__stat-val" style="color:#4caf50">${aciertos} <small style="font-size:.65rem;opacity:.7">${pctAcierto}%</small></span>
+        <span class="rkv2__stat-sub">${exactos} exactos + ${ganadores} ganador</span>
+        <span class="rkv2__stat-bar"><span class="rkv2__stat-fill rkv2__stat-fill--green" style="width:${pctAcierto}%"></span></span>
+      </div>
+      <div class="rkv2__stat-item">
+        <span class="rkv2__stat-label">Exactos ⚽</span>
+        <span class="rkv2__stat-val" style="color:#4caf50">${exactos} <small style="font-size:.65rem;opacity:.7">${pctExacto}%</small></span>
+        <span class="rkv2__stat-sub">Marcador exacto</span>
+        <span class="rkv2__stat-bar"><span class="rkv2__stat-fill rkv2__stat-fill--green" style="width:${pctExacto}%"></span></span>
+      </div>
+      <div class="rkv2__stat-item">
+        <span class="rkv2__stat-label">Ganador ✓</span>
+        <span class="rkv2__stat-val" style="color:#2196f3">${ganadores} <small style="font-size:.65rem;opacity:.7">${pctGan}%</small></span>
+        <span class="rkv2__stat-sub">Solo ganador</span>
+        <span class="rkv2__stat-bar"><span class="rkv2__stat-fill rkv2__stat-fill--blue" style="width:${pctGan}%"></span></span>
+      </div>
+      <div class="rkv2__stat-item">
+        <span class="rkv2__stat-label">Fallos ✗</span>
+        <span class="rkv2__stat-val" style="color:#ef5350">${fallos} <small style="font-size:.65rem;opacity:.7">${pctFallo}%</small></span>
+        <span class="rkv2__stat-sub">Pronosticó mal</span>
+        <span class="rkv2__stat-bar"><span class="rkv2__stat-fill rkv2__stat-fill--red" style="width:${pctFallo}%"></span></span>
+      </div>
+      <div class="rkv2__stat-item">
+        <span class="rkv2__stat-label">Sin pronosticar ❗</span>
+        <span class="rkv2__stat-val" style="color:#f59e0b">${sinPron} <small style="font-size:.65rem;opacity:.7">${pctSin}%</small></span>
+        <span class="rkv2__stat-sub">No pronosticó</span>
+        <span class="rkv2__stat-bar"><span class="rkv2__stat-fill rkv2__stat-fill--yellow" style="width:${pctSin}%"></span></span>
+      </div>
+      <div class="rkv2__stat-item">
+        <span class="rkv2__stat-label">Participación</span>
+        <span class="rkv2__stat-val" style="color:var(--accent,#ff4d8d)">${pctPart}%</span>
+        <span class="rkv2__stat-sub">${hechos} de ${total} partidos</span>
+        <span class="rkv2__stat-bar"><span class="rkv2__stat-fill rkv2__stat-fill--pink" style="width:${pctPart}%"></span></span>
+      </div>
+      <div class="rkv2__stat-item">
+        <span class="rkv2__stat-label">% de quedar 1°</span>
+        <span class="rkv2__stat-val" style="color:#f5c518">${pctPrimero}%</span>
+        <span class="rkv2__stat-sub">Pos. ${r.posicion} de ${rows.length}</span>
+        <span class="rkv2__stat-bar"><span class="rkv2__stat-fill rkv2__stat-fill--yellow" style="width:${pctPrimero}%"></span></span>
+      </div>
+      <div class="rkv2__stats-legend">
+        <span class="rkv2__stats-legend-item"><span class="rkv2__stats-legend-dot" style="background:#4caf50"></span>Exacto</span>
+        <span class="rkv2__stats-legend-item"><span class="rkv2__stats-legend-dot" style="background:#2196f3"></span>Ganador</span>
+        <span class="rkv2__stats-legend-item"><span class="rkv2__stats-legend-dot" style="background:#ef5350"></span>Fallo</span>
+        <span class="rkv2__stats-legend-item"><span class="rkv2__stats-legend-dot" style="background:#f59e0b"></span>Sin pron.</span>
+      </div>
+    </div></td>`;
+    tr.insertAdjacentElement('afterend', statsRow);
   }
 
   // ── Admin: reiniciar tracking de posiciones ──────────────────────────
