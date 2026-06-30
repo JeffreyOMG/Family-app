@@ -2334,25 +2334,12 @@
 
   // ── Últimos resultados: bolitas representativas ──────────────────────
   function _rkv2UltHTML(r) {
-    const hechos   = r.pronosticos_hechos || 0;
-    const exactos  = r.exactos  || 0;
-    const ganadores= r.ganadores|| 0;
-    const sinPron  = r.sin_pronosticar || 0;
-    const fallos   = Math.max(0, hechos - exactos - ganadores);
-
-    // Construir pool y mezclar con semilla determinista por usuario
-    const pool = [];
-    for (let i = 0; i < exactos;   i++) pool.push('E');
-    for (let i = 0; i < ganadores; i++) pool.push('G');
-    for (let i = 0; i < fallos;    i++) pool.push('F');
-    for (let i = 0; i < sinPron;   i++) pool.push('S');
-    const seed = (r.id || 1) * 2654435761;
-    for (let i = pool.length - 1; i > 0; i--) {
-      const j = Math.abs((seed * (i + 3)) % (i + 1));
-      [pool[i], pool[j]] = [pool[j], pool[i]];
-    }
-    const last5 = pool.slice(0, 5);
-    while (last5.length < 5) last5.push('S');
+    // Usa los datos reales del backend (ultimos_5: array de 'E'|'G'|'F')
+    // Izquierda = más antiguo, derecha = más reciente
+    const seq = r.ultimos_5 || [];
+    // Rellenar con S (sin pronosticar) si hay menos de 5
+    while (seq.length < 5) seq.unshift('S');
+    const last5 = seq.slice(-5);
 
     return '<div class="rkv2__ult">' + last5.map(t => {
       if (t === 'E') return '<div class="rkv2__dot rkv2__dot--exacto" title="Exacto">⚽</div>';

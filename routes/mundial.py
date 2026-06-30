@@ -1563,6 +1563,43 @@ def ranking_mundial_v2():
     _save_historial("global",        ranking_global_list)
     con.commit()
 
+    # ── Últimos 5 resultados reales por usuario ───────────────────────────
+    # Une grupos y eliminatorias, ordena por partido_id DESC, toma los 5 más recientes
+    # partido_id de eli se desplaza +1000 para que queden después cronológicamente
+    ult5_rows = con.execute("""
+        SELECT usuario_id, puntos, partido_id AS pid, 'g' AS fase
+        FROM pronosticos pr
+        JOIN partidos_mundial pm ON pm.id = pr.partido_id
+             AND pm.bloqueado=1 AND pm.goles_local IS NOT NULL
+        UNION ALL
+        SELECT usuario_id, puntos, partido_id + 1000 AS pid, 'e' AS fase
+        FROM pronosticos_eli pr
+        JOIN partidos_eliminacion pe ON pe.id = pr.partido_id
+             AND pe.bloqueado=1 AND pe.goles_local IS NOT NULL
+    """).fetchall()
+
+    from collections import defaultdict
+    _ult5 = defaultdict(list)
+    for row in ult5_rows:
+        _ult5[row["usuario_id"]].append((row["pid"], row["puntos"], row["fase"]))
+
+    def _to_label(puntos, fase):
+        if fase == 'g':
+            if puntos == 3: return 'E'
+            if puntos == 1: return 'G'
+            return 'F'
+        else:
+            if puntos in (3, 4): return 'E'
+            if puntos == 1: return 'G'
+            return 'F'
+
+    ult5_map = {}
+    for uid, entries in _ult5.items():
+        # Los 5 más recientes (mayor pid = más reciente), luego invertir: izq=antiguo, der=reciente
+        recent = sorted(entries, key=lambda x: -x[0])[:5]
+        recent.reverse()
+        ult5_map[uid] = [_to_label(p, f) for _, p, f in recent]
+
     # ── Formatear respuesta ───────────────────────────────────────────────
     def _fmt(lst, pts_key, pron_key, sin_key, total):
         out = []
@@ -1584,6 +1621,7 @@ def ranking_mundial_v2():
                 "pronosticos_hechos": pronosticos_hechos,
                 "sin_pronosticar":    sin_pronosticar,
                 "total_partidos": total,
+                "ultimos_5": ult5_map.get(uid_r, []),
             })
         return out
 
