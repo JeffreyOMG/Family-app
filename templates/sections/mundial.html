@@ -2195,9 +2195,31 @@
         .rkv2__cambio { font-size: 9px; padding: 2px 4px; }
         .rkv2__mas-btn { padding: 6px 11px 6px 12px; font-size: 10.5px; }
         .rkv2__mas-btn .rkv2__mas-ic { font-size: 9px; }
-        .rkv2__stats-inner { padding-left: 12px; grid-template-columns: repeat(3, 1fr); }
         .rkv2__ver-mas-btn { font-size: 12px; padding: 10px 17px; }
         .rkv2__legend { font-size: 10.5px; gap: 10px; padding: 10px 12px; }
+
+        /* Panel expandible "Ver más" — 2 columnas en móvil, tarjetas más compactas */
+        .rkv2__stats-inner { padding: 13px 10px 13px 10px; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+        .rkv2__stat-item { padding: 9px 10px; gap: 3px; }
+        .rkv2__stat-icon { width: 22px; height: 22px; border-radius: 7px; font-size: 11px; }
+        .rkv2__stat-head { gap: 6px; }
+        .rkv2__stat-label { font-size: .58rem; }
+        .rkv2__stat-val { font-size: 1rem; }
+        .rkv2__stat-sub { font-size: .6rem; }
+        .rkv2__chip { font-size: .57rem; padding: 1.5px 6px; margin-right: 3px; }
+        .rkv2__leader-box { padding: 11px 11px; gap: 7px; }
+        .rkv2__leader-head { flex-wrap: wrap; }
+        .rkv2__leader-prob { margin-left: auto; }
+        .rkv2__leader-ic { width: 30px; height: 30px; font-size: .88rem; }
+        .rkv2__leader-title { font-size: .74rem; }
+        .rkv2__leader-desc { font-size: .63rem; }
+        .rkv2__leader-prob { padding: 5px 8px; }
+        .rkv2__leader-prob b { font-size: .92rem; }
+        .rkv2__case { font-size: .63rem; padding: 6px 8px; }
+        .rkv2__stats-legend { gap: 8px; font-size: .6rem; }
+      }
+      @media (max-width: 340px) {
+        .rkv2__stats-inner { grid-template-columns: 1fr; }
       }
       @media (min-width: 481px) and (max-width: 880px) {
         .rkv2__player-name { max-width: 120px; }
