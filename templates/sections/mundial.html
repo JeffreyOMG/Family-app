@@ -3294,7 +3294,7 @@ const _MI_ID = {{ usuario.id }};
 // FASE ELIMINATORIA — PRONÓSTICOS
 // ══════════════════════════════════════════
 const _RONDA_IDS = {
-  r16:    [73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88],
+  r16:    [73,76,74,75,78,77,79,80,82,81,84,83,85,88,86,87],
   octavos:[89,90,91,92,93,94,95,96],
   cuartos:[97,98,99,100],
   semis:  [101,102],
@@ -3354,7 +3354,7 @@ function _renderEliRonda(ronda) {
     return;
   }
 
-  const parts = _eliData.filter(p => ids.includes(p.id));
+  const parts = _eliData.filter(p => ids.includes(p.id)).sort((a,b) => ids.indexOf(a.id) - ids.indexOf(b.id));
   if (!parts.length) {
     wrap.innerHTML = '<p style="text-align:center;opacity:.5;padding:30px;">Partidos aún no disponibles</p>'; return;
   }
@@ -3530,7 +3530,7 @@ async function _loadAdminEli() {
     _tercerosPorGrupo = data.terceros_por_grupo || {};
     const fases = ['Dieciseisavos','Octavos','Cuartos','Semifinales','Tercer puesto','Final'];
     wrap.innerHTML = fases.map(fase => {
-      const ps = data.partidos.filter(p => p.fase === fase);
+      const _faseIds = _RONDA_IDS[{Dieciseisavos:'r16',Octavos:'octavos',Cuartos:'cuartos',Semifinales:'semis'}[fase]] || []; const ps = data.partidos.filter(p => p.fase === fase).sort((a,b) => _faseIds.length ? _faseIds.indexOf(a.id)-_faseIds.indexOf(b.id) : a.id-b.id);
       if (!ps.length) return '';
       return `<div class="eli-ronda-label">${fase}</div>
         ${ps.map(p => _adminEliCardHTML(p)).join('')}`;
