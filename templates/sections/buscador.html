@@ -735,6 +735,21 @@ function busAbrirGaleria() {
 .pron-pts-0 { background: rgba(239,68,68,.12);  color: #dc2626; }
 .pron-pts-4 { background: rgba(99,102,241,.15); color: #6366f1; }
 
+/* Penales */
+.pron-pen-res-badge {
+  font-size: 9px; font-weight: 700; padding: 1px 5px; border-radius: 6px;
+  margin-top: 2px; text-align: center; white-space: nowrap;
+  background: rgba(99,102,241,.12); color: #6366f1;
+  border: 1px solid rgba(99,102,241,.25);
+}
+.pron-pen-tag {
+  font-size: 9px; font-weight: 700; padding: 2px 6px;
+  border-radius: 8px; white-space: nowrap; text-align: center;
+}
+.pron-pen-ok   { background: rgba(22,163,74,.15); color: #16a34a; }
+.pron-pen-fail { background: rgba(239,68,68,.12); color: #dc2626; }
+.pron-pen-neutral { background: rgba(99,102,241,.12); color: #6366f1; }
+
 /* Mobile tweaks */
 @media (max-width: 400px) {
   .pron-team-name { font-size: 11px; }
@@ -1003,6 +1018,18 @@ function busAbrirGaleria() {
         const av = r.usuario_foto
           ? `<img src="${esc(r.usuario_foto)}" class="pron-av-img" onerror="this.outerHTML='<div class=pron-av-letter>${esc(r.usuario_nombre[0]?.toUpperCase()||'?')}</div>'">`
           : `<div class="pron-av-letter">${esc(r.usuario_nombre[0]?.toUpperCase()||'?')}</div>`;
+
+        // Penales del pronóstico
+        let penTag = '';
+        if (r.p_penales) {
+          if (!info.res_penales) {
+            penTag = `<span class="pron-pen-tag pron-pen-neutral">🥅 ${esc(r.p_penales)}</span>`;
+          } else {
+            const ok = r.p_penales === info.res_penales;
+            penTag = `<span class="pron-pen-tag ${ok ? 'pron-pen-ok' : 'pron-pen-fail'}">${ok ? '✅' : '❌'} Pen: ${esc(r.p_penales)}</span>`;
+          }
+        }
+
         return `<div class="pron-row">
           ${av}
           <div class="pron-user-info">
@@ -1015,6 +1042,7 @@ function busAbrirGaleria() {
               ${r.p_local ?? '?'} - ${r.p_vis ?? '?'}
               ${_flag(r.visitante || info.visitante, r.cod_visit || info.cod_visit || info.cod_vis || '')}
             </span>
+            ${penTag}
             <span class="pron-pts ${ptsClass(r.puntos)}">${r.puntos ?? 0} pts</span>
           </div>
         </div>`;
@@ -1044,6 +1072,7 @@ function busAbrirGaleria() {
           <div class="pron-partido-score-box">
             <span class="pron-score-label">Resultado</span>
             <span class="pron-partido-score">${info.res_local} - ${info.res_visit}</span>
+            ${info.res_penales ? `<div class="pron-pen-res-badge">🥅 Pen: ${esc(info.res_penales)}</div>` : ''}
           </div>
           <span class="pron-chevron material-symbols-outlined">expand_more</span>
         </div>
