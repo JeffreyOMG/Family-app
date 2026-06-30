@@ -1671,26 +1671,31 @@
       .rkv2__panel.active { display: block; }
 
       /* ── Tabla ────────────────────────────────────────── */
-      .rkv2__wrap { overflow-x: auto; }
+      .rkv2__wrap {
+        overflow-x: auto; border-radius: 14px;
+        background: rgba(255,255,255,.02);
+        border: 1px solid rgba(255,255,255,.06);
+      }
       .rkv2__table {
         width: 100%; border-collapse: collapse;
         font-family: 'DM Sans', sans-serif; font-size: .84rem;
       }
       .rkv2__table th {
         text-align: left; font-size: .68rem; letter-spacing: .04em;
-        color: rgba(255,255,255,.32); font-weight: 500;
-        padding: 5px 6px 9px;
+        color: rgba(255,255,255,.32); font-weight: 600;
+        padding: 10px 8px;
         border-bottom: 1px solid rgba(255,255,255,.08);
         text-transform: uppercase; white-space: nowrap;
       }
       .rkv2__table th.th-r { text-align: right; }
       .rkv2__table td {
-        padding: 9px 6px;
+        padding: 10px 8px;
         border-bottom: 1px solid rgba(255,255,255,.05);
         vertical-align: middle;
-        transition: background .35s;
+        transition: background .25s, transform .18s;
       }
       .rkv2__table tr:last-child td { border-bottom: none; }
+      .rkv2__table tr:hover td { background: rgba(255,255,255,.04); }
 
       /* Fila del usuario actual */
       .rkv2__table tr.rkv2__yo td {
@@ -1738,6 +1743,27 @@
         width: 26px; height: 26px; border-radius: 50%; object-fit: cover;
         background: rgba(255,255,255,.08); flex-shrink: 0;
         display: flex; align-items: center; justify-content: center; font-size: .8rem;
+        border: 1.5px solid rgba(255,255,255,.14);
+        box-shadow: 0 1px 3px rgba(0,0,0,.25);
+        transition: transform .18s, border-color .18s;
+      }
+      .rkv2__table tr:hover .rkv2__avatar { transform: scale(1.08); border-color: rgba(255,255,255,.3); }
+      tr[data-pos="1"] .rkv2__avatar { border-color: rgba(245,197,24,.65); box-shadow: 0 0 0 2px rgba(245,197,24,.2), 0 1px 4px rgba(0,0,0,.3); }
+      tr[data-pos="2"] .rkv2__avatar { border-color: rgba(210,210,210,.6); box-shadow: 0 0 0 2px rgba(210,210,210,.18), 0 1px 4px rgba(0,0,0,.3); }
+      tr[data-pos="3"] .rkv2__avatar { border-color: rgba(205,127,50,.65); box-shadow: 0 0 0 2px rgba(205,127,50,.2), 0 1px 4px rgba(0,0,0,.3); }
+
+      /* Corrección de pixelado SOLO en pantallas de escritorio (densidad de píxeles baja).
+         En móviles (alta densidad / retina) la imagen ya se ve nítida, así que no se toca. */
+      @media (min-width: 769px) and (max-resolution: 1.5dppx) {
+        .rkv2__avatar,
+        .vpron-av-img {
+          image-rendering: -webkit-optimize-contrast;
+          image-rendering: high-quality;
+          filter: blur(.25px) saturate(1.04) contrast(1.02);
+          transform: translateZ(0);
+          backface-visibility: hidden;
+        }
+        .rkv2__table tr:hover .rkv2__avatar { transform: translateZ(0) scale(1.08); }
       }
       .rkv2__player-name { font-weight: 500; line-height: 1.2; max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block; }
       .rkv2__yo-badge { color: var(--accent, #ff4d8d); font-size: .66rem; margin-left: 3px; }
@@ -1800,8 +1826,16 @@
       body:not(.dark-mode) .rkv2__cambio--eq {
         color: rgba(0,0,0,.25);
       }
+      body:not(.dark-mode) .rkv2__wrap {
+        background: rgba(0,0,0,.015);
+        border-color: rgba(0,0,0,.08);
+      }
+      body:not(.dark-mode) .rkv2__table tr:hover td {
+        background: rgba(0,0,0,.025);
+      }
       body:not(.dark-mode) .rkv2__avatar {
         background: rgba(0,0,0,.07);
+        border-color: rgba(0,0,0,.1);
       }
       body:not(.dark-mode) .rkv2__part {
         color: rgba(0,0,0,.4);
