@@ -279,7 +279,7 @@
 
   <div id="mw-intro-overlay">
     <video id="mw-vid"
-           src="https://www.youtube.com/watch?v=nAAOe-APxWU"
+           src="static/intro_mundial.mp4"
            autoplay playsinline muted webkit-playsinline preload="auto" x5-video-player-type="h5">
     </video>
     <button id="mw-skip-btn" style="display:none" onclick="mwSkip()">Saltar ▶</button>
@@ -2553,11 +2553,12 @@
       function normFase(f) {
         if (!f) return '';
         const fl = f.toLowerCase();
-        if (fl.includes('16') || fl === 'r16') return '16avos';
+        if (fl.includes('16') || fl === 'r16' || fl.includes('dieciseis') || fl.includes('dieciocho')) return '16avos';
         if (fl.includes('octavo'))  return 'Octavos';
         if (fl.includes('cuarto'))  return 'Cuartos';
         if (fl.includes('semi'))    return 'Semis';
-        if (fl.includes('final') && !fl.includes('semi') && !fl.includes('cuarto')) return 'Final';
+        if (fl.includes('tercer'))  return 'Semis';   // 3er puesto agrupa con semis
+        if (fl.includes('final'))   return 'Final';
         return f;
       }
 
