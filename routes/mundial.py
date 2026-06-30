@@ -522,7 +522,7 @@ def _seed_eliminacion(con):
         con.execute("""
             INSERT INTO partidos_eliminacion(id, fase, slot_local, slot_visit, fecha, sede)
             VALUES (%s, %s, %s, %s, %s, %s)
-            ON CONFLICT (id) DO NOTHING
+            ON CONFLICT (id) DO UPDATE SET fecha=EXCLUDED.fecha, sede=EXCLUDED.sede
         """, fila)
     con.commit()
 

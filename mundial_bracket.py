@@ -1,41 +1,52 @@
 # ═══════════════════════════════════════════════════════════════
 # MUNDIAL 2026 — FIXTURE OFICIAL COMPLETO
-# Estructura real FIFA: partidos 73-102 + 3er puesto + Final
+# Fechas y horas en hora COLOMBIA (GMT-5)
 # ═══════════════════════════════════════════════════════════════
 
 FASES = ["Grupos", "Dieciseisavos", "Octavos", "Cuartos", "Semifinal", "Tercer puesto", "Final"]
 
-# ─── FIXTURE OFICIAL DIECISEISAVOS (partidos 73-88) ──────────────────────────
-# slot_local / slot_visitante: describe quién juega
-# para los 8 cruces con terceros, slot_visitante es lista de grupos posibles
-# (el admin elige cuál tercero va en cada cruce)
+# ─── DIECISEISAVOS (partidos 73-88) — hora Colombia ──────────────────────────
+# Fuentes: doc usuario + conversión de zonas horarias
+# PT (LA, Seattle, Santa Clara, Vancouver) = GMT-7 → Col +2h
+# CT (Houston, Dallas, Monterrey, KC)      = GMT-6 → Col +1h
+# ET (NY, Atlanta, Miami, Phila, Boston, Toronto) = GMT-5 → Col igual
 
 DIECISEISAVOS = [
-    {"id": 73,  "slot_l": "2A",  "slot_v": "2B",         "fecha": "Dom. 28 jun, 15:00", "sede": "SoFi Stadium, Los Angeles",           "fijo": True},
+    # Dom 28 jun
+    {"id": 73,  "slot_l": "2A",  "slot_v": "2B",         "fecha": "Dom. 28 jun, 19:00", "sede": "SoFi Stadium, Los Angeles",           "fijo": True},
+    # Lun 29 jun
     {"id": 74,  "slot_l": "1E",  "slot_v": "3-ABCDF",    "fecha": "Lun. 29 jun, 16:30", "sede": "Gillette Stadium, Foxborough",        "fijo": False},
-    {"id": 75,  "slot_l": "1F",  "slot_v": "2C",         "fecha": "Lun. 29 jun, 21:00", "sede": "Estadio BBVA, Monterrey",             "fijo": True},
-    {"id": 76,  "slot_l": "1C",  "slot_v": "2F",         "fecha": "Lun. 29 jun, 13:00", "sede": "NRG Stadium, Houston",                "fijo": True},
-    {"id": 77,  "slot_l": "1I",  "slot_v": "3-CDFGH",    "fecha": "Mar. 30 jun, 17:00", "sede": "MetLife Stadium, East Rutherford",    "fijo": False},
-    {"id": 78,  "slot_l": "2E",  "slot_v": "2I",         "fecha": "Mar. 30 jun, 13:00", "sede": "AT&T Stadium, Arlington",             "fijo": True},
-    {"id": 79,  "slot_l": "1A",  "slot_v": "3-CEFHI",    "fecha": "Mar. 30 jun, 21:00", "sede": "Estadio Azteca, CDMX",               "fijo": False},
-    {"id": 80,  "slot_l": "1L",  "slot_v": "3-EHIJK",    "fecha": "Mié. 1 jul, 12:00",  "sede": "Mercedes-Benz Stadium, Atlanta",     "fijo": False},
-    {"id": 81,  "slot_l": "1D",  "slot_v": "3-BEFIJ",    "fecha": "Mié. 1 jul, 20:00",  "sede": "Levi's Stadium, Santa Clara",        "fijo": False},
-    {"id": 82,  "slot_l": "1G",  "slot_v": "3-AEHIJ",    "fecha": "Mié. 1 jul, 16:00",  "sede": "Lumen Field, Seattle",               "fijo": False},
+    {"id": 76,  "slot_l": "1C",  "slot_v": "2F",         "fecha": "Lun. 29 jun, 14:00", "sede": "NRG Stadium, Houston",                "fijo": True},
+    {"id": 75,  "slot_l": "1F",  "slot_v": "2C",         "fecha": "Lun. 29 jun, 22:00", "sede": "Estadio BBVA, Monterrey",             "fijo": True},
+    # Mar 30 jun
+    {"id": 78,  "slot_l": "2E",  "slot_v": "2I",         "fecha": "Mar. 30 jun, 12:00", "sede": "AT&T Stadium, Arlington",             "fijo": True},
+    {"id": 77,  "slot_l": "1I",  "slot_v": "3-CDFGH",    "fecha": "Mar. 30 jun, 16:00", "sede": "MetLife Stadium, East Rutherford",    "fijo": False},
+    {"id": 79,  "slot_l": "1A",  "slot_v": "3-CEFHI",    "fecha": "Mar. 30 jun, 20:00", "sede": "Estadio Azteca, CDMX",               "fijo": False},
+    # Mié 1 jul
+    {"id": 80,  "slot_l": "1L",  "slot_v": "3-EHIJK",    "fecha": "Mié. 1 jul, 11:00",  "sede": "Mercedes-Benz Stadium, Atlanta",     "fijo": False},
+    {"id": 82,  "slot_l": "1G",  "slot_v": "3-AEHIJ",    "fecha": "Mié. 1 jul, 15:00",  "sede": "Lumen Field, Seattle",               "fijo": False},
+    {"id": 81,  "slot_l": "1D",  "slot_v": "3-BEFIJ",    "fecha": "Mié. 1 jul, 19:00",  "sede": "Levi's Stadium, Santa Clara",        "fijo": False},
+    # Jue 2 jul
+    {"id": 84,  "slot_l": "1H",  "slot_v": "2J",         "fecha": "Jue. 2 jul, 14:00",  "sede": "SoFi Stadium, Los Angeles",          "fijo": True},
     {"id": 83,  "slot_l": "2K",  "slot_v": "2L",         "fecha": "Jue. 2 jul, 19:00",  "sede": "BMO Field, Toronto",                 "fijo": True},
-    {"id": 84,  "slot_l": "1H",  "slot_v": "2J",         "fecha": "Jue. 2 jul, 15:00",  "sede": "SoFi Stadium, Los Angeles",          "fijo": True},
     {"id": 85,  "slot_l": "1B",  "slot_v": "3-EFGIJ",    "fecha": "Jue. 2 jul, 23:00",  "sede": "BC Place, Vancouver",                "fijo": False},
-    {"id": 86,  "slot_l": "1J",  "slot_v": "2H",         "fecha": "Vie. 3 jul, 18:00",  "sede": "Hard Rock Stadium, Miami",           "fijo": True},
-    {"id": 87,  "slot_l": "1K",  "slot_v": "3-DEIJL",    "fecha": "Vie. 3 jul, 21:30",  "sede": "Arrowhead Stadium, Kansas City",     "fijo": False},
-    {"id": 88,  "slot_l": "2D",  "slot_v": "2G",         "fecha": "Vie. 3 jul, 14:00",  "sede": "AT&T Stadium, Arlington",            "fijo": True},
+    # Vie 3 jul
+    {"id": 88,  "slot_l": "2D",  "slot_v": "2G",         "fecha": "Vie. 3 jul, 13:00",  "sede": "AT&T Stadium, Arlington",            "fijo": True},
+    {"id": 86,  "slot_l": "1J",  "slot_v": "2H",         "fecha": "Vie. 3 jul, 17:00",  "sede": "Hard Rock Stadium, Miami",           "fijo": True},
+    {"id": 87,  "slot_l": "1K",  "slot_v": "3-DEIJL",    "fecha": "Vie. 3 jul, 20:30",  "sede": "Arrowhead Stadium, Kansas City",     "fijo": False},
 ]
 
 OCTAVOS = [
-    {"id": 89,  "dep1": 74, "dep2": 77, "fecha": "Sáb. 4 jul, 17:00",  "sede": "Lincoln Financial Field, Philadelphia"},
+    # Sáb 4 jul
     {"id": 90,  "dep1": 73, "dep2": 75, "fecha": "Sáb. 4 jul, 13:00",  "sede": "NRG Stadium, Houston"},
+    {"id": 89,  "dep1": 74, "dep2": 77, "fecha": "Sáb. 4 jul, 17:00",  "sede": "Lincoln Financial Field, Philadelphia"},
+    # Dom 5 jul
     {"id": 91,  "dep1": 76, "dep2": 78, "fecha": "Dom. 5 jul, 16:00",  "sede": "MetLife Stadium, East Rutherford"},
     {"id": 92,  "dep1": 79, "dep2": 80, "fecha": "Dom. 5 jul, 20:00",  "sede": "Estadio Azteca, CDMX"},
+    # Lun 6 jul
     {"id": 93,  "dep1": 83, "dep2": 84, "fecha": "Lun. 6 jul, 15:00",  "sede": "AT&T Stadium, Arlington"},
     {"id": 94,  "dep1": 81, "dep2": 82, "fecha": "Lun. 6 jul, 20:00",  "sede": "Lumen Field, Seattle"},
+    # Mar 7 jul
     {"id": 95,  "dep1": 86, "dep2": 88, "fecha": "Mar. 7 jul, 12:00",  "sede": "Mercedes-Benz Stadium, Atlanta"},
     {"id": 96,  "dep1": 85, "dep2": 87, "fecha": "Mar. 7 jul, 16:00",  "sede": "BC Place, Vancouver"},
 ]
@@ -52,8 +63,8 @@ SEMIFINALES = [
     {"id": 102, "dep1": 99, "dep2": 100, "fecha": "Mié. 15 jul, 15:00", "sede": "Mercedes-Benz Stadium, Atlanta"},
 ]
 
-TERCER_PUESTO = {"id": 103, "dep1": 101, "dep2": 102, "fecha": "Sáb. 18 jul, 17:00", "sede": "Hard Rock Stadium, Miami",     "tipo": "perdedor"}
-FINAL         = {"id": 104, "dep1": 101, "dep2": 102, "fecha": "Dom. 19 jul, 15:00", "sede": "MetLife Stadium, East Rutherford", "tipo": "ganador"}
+TERCER_PUESTO = {"id": 103, "dep1": 101, "dep2": 102, "fecha": "Sáb. 18 jul, 15:00", "sede": "Hard Rock Stadium, Miami",         "tipo": "perdedor"}
+FINAL         = {"id": 104, "dep1": 101, "dep2": 102, "fecha": "Dom. 19 jul, 15:00", "sede": "MetLife Stadium, East Rutherford",  "tipo": "ganador"}
 
 # IDs de cruces con tercero (admin debe asignar manualmente)
 CRUCES_CON_TERCERO = {74, 77, 79, 80, 81, 82, 85, 87}
