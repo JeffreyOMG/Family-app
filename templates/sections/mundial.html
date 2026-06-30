@@ -2458,13 +2458,15 @@
     const colSpan     = (tab !== 'grupos') ? 9 : 8;
 
     // ── Comparación real contra el líder (no por puesto, por puntos + desempates oficiales) ──
-    const TOTAL_TORNEO = 104; // total de partidos del Mundial (grupos + eliminatorias)
+    const TOTAL_POR_TAB = { global: 104, grupos: 72, eli: 32 };
+    const TOTAL_TORNEO = TOTAL_POR_TAB[tab] || 104;
     const leader = rows.find(x => x.posicion === 1) || rows[0] || r;
     const isLeader = String(leader.id) === String(r.id);
     const ptsDiff = (leader.puntos || 0) - (r.puntos || 0);
     const rNombre = r.nombre || 'Este usuario';
-    const jugados   = (tab === 'global') ? total : total; // partidos con resultado ya registrado en esta categoría
+    const jugados   = total; // partidos con resultado ya registrado en esta categoría
     const restantes = Math.max(0, TOTAL_TORNEO - jugados);
+    const faseLabel = tab === 'grupos' ? 'la fase de grupos' : (tab === 'eli' ? 'la fase eliminatoria' : 'el torneo');
 
     let leaderColor = '#f5c518', leaderIcon = '🏆', leaderTitle = '', leaderDesc = '', casesHTML = '';
     let probLabel = '', probVal = '';
@@ -2485,12 +2487,12 @@
 
       if (restantes === 0) {
         leaderTitle = `Quedaste a ${ptsDiff} pts de ${leader.nombre}`;
-        leaderDesc  = `Ya no quedan partidos por jugar de los ${TOTAL_TORNEO} del torneo, así que esta diferencia ya no se puede cerrar.`;
+        leaderDesc  = `Ya no quedan partidos por jugar en ${faseLabel} (${TOTAL_TORNEO} en total), así que esta diferencia ya no se puede cerrar.`;
         leaderColor = '#9c9c9c'; leaderIcon = '🏁';
         probVal = '0%'; probLabel = 'prob. estimada';
       } else {
         leaderTitle = `Vas a ${ptsDiff} pts de ${leader.nombre}`;
-        leaderDesc  = `${leader.nombre} lleva ${leader.puntos} pts y ${rNombre} lleva ${r.puntos} pts. Faltan ${restantes} de los ${TOTAL_TORNEO} partidos del torneo. Esto es lo que necesitas sacarle de ventaja (suponiendo que ${leader.nombre} no sume más puntos):`;
+        leaderDesc  = `${leader.nombre} lleva ${leader.puntos} pts y ${rNombre} lleva ${r.puntos} pts. Faltan ${restantes} de los ${TOTAL_TORNEO} partidos de ${faseLabel}. Esto es lo que necesitas sacarle de ventaja (suponiendo que ${leader.nombre} no sume más puntos):`;
 
         casesHTML = `<div class="rkv2__cases">
           <div class="rkv2__case"><span class="rkv2__case-ic">⚽</span><span>Solo con exactos: <b>${soloExactos}</b> exacto${soloExactos===1?'':'s'} más que él</span></div>
@@ -2530,7 +2532,7 @@
         leaderColor = '#ff9800'; leaderIcon = '⚠️';
         casesHTML = `<div class="rkv2__cases">
           <div class="rkv2__case"><span class="rkv2__case-ic">📊</span><span>${resuelto.c.label}: ${rNombre} <b>${resuelto.c.valR}</b> · ${leader.nombre} <b>${resuelto.c.valL}</b></span></div>
-          <div class="rkv2__case"><span class="rkv2__case-ic">🎯</span><span>Faltan ${restantes} de ${TOTAL_TORNEO} partidos para que puedas mejorar en <b>${resuelto.c.label}</b></span></div>
+          <div class="rkv2__case"><span class="rkv2__case-ic">🎯</span><span>Faltan ${restantes} de ${TOTAL_TORNEO} partidos en ${faseLabel} para que puedas mejorar en <b>${resuelto.c.label}</b></span></div>
         </div>`;
         probVal = '35%'; probLabel = 'prob. estimada';
       } else {
@@ -2602,7 +2604,7 @@
           </div>
         </div>
         ${casesHTML}
-        <div class="rkv2__leader-disclaimer"><span>ℹ️</span><span>Esto es un cálculo estadístico estimado a partir de los ${TOTAL_TORNEO} partidos del torneo, no una predicción garantizada de lo que va a pasar.</span></div>
+        <div class="rkv2__leader-disclaimer"><span>ℹ️</span><span>Esto es un cálculo estadístico estimado a partir de los ${TOTAL_TORNEO} partidos de ${faseLabel}, no una predicción garantizada de lo que va a pasar.</span></div>
       </div>
       <div class="rkv2__stats-legend">
         <span class="rkv2__stats-legend-item"><span class="rkv2__stats-legend-dot" style="background:#4caf50"></span>Exacto</span>
