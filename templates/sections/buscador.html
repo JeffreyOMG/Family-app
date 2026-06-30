@@ -115,8 +115,38 @@
           <span class="material-symbols-outlined">close</span>
         </button>
       </div>
-      <div class="pron-fechas-wrap" id="pron-fechas-wrap">
-        <button class="pron-fecha-chip active" data-fecha="" onclick="selFechaPron(this, '')">Todas</button>
+
+      <!-- Pestañas Grupos / Eliminatorias -->
+      <div class="pron-fechas-wrap" id="pron-fase-tabs" style="margin-bottom:.5rem;">
+        <button class="pron-fecha-chip active" id="pron-fase-btn-grupos" onclick="pronFase('grupos', this)">⚽ Grupos</button>
+        <button class="pron-fecha-chip" id="pron-fase-btn-eli" onclick="pronFase('eli', this)">🏆 Eliminatorias</button>
+      </div>
+
+      <!-- Sub-tabs Grupos A–L -->
+      <div class="pron-fechas-wrap" id="pron-sub-grupos" style="margin-bottom:.5rem;">
+        <button class="pron-fecha-chip active" onclick="pronSubGrupo('TODOS', this)">Todos</button>
+        <button class="pron-fecha-chip" onclick="pronSubGrupo('A', this)">A</button>
+        <button class="pron-fecha-chip" onclick="pronSubGrupo('B', this)">B</button>
+        <button class="pron-fecha-chip" onclick="pronSubGrupo('C', this)">C</button>
+        <button class="pron-fecha-chip" onclick="pronSubGrupo('D', this)">D</button>
+        <button class="pron-fecha-chip" onclick="pronSubGrupo('E', this)">E</button>
+        <button class="pron-fecha-chip" onclick="pronSubGrupo('F', this)">F</button>
+        <button class="pron-fecha-chip" onclick="pronSubGrupo('G', this)">G</button>
+        <button class="pron-fecha-chip" onclick="pronSubGrupo('H', this)">H</button>
+        <button class="pron-fecha-chip" onclick="pronSubGrupo('I', this)">I</button>
+        <button class="pron-fecha-chip" onclick="pronSubGrupo('J', this)">J</button>
+        <button class="pron-fecha-chip" onclick="pronSubGrupo('K', this)">K</button>
+        <button class="pron-fecha-chip" onclick="pronSubGrupo('L', this)">L</button>
+      </div>
+
+      <!-- Sub-tabs Eliminatorias -->
+      <div class="pron-fechas-wrap" id="pron-sub-eli" style="display:none; margin-bottom:.5rem;">
+        <button class="pron-fecha-chip active" onclick="pronSubEli('TODOS', this)">Todos</button>
+        <button class="pron-fecha-chip" onclick="pronSubEli('16avos', this)">16avos</button>
+        <button class="pron-fecha-chip" onclick="pronSubEli('Octavos', this)">Octavos</button>
+        <button class="pron-fecha-chip" onclick="pronSubEli('Cuartos', this)">Cuartos</button>
+        <button class="pron-fecha-chip" onclick="pronSubEli('Semis', this)">Semis</button>
+        <button class="pron-fecha-chip" onclick="pronSubEli('Final', this)">Final</button>
       </div>
     </div>
     <div id="pron-loading" style="display:none;">
@@ -767,6 +797,9 @@ function busAbrirGaleria() {
   let _fechaAct  = '';
   let _queryAct  = '';
   let _pronTimer = null;
+  let _pronFase  = 'grupos';
+  let _pronSubG  = 'TODOS';
+  let _pronSubE  = 'TODOS';
 
   // ── Mapa nombre de equipo → código FIFA (para /static/banderas/XXX.png) ──
   // Códigos basados exactamente en los archivos disponibles en /static/banderas/
@@ -949,24 +982,41 @@ function busAbrirGaleria() {
   }
 
   function _poblarFechas(grupos) {
-    const wrap = document.getElementById('pron-fechas-wrap');
-    wrap.innerHTML = '<button class="pron-fecha-chip active" data-fecha="" onclick="selFechaPron(this,\'\')">Todos</button>';
-    grupos.forEach(g => {
-      const btn = document.createElement('button');
-      btn.className = 'pron-fecha-chip';
-      btn.dataset.fecha = g;
-      btn.textContent = 'Grupo ' + g;
-      btn.onclick = function() { selFechaPron(this, g); };
-      wrap.appendChild(btn);
-    });
-    if (_pronData && _pronData.some(r => r.fase === 'Eliminatoria')) {
-      const btn = document.createElement('button');
-      btn.className = 'pron-fecha-chip';
-      btn.dataset.fecha = '__eli__';
-      btn.textContent = '⚔️ Eliminatoria';
-      btn.onclick = function() { selFechaPron(this, '__eli__'); };
-      wrap.appendChild(btn);
-    }
+    // ya no se usa dinámicamente — sub-tabs están fijos en el HTML
+  }
+
+  window.pronFase = function(fase, btn) {
+    _pronFase = fase;
+    document.querySelectorAll('#pron-fase-tabs .pron-fecha-chip').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('pron-sub-grupos').style.display = fase === 'grupos' ? 'flex' : 'none';
+    document.getElementById('pron-sub-eli').style.display    = fase === 'eli'    ? 'flex' : 'none';
+    _renderPron();
+  };
+
+  window.pronSubGrupo = function(g, btn) {
+    _pronSubG = g;
+    document.querySelectorAll('#pron-sub-grupos .pron-fecha-chip').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    _renderPron();
+  };
+
+  window.pronSubEli = function(f, btn) {
+    _pronSubE = f;
+    document.querySelectorAll('#pron-sub-eli .pron-fecha-chip').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    _renderPron();
+  };
+
+  function _normFase(f) {
+    if (!f) return '';
+    const fl = f.toLowerCase();
+    if (fl.includes('16') || fl === 'r16' || fl.includes('dieciseis')) return '16avos';
+    if (fl.includes('octavo'))  return 'Octavos';
+    if (fl.includes('cuarto'))  return 'Cuartos';
+    if (fl.includes('semi') || fl.includes('tercer')) return 'Semis';
+    if (fl.includes('final'))   return 'Final';
+    return f;
   }
 
   function _renderPron() {
@@ -975,20 +1025,28 @@ function busAbrirGaleria() {
 
     let data = _pronData;
 
+    // Filtro fase principal
+    if (_pronFase === 'grupos') {
+      data = data.filter(r => r.fase === 'Grupos');
+    } else {
+      data = data.filter(r => r.fase === 'Eliminatoria');
+    }
+
+    // Filtro sub-tab
+    if (_pronFase === 'grupos' && _pronSubG !== 'TODOS') {
+      data = data.filter(r => (r.grupo || '').toUpperCase() === _pronSubG);
+    }
+    if (_pronFase === 'eli' && _pronSubE !== 'TODOS') {
+      data = data.filter(r => _normFase(r.grupo) === _pronSubE);
+    }
+
+    // Filtro búsqueda
     if (_queryAct) {
       const q = _queryAct.toLowerCase();
       data = data.filter(r =>
         r.usuario_nombre.toLowerCase().includes(q) ||
         r.usuario_handle.toLowerCase().includes(q)
       );
-    }
-
-    if (_fechaAct) {
-      if (_fechaAct === '__eli__') {
-        data = data.filter(r => r.fase === 'Eliminatoria');
-      } else {
-        data = data.filter(r => r.grupo === _fechaAct);
-      }
     }
 
     if (!data.length) {
