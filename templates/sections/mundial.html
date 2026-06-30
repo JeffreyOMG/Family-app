@@ -1637,18 +1637,27 @@
     <style>
       /* ── Sub-tabs ─────────────────────────────────────── */
       .rkv2__tabs {
-        display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap;
+        display: flex; gap: 6px; margin-bottom: 16px;
       }
       .rkv2__tab-btn {
-        flex: 1; min-width: 90px; padding: 9px 10px;
+        flex: 1; min-width: 0; padding: 9px 8px;
         background: rgba(255,255,255,.06);
         border: 1.5px solid rgba(255,255,255,.1);
         border-radius: 10px;
         color: rgba(255,255,255,.55);
         font-family: 'DM Sans', sans-serif; font-size: .82rem;
         cursor: pointer; transition: background .18s, border-color .18s, color .18s;
-        display: flex; align-items: center; justify-content: center; gap: 5px;
-        white-space: nowrap;
+        display: flex; align-items: center; justify-content: center; gap: 4px;
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      }
+      @media (max-width: 480px) {
+        .rkv2__tabs { gap: 4px; }
+        .rkv2__tab-btn { font-size: .72rem; padding: 8px 4px; border-radius: 8px; }
+        .rkv2__tab-btn .tab-emoji { font-size: .85rem; }
+        .rkv2__tab-btn .tab-label { display: none; }
+        .rkv2__tab-btn.active .tab-label { display: inline; font-size: .72rem; }
+        .rkv2__tabs-row { flex-wrap: nowrap; }
+        .rkv2__help-btn { width: 32px; height: 32px; flex-shrink: 0; }
       }
       .rkv2__tab-btn.active {
         background: var(--accent-soft, rgba(255,77,141,.12));
@@ -1730,7 +1739,7 @@
         background: rgba(255,255,255,.08); flex-shrink: 0;
         display: flex; align-items: center; justify-content: center; font-size: .8rem;
       }
-      .rkv2__player-name { font-weight: 500; line-height: 1.2; }
+      .rkv2__player-name { font-weight: 500; line-height: 1.2; max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block; }
       .rkv2__yo-badge { color: var(--accent, #ff4d8d); font-size: .66rem; margin-left: 3px; }
 
       /* Ver más */
@@ -2044,11 +2053,10 @@
     <div class="content-card">
       <div class="rkv2__tabs-row">
         <div class="rkv2__tabs" style="flex:1;">
-          <button class="rkv2__tab-btn active" onclick="rkv2Tab('global', this)">🌍 Global</button>
-          <button class="rkv2__tab-btn" onclick="rkv2Tab('grupos', this)">⚽ Grupos</button>
+          <button class="rkv2__tab-btn active" onclick="rkv2Tab('global', this)"><span class="tab-emoji">🌍</span><span class="tab-label">Global</span></button>
+          <button class="rkv2__tab-btn" onclick="rkv2Tab('grupos', this)"><span class="tab-emoji">⚽</span><span class="tab-label">Grupos</span></button>
           {% if ranking_eli_visible or usuario.rol == 'admin' %}
-          <button class="rkv2__tab-btn" onclick="rkv2Tab('eli', this)" id="rkv2-btn-eli">
-            🏆 Eliminatorias
+          <button class="rkv2__tab-btn" onclick="rkv2Tab('eli', this)" id="rkv2-btn-eli"><span class="tab-emoji">🏆</span><span class="tab-label">Eliminatorias</span>
             {% if usuario.rol == 'admin' and not ranking_eli_visible %}
             <span style="font-size:.6rem;opacity:.5;margin-left:3px;">(oculto)</span>
             {% endif %}
@@ -2214,8 +2222,8 @@
             <th>#</th>
             <th>Jugador</th>
             <th class="th-r">Pts</th>
-            ${showPen ? '<th class="th-r" title="Penales acertados">Pen</th>' : ''}
             <th title="Últimos resultados" style="min-width:106px">Recientes</th>
+            ${showPen ? '<th class="th-r" title="Penales acertados">Pen</th>' : ''}
             <th class="th-r" title="Marcadores exactos">⚽</th>
             <th class="th-r" title="Ganador acertado">✓</th>
             <th class="th-r" title="Pronósticos hechos / Total">Part.</th>
@@ -2315,8 +2323,8 @@
         </div>
       </div></td>
       <td class="rkv2__pts">${r.puntos}</td>
-      ${showPen ? `<td style="text-align:right;opacity:.62;font-size:.81rem;">${r.penales}</td>` : ''}
       <td>${_rkv2UltHTML(r)}</td>
+      ${showPen ? `<td style="text-align:right;opacity:.62;font-size:.81rem;">${r.penales}</td>` : ''}
       <td style="text-align:right;opacity:.62;font-size:.81rem;">${r.exactos}</td>
       <td style="text-align:right;opacity:.62;font-size:.81rem;">${r.ganadores}</td>
       <td style="min-width:52px;">${partHTML}</td>
