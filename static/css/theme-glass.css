@@ -252,6 +252,8 @@ body.theme-glass .auth-card,
 body.theme-glass .album-card,
 body.theme-glass .right-panel,
 body.theme-glass .notif-panel,
+body.theme-glass .ntm-box,
+body.theme-glass .compose-card,
 body.theme-glass [class$="-panel"],
 body.theme-glass [class*="-panel "],
 body.theme-glass [class*="-widget"],
@@ -274,6 +276,8 @@ body.theme-glass .auth-card::before,
 body.theme-glass .album-card::before,
 body.theme-glass .right-panel::before,
 body.theme-glass .notif-panel::before,
+body.theme-glass .ntm-box::before,
+body.theme-glass .compose-card::before,
 body.theme-glass [class$="-panel"]::before,
 body.theme-glass [class*="-widget"]::before {
   content: "";
@@ -312,6 +316,107 @@ body.theme-glass .material-symbols-outlined {
   body.theme-glass .notif-panel {
     background: rgba(16, 13, 32, .88) !important;
   }
+}
+
+/* -------------------------------------------------------------------------
+   2c. NAVBAR MÓVIL (Instagram-style) — iconos y logo
+   -------------------------------------------------------------------------
+   style.css define estos botones con color negro por defecto y los pone en
+   blanco solo bajo "body.dark-mode". Glass no es "dark-mode" (es su propio
+   tema), así que sin esta regla los iconos y el logo del navbar móvil se
+   veían negros sobre el fondo Glass oscuro → prácticamente invisibles.
+   Esto es lo que causaba que "el menú de celular chocara" con el tema.
+   ------------------------------------------------------------------------- */
+@media (max-width: 1024px) {
+  body.theme-glass .navbar-ig-btn,
+  body.theme-glass .navbar-ig-btn .material-symbols-outlined {
+    color: var(--text) !important;
+  }
+  body.theme-glass .brand-white {
+    color: var(--text) !important;
+  }
+  body.theme-glass .navbar-ig-btn:active {
+    opacity: .55;
+  }
+}
+
+/* -------------------------------------------------------------------------
+   2d. Modal "Nueva noticia / evento" (.ntm-*) — sin cobertura Glass previa
+   ------------------------------------------------------------------------- */
+body.theme-glass .ntm-header,
+body.theme-glass .ntm-footer {
+  background: transparent !important;
+  border-color: var(--glass-border-soft) !important;
+}
+body.theme-glass .ntm-header-title { color: var(--text) !important; }
+body.theme-glass .ntm-header-sub { color: var(--text3) !important; }
+body.theme-glass .ntm-close {
+  background: var(--glass-fill-3) !important;
+  border-color: var(--glass-border-soft) !important;
+  color: var(--text2) !important;
+}
+body.theme-glass .ntm-tipo-btn,
+body.theme-glass .ntm-ampm-btn,
+body.theme-glass .ntm-cancel {
+  background: var(--glass-fill-3) !important;
+  border-color: rgba(255, 255, 255, var(--glass-t3-border-opacity)) !important;
+  color: var(--text2) !important;
+}
+body.theme-glass .ntm-tipo-btn.active,
+body.theme-glass .ntm-ampm-btn.active {
+  background: var(--accent-soft) !important;
+  border-color: var(--accent) !important;
+  color: var(--accent) !important;
+}
+body.theme-glass .ntm-submit {
+  background: var(--accent-gradient) !important;
+  color: #fff !important;
+}
+body.theme-glass .ntm-imp-btn {
+  background: var(--glass-fill-3) !important;
+  border-color: rgba(255, 255, 255, var(--glass-t3-border-opacity)) !important;
+  color: var(--text2) !important;
+}
+body.theme-glass .ntm-imp-btn.active[data-val="baja"]    { border-color: #22c55e !important; background: rgba(34,197,94,.16) !important; color: #4ade80 !important; }
+body.theme-glass .ntm-imp-btn.active[data-val="media"]   { border-color: #eab308 !important; background: rgba(234,179,8,.16) !important; color: #fbbf24 !important; }
+body.theme-glass .ntm-imp-btn.active[data-val="alta"]    { border-color: #ef4444 !important; background: rgba(239,68,68,.16) !important; color: #f87171 !important; }
+body.theme-glass .ntm-imp-btn.active[data-val="urgente"] { border-color: #8b5cf6 !important; background: rgba(139,92,246,.16) !important; color: #a78bfa !important; }
+
+/* -------------------------------------------------------------------------
+   2e. Composer principal ("¿Qué está pasando hoy en la familia?")
+   -------------------------------------------------------------------------
+   .compose-card ya recibe el tratamiento Nivel 2 (arriba). Aquí se afina
+   el "fake input" para que parezca un campo de texto real dentro del
+   cristal, no una línea de texto gris suelta, y los botones de acción
+   para que se sientan integrados (no una fila con bordes de tema claro).
+   ------------------------------------------------------------------------- */
+body.theme-glass .compose-fake-input {
+  background: var(--glass-fill-3);
+  border: 1px solid rgba(255, 255, 255, var(--glass-t3-border-opacity));
+  border-radius: 999px;
+  padding: 10px 16px;
+  color: var(--text3);
+  font-weight: 400;
+  transition: background var(--glass-t) ease, border-color var(--glass-t) ease, color var(--glass-t) ease;
+}
+body.theme-glass .compose-card:hover .compose-fake-input {
+  background: rgba(255, 255, 255, .10);
+  border-color: rgba(255, 255, 255, calc(var(--glass-t3-border-opacity) + .08));
+  color: var(--text2);
+}
+body.theme-glass .compose-quick-actions {
+  border-top: 1px solid var(--glass-border-soft);
+}
+body.theme-glass .cq-btn {
+  color: var(--text2);
+  border-radius: 10px;
+}
+body.theme-glass .cq-btn:hover {
+  background: rgba(255, 255, 255, .09);
+  color: var(--accent);
+}
+body.theme-glass .compose-av {
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, .12);
 }
 
 /* -------------------------------------------------------------------------
@@ -372,11 +477,16 @@ body.theme-glass [class*="-fecha"],
 body.theme-glass [class*="-hora"],
 body.theme-glass [class*="-desc"],
 body.theme-glass [class*="-caption"],
+body.theme-glass [class*="-label"],
 body.theme-glass .text-muted,
 body.theme-glass .text-secondary,
 body.theme-glass small,
 body.theme-glass time {
   color: var(--text3) !important;
+}
+
+body.theme-glass [class*="-label"] .material-symbols-outlined {
+  color: var(--icon-muted) !important;
 }
 
 body.theme-glass [disabled],
@@ -564,6 +674,29 @@ body.theme-glass input[type="color"] {
   padding: 2px;
   height: 38px;
   cursor: pointer;
+}
+
+/* -------------------------------------------------------------------------
+   6b. Toggle switches (Ajustes / Perfil)
+   -------------------------------------------------------------------------
+   .toggle-track no tenía NINGÚN override para Glass: quedaba con el gris
+   claro (#eae6e6) fijo de style.css, un rectángulo claro flotando sobre
+   el fondo oscuro del tema.
+   ------------------------------------------------------------------------- */
+body.theme-glass .toggle-track {
+  background: var(--glass-fill-3);
+  border: 1px solid rgba(255, 255, 255, var(--glass-t3-border-opacity));
+}
+body.theme-glass .toggle-switch input:checked + .toggle-track {
+  background: var(--accent-gradient);
+  border-color: transparent;
+}
+body.theme-glass .toggle-thumb {
+  background: #fff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, .45);
+}
+body.theme-glass .toggle-switch input:checked + .toggle-track .toggle-thumb {
+  background: #fff;
 }
 
 /* -------------------------------------------------------------------------

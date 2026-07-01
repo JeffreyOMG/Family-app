@@ -5013,7 +5013,7 @@ body.dark-mode .cruce-num {
   /* ── 1. NAVBAR — fully transparent at rest ── */
   .navbar,
   body.dark-mode .navbar,
-  body:not(.dark-mode) .navbar {
+  body:not(.dark-mode):not(.theme-glass) .navbar {
     position: fixed !important;
     top: 0 !important;
     left: 0 !important;
@@ -5037,7 +5037,7 @@ body.dark-mode .cruce-num {
   /* ── 2. SCROLLED — glass activates (Instagram iOS style) ── */
   .navbar.ig-scrolled,
   body.dark-mode .navbar.ig-scrolled,
-  body:not(.dark-mode) .navbar.ig-scrolled {
+  body:not(.dark-mode):not(.theme-glass) .navbar.ig-scrolled {
     backdrop-filter: saturate(180%) blur(24px) !important;
     -webkit-backdrop-filter: saturate(180%) blur(24px) !important;
     border-bottom: 0.5px solid rgba(255,255,255,0.07) !important;
@@ -5123,11 +5123,11 @@ body.dark-mode .cruce-num {
   }
 
   /* ☀️ LIGHT MODE */
-  body:not(.dark-mode) .navbar-ig-btn{
+  body:not(.dark-mode):not(.theme-glass) .navbar-ig-btn{
     color:rgba(0,0,0,.85) !important;
   }
 
-  body:not(.dark-mode) .navbar-ig-btn .material-symbols-outlined{
+  body:not(.dark-mode):not(.theme-glass) .navbar-ig-btn .material-symbols-outlined{
     color:rgba(0,0,0,.85) !important;
   }
 

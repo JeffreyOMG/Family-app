@@ -231,10 +231,10 @@ body.dark-mode .notif-panel {
 .notif-tiempo { font-size: 11px; color: var(--text3); }
 
 /* ── No-leída en modo claro: fondo más visible ── */
-body:not(.dark-mode) .notif-item.no-leida {
+body:not(.dark-mode):not(.theme-glass) .notif-item.no-leida {
   background: color-mix(in srgb, var(--accent) 10%, #fff);
 }
-body:not(.dark-mode) .notif-item.no-leida:hover {
+body:not(.dark-mode):not(.theme-glass) .notif-item.no-leida:hover {
   background: color-mix(in srgb, var(--accent) 16%, #fff);
 }
 
