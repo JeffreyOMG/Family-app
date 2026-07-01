@@ -5099,7 +5099,7 @@ function abrirMediaModal(src, tipo, event){
   document.getElementById('media-modal-content').innerHTML =
     tipo==='imagen'
       ? `<img src="${clUrl(src,'comp_full')}" style="max-width:92vw;max-height:92vh;border-radius:12px;cursor:zoom-out;" onclick="event.stopPropagation()">`
-      : `<video class="post-media" preload="none" playsinline poster="${clVideoPoster(src)}" style="max-width:92vw;max-height:92vh;border-radius:12px;"><source src="${clVideoUrl(src,'feed')}"></video>`;
+      : `<video class="post-media" preload="metadata" playsinline style="max-width:92vw;max-height:92vh;border-radius:12px;"><source src="${src}"></video>`;
   m.style.display='flex';
   // Inicializar player premium en el video del modal si aplica
   if (tipo !== 'imagen' && window.familiaVideoPlayer) {

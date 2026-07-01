@@ -2016,7 +2016,7 @@
       .rkv2__stats-inner {
         padding: 18px 18px 18px 52px;
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+        grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
         gap: 12px;
         animation: rkv2-stats-in .28s var(--rk-ease);
       }
@@ -2030,6 +2030,7 @@
         border-radius: var(--rk-radius-sm);
         padding: 14px 14px 12px;
         min-height: 110px;
+        overflow: hidden;
         transition: background .18s var(--rk-ease), transform .18s var(--rk-ease), border-color .18s var(--rk-ease), box-shadow .18s var(--rk-ease);
       }
       .rkv2__stat-item:hover {
@@ -2050,7 +2051,8 @@
       }
       .rkv2__stat-label {
         font-size: .6rem; text-transform: uppercase; letter-spacing: .07em;
-        color: rgba(255,255,255,.38); font-weight: 700; line-height: 1.2;
+        color: rgba(255,255,255,.38); font-weight: 700; line-height: 1.3;
+        white-space: normal; word-break: break-word;
       }
       body:not(.dark-mode) .rkv2__stat-label { color: rgba(15,15,25,.4); }
 
@@ -2058,13 +2060,15 @@
       .rkv2__stat-val {
         font-family: 'Bebas Neue', monospace; font-size: 1.55rem; line-height: 1; margin-bottom: 3px;
         display: flex; align-items: baseline; gap: 6px;
+        white-space: nowrap; overflow: hidden;
       }
       .rkv2__stat-pct {
         font-size: .7rem; font-weight: 600; opacity: .65;
-        font-family: 'DM Sans', sans-serif; letter-spacing: 0;
+        font-family: 'DM Sans', sans-serif; letter-spacing: 0; flex-shrink: 0;
       }
       .rkv2__stat-sub {
         font-size: .62rem; color: rgba(255,255,255,.38); margin-bottom: 4px; line-height: 1.3;
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
       }
       body:not(.dark-mode) .rkv2__stat-sub { color: rgba(15,15,25,.36); }
 
@@ -2153,6 +2157,14 @@
         opacity: .65; line-height: 1.2; max-width: 64px;
       }
 
+      /* Etiqueta de fase en el panel de stats */
+      .rkv2__stats-phase-tag {
+        display: inline-flex; align-items: center; gap: 5px;
+        padding: 4px 10px; border-radius: 20px;
+        font-size: .65rem; font-weight: 700; letter-spacing: .04em;
+        white-space: nowrap;
+      }
+
       /* Leyenda del panel */
       .rkv2__stats-legend {
         grid-column: 1/-1; display: flex; gap: 14px; flex-wrap: wrap;
@@ -2229,25 +2241,61 @@
         .rkv2__mas-btn { padding: 6px 11px; font-size: 10.5px; }
         .rkv2__ver-mas-btn { font-size: 12px; padding: 10px 17px; }
         .rkv2__legend { font-size: 10.5px; gap: 10px; padding: 11px 12px; }
-        /* Panel Ver más en móvil */
-        .rkv2__stats-inner { padding: 14px 11px; grid-template-columns: repeat(2, 1fr); gap: 9px; }
-        .rkv2__stat-item { padding: 12px 11px; min-height: 95px; }
-        .rkv2__stat-icon { width: 26px; height: 26px; border-radius: 9px; font-size: 12px; }
-        .rkv2__stat-head { gap: 7px; margin-bottom: 8px; }
-        .rkv2__stat-label { font-size: .56rem; }
-        .rkv2__stat-val { font-size: 1.3rem; }
-        .rkv2__stat-sub { font-size: .59rem; }
-        .rkv2__chip { font-size: .57rem; padding: 2px 6px; }
-        /* Leader box móvil — apilado verticalmente */
-        .rkv2__leader-box { grid-template-columns: 1fr; padding: 15px 13px; }
-        .rkv2__leader-circle { grid-column: 1; grid-row: auto; justify-content: flex-start; padding-top: 4px; }
-        .rkv2__prob-circle { width: 72px; height: 72px; }
-        .rkv2__prob-circle svg { width: 72px; height: 72px; }
-        .rkv2__prob-val { font-size: 1.1rem; }
+        /* ── Panel "Ver más" en móvil ── */
+        .rkv2__stats-inner {
+          padding: 12px 10px 14px;
+          grid-template-columns: repeat(2, 1fr);
+          gap: 8px;
+        }
+        .rkv2__stat-item {
+          padding: 11px 11px 10px;
+          min-height: 90px;
+          gap: 3px;
+          border-radius: 11px;
+        }
+        .rkv2__stat-head { gap: 7px; margin-bottom: 7px; }
+        .rkv2__stat-icon { width: 24px; height: 24px; border-radius: 8px; font-size: 11px; }
+        .rkv2__stat-label { font-size: .55rem; letter-spacing: .05em; }
+        .rkv2__stat-val { font-size: 1.25rem; gap: 4px; }
+        .rkv2__stat-pct { font-size: .62rem; }
+        .rkv2__stat-sub { font-size: .58rem; }
+        .rkv2__stat-bar { height: 3px; margin-top: 6px; }
+        .rkv2__stat-chips { gap: 3px; }
+        .rkv2__chip { font-size: .55rem; padding: 2px 5px; border-radius: 7px; }
+
+        /* Leader box — vertical en móvil */
+        .rkv2__leader-box {
+          grid-template-columns: 1fr;
+          grid-template-rows: auto auto auto auto;
+          padding: 14px 12px 12px;
+          gap: 11px;
+        }
+        .rkv2__leader-main { grid-column: 1; grid-row: 1; gap: 10px; }
+        .rkv2__leader-ic { width: 32px; height: 32px; border-radius: 10px; font-size: .95rem; }
         .rkv2__leader-title { font-size: .82rem; }
-        .rkv2__leader-desc { font-size: .64rem; }
-        .rkv2__case { font-size: .63rem; padding: 7px 9px; }
-        .rkv2__stats-legend { gap: 8px; font-size: .6rem; }
+        .rkv2__leader-desc { font-size: .63rem; margin-top: 2px; }
+        /* Círculo: fila propia, alineado a la izquierda */
+        .rkv2__leader-circle {
+          grid-column: 1; grid-row: 2;
+          justify-content: flex-start;
+        }
+        .rkv2__prob-circle { width: 76px; height: 76px; }
+        .rkv2__prob-circle svg { width: 76px; height: 76px; }
+        .rkv2__prob-val { font-size: 1.1rem; }
+        .rkv2__prob-label { font-size: .44rem; max-width: 54px; }
+        .rkv2__leader-desc-row { grid-column: 1; grid-row: 3; }
+        .rkv2__leader-disclaimer-row { grid-column: 1; grid-row: 4; }
+        .rkv2__leader-disclaimer { font-size: .58rem; }
+        .rkv2__case { font-size: .62rem; padding: 7px 9px; gap: 7px; border-radius: 9px; }
+        .rkv2__case-ic { font-size: .78rem; }
+
+        /* Leyenda final */
+        .rkv2__stats-legend {
+          gap: 8px 14px;
+          font-size: .59rem;
+          padding-top: 10px;
+        }
+        .rkv2__stats-legend-dot { width: 8px; height: 8px; }
       }
       @media (max-width: 340px) {
         .rkv2__stats-inner { grid-template-columns: 1fr; }
@@ -2654,7 +2702,13 @@
       }
     } else {
       // Empatados en puntos → aplicar criterios oficiales de desempate en orden
-      const criterios = [
+      const criterios = isGrupos ? [
+        // En grupos NO hay penales — desempate solo por exactos, ganadores, sin pronosticar
+        { label: 'resultados exactos',        valR: exactos,        valL: leader.exactos || 0 },
+        { label: 'ganadores acertados',       valR: ganadores,      valL: leader.ganadores || 0 },
+        { label: 'partidos sin pronosticar',  valR: sinPron, valL: leader.sin_pronosticar || 0, lowerBetter: true },
+      ] : [
+        // En eli y global sí aplican penales como primer desempate
         { label: 'penales acertados',        valR: r.penales || 0, valL: leader.penales || 0 },
         { label: 'resultados exactos',        valR: exactos,        valL: leader.exactos || 0 },
         { label: 'ganadores acertados',       valR: ganadores,      valL: leader.ganadores || 0 },
@@ -2699,7 +2753,7 @@
     const circum = 245;
     const probNum = parseInt(probVal) || 0;
     const offset = circum - (circum * probNum / 100);
-    const circleId = 'rk-circ-' + uid_r;
+    const circleId = 'rk-circ-' + uid;
     const probCircleHTML = `
       <div class="rkv2__prob-circle" id="${circleId}">
         <svg viewBox="0 0 88 88" xmlns="http://www.w3.org/2000/svg">
@@ -2713,7 +2767,31 @@
         </div>
       </div>`;
 
+    const isGrupos = tab === 'grupos';
+    const isEli    = tab === 'eli';
+
+    // Chip de penales solo en global y eli (en grupos no hay penales)
+    const penalesChip = (!isGrupos && (r.penales||0) > 0)
+      ? `<span class="rkv2__chip rkv2__chip--purple">⚽ ${r.penales} pen.</span>` : '';
+
+    // Etiqueta de fase en el encabezado del panel
+    const faseTag = isGrupos
+      ? `<span class="rkv2__stats-phase-tag" style="background:rgba(76,175,80,.13);color:#4caf50;border:1px solid rgba(76,175,80,.22);">⚽ Fase de Grupos</span>`
+      : isEli
+      ? `<span class="rkv2__stats-phase-tag" style="background:rgba(245,197,24,.12);color:#f5c518;border:1px solid rgba(245,197,24,.22);">🏆 Eliminatorias</span>`
+      : `<span class="rkv2__stats-phase-tag" style="background:rgba(255,255,255,.06);color:rgba(255,255,255,.5);border:1px solid rgba(255,255,255,.1);">🌍 Global</span>`;
+
+    // Leyenda de resultados recientes — penales solo en global/eli
+    const legendPenales = !isGrupos
+      ? `<span class="rkv2__stats-legend-item"><span class="rkv2__stats-legend-dot" style="background:#8b5cf6;box-shadow:0 0 6px rgba(139,92,246,.45)"></span>Acierto por penales</span>`
+      : '';
+
     statsRow.innerHTML = `<td colspan="${colSpan}"><div class="rkv2__stats-inner">
+
+      <div class="rkv2__stats-phase-row" style="grid-column:1/-1;display:flex;align-items:center;gap:10px;margin-bottom:2px;">
+        ${faseTag}
+        <span style="font-size:.62rem;color:rgba(255,255,255,.32);">Datos solo de esta fase</span>
+      </div>
 
       <div class="rkv2__stat-item">
         <div class="rkv2__stat-head">
@@ -2723,8 +2801,8 @@
         <div class="rkv2__stat-val" style="color:#4caf50">${aciertos}<span class="rkv2__stat-pct">${pctAcierto}%</span></div>
         <div class="rkv2__stat-chips">
           <span class="rkv2__chip rkv2__chip--green">⚽ ${exactos} exactos</span>
-          <span class="rkv2__chip rkv2__chip--blue">✓ ${ganadores} ganador</span>
-          ${(r.penales||0)>0 ? `<span class="rkv2__chip rkv2__chip--purple">⚽ ${r.penales} penales</span>` : ''}
+          <span class="rkv2__chip rkv2__chip--blue">✓ ${ganadores} gan.</span>
+          ${penalesChip}
         </div>
         <div class="rkv2__stat-spacer"></div>
         <span class="rkv2__stat-bar"><span class="rkv2__stat-fill rkv2__stat-fill--green" style="width:${pctAcierto}%"></span></span>
@@ -2751,6 +2829,17 @@
         <div class="rkv2__stat-spacer"></div>
         <span class="rkv2__stat-bar"><span class="rkv2__stat-fill rkv2__stat-fill--blue" style="width:${pctGan}%"></span></span>
       </div>
+
+      ${!isGrupos ? `
+      <div class="rkv2__stat-item">
+        <div class="rkv2__stat-head">
+          <span class="rkv2__stat-icon" style="background:rgba(139,92,246,.16);color:#8b5cf6">⚽</span>
+          <span class="rkv2__stat-label">Penales</span>
+        </div>
+        <div class="rkv2__stat-val" style="color:#8b5cf6">${r.penales||0}</div>
+        <div class="rkv2__stat-sub">Ganador en penales</div>
+        <div class="rkv2__stat-spacer"></div>
+      </div>` : ''}
 
       <div class="rkv2__stat-item">
         <div class="rkv2__stat-head">
@@ -2815,20 +2904,23 @@
         <span class="rkv2__stats-legend-item"><span class="rkv2__stats-legend-dot" style="background:#2196f3"></span>Ganador</span>
         <span class="rkv2__stats-legend-item"><span class="rkv2__stats-legend-dot" style="background:#ef5350"></span>Fallo</span>
         <span class="rkv2__stats-legend-item"><span class="rkv2__stats-legend-dot" style="background:#f59e0b"></span>Sin pronosticar</span>
-        <span class="rkv2__stats-legend-item"><span class="rkv2__stats-legend-dot" style="background:#8b5cf6;box-shadow:0 0 6px rgba(139,92,246,.45)"></span>Acierto por penales</span>
+        ${legendPenales}
       </div>
 
     </div></td>`;
 
-    // Animar círculo SVG después de insertar en DOM
-    requestAnimationFrame(() => {
-      const el = document.getElementById(circleId);
-      if (el) {
-        const fill = el.querySelector('.rkv2__prob-circle__fill');
-        if (fill) setTimeout(() => { fill.style.strokeDashoffset = fill.dataset.offset; }, 80);
-      }
-    });
+    // Insertar primero en el DOM, luego animar el círculo
     tr.insertAdjacentElement('afterend', statsRow);
+
+    requestAnimationFrame(() => {
+      setTimeout(() => {
+        const el = document.getElementById(circleId);
+        if (el) {
+          const fill = el.querySelector('.rkv2__prob-circle__fill');
+          if (fill) fill.style.strokeDashoffset = fill.dataset.offset;
+        }
+      }, 80);
+    });
   }
 
   // ── Admin: reiniciar tracking de posiciones ──────────────────────────

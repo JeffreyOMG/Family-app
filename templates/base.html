@@ -51,32 +51,18 @@
   <!-- ── Helper Cloudinary: transforma URLs para imágenes optimizadas ── -->
   <script>
   (function(){
-    var _CL  = {{ CL_PRESETS_JS | safe }};
-    var _CLV = {{ CL_VIDEO_PRESETS_JS | safe }};
-
-    /** clUrl(url, preset) — optimiza URLs de imagen de Cloudinary */
+    var _CL = {{ CL_PRESETS_JS | safe }};
+    /**
+     * clUrl(url, preset) → URL con transformaciones de Cloudinary insertadas.
+     * Presets: 'avatar', 'avatar_md', 'avatar_lg', 'cover', 'feed',
+     *          'gallery', 'comp_thumb', 'comp_full', 'poll_opt', 'carousel', 'compress'
+     */
     window.clUrl = function(url, preset) {
       if (!url || url.indexOf('cloudinary.com') === -1 || url.indexOf('image/upload') === -1) return url || '';
       var t = _CL[preset] || _CL['feed'];
       var marker = t.split(',')[0];
       if (url.indexOf('/upload/' + marker) !== -1) return url;
       return url.replace('/image/upload/', '/image/upload/' + t + '/');
-    };
-
-    /** clVideoUrl(url, preset) — optimiza URLs de video de Cloudinary */
-    window.clVideoUrl = function(url, preset) {
-      if (!url || url.indexOf('cloudinary.com') === -1 || url.indexOf('video/upload') === -1) return url || '';
-      var t = _CLV[preset || 'feed'];
-      var marker = t.split(',')[0];
-      if (url.indexOf('/upload/' + marker) !== -1) return url;
-      return url.replace('/video/upload/', '/video/upload/' + t + '/');
-    };
-
-    /** clVideoPoster(url) — primer frame del video como imagen (para poster=) */
-    window.clVideoPoster = function(url) {
-      if (!url || url.indexOf('cloudinary.com') === -1 || url.indexOf('video/upload') === -1) return '';
-      var transformed = url.replace('/video/upload/', '/video/upload/w_800,h_450,c_fill,f_jpg,q_auto,so_0/');
-      return transformed.replace(/\.[^.]+$/, '.jpg');
     };
   })();
   </script>
