@@ -2032,7 +2032,7 @@ async function pfCargarPosts() {
       let mediaHtml = '';
       if (p.media) {
         if (p.media_tipo === 'imagen') mediaHtml = `<img src="${clUrl(p.media,'feed')}" class="pf-post-img" loading="lazy" onclick="abrirMediaModal && abrirMediaModal('${p.media}','imagen')">`;
-        else if (p.media_tipo === 'video') mediaHtml = `<video controls class="pf-post-img" preload="none" poster="${clVideoPoster(p.media)}"><source src="${clVideoUrl(p.media,'feed')}"></video>`;
+        else if (p.media_tipo === 'video') mediaHtml = `<video controls class="pf-post-img" preload="none"><source src="${p.media}"></video>`;
       }
       const gifHtml = p.gif_url ? `<img src="${p.gif_url}" class="post-gif-img" loading="lazy">` : '';
       const texto   = p.texto   ? `<p class="pf-post-texto">${_pfEsc(p.texto)}</p>` : '';

@@ -71,61 +71,57 @@ def cl_url(url: str | None, preset: str = "feed") -> str:
     return url.replace("/image/upload/", f"/image/upload/{transform}/", 1)
 
 
+def cl_video(url: str | None, preset: str = "feed") -> str:
+    """
+    Igual que cl_url pero para URLs de video (resource_type='video').
+
+    Uso en Jinja2:
+        {{ p.media | cl_video('feed') }}
+    """
+    if not url or "cloudinary.com" not in url:
+        return url or ""
+
+    # Solo videos — no tocar image/upload ni raw/upload
+    if "video/upload" not in url:
+        return url
+
+    transform = PRESETS.get(preset, PRESETS["feed"])
+
+    marker = transform.split(",")[0]  # e.g. "w_800"
+    if f"/upload/{marker}" in url or f"/{marker}," in url:
+        return url
+
+    return url.replace("/video/upload/", f"/video/upload/{transform}/", 1)
+
+
+def cl_poster(url: str | None) -> str:
+    """
+    Genera la URL de la miniatura (poster) de un video: toma el primer
+    frame y lo sirve como imagen jpg optimizada. Cloudinary genera esta
+    imagen "al vuelo" a partir del mismo video subido, sin necesidad de
+    subir un archivo aparte.
+
+    Uso en Jinja2:
+        <video poster="{{ p.media | cl_poster }}">...</video>
+    """
+    if not url or "cloudinary.com" not in url or "video/upload" not in url:
+        return url or ""
+
+    # Insertar: tomar el frame en el segundo 0, optimizar formato/calidad
+    poster_url = url.replace("/video/upload/", "/video/upload/so_0,f_auto,q_auto/", 1)
+
+    # Cambiar la extensión del archivo (mp4, mov, etc.) a jpg
+    base, _, _ext = poster_url.rpartition(".")
+    if base:
+        poster_url = f"{base}.jpg"
+
+    return poster_url
+
+
 def cl_url_js_presets() -> str:
     """
     Devuelve los presets como un literal JS para inyectar en templates.
     Usado por el helper clUrl() en JavaScript.
     """
     lines = [f'"{k}":"{v}"' for k, v in PRESETS.items()]
-    return "{" + ",".join(lines) + "}"
-
-
-# ── Presets de transformación para VIDEO ──────────────────────────────────────
-VIDEO_PRESETS: dict[str, str] = {
-    # Video en feed (calidad auto, max 720p, codec H.264, formato auto webm/mp4)
-    "feed":    "q_auto,vc_auto,w_720,f_auto",
-    # Video en modal/lightbox (un poco más de calidad)
-    "full":    "q_auto,vc_auto,w_1080,f_auto",
-    # Thumbnail/poster de video (imagen del primer frame)
-    "thumb":   "w_400,h_400,c_fill,f_auto,q_auto,so_0",
-}
-
-
-def cl_video_url(url: str | None, preset: str = "feed") -> str:
-    """
-    Inserta transformaciones de Cloudinary en una URL de VIDEO.
-    Convierte /video/upload/ → /video/upload/<transforms>/
-    Solo actúa sobre URLs de Cloudinary con /video/upload/.
-    """
-    if not url or "cloudinary.com" not in url:
-        return url or ""
-    if "video/upload" not in url:
-        return url
-
-    transform = VIDEO_PRESETS.get(preset, VIDEO_PRESETS["feed"])
-    marker = transform.split(",")[0]
-    if f"/upload/{marker}" in url:
-        return url  # Ya tiene transforms
-
-    return url.replace("/video/upload/", f"/video/upload/{transform}/", 1)
-
-
-def cl_video_poster_url(url: str | None) -> str:
-    """
-    Genera URL del poster (primer frame como imagen) de un video de Cloudinary.
-    Útil para el atributo poster= del <video>, evita descarga del video para el thumb.
-    """
-    if not url or "cloudinary.com" not in url or "video/upload" not in url:
-        return ""
-    # Cloudinary permite pedir el frame 0 como imagen cambiando /video/upload/ por /video/upload/.../
-    # y añadiendo so_0 (seek offset 0) con formato de imagen
-    transform = "w_800,h_450,c_fill,f_jpg,q_auto,so_0"
-    url_poster = url.replace("/video/upload/", f"/video/upload/{transform}/", 1)
-    # Cambiar extensión a .jpg para que Cloudinary lo sirva como imagen
-    url_poster = url_poster.rsplit(".", 1)[0] + ".jpg"
-    return url_poster
-
-
-def cl_video_js_presets() -> str:
-    lines = [f'"{k}":"{v}"' for k, v in VIDEO_PRESETS.items()]
     return "{" + ",".join(lines) + "}"

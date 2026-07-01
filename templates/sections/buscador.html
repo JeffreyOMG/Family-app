@@ -580,7 +580,7 @@ function abrirGaleriaModal(src, tipo) {
   const content = document.getElementById('bus-galeria-modal-content');
   content.innerHTML = tipo === 'imagen'
     ? `<img src="${clUrl(src,'comp_full')}" style="max-width:92vw;max-height:90vh;border-radius:12px;display:block;">`
-    : `<video src="${clVideoUrl(src,'feed')}" controls autoplay preload="none" poster="${clVideoPoster(src)}" style="max-width:92vw;max-height:90vh;border-radius:12px;"></video>`;
+    : `<video src="${src}" controls autoplay style="max-width:92vw;max-height:90vh;border-radius:12px;"></video>`;
   modal.style.display = 'flex';
 }
 

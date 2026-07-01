@@ -16,11 +16,11 @@ def fromjson_filter(s):
 
 # ── Filtro Cloudinary: transforma URLs para servir imágenes optimizadas ────────
 from cloudinary_transform import (
-    cl_url as _cl_url, cl_url_js_presets as _cl_presets,
-    cl_video_url as _cl_video, cl_video_poster_url as _cl_poster,
-    cl_video_js_presets as _cl_video_presets
+    cl_url as _cl_url,
+    cl_video as _cl_video,
+    cl_poster as _cl_poster,
+    cl_url_js_presets as _cl_presets,
 )
-
 @app.template_filter('cl_url')
 def cl_url_filter(url, preset='feed'):
     return _cl_url(url, preset)
@@ -33,12 +33,10 @@ def cl_video_filter(url, preset='feed'):
 def cl_poster_filter(url):
     return _cl_poster(url)
 
+# Exponer los presets al contexto global de templates (para el helper JS)
 @app.context_processor
 def inject_cl_presets():
-    return {
-        'CL_PRESETS_JS':       _cl_presets(),
-        'CL_VIDEO_PRESETS_JS': _cl_video_presets(),
-    }
+    return {'CL_PRESETS_JS': _cl_presets()}
 
 from routes.auth           import auth_bp
 from routes.dashboard      import dash_bp
