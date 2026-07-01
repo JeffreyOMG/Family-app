@@ -2157,6 +2157,14 @@
         opacity: .65; line-height: 1.2; max-width: 64px;
       }
 
+      /* Etiqueta de fase en el panel de stats */
+      .rkv2__stats-phase-tag {
+        display: inline-flex; align-items: center; gap: 5px;
+        padding: 4px 10px; border-radius: 20px;
+        font-size: .65rem; font-weight: 700; letter-spacing: .04em;
+        white-space: nowrap;
+      }
+
       /* Leyenda del panel */
       .rkv2__stats-legend {
         grid-column: 1/-1; display: flex; gap: 14px; flex-wrap: wrap;
@@ -2753,7 +2761,31 @@
         </div>
       </div>`;
 
+    const isGrupos = tab === 'grupos';
+    const isEli    = tab === 'eli';
+
+    // Chip de penales solo en global y eli (en grupos no hay penales)
+    const penalesChip = (!isGrupos && (r.penales||0) > 0)
+      ? `<span class="rkv2__chip rkv2__chip--purple">⚽ ${r.penales} pen.</span>` : '';
+
+    // Etiqueta de fase en el encabezado del panel
+    const faseTag = isGrupos
+      ? `<span class="rkv2__stats-phase-tag" style="background:rgba(76,175,80,.13);color:#4caf50;border:1px solid rgba(76,175,80,.22);">⚽ Fase de Grupos</span>`
+      : isEli
+      ? `<span class="rkv2__stats-phase-tag" style="background:rgba(245,197,24,.12);color:#f5c518;border:1px solid rgba(245,197,24,.22);">🏆 Eliminatorias</span>`
+      : `<span class="rkv2__stats-phase-tag" style="background:rgba(255,255,255,.06);color:rgba(255,255,255,.5);border:1px solid rgba(255,255,255,.1);">🌍 Global</span>`;
+
+    // Leyenda de resultados recientes — penales solo en global/eli
+    const legendPenales = !isGrupos
+      ? `<span class="rkv2__stats-legend-item"><span class="rkv2__stats-legend-dot" style="background:#8b5cf6;box-shadow:0 0 6px rgba(139,92,246,.45)"></span>Acierto por penales</span>`
+      : '';
+
     statsRow.innerHTML = `<td colspan="${colSpan}"><div class="rkv2__stats-inner">
+
+      <div class="rkv2__stats-phase-row" style="grid-column:1/-1;display:flex;align-items:center;gap:10px;margin-bottom:2px;">
+        ${faseTag}
+        <span style="font-size:.62rem;color:rgba(255,255,255,.32);">Datos solo de esta fase</span>
+      </div>
 
       <div class="rkv2__stat-item">
         <div class="rkv2__stat-head">
@@ -2763,8 +2795,8 @@
         <div class="rkv2__stat-val" style="color:#4caf50">${aciertos}<span class="rkv2__stat-pct">${pctAcierto}%</span></div>
         <div class="rkv2__stat-chips">
           <span class="rkv2__chip rkv2__chip--green">⚽ ${exactos} exactos</span>
-          <span class="rkv2__chip rkv2__chip--blue">✓ ${ganadores} ganador</span>
-          ${(r.penales||0)>0 ? `<span class="rkv2__chip rkv2__chip--purple">⚽ ${r.penales} penales</span>` : ''}
+          <span class="rkv2__chip rkv2__chip--blue">✓ ${ganadores} gan.</span>
+          ${penalesChip}
         </div>
         <div class="rkv2__stat-spacer"></div>
         <span class="rkv2__stat-bar"><span class="rkv2__stat-fill rkv2__stat-fill--green" style="width:${pctAcierto}%"></span></span>
@@ -2791,6 +2823,17 @@
         <div class="rkv2__stat-spacer"></div>
         <span class="rkv2__stat-bar"><span class="rkv2__stat-fill rkv2__stat-fill--blue" style="width:${pctGan}%"></span></span>
       </div>
+
+      ${!isGrupos ? `
+      <div class="rkv2__stat-item">
+        <div class="rkv2__stat-head">
+          <span class="rkv2__stat-icon" style="background:rgba(139,92,246,.16);color:#8b5cf6">⚽</span>
+          <span class="rkv2__stat-label">Penales</span>
+        </div>
+        <div class="rkv2__stat-val" style="color:#8b5cf6">${r.penales||0}</div>
+        <div class="rkv2__stat-sub">Ganador en penales</div>
+        <div class="rkv2__stat-spacer"></div>
+      </div>` : ''}
 
       <div class="rkv2__stat-item">
         <div class="rkv2__stat-head">
@@ -2855,7 +2898,7 @@
         <span class="rkv2__stats-legend-item"><span class="rkv2__stats-legend-dot" style="background:#2196f3"></span>Ganador</span>
         <span class="rkv2__stats-legend-item"><span class="rkv2__stats-legend-dot" style="background:#ef5350"></span>Fallo</span>
         <span class="rkv2__stats-legend-item"><span class="rkv2__stats-legend-dot" style="background:#f59e0b"></span>Sin pronosticar</span>
-        <span class="rkv2__stats-legend-item"><span class="rkv2__stats-legend-dot" style="background:#8b5cf6;box-shadow:0 0 6px rgba(139,92,246,.45)"></span>Acierto por penales</span>
+        ${legendPenales}
       </div>
 
     </div></td>`;
