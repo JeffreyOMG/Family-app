@@ -1142,11 +1142,11 @@
 /* Nota: colores base vienen del :root / dark-mode
 ════════════════════════════════════════════════ */
 
-/* Acento principal: rojo oscuro tipo Instagram en light, rosa marca en dark */
+/* Acento principal: sigue el color de personalización del usuario en ambos modos */
 :root {
-  --ac: #c0392b;       /* rojo oscuro elegante */
-  --ac-soft: rgba(192,57,43,.10);
-  --ac-hover: rgba(192,57,43,.07);
+  --ac: var(--accent);
+  --ac-soft: var(--accent-soft);
+  --ac-hover: var(--accent-soft);
 }
 body.dark-mode {
   --ac: var(--accent);
