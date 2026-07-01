@@ -78,7 +78,7 @@ def save_file(f):
 POST_TMPL = """
 <article class="post-card" id="post-{{ p.id }}">
   <div class="post-header">
-    {% if p.foto %}<img src="{{ p.foto }}" class="user-avatar-img post-av">
+    {% if p.foto %}<img src="{{ p.foto | cl_url('avatar_md') }}" class="user-avatar-img post-av">
     {% else %}<div class="user-avatar post-av">{{ p.nombre[0]|upper }}</div>{% endif %}
     <div class="post-meta-block">
       <span class="post-name">{{ p.nombre }}</span>
@@ -111,7 +111,7 @@ POST_TMPL = """
         {% endif %}
       </div>
     {% elif p.media_tipo=='imagen' %}
-      <img src="{{ p.media }}" class="post-media" onclick="abrirMediaModal('{{ p.media }}','imagen')">
+      <img src="{{ p.media | cl_url('feed') }}" class="post-media" loading="lazy" onclick="abrirMediaModal('{{ p.media }}','imagen')">
     {% else %}
       <video controls class="post-media"><source src="{{ p.media }}"></video>
     {% endif %}

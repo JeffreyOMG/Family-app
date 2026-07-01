@@ -48,6 +48,24 @@
       } catch(e){}
     })();
   </script>
+  <!-- ── Helper Cloudinary: transforma URLs para imágenes optimizadas ── -->
+  <script>
+  (function(){
+    var _CL = {{ CL_PRESETS_JS | safe }};
+    /**
+     * clUrl(url, preset) → URL con transformaciones de Cloudinary insertadas.
+     * Presets: 'avatar', 'avatar_md', 'avatar_lg', 'cover', 'feed',
+     *          'gallery', 'comp_thumb', 'comp_full', 'poll_opt', 'carousel', 'compress'
+     */
+    window.clUrl = function(url, preset) {
+      if (!url || url.indexOf('cloudinary.com') === -1 || url.indexOf('image/upload') === -1) return url || '';
+      var t = _CL[preset] || _CL['feed'];
+      var marker = t.split(',')[0];
+      if (url.indexOf('/upload/' + marker) !== -1) return url;
+      return url.replace('/image/upload/', '/image/upload/' + t + '/');
+    };
+  })();
+  </script>
 </head>
 
 <body data-page="{% block page %}dashboard{% endblock %}"

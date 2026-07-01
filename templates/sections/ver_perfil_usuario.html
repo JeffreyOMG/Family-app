@@ -1339,7 +1339,7 @@ function _renderVerPerfil(u) {
   const fotoEl  = document.getElementById('vp-foto');
   const letraEl = document.getElementById('vp-letra');
   if (u.foto) {
-    fotoEl.src = u.foto;
+    fotoEl.src = clUrl(u.foto, 'avatar_lg');
     fotoEl.style.display = '';
     if (letraEl) letraEl.style.display = 'none';
   } else {
@@ -1583,7 +1583,7 @@ async function vpCargarPosts(uid) {
       let mediaHtml = '';
       if (p.media) {
         if (p.media_tipo === 'imagen') {
-          mediaHtml = `<img src="${p.media}" class="vp-post-img" loading="lazy" onclick="abrirMediaModal && abrirMediaModal('${p.media}','imagen')">`;
+          mediaHtml = `<img src="${clUrl(p.media,'feed')}" class="vp-post-img" loading="lazy" onclick="abrirMediaModal && abrirMediaModal('${p.media}','imagen')">`;
         } else if (p.media_tipo === 'video') {
           mediaHtml = `<video controls class="vp-post-img" preload="none"><source src="${p.media}"></video>`;
         }
@@ -1760,7 +1760,7 @@ async function vpCargarGaleria(uid) {
         </div>`;
       }
       return `<div class="vp-galeria-item" onclick="abrirMediaModal && abrirMediaModal('${item.ruta}','imagen')">
-        <img src="${item.ruta}" alt="${_vpEscape(item.descripcion)}" loading="lazy">
+        <img src="${clUrl(item.ruta,'gallery')}" alt="${_vpEscape(item.descripcion)}" loading="lazy">
       </div>`;
     }).join('');
   } catch(e) {
@@ -1871,7 +1871,7 @@ function _vpRenderSocial(tipo) {
 function _vpSocialItemHTML(u) {
   const inicial = (u.nombre || 'U')[0].toUpperCase();
   const avatar  = u.foto
-    ? `<img class="vp-social-avatar" src="${_vpEscape(u.foto)}" alt="" loading="lazy">`
+    ? `<img class="vp-social-avatar" src="${clUrl(_vpEscape(u.foto),'avatar')}" alt="" loading="lazy">`
     : `<div class="vp-social-letra">${inicial}</div>`;
   return `
     <button class="vp-social-item" onclick="verPerfil('${_vpEscape(u.usuario)}','ver-perfil')">

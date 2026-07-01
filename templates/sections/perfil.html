@@ -9,7 +9,7 @@
     <div class="pf2-cover" id="pf2-cover" onclick="pf2AbrirLightbox('cover')">
       <div class="pf2-cover-gradient"></div>
       {% if usuario.portada %}
-      <img src="{{ usuario.portada }}" class="pf2-cover-img" id="pf2-cover-img" alt="Portada">
+      <img src="{{ usuario.portada | cl_url('cover') }}" class="pf2-cover-img" id="pf2-cover-img" alt="Portada" loading="lazy">
       {% else %}
       <div class="pf2-cover-placeholder" id="pf2-cover-img"></div>
       {% endif %}
@@ -24,7 +24,7 @@
     <div class="pf2-avatar-area">
       <div class="pf2-avatar-wrap">
         {% if usuario.foto %}
-        <img src="{{ usuario.foto }}" id="preview-foto-perfil" class="pf2-avatar user-avatar-img" alt="{{ usuario.nombre }}" onclick="pf2AbrirLightbox('avatar')">
+        <img src="{{ usuario.foto | cl_url('avatar_lg') }}" id="preview-foto-perfil" class="pf2-avatar user-avatar-img" alt="{{ usuario.nombre }}" onclick="pf2AbrirLightbox('avatar')">
         <div class="pf2-avatar-letter" id="pf-avatar-letter" style="display:none;">{{ usuario.nombre[0]|upper }}</div>
         {% else %}
         <img src="" id="preview-foto-perfil" class="pf2-avatar user-avatar-img" style="display:none;" alt="{{ usuario.nombre }}" onclick="pf2AbrirLightbox('avatar')">
@@ -2031,7 +2031,7 @@ async function pfCargarPosts() {
       p._vbadge = verifiedBadgeHTML(p.verified,'sm');
       let mediaHtml = '';
       if (p.media) {
-        if (p.media_tipo === 'imagen') mediaHtml = `<img src="${p.media}" class="pf-post-img" loading="lazy" onclick="abrirMediaModal && abrirMediaModal('${p.media}','imagen')">`;
+        if (p.media_tipo === 'imagen') mediaHtml = `<img src="${clUrl(p.media,'feed')}" class="pf-post-img" loading="lazy" onclick="abrirMediaModal && abrirMediaModal('${p.media}','imagen')">`;
         else if (p.media_tipo === 'video') mediaHtml = `<video controls class="pf-post-img" preload="none"><source src="${p.media}"></video>`;
       }
       const gifHtml = p.gif_url ? `<img src="${p.gif_url}" class="post-gif-img" loading="lazy">` : '';
@@ -2113,7 +2113,7 @@ async function pfCargarGaleria() {
         </div>`;
       }
       return `<div class="pf-galeria-item" onclick="abrirMediaModal && abrirMediaModal('${item.ruta}','imagen')">
-        <img src="${item.ruta}" alt="${_pfEsc(item.descripcion)}" loading="lazy">
+        <img src="${clUrl(item.ruta,'gallery')}" alt="${_pfEsc(item.descripcion)}" loading="lazy">
       </div>`;
     }).join('');
   } catch(e) {
@@ -2275,7 +2275,7 @@ document.getElementById('pf2-form-editar').addEventListener('submit', async func
         const coverImg = document.getElementById('pf2-cover-img');
         if (coverImg) {
           if (coverImg.tagName === 'IMG') {
-            coverImg.src = data.portada;
+            coverImg.src = clUrl(data.portada, 'cover');
           } else {
             const img = document.createElement('img');
             img.src = data.portada; img.className = 'pf2-cover-img';
@@ -2568,7 +2568,7 @@ function _pfRenderSocial(tipo) {
 function _pfSocialItemHTML(u) {
   const inicial = (u.nombre || 'U')[0].toUpperCase();
   const avatar  = u.foto
-    ? `<img class="pf2-social-avatar" src="${_pfEsc(u.foto)}" alt="" loading="lazy">`
+    ? `<img class="pf2-social-avatar" src="${clUrl(_pfEsc(u.foto),'avatar')}" alt="" loading="lazy">`
     : `<div class="pf2-social-letra">${inicial}</div>`;
   return `<button class="pf2-social-item" onclick="verPerfil && verPerfil('${_pfEsc(u.usuario)}','perfil')">
       ${avatar}
