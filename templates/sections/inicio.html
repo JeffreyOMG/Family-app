@@ -5537,7 +5537,7 @@ function addPollOption(){
       <span class="material-symbols-outlined">image</span>
       <input aria-label="Archivo" type="file" accept="image/*" style="display:none" onchange="setPollOptionImg(this,${idx})">
     </label>
-    <input aria-label="Opción ${idx+1}" type="text" class="mc-poll-opt-input" placeholder="Opción ${idx+1}" maxlength="25"
+    <input type="text" class="mc-poll-opt-input" placeholder="Opción ${idx+1}" maxlength="25"
       oninput="updatePollChars(this,${idx})" data-index="${idx}">
     <span class="mc-poll-chars">0 / 25</span>
     <button onclick="removePollOption(this)" style="background:none;border:none;color:var(--text3);cursor:pointer;padding:2px;display:flex;align-items:center;">
@@ -6691,7 +6691,7 @@ function _renderCmtNode(c, postId, depth) {
           </button>
         </div>
         <div class="cmt-reply-form" id="pv-reply-form-${c.id}" style="display:none;margin-top:6px;">
-          <input aria-label="Responder a ${escHTML(c.nombre)}…" type="text" class="comment-input cmt-reply-input"
+          <input type="text" class="comment-input cmt-reply-input"
             placeholder="Responder a ${escHTML(c.nombre)}…"
             id="pv-reply-input-${c.id}" style="font-size:13px;"
             onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();pvEnviarRespuesta(${c.id},${postId},this);}">
@@ -6832,7 +6832,7 @@ async function pvEnviarRespuesta(parentId, postId, input) {
               </button>
             </div>
             <div class="cmt-reply-form" id="pv-reply-form-${data.id}" style="display:none;margin-top:6px;">
-              <input aria-label="Responder a ${escHTML(data.nombre)}…" type="text" class="comment-input cmt-reply-input"
+              <input type="text" class="comment-input cmt-reply-input"
                 placeholder="Responder a ${escHTML(data.nombre)}…"
                 id="pv-reply-input-${data.id}" style="font-size:13px;"
                 onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();pvEnviarRespuesta(${data.id},${postId},this);}">
@@ -7200,7 +7200,7 @@ function feedRenderComments(postId) {
             <span class="comment-date">${(c.fecha||'').slice(0,10)}</span>
           </div>
           <div class="cmt-reply-form" id="feed-reply-form-${c.id}" style="display:none;">
-            <input aria-label="Responder a ${escHTML(c.nombre)}…" type="text" class="comment-input cmt-reply-input"
+            <input type="text" class="comment-input cmt-reply-input"
               placeholder="Responder a ${escHTML(c.nombre)}…"
               id="feed-reply-input-${c.id}"
               onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();enviarRespuesta(${c.id},${postId},this);}">

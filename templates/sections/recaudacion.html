@@ -3969,14 +3969,14 @@ function abrirAsignarResponsable(invId, invNombre, respActual) {
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
           <div style="background:var(--surface2,#22222e);border:1px solid var(--border);border-radius:8px;padding:10px;text-align:center;">
             <div style="font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">Total</div>
-            <input aria-label="Total inv ${inv id}" type="number" id="total-inv-${invId}" min="0" step="1000" value="${total}"
+            <input type="number" id="total-inv-${invId}" min="0" step="1000" value="${total}"
               oninput="_recalcSaldoInv(${invId})"
               style="width:100%;text-align:center;background:transparent;border:none;border-bottom:1px dashed var(--border);
                      color:var(--text);font-weight:700;font-size:13px;padding:2px 0;outline:none;">
           </div>
           <div style="background:var(--surface2,#22222e);border:1px solid var(--border);border-radius:8px;padding:10px;text-align:center;">
             <div style="font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">Pagado</div>
-            <input aria-label="Pagado inv ${inv id}" type="number" id="pagado-inv-${invId}" min="0" step="1000" value="${pagado}"
+            <input type="number" id="pagado-inv-${invId}" min="0" step="1000" value="${pagado}"
               oninput="_recalcSaldoInv(${invId})"
               style="width:100%;text-align:center;background:transparent;border:none;border-bottom:1px dashed #22c55e;
                      color:#22c55e;font-weight:700;font-size:13px;padding:2px 0;outline:none;">
