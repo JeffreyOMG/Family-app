@@ -14,7 +14,7 @@
   {% endif %}
   <div class="post-header">
     {% if p.foto %}
-      <img src="{{ p.foto }}" class="user-avatar-img post-av" data-ver-perfil="{{ p.usuario }}" title="Ver perfil de {{ p.nombre }}" style="cursor:pointer;">
+      <img src="{{ p.foto | cl_url('avatar_md') }}" class="user-avatar-img post-av" data-ver-perfil="{{ p.usuario }}" title="Ver perfil de {{ p.nombre }}" style="cursor:pointer;">
     {% else %}
       <div class="user-avatar post-av" data-ver-perfil="{{ p.usuario }}" title="Ver perfil de {{ p.nombre }}" style="cursor:pointer;">{{ (p.nombre[0] if p.nombre else 'U')|upper }}</div>
     {% endif %}
@@ -56,7 +56,7 @@
       {% set imgs = p.media|fromjson %}
       <div class="post-carousel">
         <div class="pc-track">
-          {% for img in imgs %}<div class="pc-slide"><img src="{{ img }}" class="pc-img img-loading" loading="lazy" onclick="abrirMediaOPost({{ p.id }},'{{ img }}','imagen',event)" onload="this.classList.remove('img-loading');this.classList.add('img-loaded')" onerror="this.classList.remove('img-loading');this.classList.add('img-loaded')"></div>{% endfor %}
+          {% for img in imgs %}<div class="pc-slide"><img src="{{ img | cl_url('carousel') }}" class="pc-img img-loading" loading="lazy" onclick="abrirMediaOPost({{ p.id }},'{{ img }}','imagen',event)" onload="this.classList.remove('img-loading');this.classList.add('img-loaded')" onerror="this.classList.remove('img-loading');this.classList.add('img-loaded')"></div>{% endfor %}
         </div>
         {% if imgs|length > 1 %}
         <button class="pc-btn pc-prev" onclick="pcMove(this,-1)">&#8249;</button>
@@ -65,9 +65,9 @@
         {% endif %}
       </div>
     {% elif p.media_tipo == 'imagen' %}
-      <img src="{{ p.media }}" class="post-media img-loading" loading="lazy" onclick="abrirMediaOPost({{ p.id }},'{{ p.media }}','imagen',event)" onload="this.classList.remove('img-loading');this.classList.add('img-loaded')" onerror="this.classList.remove('img-loading');this.classList.add('img-loaded')">
+      <img src="{{ p.media | cl_url('feed') }}" class="post-media img-loading" loading="lazy" onclick="abrirMediaOPost({{ p.id }},'{{ p.media }}','imagen',event)" onload="this.classList.remove('img-loading');this.classList.add('img-loaded')" onerror="this.classList.remove('img-loading');this.classList.add('img-loaded')">
     {% elif p.media_tipo == 'video' %}
-      <video class="post-media" preload="metadata" playsinline><source src="{{ p.media }}"></video>
+      <video class="post-media" preload="none" playsinline poster="{{ p.media | cl_poster }}"><source src="{{ p.media | cl_video('feed') }}"></video>
     {% endif %}
   {% endif %}
 
@@ -78,7 +78,7 @@
     <div class="poll-option {% if mostrar %}poll-voted{% endif %} {% if poll.mi_voto == op.id %}poll-my-vote{% endif %}"
          {% if not mostrar %}onclick="votarEncuesta({{ poll.id }}, {{ op.id }})"{% endif %}
          data-opcion="{{ op.id }}">
-      {% if op.imagen %}<img src="{{ op.imagen }}" class="poll-opt-img">{% endif %}
+      {% if op.imagen %}<img src="{{ op.imagen | cl_url('poll_opt') }}" class="poll-opt-img" loading="lazy">{% endif %}
       <div class="poll-opt-body">
         <div class="poll-opt-top">
           <span class="poll-opt-txt">{{ op.texto }}</span>
@@ -89,7 +89,7 @@
         <div class="poll-bar-wrap"><div class="poll-bar" style="width:{{ op.pct }}%"></div></div>
         {% if not poll.anonima and op.votantes %}
         <div class="poll-voters">
-          {% for v in op.votantes %}<span class="poll-voter-chip" title="{{ v.nombre }}">{% if v.foto %}<img src="{{ v.foto }}" class="poll-voter-av">{% else %}<span class="poll-voter-init">{{ v.nombre[0]|upper }}</span>{% endif %}</span>{% endfor %}
+          {% for v in op.votantes %}<span class="poll-voter-chip" title="{{ v.nombre }}">{% if v.foto %}<img src="{{ v.foto | cl_url('avatar') }}" class="poll-voter-av" loading="lazy">{% else %}<span class="poll-voter-init">{{ v.nombre[0]|upper }}</span>{% endif %}</span>{% endfor %}
           {% if op.votos > op.votantes|length %}<span class="poll-voter-more">+{{ op.votos - op.votantes|length }}</span>{% endif %}
         </div>
         {% endif %}
@@ -145,7 +145,7 @@
 
     <div class="comment-form">
       {% if usuario and usuario.foto %}
-        <img src="{{ usuario.foto }}" class="user-avatar-img comment-av">
+        <img src="{{ usuario.foto | cl_url('avatar') }}" class="user-avatar-img comment-av">
       {% else %}
         <div class="user-avatar comment-av">{{ usuario.nombre[0]|upper if usuario else "?" }}</div>
       {% endif %}

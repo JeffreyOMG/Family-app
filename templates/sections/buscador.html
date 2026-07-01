@@ -83,9 +83,9 @@
       {% for a in archivos %}
       <div class="bus-ig-item" onclick="abrirGaleriaModal('{{ a.ruta }}','{{ a.tipo }}')">
         {% if a.tipo == 'imagen' %}
-          <img src="{{ a.ruta }}" alt="" loading="lazy">
+          <img src="{{ a.ruta | cl_url('gallery') }}" alt="" loading="lazy">
         {% else %}
-          <video src="{{ a.ruta }}" muted preload="none"></video>
+          <video src="{{ a.ruta | cl_video('feed') }}" muted preload="none" poster="{{ a.ruta | cl_poster }}"></video>
           <div class="bus-ig-play"><span class="material-symbols-outlined">play_arrow</span></div>
         {% endif %}
         {% if a.tipo == 'video' %}
@@ -202,7 +202,7 @@
                 <!-- Icono/Avatar -->
                 {% if r.tipo == 'Usuario' %}
                   {% if r.foto %}
-                    <img src="{{ r.foto }}" class="bus-avatar-img" alt="{{ r.titulo }}">
+                    <img src="{{ r.foto | cl_url('avatar_md') }}" class="bus-avatar-img" alt="{{ r.titulo }}" loading="lazy">
                   {% else %}
                     <div class="bus-avatar-letter {{ cfg[1] }}">{{ r.titulo[0]|upper }}</div>
                   {% endif %}
@@ -579,8 +579,8 @@ function abrirGaleriaModal(src, tipo) {
   const modal = document.getElementById('bus-galeria-modal');
   const content = document.getElementById('bus-galeria-modal-content');
   content.innerHTML = tipo === 'imagen'
-    ? `<img src="${src}" style="max-width:92vw;max-height:90vh;border-radius:12px;display:block;">`
-    : `<video src="${src}" controls autoplay style="max-width:92vw;max-height:90vh;border-radius:12px;"></video>`;
+    ? `<img src="${clUrl(src,'comp_full')}" style="max-width:92vw;max-height:90vh;border-radius:12px;display:block;">`
+    : `<video src="${clVideoUrl(src,'feed')}" controls autoplay preload="none" poster="${clVideoPoster(src)}" style="max-width:92vw;max-height:90vh;border-radius:12px;"></video>`;
   modal.style.display = 'flex';
 }
 
@@ -1074,7 +1074,7 @@ function busAbrirGaleria() {
 
       const rowsHtml = rows.map(r => {
         const av = r.usuario_foto
-          ? `<img src="${esc(r.usuario_foto)}" class="pron-av-img" onerror="this.outerHTML='<div class=pron-av-letter>${esc(r.usuario_nombre[0]?.toUpperCase()||'?')}</div>'">`
+          ? `<img src="${clUrl(esc(r.usuario_foto),'avatar')}" class="pron-av-img" onerror="this.outerHTML='<div class=pron-av-letter>${esc(r.usuario_nombre[0]?.toUpperCase()||'?')}</div>'">`
           : `<div class="pron-av-letter">${esc(r.usuario_nombre[0]?.toUpperCase()||'?')}</div>`;
 
         // Penales del pronóstico
