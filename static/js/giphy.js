@@ -224,8 +224,12 @@ function _buildModal() {
         </div>
         <div id="giphy-label">
           <span id="giphy-label-txt">GIFs en tendencia</span>
-          <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/5a/GIPHY-logo.png/220px-GIPHY-logo.png"
-               alt="GIPHY" id="giphy-logo">
+          <span id="giphy-logo" aria-label="Powered by GIPHY" title="Powered by GIPHY" style="display:inline-flex;align-items:center;gap:3px;font-weight:800;font-size:11px;letter-spacing:.3px;color:#00c5ff;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <rect x="2" y="2" width="20" height="20" rx="4" stroke="#00c5ff" stroke-width="2.4"/>
+              <path d="M12 7v5l3.5 2" stroke="#00c5ff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>GIPHY
+          </span>
         </div>
       </div>
       <div id="giphy-grid-wrap">

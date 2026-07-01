@@ -85,6 +85,16 @@ def _require_auth():
     return None
 
 
+def _require_miembro():
+    """Solo miembro o admin — bloquea a invitados de escribir en el caché compartido."""
+    if "uid" not in session:
+        return _err("No autenticado", 401)
+    rol = session.get("rol", "invitado")
+    if rol not in ("miembro", "admin"):
+        return _err("Acceso restringido a Miembros", 403)
+    return None
+
+
 def _require_admin():
     from database import get_db
     uid = session.get("uid")
@@ -262,7 +272,7 @@ def api_sync_from_client():
     crudos de /get/games y /get/teams para que el servidor actualice su caché.
     Body JSON: { "games": [...], "teams": [...] }
     """
-    guard = _require_auth()
+    guard = _require_miembro()
     if guard: return guard
     try:
         body = flask_request.get_json(silent=True) or {}
