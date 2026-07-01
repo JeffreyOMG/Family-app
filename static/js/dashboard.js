@@ -110,7 +110,7 @@ function irSeccion(sec) {
   history.replaceState(null, '', '#' + sec);
   localStorage.setItem('seccion', sec);
 
-  if (window.innerWidth <= 768) {
+  if (window.innerWidth <= 1024) {
     $('sidebar')?.classList.remove('open');
     $('overlay')?.classList.remove('active');
   }
