@@ -2200,8 +2200,8 @@ html{
     width:260px;
   }
 
-  /* overlay */
-  .sidebar-overlay{
+  /* overlay: solo visible cuando el sidebar está abierto */
+  .sidebar-overlay.active{
     display:block;
   }
 
@@ -5408,14 +5408,14 @@ body.dark-mode {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   TABLET HORIZONTAL (769px–1024px) — mismo shell de navegación que tablet
-   vertical / móvil. El navbar Instagram-style y el bottom-nav ya se manejan
-   arriba (bloque extendido a 1024px); aquí solo lo que falta: sidebar oculto
-   y márgenes del contenido.
+   MÓVIL + TABLET (≤1024px) — sidebar de escritorio siempre oculto aquí;
+   el navbar Instagram-style y el bottom-nav ya se manejan arriba (bloque
+   extendido a 1024px). Regla única con !important para evitar huecos entre
+   breakpoints.
    ═══════════════════════════════════════════════════════════════════════════ */
-@media (min-width: 769px) and (max-width: 1024px) {
+@media (max-width: 1024px) {
 
-  /* Sidebar oculto igual que en móvil (se abre solo si se llama toggleSidebar) */
+  /* Sidebar oculto (se abre solo si se llama toggleSidebar) */
   .sidebar {
     transform: translateX(-100%) !important;
     width: 260px !important;
@@ -5426,7 +5426,9 @@ body.dark-mode {
   }
   .sidebar.open { transform: translateX(0) !important; }
   .sidebar:hover { width: 260px !important; }
-  .sidebar-overlay { display: block; }
+
+  /* El overlay solo debe verse cuando el sidebar está abierto (.active) */
+  .sidebar-overlay.active { display: block !important; }
 
   #menu-toggle,
   .hamburger-btn { display: none !important; }
