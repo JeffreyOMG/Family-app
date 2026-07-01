@@ -496,10 +496,35 @@
 
           <!-- Personalizar fondo — SOLO visible si el tema activo es Glass -->
           <div class="pf2-glass-bg-card" id="glass-bg-customizer" style="display:none;">
+
+            <!-- Aviso de rendimiento — solo aparece si se detecta gama baja -->
+            <div class="glass-lowend-banner" id="glass-lowend-banner" style="display:none;">
+              <span class="material-symbols-outlined">warning</span>
+              <div>
+                <div><b>Tu dispositivo puede tener un rendimiento limitado</b> con este tema.</div>
+                Se recomienda usar el modo optimizado (menos blur, sin movimiento).
+                <div class="glass-lowend-banner-actions">
+                  <button type="button" class="glass-lowend-accept" onclick="pf2GlassLowEndAceptar()">Usar modo optimizado</button>
+                  <button type="button" class="glass-lowend-dismiss" onclick="pf2GlassLowEndCerrar()">Ignorar</button>
+                </div>
+              </div>
+            </div>
+
             <div class="pf2-aj-label" style="display:flex;align-items:center;gap:6px;">
               🎨 Personalizar fondo
             </div>
-            <div class="pf2-glass-bg-preview" id="glass-bg-preview"></div>
+
+            <!-- Vista previa — los cambios de abajo solo se ven aquí hasta pulsar "Aplicar" -->
+            <div class="pf2-glass-preview-wrap">
+              <div class="pf2-glass-preview-title"><span class="material-symbols-outlined" style="font-size:15px;">visibility</span> Vista previa</div>
+              <div class="pf2-glass-preview-stage" id="glass-preview-stage">
+                <div class="pf2-glass-preview-card" id="glass-preview-card">
+                  <div class="pf2-glass-preview-avatar"></div>
+                  <span>Así se vería tu tema</span>
+                </div>
+              </div>
+            </div>
+
             <div class="pf2-glass-bg-row">
               <div class="pf2-glass-bg-pick">
                 <label for="glass-bg-color1">🎨 Color inicial</label>
@@ -512,13 +537,82 @@
                        oninput="pf2GlassBgLive(2,this.value)" onchange="pf2GlassBgSave()">
               </div>
             </div>
-            <div class="pf2-glass-preset-row">
+            <div class="pf2-glass-preset-row" id="glass-preset-row">
               <button type="button" class="pf2-glass-preset-btn" onclick="pf2GlassBgPreset('#7c3aed','#3b82f6')">💜 Aurora</button>
               <button type="button" class="pf2-glass-preset-btn" onclick="pf2GlassBgPreset('#0ea5e9','#22d3ee')">🌊 Ocean</button>
               <button type="button" class="pf2-glass-preset-btn" onclick="pf2GlassBgPreset('#f97316','#ec4899')">🌅 Sunset</button>
               <button type="button" class="pf2-glass-preset-btn" onclick="pf2GlassBgPreset('#1e2a63','#6d28d9')">🌌 Galaxy</button>
               <button type="button" class="pf2-glass-preset-btn" onclick="pf2GlassBgPreset('#10b981','#14b8a6')">🌿 Emerald</button>
               <button type="button" class="pf2-glass-preset-btn" onclick="pf2GlassBgPreset('#ef4444','#d946ef')">❤️ Cherry</button>
+              <button type="button" class="pf2-glass-preset-btn" onclick="pf2GlassBgPreset('#22c55e','#0ea5e9')">🌲 Forest</button>
+              <button type="button" class="pf2-glass-preset-btn" onclick="pf2GlassBgPreset('#00e5c3','#0a3d62')">🌐 Neon</button>
+              <button type="button" class="pf2-glass-preset-btn" onclick="pf2GlassBgPreset('#ff00c8','#00fff2')">🤖 Cyberpunk</button>
+              <button type="button" class="pf2-glass-preset-btn" onclick="pf2GlassBgPreset('#ff512f','#dd2476')">🌇 Volcano</button>
+              <button type="button" class="pf2-glass-preset-btn" onclick="pf2GlassBgPreset('#83a4d4','#b6fbff')">🧊 Ice</button>
+              <button type="button" class="pf2-glass-preset-btn" onclick="pf2GlassBgPreset('#ff9a9e','#fecfef')">🍬 Candy</button>
+              <button type="button" class="pf2-glass-preset-btn" onclick="pf2GlassBgPreset('#654ea3','#eaafc8')">💭 Purple Dream</button>
+              <button type="button" class="pf2-glass-preset-btn" onclick="pf2GlassBgPreset('#0f0c29','#302b63')">🌃 Midnight</button>
+              <button type="button" class="pf2-glass-preset-btn" onclick="pf2GlassBgPreset('#141e30','#243b55')">👑 Royal</button>
+              <button type="button" class="pf2-glass-preset-btn" onclick="pf2GlassBgPreset('#f77062','#fe5196')">🌹 Rose</button>
+            </div>
+
+            <!-- Opciones avanzadas (colapsable): dirección, intensidad, vibrancy, movimiento, importar/exportar -->
+            <div class="pf2-glass-advanced" id="glass-advanced">
+              <button type="button" class="pf2-glass-advanced-toggle" onclick="pf2GlassToggleAdvanced()">
+                ⚙️ Opciones avanzadas
+                <span class="material-symbols-outlined">expand_more</span>
+              </button>
+              <div class="pf2-glass-advanced-body">
+
+                <div class="pf2-aj-label" style="margin-top:2px;">Dirección del degradado</div>
+                <div class="pf2-glass-dir-row" id="glass-dir-row">
+                  <button type="button" class="pf2-glass-dir-btn" data-dir="horizontal" onclick="pf2GlassSetDirection('horizontal',this)">↔️ Horizontal</button>
+                  <button type="button" class="pf2-glass-dir-btn" data-dir="vertical" onclick="pf2GlassSetDirection('vertical',this)">↕️ Vertical</button>
+                  <button type="button" class="pf2-glass-dir-btn pf2-active" data-dir="diagonal" onclick="pf2GlassSetDirection('diagonal',this)">↗️ Diagonal</button>
+                  <button type="button" class="pf2-glass-dir-btn" data-dir="radial" onclick="pf2GlassSetDirection('radial',this)">🎯 Radial</button>
+                </div>
+
+                <div class="pf2-glass-slider-block">
+                  <div class="pf2-glass-slider-label">Intensidad del cristal <b id="glass-intensity-label">Normal</b></div>
+                  <input type="range" min="0" max="2" step="1" value="1" class="pf2-glass-slider" id="glass-intensity-slider"
+                         oninput="pf2GlassSetIntensity(this.value)">
+                  <div class="pf2-glass-slider-ticks"><span>Suave</span><span>Normal</span><span>Intenso</span></div>
+                </div>
+
+                <div class="pf2-glass-slider-block">
+                  <div class="pf2-glass-slider-label">Fondo <b id="glass-vibrancy-label">Normal</b></div>
+                  <input type="range" min="0" max="2" step="1" value="1" class="pf2-glass-slider" id="glass-vibrancy-slider"
+                         oninput="pf2GlassSetVibrancy(this.value)">
+                  <div class="pf2-glass-slider-ticks"><span>Suave</span><span>Normal</span><span>Vibrante</span></div>
+                </div>
+
+                <div class="pf2-glass-switch-row">
+                  <span>Movimiento del fondo</span>
+                  <label class="pf2-glass-switch">
+                    <input type="checkbox" id="glass-motion-switch" checked onchange="pf2GlassSetMotion(this.checked)">
+                    <span class="pf2-glass-switch-track"></span>
+                  </label>
+                </div>
+
+                <div class="pf2-aj-divider"></div>
+                <div class="pf2-aj-label">Importar / exportar tema</div>
+                <div class="pf2-glass-io-row">
+                  <button type="button" class="pf2-glass-btn-ghost" onclick="pf2GlassExportTheme()">⬇️ Exportar tema</button>
+                  <button type="button" class="pf2-glass-btn-ghost" onclick="pf2GlassImportPrompt()">⬆️ Importar tema</button>
+                </div>
+                <textarea id="glass-io-textarea" style="display:none;" placeholder='{"theme":"glass","accent":"#00d084",...}'></textarea>
+
+              </div>
+            </div>
+
+            <div class="pf2-aj-divider"></div>
+            <div class="pf2-glass-apply-row">
+              <button type="button" class="pf2-glass-btn-apply" onclick="pf2GlassApplyDraft()">
+                <span class="material-symbols-outlined" style="font-size:16px;">check</span> Aplicar cambios
+              </button>
+              <button type="button" class="pf2-glass-btn-ghost" onclick="pf2GlassResetTheme()">
+                <span class="material-symbols-outlined" style="font-size:16px;">restart_alt</span> Restablecer tema Glass
+              </button>
             </div>
           </div>
           <div class="pf2-aj-divider"></div>
@@ -2226,50 +2320,318 @@ function pf2AplicarTema(mode, btn) {
   const bgCustomizer = document.getElementById('glass-bg-customizer');
   if (bgCustomizer) bgCustomizer.style.display = (mode === 'glass') ? 'block' : 'none';
 
+  if (mode === 'glass' && typeof pf2DetectLowEnd === 'function') pf2DetectLowEnd();
+
   // Sincronizar toggle heredado si existe
   const toggleDark = document.getElementById('toggle-dark');
   if (toggleDark) toggleDark.checked = document.body.classList.contains('dark-mode');
 }
 
 // ─── FONDO PERSONALIZADO DEL TEMA GLASS (independiente del Accent) ─────
+// Sistema de BORRADOR (draft): todo lo que el usuario toca (colores,
+// dirección, intensidad, fondo/vibrancy, movimiento) solo actualiza la
+// mini "Vista previa" — la app completa NO cambia hasta pulsar
+// "Aplicar cambios". pf2GlassApplyDraft() es lo único que escribe en
+// documentElement / body / localStorage.
+
+const PF2_GLASS_DEFAULTS = {
+  bg1: '#7c3aed', bg2: '#3b82f6',
+  direction: 'diagonal',           // horizontal | vertical | diagonal | radial
+  intensity: 'normal',             // soft | normal | intense
+  vibrancy: 'normal',              // soft | normal | vibrant
+  motion: true
+};
+
+let PF2_GLASS_DRAFT = Object.assign({}, PF2_GLASS_DEFAULTS);
+let PF2_GLASS_APPLIED = Object.assign({}, PF2_GLASS_DEFAULTS);
+
+const PF2_GLASS_INTENSITY_LEVELS = ['soft', 'normal', 'intense'];
+const PF2_GLASS_INTENSITY_LABELS = { soft: 'Suave', normal: 'Normal', intense: 'Intenso' };
+const PF2_GLASS_VIBRANCY_LEVELS  = ['soft', 'normal', 'vibrant'];
+const PF2_GLASS_VIBRANCY_LABELS  = { soft: 'Suave', normal: 'Normal', vibrant: 'Vibrante' };
+const PF2_GLASS_VIBRANCY_PCT     = { soft: '45%', normal: '65%', vibrant: '85%' };
+
+// Color de un color-picker "en vivo" → solo toca el borrador + la vista previa
 function pf2GlassBgLive(which, color) {
-  document.documentElement.style.setProperty('--glass-bg-' + which, color);
-  pf2GlassBgUpdatePreview();
+  PF2_GLASS_DRAFT['bg' + which] = color;
+  pf2GlassPreviewRender();
 }
 
 function pf2GlassBgSave() {
-  const c1 = document.getElementById('glass-bg-color1').value;
-  const c2 = document.getElementById('glass-bg-color2').value;
-  localStorage.setItem('glassBg1', c1);
-  localStorage.setItem('glassBg2', c2);
+  // Mantenido por compatibilidad de nombre; el guardado real ocurre al Aplicar.
+  pf2GlassPreviewRender();
 }
 
 function pf2GlassBgPreset(c1, c2) {
   document.getElementById('glass-bg-color1').value = c1;
   document.getElementById('glass-bg-color2').value = c2;
-  pf2GlassBgLive(1, c1);
-  pf2GlassBgLive(2, c2);
-  pf2GlassBgSave();
+  PF2_GLASS_DRAFT.bg1 = c1;
+  PF2_GLASS_DRAFT.bg2 = c2;
+  pf2GlassPreviewRender();
 }
 
-function pf2GlassBgUpdatePreview() {
+function pf2GlassSetDirection(dir, btn) {
+  PF2_GLASS_DRAFT.direction = dir;
+  document.querySelectorAll('#glass-dir-row .pf2-glass-dir-btn').forEach(b => b.classList.remove('pf2-active'));
+  if (btn) btn.classList.add('pf2-active');
+  pf2GlassPreviewRender();
+}
+
+function pf2GlassSetIntensity(idx) {
+  const level = PF2_GLASS_INTENSITY_LEVELS[idx] || 'normal';
+  PF2_GLASS_DRAFT.intensity = level;
+  const label = document.getElementById('glass-intensity-label');
+  if (label) label.textContent = PF2_GLASS_INTENSITY_LABELS[level];
+  pf2GlassPreviewRender();
+}
+
+function pf2GlassSetVibrancy(idx) {
+  const level = PF2_GLASS_VIBRANCY_LEVELS[idx] || 'normal';
+  PF2_GLASS_DRAFT.vibrancy = level;
+  const label = document.getElementById('glass-vibrancy-label');
+  if (label) label.textContent = PF2_GLASS_VIBRANCY_LABELS[level];
+  pf2GlassPreviewRender();
+}
+
+function pf2GlassSetMotion(on) {
+  PF2_GLASS_DRAFT.motion = !!on;
+  pf2GlassPreviewRender();
+}
+
+// Pinta la mini "Vista previa" con los valores del borrador, usando variables
+// CSS con ámbito local (solo en ese elemento), sin tocar nada global.
+function pf2GlassPreviewRender() {
+  const stage = document.getElementById('glass-preview-stage');
+  const card  = document.getElementById('glass-preview-card');
+  if (!stage || !card) return;
+
+  const d = PF2_GLASS_DRAFT;
+  const angle = d.direction === 'horizontal' ? '90deg' : d.direction === 'vertical' ? '180deg' : '160deg';
+  const vibPct = PF2_GLASS_VIBRANCY_PCT[d.vibrancy] || '65%';
+
+  if (d.direction === 'radial') {
+    stage.style.background = `radial-gradient(circle at 50% 50%, ${d.bg1} 0%, ${d.bg2} 100%)`;
+  } else {
+    stage.style.background = `linear-gradient(${angle}, ${d.bg1}, ${d.bg2})`;
+  }
+  // Vibrancy: aplicamos un filtro de saturación proporcional (aproximación
+  // visual rápida de la mini-tarjeta; el efecto real usa color-mix en CSS).
+  const satMap = { soft: 0.75, normal: 1, vibrant: 1.3 };
+  stage.style.filter = 'saturate(' + (satMap[d.vibrancy] || 1) + ')';
+
+  const blurMap = { soft: 6, normal: 12, intense: 20 };
+  const opMap   = { soft: 0.10, normal: 0.16, intense: 0.24 };
+  card.style.backdropFilter = 'blur(' + (blurMap[d.intensity] || 12) + 'px)';
+  card.style.webkitBackdropFilter = card.style.backdropFilter;
+  card.style.background = 'rgba(255,255,255,' + (opMap[d.intensity] || 0.16) + ')';
+
+  stage.style.animation = d.motion ? 'glassBgDrift 6s ease-in-out infinite alternate' : 'none';
+
   const prev = document.getElementById('glass-bg-preview');
-  if (!prev) return;
-  const c1 = document.documentElement.style.getPropertyValue('--glass-bg-1') || '#7c3aed';
-  const c2 = document.documentElement.style.getPropertyValue('--glass-bg-2') || '#3b82f6';
-  prev.style.background = 'linear-gradient(135deg,' + c1 + ',' + c2 + ')';
+  if (prev) prev.style.background = 'linear-gradient(135deg,' + d.bg1 + ',' + d.bg2 + ')';
 }
 
-function pf2InitGlassBg() {
-  const c1 = localStorage.getItem('glassBg1') || '#7c3aed';
-  const c2 = localStorage.getItem('glassBg2') || '#3b82f6';
-  document.documentElement.style.setProperty('--glass-bg-1', c1);
-  document.documentElement.style.setProperty('--glass-bg-2', c2);
+// Aplica el borrador a TODA la app (documentElement + body + localStorage)
+function pf2GlassApplyDraft() {
+  const d = PF2_GLASS_DRAFT;
+  const root = document.documentElement;
+  const body = document.body;
+
+  root.style.setProperty('--glass-bg-1', d.bg1);
+  root.style.setProperty('--glass-bg-2', d.bg2);
+  body.setAttribute('data-glass-direction', d.direction);
+
+  body.classList.remove('glass-intensity-soft', 'glass-intensity-intense');
+  if (d.intensity === 'soft') body.classList.add('glass-intensity-soft');
+  if (d.intensity === 'intense') body.classList.add('glass-intensity-intense');
+
+  root.style.setProperty('--glass-vibrancy-pct', PF2_GLASS_VIBRANCY_PCT[d.vibrancy] || '65%');
+  body.classList.toggle('glass-motion-off', !d.motion);
+
+  localStorage.setItem('glassBg1', d.bg1);
+  localStorage.setItem('glassBg2', d.bg2);
+  localStorage.setItem('glassDirection', d.direction);
+  localStorage.setItem('glassIntensity', d.intensity);
+  localStorage.setItem('glassVibrancy', d.vibrancy);
+  localStorage.setItem('glassMotion', d.motion ? '1' : '0');
+
+  PF2_GLASS_APPLIED = Object.assign({}, d);
+  mostrarToast('✅ Tema Glass aplicado');
+}
+
+function pf2GlassResetTheme() {
+  PF2_GLASS_DRAFT = Object.assign({}, PF2_GLASS_DEFAULTS);
+  pf2GlassSyncControlsFromDraft();
+  pf2GlassPreviewRender();
+  pf2GlassApplyDraft();
+  mostrarToast('↺ Tema Glass restablecido');
+}
+
+// Sincroniza los controles visibles (inputs/sliders/botones) con el borrador actual
+function pf2GlassSyncControlsFromDraft() {
+  const d = PF2_GLASS_DRAFT;
   const i1 = document.getElementById('glass-bg-color1');
   const i2 = document.getElementById('glass-bg-color2');
-  if (i1) i1.value = c1;
-  if (i2) i2.value = c2;
-  pf2GlassBgUpdatePreview();
+  if (i1) i1.value = d.bg1;
+  if (i2) i2.value = d.bg2;
+
+  document.querySelectorAll('#glass-dir-row .pf2-glass-dir-btn').forEach(b => {
+    b.classList.toggle('pf2-active', b.dataset.dir === d.direction);
+  });
+
+  const intIdx = Math.max(0, PF2_GLASS_INTENSITY_LEVELS.indexOf(d.intensity));
+  const intSlider = document.getElementById('glass-intensity-slider');
+  if (intSlider) intSlider.value = intIdx;
+  const intLabel = document.getElementById('glass-intensity-label');
+  if (intLabel) intLabel.textContent = PF2_GLASS_INTENSITY_LABELS[d.intensity];
+
+  const vibIdx = Math.max(0, PF2_GLASS_VIBRANCY_LEVELS.indexOf(d.vibrancy));
+  const vibSlider = document.getElementById('glass-vibrancy-slider');
+  if (vibSlider) vibSlider.value = vibIdx;
+  const vibLabel = document.getElementById('glass-vibrancy-label');
+  if (vibLabel) vibLabel.textContent = PF2_GLASS_VIBRANCY_LABELS[d.vibrancy];
+
+  const motionSwitch = document.getElementById('glass-motion-switch');
+  if (motionSwitch) motionSwitch.checked = d.motion;
+}
+
+// Carga lo guardado en localStorage → borrador + aplicado (al entrar a la página)
+function pf2InitGlassBg() {
+  const applied = {
+    bg1: localStorage.getItem('glassBg1') || PF2_GLASS_DEFAULTS.bg1,
+    bg2: localStorage.getItem('glassBg2') || PF2_GLASS_DEFAULTS.bg2,
+    direction: localStorage.getItem('glassDirection') || PF2_GLASS_DEFAULTS.direction,
+    intensity: localStorage.getItem('glassIntensity') || PF2_GLASS_DEFAULTS.intensity,
+    vibrancy: localStorage.getItem('glassVibrancy') || PF2_GLASS_DEFAULTS.vibrancy,
+    motion: localStorage.getItem('glassMotion') !== '0'
+  };
+  PF2_GLASS_APPLIED = applied;
+  PF2_GLASS_DRAFT = Object.assign({}, applied);
+
+  // Reaplicar al DOM (por si el CSS ya cargó con los defaults)
+  const root = document.documentElement;
+  const body = document.body;
+  root.style.setProperty('--glass-bg-1', applied.bg1);
+  root.style.setProperty('--glass-bg-2', applied.bg2);
+  body.setAttribute('data-glass-direction', applied.direction);
+  body.classList.remove('glass-intensity-soft', 'glass-intensity-intense');
+  if (applied.intensity === 'soft') body.classList.add('glass-intensity-soft');
+  if (applied.intensity === 'intense') body.classList.add('glass-intensity-intense');
+  root.style.setProperty('--glass-vibrancy-pct', PF2_GLASS_VIBRANCY_PCT[applied.vibrancy] || '65%');
+  body.classList.toggle('glass-motion-off', !applied.motion);
+
+  pf2GlassSyncControlsFromDraft();
+  pf2GlassPreviewRender();
+}
+
+// ─── OPCIONES AVANZADAS: colapsable ─────────────────────────────────────
+function pf2GlassToggleAdvanced() {
+  const panel = document.getElementById('glass-advanced');
+  if (panel) panel.classList.toggle('open');
+}
+
+// ─── IMPORTAR / EXPORTAR TEMA ───────────────────────────────────────────
+function pf2GlassExportTheme() {
+  const accent = localStorage.getItem('accent') || '#ff4d8d';
+  const d = PF2_GLASS_APPLIED;
+  const json = {
+    theme: 'glass',
+    accent: accent,
+    bg1: d.bg1,
+    bg2: d.bg2,
+    direction: d.direction,
+    intensity: d.intensity,
+    vibrancy: d.vibrancy,
+    motion: d.motion
+  };
+  const ta = document.getElementById('glass-io-textarea');
+  const text = JSON.stringify(json, null, 2);
+  if (ta) {
+    ta.style.display = 'block';
+    ta.value = text;
+    ta.select();
+  }
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(text).then(() => mostrarToast('📋 Tema copiado al portapapeles')).catch(() => {});
+  }
+}
+
+function pf2GlassImportPrompt() {
+  const ta = document.getElementById('glass-io-textarea');
+  if (!ta) return;
+  if (ta.style.display === 'none' || !ta.value) {
+    ta.style.display = 'block';
+    ta.value = '';
+    ta.placeholder = 'Pega aquí el JSON del tema y presiona Ctrl+Enter';
+    ta.focus();
+    ta.onkeydown = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') pf2GlassImportTheme(ta.value);
+    };
+  } else {
+    pf2GlassImportTheme(ta.value);
+  }
+}
+
+function pf2GlassImportTheme(jsonStr) {
+  let data;
+  try {
+    data = JSON.parse(jsonStr);
+  } catch (e) {
+    mostrarToast('❌ JSON inválido', 'error');
+    return;
+  }
+  if (data.bg1) PF2_GLASS_DRAFT.bg1 = data.bg1;
+  if (data.bg2) PF2_GLASS_DRAFT.bg2 = data.bg2;
+  if (data.direction && ['horizontal','vertical','diagonal','radial'].includes(data.direction)) PF2_GLASS_DRAFT.direction = data.direction;
+  if (data.intensity && PF2_GLASS_INTENSITY_LEVELS.includes(data.intensity)) PF2_GLASS_DRAFT.intensity = data.intensity;
+  else if (typeof data.blur === 'number') PF2_GLASS_DRAFT.intensity = data.blur > 20 ? 'intense' : data.blur < 12 ? 'soft' : 'normal';
+  else if (data.glass && PF2_GLASS_INTENSITY_LEVELS.includes(data.glass)) PF2_GLASS_DRAFT.intensity = data.glass;
+  if (data.vibrancy && PF2_GLASS_VIBRANCY_LEVELS.includes(data.vibrancy)) PF2_GLASS_DRAFT.vibrancy = data.vibrancy;
+  if (typeof data.motion === 'boolean') PF2_GLASS_DRAFT.motion = data.motion;
+  if (data.accent) setAccent(data.accent);
+
+  pf2GlassSyncControlsFromDraft();
+  pf2GlassPreviewRender();
+  mostrarToast('✅ Tema importado — revisá la vista previa y pulsá "Aplicar"');
+}
+
+// ─── DETECCIÓN DE GAMA BAJA ─────────────────────────────────────────────
+function pf2DetectLowEnd() {
+  if (localStorage.getItem('glassLowEndDismissed') === '1') return;
+  const cores = navigator.hardwareConcurrency || 8;
+  const mem   = navigator.deviceMemory || 8;
+  const isLowEnd = cores <= 4 || mem <= 4;
+  if (!isLowEnd) return;
+
+  const banner = document.getElementById('glass-lowend-banner');
+  if (banner) banner.style.display = 'flex';
+
+  // Si el tema Glass ya está activo y nunca se configuró intensidad manualmente,
+  // aplicar automáticamente el modo optimizado.
+  if (document.body.classList.contains('theme-glass') && !localStorage.getItem('glassIntensity')) {
+    PF2_GLASS_DRAFT.intensity = 'soft';
+    PF2_GLASS_DRAFT.motion = false;
+    pf2GlassSyncControlsFromDraft();
+    pf2GlassPreviewRender();
+    pf2GlassApplyDraft();
+  }
+}
+
+function pf2GlassLowEndAceptar() {
+  PF2_GLASS_DRAFT.intensity = 'soft';
+  PF2_GLASS_DRAFT.motion = false;
+  pf2GlassSyncControlsFromDraft();
+  pf2GlassPreviewRender();
+  pf2GlassApplyDraft();
+  localStorage.setItem('glassLowEndDismissed', '1');
+  const banner = document.getElementById('glass-lowend-banner');
+  if (banner) banner.style.display = 'none';
+}
+
+function pf2GlassLowEndCerrar() {
+  localStorage.setItem('glassLowEndDismissed', '1');
+  const banner = document.getElementById('glass-lowend-banner');
+  if (banner) banner.style.display = 'none';
 }
 
 function pf2GlassWarningConfirmar() {
@@ -2607,6 +2969,9 @@ document.addEventListener('DOMContentLoaded', () => {
   pf2InitGlassBg();
   const bgCustomizer = document.getElementById('glass-bg-customizer');
   if (bgCustomizer) bgCustomizer.style.display = (savedTheme === 'glass') ? 'block' : 'none';
+
+  // Aviso de rendimiento en dispositivos de gama baja
+  pf2DetectLowEnd();
 
   // Acento: re-aplicar para marcar el botón activo en la grid
   applyAccent(localStorage.getItem('accent') || '#ff4d8d');

@@ -29,7 +29,17 @@ body.theme-glass {
   --glass-bg-1: #7c3aed;
   --glass-bg-2: #3b82f6;
 
-  /* Glass tokens */
+  /* Dirección del degradado (el ángulo alimenta horizontal/vertical/diagonal;
+     "radial" reemplaza el linear-gradient por uno radial, ver bloque 1).
+     Default = diagonal, igual que el v2 original. */
+  --glass-gradient-angle: 160deg;
+
+  /* Intensidad del color de fondo ("vibrancy"): 45%=Suave, 65%=Normal
+     (default), 85%=Vibrante. Alimenta los color-mix() de los blobs. */
+  --glass-vibrancy-pct: 65%;
+
+  /* Glass tokens — tier "Normal" (default). Los tiers Suave/Intenso los
+     sobreescriben las clases .glass-intensity-* más abajo. */
   --glass-blur: 24px;
   --glass-blur-soft: 12px;
   --glass-opacity: .12;
@@ -92,6 +102,49 @@ body.theme-glass {
   }
 }
 
+/* -------------------------------------------------------------------------
+   0c. Intensidad del cristal — Suave / Normal (default) / Intenso.
+   El usuario elige en Ajustes > Apariencia > Intensidad del cristal.
+   Dos clases con doble-selector (mayor especificidad que el tier base de
+   arriba) para que ganen siempre, en PC y en Móvil.
+   ------------------------------------------------------------------------- */
+body.theme-glass.glass-intensity-soft {
+  --glass-blur: 14px;
+  --glass-blur-soft: 6px;
+  --glass-opacity: .08;
+  --glass-opacity-strong: .13;
+  --glass-border-opacity: .22;
+  --glass-shadow: 0 6px 20px rgba(15, 15, 40, .18);
+  --glass-shadow-sm: 0 3px 10px rgba(15, 15, 40, .12);
+}
+body.theme-glass.glass-intensity-intense {
+  --glass-blur: 34px;
+  --glass-blur-soft: 18px;
+  --glass-opacity: .17;
+  --glass-opacity-strong: .25;
+  --glass-border-opacity: .44;
+  --glass-shadow: 0 10px 40px rgba(15, 15, 40, .36);
+  --glass-shadow-sm: 0 6px 22px rgba(15, 15, 40, .24);
+}
+@media (max-width: 768px) {
+  body.theme-glass.glass-intensity-soft {
+    --glass-blur: 4px;
+    --glass-blur-soft: 0px;
+    --glass-opacity: .12;
+    --glass-opacity-strong: .17;
+    --glass-shadow: 0 2px 8px rgba(15, 15, 40, .12);
+    --glass-shadow-sm: 0 1px 6px rgba(15, 15, 40, .10);
+  }
+  body.theme-glass.glass-intensity-intense {
+    --glass-blur: 14px;
+    --glass-blur-soft: 4px;
+    --glass-opacity: .20;
+    --glass-opacity-strong: .28;
+    --glass-shadow: 0 6px 20px rgba(15, 15, 40, .24);
+    --glass-shadow-sm: 0 3px 12px rgba(15, 15, 40, .16);
+  }
+}
+
 /* Transiciones suaves con el timing del tema */
 body.theme-glass, body.theme-glass * {
   transition-timing-function: var(--glass-ease);
@@ -110,22 +163,49 @@ body.theme-glass .main-content {
 
 body.theme-glass .layout::before {
   background:
-    radial-gradient(circle at 12% 18%, color-mix(in srgb, var(--glass-bg-1) 65%, white) 0%, transparent 42%),
-    radial-gradient(circle at 88% 12%, color-mix(in srgb, var(--glass-bg-2) 60%, white) 0%, transparent 46%),
-    radial-gradient(circle at 78% 82%, color-mix(in srgb, var(--glass-bg-2) 55%, black) 0%, transparent 48%),
-    radial-gradient(circle at 18% 88%, color-mix(in srgb, var(--glass-bg-1) 55%, black) 0%, transparent 48%),
-    linear-gradient(160deg,
-      color-mix(in srgb, var(--glass-bg-1) 78%, black) 0%,
+    radial-gradient(circle at 12% 18%, color-mix(in srgb, var(--glass-bg-1) calc(var(--glass-vibrancy-pct) + 0%), white) 0%, transparent 42%),
+    radial-gradient(circle at 88% 12%, color-mix(in srgb, var(--glass-bg-2) calc(var(--glass-vibrancy-pct) - 5%), white) 0%, transparent 46%),
+    radial-gradient(circle at 78% 82%, color-mix(in srgb, var(--glass-bg-2) calc(var(--glass-vibrancy-pct) - 10%), black) 0%, transparent 48%),
+    radial-gradient(circle at 18% 88%, color-mix(in srgb, var(--glass-bg-1) calc(var(--glass-vibrancy-pct) - 10%), black) 0%, transparent 48%),
+    linear-gradient(var(--glass-gradient-angle),
+      color-mix(in srgb, var(--glass-bg-1) calc(var(--glass-vibrancy-pct) + 13%), black) 0%,
       var(--glass-bg-1) 30%,
       var(--glass-bg-2) 65%,
-      color-mix(in srgb, var(--glass-bg-2) 78%, black) 100%);
+      color-mix(in srgb, var(--glass-bg-2) calc(var(--glass-vibrancy-pct) + 13%), black) 100%);
   background-size: 180% 180%, 180% 180%, 180% 180%, 180% 180%, 100% 100%;
   animation: glassBgDrift var(--glass-bg-motion) ease-in-out infinite alternate;
+}
+
+/* Dirección del degradado — el usuario elige en Ajustes > Apariencia.
+   horizontal/vertical/diagonal solo cambian el ángulo del linear-gradient
+   (los blobs radiales se mantienen, dan profundidad en cualquier dirección). */
+body.theme-glass[data-glass-direction="horizontal"] { --glass-gradient-angle: 90deg; }
+body.theme-glass[data-glass-direction="vertical"]   { --glass-gradient-angle: 180deg; }
+body.theme-glass[data-glass-direction="diagonal"]   { --glass-gradient-angle: 160deg; }
+
+/* Radial: reemplaza el linear-gradient de base por uno radial centrado,
+   los blobs radiales siguen encima dando la textura. */
+body.theme-glass[data-glass-direction="radial"] .layout::before {
+  background:
+    radial-gradient(circle at 12% 18%, color-mix(in srgb, var(--glass-bg-1) calc(var(--glass-vibrancy-pct) + 0%), white) 0%, transparent 42%),
+    radial-gradient(circle at 88% 12%, color-mix(in srgb, var(--glass-bg-2) calc(var(--glass-vibrancy-pct) - 5%), white) 0%, transparent 46%),
+    radial-gradient(circle at 78% 82%, color-mix(in srgb, var(--glass-bg-2) calc(var(--glass-vibrancy-pct) - 10%), black) 0%, transparent 48%),
+    radial-gradient(circle at 18% 88%, color-mix(in srgb, var(--glass-bg-1) calc(var(--glass-vibrancy-pct) - 10%), black) 0%, transparent 48%),
+    radial-gradient(circle at 50% 50%,
+      var(--glass-bg-1) 0%,
+      color-mix(in srgb, var(--glass-bg-1) 50%, var(--glass-bg-2)) 45%,
+      color-mix(in srgb, var(--glass-bg-2) calc(var(--glass-vibrancy-pct) + 13%), black) 100%);
+  background-size: 180% 180%, 180% 180%, 180% 180%, 180% 180%, 160% 160%;
 }
 
 @keyframes glassBgDrift {
   0%   { background-position: 0% 0%, 100% 0%, 100% 100%, 0% 100%, 0% 0%; }
   100% { background-position: 10% 6%, 90% 8%, 90% 92%, 8% 94%, 0% 0%; }
+}
+
+/* Movimiento del fondo — switch ON/OFF del usuario */
+body.theme-glass.glass-motion-off .layout::before {
+  animation: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -137,9 +217,6 @@ body.theme-glass .layout::before {
    navbar · sidebar · bottom-nav · cards principales · paneles · modales ·
    widgets · menús/dropdowns flotantes.
    ------------------------------------------------------------------------- */
-body.theme-glass .navbar,
-body.theme-glass .sidebar,
-body.theme-glass .bottom-nav,
 body.theme-glass .modal-box,
 body.theme-glass .content-card,
 body.theme-glass .post-card,
@@ -159,6 +236,24 @@ body.theme-glass [class*="-menu"]:not(.menu-item):not(.menu-text):not(.menu-logo
   box-shadow: var(--glass-shadow-sm);
   border-radius: var(--glass-radius);
   position: relative;
+}
+
+/* .navbar / .sidebar / .bottom-nav van APARTE y SIN "position: relative":
+   en style.css ya son position:fixed (el sidebar cubre los 100vh, el navbar
+   va pegado arriba, el bottom-nav se centra con transform:translateX(-50%)).
+   Meterlos en la regla de arriba les pisaba ese fixed y rompía el layout
+   completo (sidebar "cortado", navbar flotando como tarjeta suelta y un
+   hueco enorme antes del contenido). position:fixed ya sirve de contexto
+   de posicionamiento para el ::before de brillo, así que no hace falta
+   tocar su position. Tampoco heredan el border-radius genérico: van a
+   filo (sidebar/navbar) o mantienen su propia forma de píldora (bottom-nav,
+   ver bloque 3). */
+body.theme-glass .navbar,
+body.theme-glass .sidebar,
+body.theme-glass .bottom-nav {
+  backdrop-filter: blur(var(--glass-blur)) saturate(160%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(160%);
+  border: 1px solid var(--glass-border);
 }
 
 /* Brillo superior + reflejo interior tipo cristal real (no cajas planas) */
@@ -291,6 +386,34 @@ body.theme-glass .content-card {
   body.theme-glass .post-card::before { display: none; }
   body.theme-glass .post-card,
   body.theme-glass .content-card { animation: none; }
+}
+
+/* -------------------------------------------------------------------------
+   3b. Optimización móvil profunda (además del tier de variables de arriba):
+   - .glass-offscreen: dashboard.js la agrega/quita con IntersectionObserver
+     a tarjetas fuera del viewport → sin blur mientras no se ven.
+   - .glass-scrolling: dashboard.js la agrega al body durante el scroll →
+     baja transparencia/blur unos ms (mucho más barato que blur+scroll a
+     la vez) y la quita al parar.
+   - Nunca hay backdrop-filter anidado: un contenedor con blur nunca tiene
+     dentro OTRO elemento con blur propio (ver bloque 2, "repetitivos").
+   ------------------------------------------------------------------------- */
+@media (max-width: 768px) {
+  body.theme-glass .glass-offscreen {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    box-shadow: none !important;
+  }
+  body.theme-glass.glass-scrolling .content-card,
+  body.theme-glass.glass-scrolling .post-card,
+  body.theme-glass.glass-scrolling .navbar,
+  body.theme-glass.glass-scrolling .sidebar,
+  body.theme-glass.glass-scrolling .bottom-nav {
+    backdrop-filter: blur(calc(var(--glass-blur) * .35)) !important;
+    -webkit-backdrop-filter: blur(calc(var(--glass-blur) * .35)) !important;
+    box-shadow: none !important;
+    transition: none !important;
+  }
 }
 
 /* -------------------------------------------------------------------------
@@ -637,3 +760,194 @@ body.theme-glass .pf2-glass-bg-card {
   border: 1px solid var(--glass-border-soft, rgba(120,100,200,.3));
   margin-bottom: 12px;
 }
+
+/* =========================================================================
+   14. DIRECCIÓN DEL DEGRADADO — selector de 4 opciones
+   ========================================================================= */
+.pf2-glass-dir-row {
+  display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px;
+}
+.pf2-glass-dir-btn {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 12px; padding: 6px 12px; border-radius: 20px;
+  border: 1px solid var(--border); background: var(--bg2); color: var(--text);
+  cursor: pointer; transition: transform .18s ease, filter .18s ease, background-color .18s ease;
+}
+.pf2-glass-dir-btn:hover { transform: translateY(-1px); filter: brightness(1.1); }
+.pf2-glass-dir-btn.pf2-active {
+  background: var(--accent-soft, rgba(124,58,237,.2));
+  border-color: var(--accent, #7c3aed);
+  color: var(--accent, #7c3aed);
+  font-weight: 600;
+}
+
+/* =========================================================================
+   15. SLIDERS (Intensidad del cristal / Fondo-vibrancy)
+   ========================================================================= */
+.pf2-glass-slider-block { margin-bottom: 14px; }
+.pf2-glass-slider-label {
+  display: flex; align-items: center; justify-content: space-between;
+  font-size: 12.5px; color: var(--text2); margin-bottom: 6px;
+}
+.pf2-glass-slider-label b { color: var(--text); font-weight: 600; }
+
+.pf2-glass-slider {
+  -webkit-appearance: none; appearance: none;
+  width: 100%; height: 4px; border-radius: 4px;
+  background: linear-gradient(90deg, var(--accent, #7c3aed), var(--border, rgba(120,100,200,.3)));
+  outline: none; cursor: pointer; margin: 4px 0 4px;
+}
+.pf2-glass-slider::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none;
+  width: 18px; height: 18px; border-radius: 50%;
+  background: #fff; border: 3px solid var(--accent, #7c3aed);
+  cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,.35);
+  transition: transform .15s ease;
+}
+.pf2-glass-slider::-webkit-slider-thumb:active { transform: scale(1.15); }
+.pf2-glass-slider::-moz-range-thumb {
+  width: 18px; height: 18px; border-radius: 50%;
+  background: #fff; border: 3px solid var(--accent, #7c3aed);
+  cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,.35);
+}
+
+.pf2-glass-slider-ticks {
+  display: flex; justify-content: space-between;
+  font-size: 10.5px; color: var(--text3); margin-top: 2px;
+}
+
+/* =========================================================================
+   16. VISTA PREVIA — mini tarjeta que muestra los cambios en borrador,
+   sin tocar el resto de la app hasta pulsar "Aplicar"
+   ========================================================================= */
+.pf2-glass-preview-wrap { margin-bottom: 14px; }
+.pf2-glass-preview-title {
+  font-size: 12px; color: var(--text2); margin-bottom: 6px;
+  display: flex; align-items: center; gap: 5px;
+}
+
+.pf2-glass-preview-stage {
+  position: relative;
+  width: 100%; height: 110px; border-radius: 16px;
+  overflow: hidden; display: flex; align-items: center; justify-content: center;
+  border: 1px solid var(--glass-border-soft, rgba(120,100,200,.3));
+}
+
+.pf2-glass-preview-card {
+  width: 76%; height: 60px; border-radius: 12px;
+  display: flex; align-items: center; gap: 8px; padding: 0 12px;
+  border: 1px solid rgba(255,255,255,.34);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.35), 0 8px 22px rgba(15,15,40,.28);
+  color: #fff; font-size: 12px; font-weight: 600;
+}
+
+.pf2-glass-preview-avatar {
+  width: 26px; height: 26px; border-radius: 50%; flex-shrink: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,.9), rgba(255,255,255,.4));
+}
+
+.pf2-glass-apply-row {
+  display: flex; gap: 8px; margin-bottom: 4px; flex-wrap: wrap;
+}
+
+.pf2-glass-btn-apply {
+  flex: 1; min-width: 130px;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  font-size: 12.5px; font-weight: 600; padding: 9px 14px; border-radius: 12px;
+  border: none; cursor: pointer;
+  background: linear-gradient(135deg, #8b7cf6, #5b6ee8); color: #fff;
+  transition: transform .18s ease, filter .18s ease;
+}
+.pf2-glass-btn-apply:hover { filter: brightness(1.1); }
+.pf2-glass-btn-apply:active { transform: scale(.97); }
+
+.pf2-glass-btn-ghost {
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  font-size: 12.5px; font-weight: 500; padding: 9px 14px; border-radius: 12px;
+  border: 1px solid var(--border); background: transparent; color: var(--text2);
+  cursor: pointer; transition: transform .18s ease, filter .18s ease, background-color .18s ease;
+}
+.pf2-glass-btn-ghost:hover { background: var(--bg2); color: var(--text); }
+.pf2-glass-btn-ghost:active { transform: scale(.97); }
+
+/* =========================================================================
+   17. SWITCH (movimiento del fondo) — reutiliza el patrón visual de
+   pf2-toggle de la app (fallback propio para que funcione aislado)
+   ========================================================================= */
+.pf2-glass-switch-row {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 12px; font-size: 12.5px; color: var(--text2);
+}
+.pf2-glass-switch {
+  position: relative; display: inline-block; width: 40px; height: 22px; flex-shrink: 0;
+}
+.pf2-glass-switch input { opacity: 0; width: 0; height: 0; }
+.pf2-glass-switch-track {
+  position: absolute; inset: 0; border-radius: 22px; cursor: pointer;
+  background: var(--border, rgba(120,100,200,.3)); transition: background-color .2s ease;
+}
+.pf2-glass-switch-track::before {
+  content: ""; position: absolute; width: 16px; height: 16px; left: 3px; top: 3px;
+  border-radius: 50%; background: #fff; transition: transform .2s ease;
+  box-shadow: 0 1px 3px rgba(0,0,0,.3);
+}
+.pf2-glass-switch input:checked + .pf2-glass-switch-track {
+  background: var(--accent, #7c3aed);
+}
+.pf2-glass-switch input:checked + .pf2-glass-switch-track::before {
+  transform: translateX(18px);
+}
+
+/* =========================================================================
+   18. PANEL "OPCIONES AVANZADAS" — colapsable, agrupa dirección/intensidad/
+   fondo/movimiento/importar-exportar para no saturar la pantalla principal
+   ========================================================================= */
+.pf2-glass-advanced {
+  margin-top: 4px; border-top: 1px solid var(--glass-border-soft, rgba(120,100,200,.25));
+  padding-top: 10px;
+}
+.pf2-glass-advanced-toggle {
+  width: 100%; display: flex; align-items: center; justify-content: space-between;
+  background: transparent; border: none; cursor: pointer;
+  font-size: 12.5px; font-weight: 600; color: var(--text); padding: 4px 0;
+}
+.pf2-glass-advanced-toggle .material-symbols-outlined {
+  font-size: 18px; transition: transform .2s ease;
+}
+.pf2-glass-advanced.open .pf2-glass-advanced-toggle .material-symbols-outlined {
+  transform: rotate(180deg);
+}
+.pf2-glass-advanced-body {
+  display: none; margin-top: 10px;
+}
+.pf2-glass-advanced.open .pf2-glass-advanced-body {
+  display: block;
+  animation: glassFadeOnly .18s ease;
+}
+
+.pf2-glass-io-row { display: flex; gap: 8px; margin-top: 4px; flex-wrap: wrap; }
+.pf2-glass-io-row textarea {
+  width: 100%; min-height: 64px; font-size: 11px; font-family: monospace;
+  background: rgba(255,255,255,.06); border: 1px solid var(--glass-border-soft, rgba(120,100,200,.3));
+  border-radius: 10px; color: var(--text); padding: 8px; resize: vertical;
+}
+
+/* =========================================================================
+   19. AVISO DE RENDIMIENTO — dispositivo de gama baja detectado
+   (navigator.hardwareConcurrency / deviceMemory bajos)
+   ========================================================================= */
+.glass-lowend-banner {
+  display: flex; align-items: flex-start; gap: 10px;
+  background: rgba(255, 184, 0, .12); border: 1px solid rgba(255, 184, 0, .35);
+  border-radius: 12px; padding: 10px 12px; margin-bottom: 12px; font-size: 12px;
+  color: var(--text2);
+}
+.glass-lowend-banner .material-symbols-outlined { color: #ffb800; font-size: 20px; flex-shrink: 0; }
+.glass-lowend-banner b { color: var(--text); }
+.glass-lowend-banner-actions { display: flex; gap: 8px; margin-top: 8px; }
+.glass-lowend-banner-actions button {
+  font-size: 11.5px; padding: 5px 10px; border-radius: 8px; border: none; cursor: pointer;
+  font-weight: 600;
+}
+.glass-lowend-accept { background: #ffb800; color: #1a1500; }
+.glass-lowend-dismiss { background: rgba(255,255,255,.12); color: var(--text2); }

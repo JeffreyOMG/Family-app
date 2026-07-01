@@ -522,6 +522,57 @@ function initTheme() {
   }
   const cb = document.getElementById('toggle-dark');
   if (cb) cb.checked = document.body.classList.contains('dark-mode');
+
+  // Reaplicar dirección/intensidad/vibrancy/movimiento guardados del tema Glass
+  // (independiente de si el usuario visitó Ajustes en esta carga de página)
+  if (document.body.classList.contains('theme-glass')) {
+    const root = document.documentElement;
+    root.style.setProperty('--glass-bg-1', localStorage.getItem('glassBg1') || '#7c3aed');
+    root.style.setProperty('--glass-bg-2', localStorage.getItem('glassBg2') || '#3b82f6');
+    document.body.setAttribute('data-glass-direction', localStorage.getItem('glassDirection') || 'diagonal');
+    const intensity = localStorage.getItem('glassIntensity') || 'normal';
+    document.body.classList.remove('glass-intensity-soft', 'glass-intensity-intense');
+    if (intensity === 'soft') document.body.classList.add('glass-intensity-soft');
+    if (intensity === 'intense') document.body.classList.add('glass-intensity-intense');
+    const vibrancyPct = { soft: '45%', normal: '65%', vibrant: '85%' };
+    root.style.setProperty('--glass-vibrancy-pct', vibrancyPct[localStorage.getItem('glassVibrancy')] || '65%');
+    document.body.classList.toggle('glass-motion-off', localStorage.getItem('glassMotion') === '0');
+    initGlassMobileOptimizations();
+  }
+}
+
+// ─────────────────────────────
+// TEMA GLASS — optimización móvil profunda (punto 10 del pedido)
+// - IntersectionObserver: quita el blur de tarjetas fuera de pantalla.
+// - Scroll: baja blur/sombras mientras se hace scroll (más barato en GPU),
+//   los restaura ~120ms después de que el scroll se detiene.
+// Solo se activa en viewport móvil (≤768px) y con el tema Glass activo.
+// ─────────────────────────────
+let _glassMobileObserver = null;
+function initGlassMobileOptimizations() {
+  if (window.innerWidth > 768 || !document.body.classList.contains('theme-glass')) return;
+
+  // Off-screen: deja de aplicar blur a tarjetas que no están en el viewport
+  if ('IntersectionObserver' in window) {
+    if (_glassMobileObserver) _glassMobileObserver.disconnect();
+    _glassMobileObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        entry.target.classList.toggle('glass-offscreen', !entry.isIntersecting);
+      });
+    }, { rootMargin: '200px 0px' });
+    document.querySelectorAll('.content-card, .post-card, .stat-card, .album-card').forEach(el => {
+      _glassMobileObserver.observe(el);
+    });
+  }
+
+  // Scroll: reduce transparencia/blur mientras se hace scroll activo
+  let scrollTimer = null;
+  window.addEventListener('scroll', () => {
+    if (!document.body.classList.contains('theme-glass')) return;
+    document.body.classList.add('glass-scrolling');
+    clearTimeout(scrollTimer);
+    scrollTimer = setTimeout(() => document.body.classList.remove('glass-scrolling'), 120);
+  }, { passive: true });
 }
 
 function toggleTheme(isDark) {
