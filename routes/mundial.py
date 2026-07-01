@@ -1468,8 +1468,11 @@ def ranking_mundial_v2():
         r["sin_g"]      = total_grupos - r["pron_g"]
         r["sin_e"]      = total_eli    - r["pron_e"]
 
+    for r in raw:
+        r["pen_grupos"] = 0   # en grupos no hay penales, no aplica como desempate
+
     ranking_global_list = _rank(raw, "pts_global", "pen_global", "ex_global", "gan_global", "sin_global", "nombre", "id")
-    ranking_grupos_list  = _rank(raw, "pts_g",      "pen_e",      "ex_g",      "gan_g",      "sin_g",      "nombre", "id")
+    ranking_grupos_list  = _rank(raw, "pts_g",      "pen_grupos", "ex_g",      "gan_g",      "sin_g",      "nombre", "id")
     ranking_eli_list     = _rank(raw, "pts_e",      "pen_e",      "ex_e",      "gan_e",      "sin_e",      "nombre", "id")
 
     # ── Cargar snapshot: guarda puntos anteriores + cambio calculado ─────
@@ -1645,7 +1648,7 @@ def ranking_mundial_v2():
 
     return jsonify({
         "ranking_global": _fmt(ranking_global_list, "pts_global", "pron_global", "sin_global", total_global, "ex_global",  "gan_global", "pen_global"),
-        "ranking_grupos":  _fmt(ranking_grupos_list,  "pts_g",      "pron_g",      "sin_g",      total_grupos, "ex_g",       "gan_g",      "pen_e"),
+        "ranking_grupos":  _fmt(ranking_grupos_list,  "pts_g",      "pron_g",      "sin_g",      total_grupos, "ex_g",       "gan_g",      "pen_grupos"),
         "ranking_eli":     _fmt(ranking_eli_list,     "pts_e",      "pron_e",      "sin_e",      total_eli,    "ex_e",       "gan_e",      "pen_e"),
     })
 
