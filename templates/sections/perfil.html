@@ -16,7 +16,7 @@
       <!-- Botón cambiar portada directo en hero -->
       <label class="pf2-cover-change-btn" title="Cambiar portada" onclick="event.stopPropagation()">
         <span class="material-symbols-outlined">add_a_photo</span>
-        <input type="file" accept="image/*" id="pf-portada-direct" style="display:none;" onchange="autoGuardarPortada(this)">
+        <input aria-label="Pf portada direct" type="file" accept="image/*" id="pf-portada-direct" style="display:none;" onchange="autoGuardarPortada(this)">
       </label>
     </div>
 
@@ -33,7 +33,7 @@
         <!-- Botón cambiar foto rápido (click en avatar) -->
         <label class="pf2-avatar-cam" title="Cambiar foto de perfil">
           <span class="material-symbols-outlined" id="pf-camera-icon">photo_camera</span>
-          <input type="file" accept="image/*" id="pf-foto-direct" style="display:none;" onchange="autoGuardarFoto(this)">
+          <input aria-label="Pf foto direct" type="file" accept="image/*" id="pf-foto-direct" style="display:none;" onchange="autoGuardarFoto(this)">
         </label>
       </div>
 
@@ -145,7 +145,7 @@
       <div class="pf2-social-panel">
         <div class="pf2-social-search-wrap">
           <span class="material-symbols-outlined pf2-social-search-icon">search</span>
-          <input type="text" id="pf-search-seguidores" class="pf2-social-search"
+          <input aria-label="Buscar seguidores…" type="text" id="pf-search-seguidores" class="pf2-social-search"
                  placeholder="Buscar seguidores…"
                  oninput="pfFiltrarSocial('seguidores')">
         </div>
@@ -166,7 +166,7 @@
       <div class="pf2-social-panel">
         <div class="pf2-social-search-wrap">
           <span class="material-symbols-outlined pf2-social-search-icon">search</span>
-          <input type="text" id="pf-search-siguiendo" class="pf2-social-search"
+          <input aria-label="Buscar siguiendo…" type="text" id="pf-search-siguiendo" class="pf2-social-search"
                  placeholder="Buscar siguiendo…"
                  oninput="pfFiltrarSocial('siguiendo')">
         </div>
@@ -209,7 +209,7 @@
               <label class="pf2-cover-edit-btn" title="Cambiar portada">
                 <span class="material-symbols-outlined">add_a_photo</span>
                 <span>Cambiar portada</span>
-                <input type="file" name="portada" accept="image/*" id="pf2-portada-input" style="display:none;" onchange="pf2PreviewPortada(this)">
+                <input aria-label="Portada" type="file" name="portada" accept="image/*" id="pf2-portada-input" style="display:none;" onchange="pf2PreviewPortada(this)">
               </label>
             </div>
           </div>
@@ -220,7 +220,7 @@
               <div class="pf2-avatar-edit-letter" id="pf2-edit-avatar-letter">{{ usuario.nombre[0]|upper }}</div>
               <label class="pf2-avatar-edit-cam" title="Cambiar foto de perfil">
                 <span class="material-symbols-outlined">photo_camera</span>
-                <input type="file" name="foto_perfil" accept="image/*" id="pf2-foto-input" style="display:none;" onchange="pf2PreviewFoto(this)">
+                <input aria-label="Foto perfil" type="file" name="foto_perfil" accept="image/*" id="pf2-foto-input" style="display:none;" onchange="pf2PreviewFoto(this)">
               </label>
             </div>
           </div>
@@ -230,7 +230,7 @@
         <div class="pf2-form-grid">
           <div class="pf2-fg">
             <label class="pf2-label">Nombre completo</label>
-            <input type="text" name="nombre" id="pf2-inp-nombre" value="{{ usuario.nombre }}" class="pf2-input" required placeholder="Tu nombre">
+            <input aria-label="Tu nombre" type="text" name="nombre" id="pf2-inp-nombre" value="{{ usuario.nombre }}" class="pf2-input" required placeholder="Tu nombre">
           </div>
           <div class="pf2-fg">
             <label class="pf2-label">Usuario</label>
@@ -245,28 +245,28 @@
             <label class="pf2-label">Ciudad</label>
             <div class="pf2-input-icon-wrap">
               <span class="material-symbols-outlined pf2-input-icon">location_on</span>
-              <input type="text" name="ciudad" id="pf2-inp-ciudad" value="{{ usuario.ciudad or '' }}" class="pf2-input pf2-input-with-icon" placeholder="Tu ciudad">
+              <input aria-label="Tu ciudad" type="text" name="ciudad" id="pf2-inp-ciudad" value="{{ usuario.ciudad or '' }}" class="pf2-input pf2-input-with-icon" placeholder="Tu ciudad">
             </div>
           </div>
           <div class="pf2-fg">
             <label class="pf2-label">Sitio web</label>
             <div class="pf2-input-icon-wrap">
               <span class="material-symbols-outlined pf2-input-icon">link</span>
-              <input type="url" name="sitio_web" id="pf2-inp-web" value="{{ usuario.sitio_web or '' }}" class="pf2-input pf2-input-with-icon" placeholder="https://tusitio.com">
+              <input aria-label="https://tusitio.com" type="url" name="sitio_web" id="pf2-inp-web" value="{{ usuario.sitio_web or '' }}" class="pf2-input pf2-input-with-icon" placeholder="https://tusitio.com">
             </div>
           </div>
           <div class="pf2-fg">
             <label class="pf2-label">Correo electrónico</label>
             <div class="pf2-input-icon-wrap">
               <span class="material-symbols-outlined pf2-input-icon">mail</span>
-              <input type="email" name="gmail" id="pf2-inp-gmail" value="{{ usuario.gmail or '' }}" class="pf2-input pf2-input-with-icon" placeholder="tu@email.com">
+              <input aria-label="tu@email.com" type="email" name="gmail" id="pf2-inp-gmail" value="{{ usuario.gmail or '' }}" class="pf2-input pf2-input-with-icon" placeholder="tu@email.com">
             </div>
           </div>
           <div class="pf2-fg">
             <label class="pf2-label">Fecha de nacimiento</label>
             <div class="pf2-input-icon-wrap">
               <span class="material-symbols-outlined pf2-input-icon">cake</span>
-              <input type="date" name="fecha_nacimiento" id="pf2-inp-nacimiento" value="{{ usuario.fecha_nacimiento or '' }}" class="pf2-input pf2-input-with-icon">
+              <input aria-label="Fecha nacimiento" type="date" name="fecha_nacimiento" id="pf2-inp-nacimiento" value="{{ usuario.fecha_nacimiento or '' }}" class="pf2-input pf2-input-with-icon">
             </div>
           </div>
         </div>
@@ -381,7 +381,7 @@
               <div class="pf2-toggle-desc">Cualquier miembro puede ver tu perfil</div>
             </div>
             <label class="pf2-toggle">
-              <input type="checkbox" checked onchange="guardarPref('privacidad_publico',this.checked)">
+              <input aria-label="Casilla de verificación" type="checkbox" checked onchange="guardarPref('privacidad_publico',this.checked)">
               <span class="pf2-toggle-track"><span class="pf2-toggle-thumb"></span></span>
             </label>
           </div>
@@ -391,7 +391,7 @@
               <div class="pf2-toggle-desc">Solo seguidores pueden comentar tus posts</div>
             </div>
             <label class="pf2-toggle">
-              <input type="checkbox" onchange="guardarPref('priv_comentarios',this.checked)">
+              <input aria-label="Casilla de verificación" type="checkbox" onchange="guardarPref('priv_comentarios',this.checked)">
               <span class="pf2-toggle-track"><span class="pf2-toggle-thumb"></span></span>
             </label>
           </div>
@@ -401,7 +401,7 @@
               <div class="pf2-toggle-desc">Solo seguidores pueden enviarte mensajes</div>
             </div>
             <label class="pf2-toggle">
-              <input type="checkbox" onchange="guardarPref('priv_mensajes',this.checked)">
+              <input aria-label="Casilla de verificación" type="checkbox" onchange="guardarPref('priv_mensajes',this.checked)">
               <span class="pf2-toggle-track"><span class="pf2-toggle-thumb"></span></span>
             </label>
           </div>
@@ -411,7 +411,7 @@
               <div class="pf2-toggle-desc">Otros pueden ver tu lista de seguidores</div>
             </div>
             <label class="pf2-toggle">
-              <input type="checkbox" checked onchange="guardarPref('priv_seguidores',this.checked)">
+              <input aria-label="Casilla de verificación" type="checkbox" checked onchange="guardarPref('priv_seguidores',this.checked)">
               <span class="pf2-toggle-track"><span class="pf2-toggle-thumb"></span></span>
             </label>
           </div>
@@ -426,7 +426,7 @@
               <div class="pf2-toggle-desc">Cuando alguien le da like a tu post</div>
             </div>
             <label class="pf2-toggle">
-              <input type="checkbox" id="notif-posts" checked onchange="guardarPref('notif_posts',this.checked)">
+              <input aria-label="Notif posts" type="checkbox" id="notif-posts" checked onchange="guardarPref('notif_posts',this.checked)">
               <span class="pf2-toggle-track"><span class="pf2-toggle-thumb"></span></span>
             </label>
           </div>
@@ -436,7 +436,7 @@
               <div class="pf2-toggle-desc">Cuando alguien comenta en tu post</div>
             </div>
             <label class="pf2-toggle">
-              <input type="checkbox" checked onchange="guardarPref('notif_comentarios',this.checked)">
+              <input aria-label="Casilla de verificación" type="checkbox" checked onchange="guardarPref('notif_comentarios',this.checked)">
               <span class="pf2-toggle-track"><span class="pf2-toggle-thumb"></span></span>
             </label>
           </div>
@@ -446,7 +446,7 @@
               <div class="pf2-toggle-desc">Cuando alguien te empieza a seguir</div>
             </div>
             <label class="pf2-toggle">
-              <input type="checkbox" id="notif-eventos" checked onchange="guardarPref('notif_eventos',this.checked)">
+              <input aria-label="Notif eventos" type="checkbox" id="notif-eventos" checked onchange="guardarPref('notif_eventos',this.checked)">
               <span class="pf2-toggle-track"><span class="pf2-toggle-thumb"></span></span>
             </label>
           </div>
@@ -456,7 +456,7 @@
               <div class="pf2-toggle-desc">Cuando recibes un mensaje directo</div>
             </div>
             <label class="pf2-toggle">
-              <input type="checkbox" checked onchange="guardarPref('notif_mensajes',this.checked)">
+              <input aria-label="Casilla de verificación" type="checkbox" checked onchange="guardarPref('notif_mensajes',this.checked)">
               <span class="pf2-toggle-track"><span class="pf2-toggle-thumb"></span></span>
             </label>
           </div>
@@ -466,7 +466,7 @@
               <div class="pf2-toggle-desc">Reproducir sonido al recibir notificaciones</div>
             </div>
             <label class="pf2-toggle">
-              <input type="checkbox" id="notif-sonido" onchange="guardarPref('notif_sonido',this.checked)">
+              <input aria-label="Notif sonido" type="checkbox" id="notif-sonido" onchange="guardarPref('notif_sonido',this.checked)">
               <span class="pf2-toggle-track"><span class="pf2-toggle-thumb"></span></span>
             </label>
           </div>
@@ -568,7 +568,7 @@
         <div class="pf2-fg">
           <label class="pf2-label">Contraseña actual</label>
           <div class="pf2-pwd-wrap">
-            <input type="password" name="actual" id="pf2-pwd-actual" class="pf2-input pf2-pwd-input" placeholder="••••••••" required autocomplete="current-password">
+            <input aria-label="••••••••" type="password" name="actual" id="pf2-pwd-actual" class="pf2-input pf2-pwd-input" placeholder="••••••••" required autocomplete="current-password">
             <button type="button" class="pf2-pwd-toggle" onclick="pf2TogglePwd('pf2-pwd-actual',this)" aria-label="Mostrar contraseña">
               <span class="material-symbols-outlined">visibility</span>
             </button>
@@ -579,7 +579,7 @@
         <div class="pf2-fg">
           <label class="pf2-label">Nueva contraseña</label>
           <div class="pf2-pwd-wrap">
-            <input type="password" name="nueva" id="pf2-pwd-nueva" class="pf2-input pf2-pwd-input" placeholder="Mín. 8 caracteres" required autocomplete="new-password" oninput="pf2CheckPwd()">
+            <input aria-label="Mín. 8 caracteres" type="password" name="nueva" id="pf2-pwd-nueva" class="pf2-input pf2-pwd-input" placeholder="Mín. 8 caracteres" required autocomplete="new-password" oninput="pf2CheckPwd()">
             <button type="button" class="pf2-pwd-toggle" onclick="pf2TogglePwd('pf2-pwd-nueva',this)" aria-label="Mostrar contraseña">
               <span class="material-symbols-outlined">visibility</span>
             </button>
@@ -597,7 +597,7 @@
         <div class="pf2-fg">
           <label class="pf2-label">Confirmar nueva contraseña</label>
           <div class="pf2-pwd-wrap">
-            <input type="password" name="confirmar" id="pf2-pwd-confirm" class="pf2-input pf2-pwd-input" placeholder="Repite la contraseña" required autocomplete="new-password" oninput="pf2CheckPwd()">
+            <input aria-label="Repite la contraseña" type="password" name="confirmar" id="pf2-pwd-confirm" class="pf2-input pf2-pwd-input" placeholder="Repite la contraseña" required autocomplete="new-password" oninput="pf2CheckPwd()">
             <button type="button" class="pf2-pwd-toggle" onclick="pf2TogglePwd('pf2-pwd-confirm',this)" aria-label="Mostrar contraseña">
               <span class="material-symbols-outlined">visibility</span>
             </button>
@@ -642,7 +642,7 @@
         <p class="pf2-danger-desc">Confirma tu contraseña para eliminar la cuenta. Esta acción es irreversible.</p>
         <div class="pf2-fg">
           <label class="pf2-label">Tu contraseña</label>
-          <input type="password" name="password_confirm" class="pf2-input" required placeholder="••••••••">
+          <input aria-label="••••••••" type="password" name="password_confirm" class="pf2-input" required placeholder="••••••••">
         </div>
       </div>
       <div class="pf2-modal-footer">

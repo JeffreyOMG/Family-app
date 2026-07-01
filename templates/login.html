@@ -234,12 +234,12 @@
     <form method="POST" class="ig-form">
       <div class="ig-input-wrap">
         <span class="material-symbols-outlined ig-input-icon">person</span>
-        <input name="usuario" type="text" class="ig-input" placeholder="Usuario" required autocomplete="username"/>
+        <input aria-label="Usuario" name="usuario" type="text" class="ig-input" placeholder="Usuario" required autocomplete="username"/>
       </div>
 
       <div class="ig-input-wrap">
         <span class="material-symbols-outlined ig-input-icon">lock</span>
-        <input name="password" id="pass" type="password" class="ig-input" placeholder="Contraseña" required autocomplete="current-password"/>
+        <input aria-label="Contraseña" name="password" id="pass" type="password" class="ig-input" placeholder="Contraseña" required autocomplete="current-password"/>
         <button type="button" class="ig-toggle-pass" onclick="togglePass(this)" aria-label="Ver contraseña">
           <span class="material-symbols-outlined" id="pass-eye-icon">visibility_off</span>
         </button>

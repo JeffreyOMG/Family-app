@@ -161,7 +161,7 @@
       <div class="rec-filtros">
         <div class="rec-filtro-input">
           <span class="material-symbols-outlined">search</span>
-          <input type="text" id="filtro-usuario" placeholder="Buscar..." oninput="filtrarHistorial()">
+          <input aria-label="Buscar..." type="text" id="filtro-usuario" placeholder="Buscar..." oninput="filtrarHistorial()">
         </div>
         <select id="filtro-tipo" class="rec-select-filter" onchange="filtrarHistorial()">
           <option value="">Todos los tipos</option>
@@ -176,8 +176,8 @@
           <option value="pagado">💳 Pagado</option>
         </select>
         <div class="rec-filtros-fechas">
-          <input type="date" id="filtro-desde" class="rec-date-input" onchange="filtrarHistorial()" title="Desde">
-          <input type="date" id="filtro-hasta" class="rec-date-input" onchange="filtrarHistorial()" title="Hasta">
+          <input aria-label="Filtro desde" type="date" id="filtro-desde" class="rec-date-input" onchange="filtrarHistorial()" title="Desde">
+          <input aria-label="Filtro hasta" type="date" id="filtro-hasta" class="rec-date-input" onchange="filtrarHistorial()" title="Hasta">
         </div>
         <div class="rec-filtros-btns">
           <button class="rec-filtro-clear" onclick="limpiarFiltros()" title="Limpiar filtros">
@@ -486,7 +486,7 @@
         </p>
         <div class="rec-form-group">
           <label class="rec-form-label"><span class="material-symbols-outlined">key</span> Código de cajita *</label>
-          <input type="text" id="input-codigo-cajita" class="rec-input" placeholder="Ej: A1B2C3D4"
+          <input aria-label="Ej: A1B2C3D4" type="text" id="input-codigo-cajita" class="rec-input" placeholder="Ej: A1B2C3D4"
                  maxlength="8" style="text-transform:uppercase;letter-spacing:3px;font-size:18px;text-align:center;"
                  oninput="this.value=this.value.toUpperCase()">
         </div>
@@ -505,7 +505,7 @@
           <input type="hidden" name="accion_familia" value="crear">
           <div class="rec-form-group">
             <label class="rec-form-label"><span class="material-symbols-outlined">label</span> Nombre de la familia *</label>
-            <input type="text" name="nombre_cajita" class="rec-input" placeholder="Ej: Familia Ramírez" required maxlength="100">
+            <input aria-label="Ej: Familia Ramírez" type="text" name="nombre_cajita" class="rec-input" placeholder="Ej: Familia Ramírez" required maxlength="100">
           </div>
           <div class="rec-form-group">
             <label class="rec-form-label"><span class="material-symbols-outlined">description</span> Descripción (opcional)</label>
@@ -517,7 +517,7 @@
               {% for m in miembros %}
               {% if m.id != usuario.id %}
               <label class="miembro-check">
-                <input type="checkbox" name="miembros_cajita" value="{{ m.id }}">
+                <input aria-label="Miembros cajita" type="checkbox" name="miembros_cajita" value="{{ m.id }}">
                 <div class="miembro-avatar">{{ m.nombre[0]|upper }}</div>
                 <span>{{ m.nombre }}</span>
               </label>
@@ -569,12 +569,12 @@
           <label class="rec-form-label"><span class="material-symbols-outlined">payments</span> Monto a aportar (COP) *</label>
           <div class="rec-input-wrap">
             <span class="rec-input-prefix">$</span>
-            <input type="number" name="monto_cajita" class="rec-input" placeholder="50,000" min="1" required>
+            <input aria-label="50,000" type="number" name="monto_cajita" class="rec-input" placeholder="50,000" min="1" required>
           </div>
         </div>
         <div class="rec-form-group">
           <label class="rec-form-label"><span class="material-symbols-outlined">description</span> Descripción</label>
-          <input type="text" name="desc_movimiento" class="rec-input" placeholder="Ej: Cuota semana 1" maxlength="200">
+          <input aria-label="Ej: Cuota semana 1" type="text" name="desc_movimiento" class="rec-input" placeholder="Ej: Cuota semana 1" maxlength="200">
         </div>
         <div class="rec-modal-footer">
           <button type="button" class="rec-btn-cancel" onclick="volverACajitas()">Atrás</button>
@@ -617,7 +617,7 @@
         <input type="hidden" name="tipo_aporte" value="evento">
         <div class="rec-form-group">
           <label class="rec-form-label"><span class="material-symbols-outlined">event</span> Nombre del evento *</label>
-          <input type="text" name="nombre_evento" class="rec-input" placeholder="Ej: Bingo navideño" required maxlength="150">
+          <input aria-label="Ej: Bingo navideño" type="text" name="nombre_evento" class="rec-input" placeholder="Ej: Bingo navideño" required maxlength="150">
         </div>
         <div class="rec-form-group">
           <label class="rec-form-label"><span class="material-symbols-outlined">description</span> Descripción (opcional)</label>
@@ -627,17 +627,17 @@
           <label class="rec-form-label"><span class="material-symbols-outlined">payments</span> Monto recaudado (COP) *</label>
           <div class="rec-input-wrap">
             <span class="rec-input-prefix">$</span>
-            <input type="number" name="monto_evento" class="rec-input" placeholder="200,000" min="1" required>
+            <input aria-label="200,000" type="number" name="monto_evento" class="rec-input" placeholder="200,000" min="1" required>
           </div>
         </div>
         <div class="rec-form-group">
           <label class="rec-form-label"><span class="material-symbols-outlined">manage_accounts</span> Responsables</label>
-          <input type="text" name="responsables" class="rec-input" placeholder="Ej: Juan Pérez, María López" maxlength="300">
+          <input aria-label="Ej: Juan Pérez, María López" type="text" name="responsables" class="rec-input" placeholder="Ej: Juan Pérez, María López" maxlength="300">
         </div>
         <div class="rec-form-group">
           <label class="rec-form-label"><span class="material-symbols-outlined">attach_file</span> Soporte obligatorio (PDF o imagen) *</label>
           <label class="rec-upload-area" id="upload-area-ev">
-            <input type="file" name="soporte_evento" id="input-soporte-ev" accept=".pdf,image/*" required onchange="previewFile(this,'preview-ev','placeholder-ev')" style="display:none;">
+            <input aria-label="Soporte evento" type="file" name="soporte_evento" id="input-soporte-ev" accept=".pdf,image/*" required onchange="previewFile(this,'preview-ev','placeholder-ev')" style="display:none;">
             <div id="placeholder-ev">
               <span class="material-symbols-outlined rec-upload-icon">cloud_upload</span>
               <span class="rec-upload-text">Arrastra o <strong>haz clic</strong></span>
@@ -738,7 +738,7 @@
           <div class="rec-form-group">
             <label class="rec-form-label"><span class="material-symbols-outlined">attach_file</span> Comprobante de pago *</label>
             <label class="rec-upload-area" id="upload-area-polla">
-              <input type="file" name="soporte_polla" id="input-soporte-polla" accept=".pdf,image/*" required onchange="previewFile(this,'preview-polla','placeholder-polla')" style="display:none;">
+              <input aria-label="Soporte polla" type="file" name="soporte_polla" id="input-soporte-polla" accept=".pdf,image/*" required onchange="previewFile(this,'preview-polla','placeholder-polla')" style="display:none;">
               <div id="placeholder-polla">
                 <span class="material-symbols-outlined rec-upload-icon">cloud_upload</span>
                 <span class="rec-upload-text">Adjunta tu comprobante de pago</span>
@@ -788,7 +788,7 @@
         </label>
         <div class="rec-input-wrap">
           <span class="rec-input-prefix">$</span>
-          <input type="number" id="input-nueva-meta" class="rec-input" placeholder="Ej: 2000000" min="1" step="1000" value="{{ meta|int }}">
+          <input aria-label="Ej: 2000000" type="number" id="input-nueva-meta" class="rec-input" placeholder="Ej: 2000000" min="1" step="1000" value="{{ meta|int }}">
         </div>
       </div>
       <div class="rec-meta-presets">
@@ -843,7 +843,7 @@
     </div>
     <div class="modal-fin-body" id="bloqueo-list-body" style="padding:12px 16px;">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">
-        <input type="text" id="bloqueo-search" placeholder="Buscar miembro…"
+        <input aria-label="Buscar miembro…" type="text" id="bloqueo-search" placeholder="Buscar miembro…"
           oninput="filtrarListaBloqueo()"
           style="flex:1;background:var(--surface2,#22222e);border:1px solid var(--border);color:var(--text);
                  border-radius:8px;padding:7px 12px;font-size:13px;outline:none;">
@@ -3373,7 +3373,7 @@ body.dark-mode .modal-fin-title { color:var(--text,#ffffff); }
           <span class="material-symbols-outlined" style="font-size:16px;">download</span>
           <span>Excel</span>
         </button>
-        <input type="text" id="inv-search" placeholder="Buscar…" oninput="filtrarTablaInv()"
+        <input aria-label="Buscar…" type="text" id="inv-search" placeholder="Buscar…" oninput="filtrarTablaInv()"
           style="background:var(--surface2,#22222e);border:1px solid var(--border);color:var(--text);
                  border-radius:8px;padding:6px 11px;font-size:12px;outline:none;width:150px;">
         <button class="modal-fin-close" onclick="hide('modal-invitados')">
@@ -3450,7 +3450,7 @@ body.dark-mode .modal-fin-title { color:var(--text,#ffffff); }
         </div>
         <div class="edit-field">
           <label>Motivo (opcional)</label>
-          <input type="text" id="ep-motivo" placeholder="Ej: Por decisión del grupo" maxlength="200">
+          <input aria-label="Ej: Por decisión del grupo" type="text" id="ep-motivo" placeholder="Ej: Por decisión del grupo" maxlength="200">
         </div>
       </div>
     </div>
@@ -3522,7 +3522,7 @@ body.dark-mode .modal-fin-title { color:var(--text,#ffffff); }
       <div class="edit-inline-wrap">
         <div class="edit-field">
           <label>Monto (COP)</label>
-          <input type="number" id="ee-monto" min="1" placeholder="200000">
+          <input aria-label="200000" type="number" id="ee-monto" min="1" placeholder="200000">
         </div>
         <div class="edit-field">
           <label>Estado</label>
@@ -3534,7 +3534,7 @@ body.dark-mode .modal-fin-title { color:var(--text,#ffffff); }
         </div>
         <div class="edit-field">
           <label>Motivo del cambio (opcional)</label>
-          <input type="text" id="ee-motivo" placeholder="Ej: Corrección de monto" maxlength="200">
+          <input aria-label="Ej: Corrección de monto" type="text" id="ee-motivo" placeholder="Ej: Corrección de monto" maxlength="200">
         </div>
       </div>
     </div>
@@ -3575,7 +3575,7 @@ body.dark-mode .modal-fin-title { color:var(--text,#ffffff); }
         </div>
         <div class="edit-field">
           <label>Motivo (opcional)</label>
-          <input type="text" id="ep2-motivo" placeholder="Ej: Corrección de estado" maxlength="200">
+          <input aria-label="Ej: Corrección de estado" type="text" id="ep2-motivo" placeholder="Ej: Corrección de estado" maxlength="200">
         </div>
       </div>
     </div>
@@ -3969,14 +3969,14 @@ function abrirAsignarResponsable(invId, invNombre, respActual) {
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
           <div style="background:var(--surface2,#22222e);border:1px solid var(--border);border-radius:8px;padding:10px;text-align:center;">
             <div style="font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">Total</div>
-            <input type="number" id="total-inv-${invId}" min="0" step="1000" value="${total}"
+            <input aria-label="Total inv ${inv id}" type="number" id="total-inv-${invId}" min="0" step="1000" value="${total}"
               oninput="_recalcSaldoInv(${invId})"
               style="width:100%;text-align:center;background:transparent;border:none;border-bottom:1px dashed var(--border);
                      color:var(--text);font-weight:700;font-size:13px;padding:2px 0;outline:none;">
           </div>
           <div style="background:var(--surface2,#22222e);border:1px solid var(--border);border-radius:8px;padding:10px;text-align:center;">
             <div style="font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">Pagado</div>
-            <input type="number" id="pagado-inv-${invId}" min="0" step="1000" value="${pagado}"
+            <input aria-label="Pagado inv ${inv id}" type="number" id="pagado-inv-${invId}" min="0" step="1000" value="${pagado}"
               oninput="_recalcSaldoInv(${invId})"
               style="width:100%;text-align:center;background:transparent;border:none;border-bottom:1px dashed #22c55e;
                      color:#22c55e;font-weight:700;font-size:13px;padding:2px 0;outline:none;">
@@ -4024,7 +4024,7 @@ function abrirAsignarResponsable(invId, invNombre, respActual) {
           </label>
           <div style="display:flex;gap:8px;align-items:center;">
             <span style="color:var(--text2);font-size:13px;">$</span>
-            <input type="number" id="pago-manual-${invId}" min="0" step="1000"
+            <input aria-label="Monto a aplicar…" type="number" id="pago-manual-${invId}" min="0" step="1000"
               placeholder="Monto a aplicar…"
               style="flex:1;background:var(--surface2,#22222e);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:10px 12px;font-size:13px;outline:none;"
             />

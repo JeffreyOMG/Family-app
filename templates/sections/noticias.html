@@ -224,7 +224,7 @@
     <form method="POST" action="/crear_noticia" class="nt-form">
       <div class="nt-form-group">
         <label class="nt-label">Título *</label>
-        <input type="text" name="titulo" class="nt-input" placeholder="Título de la noticia" required>
+        <input aria-label="Título de la noticia" type="text" name="titulo" class="nt-input" placeholder="Título de la noticia" required>
       </div>
       <div class="nt-form-group">
         <label class="nt-label">Contenido *</label>
@@ -287,7 +287,7 @@
             <span class="material-symbols-outlined">title</span>
             Título de la actividad *
           </label>
-          <input
+          <input aria-label="Ej: Reunión familiar, paseo, cumpleaños..."
             type="text"
             name="titulo"
             class="ntm-input"
@@ -389,7 +389,7 @@
               Fecha *
             </label>
 
-            <input
+            <input aria-label="Fecha evento"
               type="date"
               name="fecha_evento"
               id="ntm-fecha"
@@ -404,9 +404,9 @@
             </label>
 
             <div class="ntm-hora-wrap">
-              <input type="number" id="ntm-hora-h" class="ntm-input ntm-hora-input" placeholder="12" min="1" max="12">
+              <input aria-label="12" type="number" id="ntm-hora-h" class="ntm-input ntm-hora-input" placeholder="12" min="1" max="12">
               <span class="ntm-hora-sep">:</span>
-              <input type="number" id="ntm-hora-m" class="ntm-input ntm-hora-input" placeholder="00" min="0" max="59">
+              <input aria-label="00" type="number" id="ntm-hora-m" class="ntm-input ntm-hora-input" placeholder="00" min="0" max="59">
 
               <div class="ntm-ampm-wrap">
                 <button type="button" class="ntm-ampm-btn active" id="ntm-am" onclick="selAmPm('AM')">AM</button>
@@ -426,7 +426,7 @@
             Motivo
           </label>
 
-          <input
+          <input aria-label="Motivo de la actividad"
             type="text"
             name="razon"
             class="ntm-input"
@@ -455,7 +455,7 @@
             Lugar
           </label>
 
-          <input
+          <input aria-label="Lugar de la actividad"
             type="text"
             name="lugar"
             class="ntm-input"

@@ -14,7 +14,7 @@
   <form method="GET" action="/buscar" id="form-buscar" autocomplete="off">
     <div class="bus-search-wrap">
       <span class="material-symbols-outlined bus-search-icon">search</span>
-      <input
+      <input aria-label="Buscar en toda la app..."
         type="text" name="q" id="input-bq" class="bus-search-input"
         placeholder="Buscar en toda la app..."
         value="{{ busqueda or '' }}"
@@ -41,7 +41,7 @@
         ('noticias','Noticias','newspaper')
       ] %}
       <label class="bus-chip {% if (filtro_tipo or 'todo')==val %}active{% endif %}" id="chip-{{ val }}">
-        <input type="radio" name="tipo" value="{{ val }}"
+        <input aria-label="Tipo" type="radio" name="tipo" value="{{ val }}"
           {% if (filtro_tipo or 'todo')==val %}checked{% endif %}
           onchange="mostrarResultados(); this.form.submit()" style="display:none;">
         <span class="material-symbols-outlined">{{ icon }}</span>
@@ -66,7 +66,7 @@
     {% if usuario.rol in ('miembro', 'admin') %}
     <div class="bus-galeria-subir">
       <form id="bus-galeria-form" method="POST" action="/subir_archivo" enctype="multipart/form-data" class="bus-galeria-form">
-        <input type="file" id="bus-archivo-input" name="archivo" accept="image/*,video/*"
+        <input aria-label="Archivo" type="file" id="bus-archivo-input" name="archivo" accept="image/*,video/*"
           style="position:absolute;opacity:0;width:1px;height:1px;pointer-events:none;"
           onchange="document.getElementById('bus-fn').textContent=this.files[0]?.name||''; document.getElementById('bus-galeria-form').submit();" required>
         <button type="button" class="bus-galeria-upload-btn" onclick="busAbrirGaleria()">
@@ -107,7 +107,7 @@
     <div class="bus-pron-search-wrap">
       <div class="bus-search-wrap" style="margin-bottom:10px;">
         <span class="material-symbols-outlined bus-search-icon">person_search</span>
-        <input type="text" id="pron-input-q" class="bus-search-input"
+        <input aria-label="Buscar pronósticos de todos..." type="text" id="pron-input-q" class="bus-search-input"
           placeholder="Buscar pronósticos de todos..."
           autocomplete="off"
           oninput="debounceSearchPron()">

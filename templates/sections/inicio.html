@@ -149,7 +149,7 @@
       {% else %}
         <div class="user-avatar comment-av">{{ usuario.nombre[0]|upper }}</div>
       {% endif %}
-      <input type="text" class="comment-input"
+      <input aria-label="Escribe un comentario..." type="text" class="comment-input"
         placeholder="Escribe un comentario..."
         id="cinput-{{ p.id }}"
         onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();enviarComentario({{ p.id }},this);}">
@@ -593,7 +593,7 @@
     </div>
     <div id="umu-buscador">
       <span class="material-symbols-outlined" id="umu-lupa">search</span>
-      <input type="text" id="input-buscar-usuario" placeholder="Buscar por nombre o @usuario…" oninput="filtrarUsuariosModal(this.value)" autocomplete="off">
+      <input aria-label="Buscar por nombre o @usuario…" type="text" id="input-buscar-usuario" placeholder="Buscar por nombre o @usuario…" oninput="filtrarUsuariosModal(this.value)" autocomplete="off">
       <button id="btn-clear-search" onclick="limpiarBusquedaModal()" style="display:none;">
         <span class="material-symbols-outlined">close</span>
       </button>
@@ -701,7 +701,7 @@
         <!-- Ubicación -->
         <div id="mc-location-row" class="mc-meta-row" style="display:none;">
           <span class="material-symbols-outlined mc-meta-icon">location_on</span>
-          <input type="text" id="mc-location-input" class="mc-meta-input" placeholder="¿Dónde estás?">
+          <input aria-label="¿Dónde estás?" type="text" id="mc-location-input" class="mc-meta-input" placeholder="¿Dónde estás?">
           <button onclick="quitarUbicacion()" class="mc-meta-remove">
             <span class="material-symbols-outlined">close</span>
           </button>
@@ -734,7 +734,7 @@
       <label class="mc-gif-label">
         <span class="material-symbols-outlined">upload_file</span>
         <span>Seleccionar archivo GIF</span>
-        <input type="file" id="mc-gif-input" accept=".gif,image/gif" style="display:none" onchange="previewGif(this)">
+        <input aria-label="Mc gif input" type="file" id="mc-gif-input" accept=".gif,image/gif" style="display:none" onchange="previewGif(this)">
       </label>
     </div>
     
@@ -748,17 +748,17 @@
         <div class="mc-poll-option-row">
           <label class="mc-poll-img-btn" title="Añadir imagen a opción 1">
             <span class="material-symbols-outlined">image</span>
-            <input type="file" accept="image/*" style="display:none" onchange="setPollOptionImg(this,0)">
+            <input aria-label="Archivo" type="file" accept="image/*" style="display:none" onchange="setPollOptionImg(this,0)">
           </label>
-          <input type="text" class="mc-poll-opt-input" placeholder="Opción 1" maxlength="25" oninput="updatePollChars(this,0)" data-index="0">
+          <input aria-label="Opción 1" type="text" class="mc-poll-opt-input" placeholder="Opción 1" maxlength="25" oninput="updatePollChars(this,0)" data-index="0">
           <span class="mc-poll-chars">0 / 25</span>
         </div>
         <div class="mc-poll-option-row">
           <label class="mc-poll-img-btn" title="Añadir imagen a opción 2">
             <span class="material-symbols-outlined">image</span>
-            <input type="file" accept="image/*" style="display:none" onchange="setPollOptionImg(this,1)">
+            <input aria-label="Archivo" type="file" accept="image/*" style="display:none" onchange="setPollOptionImg(this,1)">
           </label>
-          <input type="text" class="mc-poll-opt-input" placeholder="Opción 2" maxlength="25" oninput="updatePollChars(this,1)" data-index="1">
+          <input aria-label="Opción 2" type="text" class="mc-poll-opt-input" placeholder="Opción 2" maxlength="25" oninput="updatePollChars(this,1)" data-index="1">
           <span class="mc-poll-chars">0 / 25</span>
         </div>
       </div>
@@ -808,7 +808,7 @@
           <div class="mc-poll-anon-desc" id="poll-anon-desc">No se verá quién votó qué</div>
         </div>
         <label class="mc-toggle">
-          <input type="checkbox" id="poll-anonima-check" checked onchange="togglePollAnon(this)">
+          <input aria-label="Poll anonima check" type="checkbox" id="poll-anonima-check" checked onchange="togglePollAnon(this)">
           <span class="mc-toggle-slider"></span>
         </label>
       </div>
@@ -823,7 +823,7 @@
       <div class="mc-footer-actions">
         <label class="mc-act-btn" title="Foto o video">
           <span class="material-symbols-outlined">photo_camera</span>
-          <input type="file" id="mc-file-input" accept="image/*,video/*" multiple style="display:none" onchange="previewMedia(this)">
+          <input aria-label="Mc file input" type="file" id="mc-file-input" accept="image/*,video/*" multiple style="display:none" onchange="previewMedia(this)">
         </label>
         <button class="mc-act-btn" title="GIF" id="btn-gif-toggle" onclick="togglePanel('gif')">
           <span class="mc-gif-label-txt">GIF</span>
@@ -877,7 +877,7 @@
     </div>
     <div class="emote-search-row">
       <span class="material-symbols-outlined emote-search-icon">search</span>
-      <input type="text" id="emoteSearch" class="emote-search-input"
+      <input aria-label="Buscar emote..." type="text" id="emoteSearch" class="emote-search-input"
         placeholder="Buscar emote..." autocomplete="off" spellcheck="false">
     </div>
     <div class="emote-section-label">Recientes</div>
@@ -921,9 +921,9 @@
 </div>
 
 <!-- MODAL MEDIA (zoom) -->
-<div id="media-modal" onclick="this.style.display='none'"
-  style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.93);z-index:999999;justify-content:center;align-items:center;cursor:zoom-out;">
-  <div id="media-modal-content" style="max-width:92vw;max-height:92vh;"></div>
+<div id="media-modal" onclick="if(event.target===this) cerrarMediaModal()"
+  style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.93);z-index:999999;justify-content:center;align-items:center;cursor:zoom-out;touch-action:none;overflow:hidden;">
+  <div id="media-modal-content" style="max-width:92vw;max-height:92vh;overflow:hidden;display:flex;align-items:center;justify-content:center;"></div>
 </div>
 
 <!-- BOTTOM NAV MÓVIL -->
@@ -4349,7 +4349,7 @@ img.inline-emote:hover {
         <label class="pv-gif-label">
           <span class="material-symbols-outlined">upload_file</span>
           <span>Seleccionar GIF</span>
-          <input type="file" id="pv-gif-input" accept=".gif,image/gif" style="display:none" onchange="pvSubirGif(this)">
+          <input aria-label="Pv gif input" type="file" id="pv-gif-input" accept=".gif,image/gif" style="display:none" onchange="pvSubirGif(this)">
         </label>
       </div>
 
@@ -4358,7 +4358,7 @@ img.inline-emote:hover {
         <div class="pv-cmt-actions">
           <label class="mc-act-btn" title="Foto o video">
             <span class="material-symbols-outlined">photo_camera</span>
-            <input type="file" id="pv-file-input" accept="image/*,video/*" style="display:none" onchange="pvPreviewMedia(this)">
+            <input aria-label="Pv file input" type="file" id="pv-file-input" accept="image/*,video/*" style="display:none" onchange="pvPreviewMedia(this)">
           </label>
           <button type="button" class="mc-act-btn" title="GIF" onclick="pvTogglePanel('gif')">
             <span class="mc-gif-label-txt">GIF</span>
@@ -4381,7 +4381,7 @@ img.inline-emote:hover {
         <!-- Input + enviar -->
         <div class="pv-cinput-row">
           <div class="pv-cinput-wrap">
-            <input type="text" class="pv-comment-input" id="pv-cinput"
+            <input aria-label="Escribe un comentario…" type="text" class="pv-comment-input" id="pv-cinput"
               placeholder="Escribe un comentario…">
           </div>
           <button class="pv-comment-send" id="pv-comment-send-btn" aria-label="Enviar">
@@ -4435,7 +4435,7 @@ img.inline-emote:hover {
     <div id="mob-cmt-form">
       <div class="pv-cinput-row">
         <div class="pv-cinput-wrap">
-          <input type="text" class="pv-comment-input" id="mob-cinput"
+          <input aria-label="Escribe un comentario…" type="text" class="pv-comment-input" id="mob-cinput"
             placeholder="Escribe un comentario…"
             onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();mobEnviarComentario();}">
         </div>
@@ -4833,7 +4833,7 @@ async function enviarComentario(postId, input){
               <span class="comment-date">${new Date().toISOString().slice(0,10)}</span>
             </div>
             <div class="cmt-reply-form" id="reply-form-${data.id}" style="display:none;">
-              <input type="text" class="comment-input cmt-reply-input" placeholder="Responder…" id="reply-input-${data.id}">
+              <input aria-label="Responder…" type="text" class="comment-input cmt-reply-input" placeholder="Responder…" id="reply-input-${data.id}">
               <button type="button" class="btn-comment" onclick="enviarRespuesta(${data.id||0},${postId},document.getElementById('reply-input-${data.id}'))">
                 <span class="material-symbols-outlined">arrow_upward</span>
               </button>
@@ -5093,19 +5093,93 @@ function abrirMediaOPost(postId, src, tipo, event) {
   abrirPost(postId);
 }
 
+function cerrarMediaModal(){
+  const m = document.getElementById('media-modal');
+  m.style.display='none';
+  document.getElementById('media-modal-content').innerHTML = '';
+  document.body.style.overflow = '';
+}
+
 function abrirMediaModal(src, tipo, event){
   if (event) { event.stopPropagation(); }
   const m = document.getElementById('media-modal');
   document.getElementById('media-modal-content').innerHTML =
     tipo==='imagen'
-      ? `<img src="${clUrl(src,'comp_full')}" style="max-width:92vw;max-height:92vh;border-radius:12px;cursor:zoom-out;" onclick="event.stopPropagation()">`
+      ? `<img id="mm-zoom-img" src="${clUrl(src,'comp_full')}" style="max-width:92vw;max-height:92vh;border-radius:12px;cursor:zoom-in;transition:transform .15s ease;transform-origin:center center;user-select:none;-webkit-user-drag:none;" onclick="event.stopPropagation()">`
       : `<video class="post-media" preload="metadata" playsinline style="max-width:92vw;max-height:92vh;border-radius:12px;"><source src="${src}"></video>`;
   m.style.display='flex';
+  document.body.style.overflow = 'hidden';
   // Inicializar player premium en el video del modal si aplica
   if (tipo !== 'imagen' && window.familiaVideoPlayer) {
     setTimeout(() => window.familiaVideoPlayer.initAll(m), 60);
+  } else if (tipo === 'imagen') {
+    _mmInitZoom();
   }
 }
+
+// ─── ZOOM en imagen del media-modal (pinch, doble-tap, rueda) ───────────
+(function(){
+  let scale = 1, pinchDist = null;
+  function img(){ return document.getElementById('mm-zoom-img'); }
+
+  window._mmInitZoom = function(){
+    scale = 1;
+    const el = img();
+    if (!el) return;
+    el.style.transform = 'scale(1)';
+
+    el.addEventListener('dblclick', e => {
+      e.stopPropagation();
+      scale = scale > 1 ? 1 : 2.5;
+      el.style.transform = `scale(${scale})`;
+      el.style.cursor = scale > 1 ? 'zoom-out' : 'zoom-in';
+    });
+  };
+
+  const modal = document.getElementById('media-modal');
+  if (modal) {
+    modal.addEventListener('wheel', function(e){
+      if (modal.style.display !== 'flex') return;
+      const el = img();
+      if (!el) return;
+      e.preventDefault();
+      scale = Math.min(5, Math.max(1, scale - e.deltaY * 0.002));
+      el.style.transform = `scale(${scale})`;
+    }, { passive:false });
+
+    modal.addEventListener('touchstart', function(e){
+      if (e.touches.length === 2) {
+        const dx = e.touches[0].clientX - e.touches[1].clientX;
+        const dy = e.touches[0].clientY - e.touches[1].clientY;
+        pinchDist = Math.hypot(dx, dy);
+      }
+    }, { passive:true });
+
+    modal.addEventListener('touchmove', function(e){
+      const el = img();
+      if (e.touches.length === 2 && pinchDist && el) {
+        e.preventDefault();
+        const dx = e.touches[0].clientX - e.touches[1].clientX;
+        const dy = e.touches[0].clientY - e.touches[1].clientY;
+        const newDist = Math.hypot(dx, dy);
+        scale = Math.min(5, Math.max(1, scale * (newDist / pinchDist)));
+        pinchDist = newDist;
+        el.style.transform = `scale(${scale})`;
+      }
+    }, { passive:false });
+
+    modal.addEventListener('touchend', function(e){
+      if (e.touches.length < 2) pinchDist = null;
+    }, { passive:true });
+  }
+
+  document.addEventListener('keydown', function(e){
+    if (e.key === 'Escape') {
+      const m = document.getElementById('media-modal');
+      if (m && m.style.display === 'flex') cerrarMediaModal();
+    }
+  });
+})();
 
 /* ── COMPARTIR ── */
 let _share = {id:null,texto:''};
@@ -5461,9 +5535,9 @@ function addPollOption(){
   row.innerHTML = `
     <label class="mc-poll-img-btn" title="Añadir imagen">
       <span class="material-symbols-outlined">image</span>
-      <input type="file" accept="image/*" style="display:none" onchange="setPollOptionImg(this,${idx})">
+      <input aria-label="Archivo" type="file" accept="image/*" style="display:none" onchange="setPollOptionImg(this,${idx})">
     </label>
-    <input type="text" class="mc-poll-opt-input" placeholder="Opción ${idx+1}" maxlength="25"
+    <input aria-label="Opción ${idx+1}" type="text" class="mc-poll-opt-input" placeholder="Opción ${idx+1}" maxlength="25"
       oninput="updatePollChars(this,${idx})" data-index="${idx}">
     <span class="mc-poll-chars">0 / 25</span>
     <button onclick="removePollOption(this)" style="background:none;border:none;color:var(--text3);cursor:pointer;padding:2px;display:flex;align-items:center;">
@@ -6617,7 +6691,7 @@ function _renderCmtNode(c, postId, depth) {
           </button>
         </div>
         <div class="cmt-reply-form" id="pv-reply-form-${c.id}" style="display:none;margin-top:6px;">
-          <input type="text" class="comment-input cmt-reply-input"
+          <input aria-label="Responder a ${escHTML(c.nombre)}…" type="text" class="comment-input cmt-reply-input"
             placeholder="Responder a ${escHTML(c.nombre)}…"
             id="pv-reply-input-${c.id}" style="font-size:13px;"
             onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();pvEnviarRespuesta(${c.id},${postId},this);}">
@@ -6758,7 +6832,7 @@ async function pvEnviarRespuesta(parentId, postId, input) {
               </button>
             </div>
             <div class="cmt-reply-form" id="pv-reply-form-${data.id}" style="display:none;margin-top:6px;">
-              <input type="text" class="comment-input cmt-reply-input"
+              <input aria-label="Responder a ${escHTML(data.nombre)}…" type="text" class="comment-input cmt-reply-input"
                 placeholder="Responder a ${escHTML(data.nombre)}…"
                 id="pv-reply-input-${data.id}" style="font-size:13px;"
                 onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();pvEnviarRespuesta(${data.id},${postId},this);}">
@@ -7014,7 +7088,7 @@ async function pvEnviarComentario(postId) {
               </button>
             </div>
             <div class="cmt-reply-form" id="pv-reply-form-${data.id}" style="display:none;margin-top:6px;">
-              <input type="text" class="comment-input cmt-reply-input"
+              <input aria-label="Responder…" type="text" class="comment-input cmt-reply-input"
                 placeholder="Responder…" id="pv-reply-input-${data.id}" style="font-size:13px;"
                 onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();pvEnviarRespuesta(${data.id||0},${postId},this);}">
               <button type="button" class="btn-comment"
@@ -7126,7 +7200,7 @@ function feedRenderComments(postId) {
             <span class="comment-date">${(c.fecha||'').slice(0,10)}</span>
           </div>
           <div class="cmt-reply-form" id="feed-reply-form-${c.id}" style="display:none;">
-            <input type="text" class="comment-input cmt-reply-input"
+            <input aria-label="Responder a ${escHTML(c.nombre)}…" type="text" class="comment-input cmt-reply-input"
               placeholder="Responder a ${escHTML(c.nombre)}…"
               id="feed-reply-input-${c.id}"
               onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();enviarRespuesta(${c.id},${postId},this);}">
@@ -7381,7 +7455,7 @@ async function mobEnviarComentario() {
               </button>
             </div>
             <div class="cmt-reply-form" id="pv-reply-form-${data.id}" style="display:none;margin-top:6px;">
-              <input type="text" class="comment-input cmt-reply-input"
+              <input aria-label="Responder…" type="text" class="comment-input cmt-reply-input"
                 placeholder="Responder…" id="pv-reply-input-${data.id}" style="font-size:13px;"
                 onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();pvEnviarRespuesta(${data.id||0},${_mobCmtPostId},this);}">
               <button type="button" class="btn-comment"
@@ -7735,7 +7809,7 @@ function _inyectarBotonesMobCmt() {
   actionsRow.innerHTML = `
     <label class="mc-act-btn" title="Foto o video">
       <span class="material-symbols-outlined">photo_camera</span>
-      <input type="file" id="mob-cmt-file-input" accept="image/*,video/*" style="display:none" onchange="mobCmtPreviewMedia(this)">
+      <input aria-label="Mob cmt file input" type="file" id="mob-cmt-file-input" accept="image/*,video/*" style="display:none" onchange="mobCmtPreviewMedia(this)">
     </label>
     <button type="button" class="mc-act-btn" title="GIF" onclick="window.abrirGiphyParaComentario('mob')">
       <span class="mc-gif-label-txt">GIF</span>

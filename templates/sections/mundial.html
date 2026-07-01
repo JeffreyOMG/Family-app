@@ -109,7 +109,7 @@
       </div>
       <div class="gate-label">Código de acceso</div>
       <div class="gate-input-row">
-        <input id="gate-code-input" type="text" inputmode="numeric"
+        <input aria-label="· · · · · · · ·" id="gate-code-input" type="text" inputmode="numeric"
                maxlength="20" placeholder="· · · · · · · ·"
                onkeydown="if(event.key==='Enter') gateVerify()">
         <button id="gate-btn" onclick="gateVerify()">Enviar</button>
@@ -1547,9 +1547,9 @@
               <div class="pron-badge pron-guardado">✓ Guardado</div>
               {% else %}
               <div class="pron-inputs">
-                <input class="pron-input" type="number" name="local_{{ p.id }}" min="0" max="20" placeholder="0">
+                <input aria-label="0" class="pron-input" type="number" name="local_{{ p.id }}" min="0" max="20" placeholder="0">
                 <span class="pron-sep">–</span>
-                <input class="pron-input" type="number" name="vis_{{ p.id }}" min="0" max="20" placeholder="0">
+                <input aria-label="0" class="pron-input" type="number" name="vis_{{ p.id }}" min="0" max="20" placeholder="0">
               </div>
               {% endif %}
             </div>
@@ -3111,7 +3111,7 @@
     <!-- Buscador -->
     <div class="vpron-top">
       <div class="vpron-search-wrap">
-        <input class="vpron-search" id="vpron-q" type="text"
+        <input aria-label="Buscar participante..." class="vpron-search" id="vpron-q" type="text"
                placeholder="Buscar participante..."
                oninput="vpronOnInput(this)">
         <button class="vpron-clear-btn" id="vpron-clear" onclick="vpronClear()">
@@ -3482,10 +3482,10 @@
             <form method="POST" action="/admin_resultado?s=mundial" class="admin-form">
               <input type="hidden" name="partido_id" value="{{ p.id }}">
               <div class="admin-inputs-row">
-                <input class="admin-input" type="number" name="goles_local" min="0" max="30" placeholder="0"
+                <input aria-label="0" class="admin-input" type="number" name="goles_local" min="0" max="30" placeholder="0"
                   value="{{ p.goles_local if p.goles_local is not none else '' }}">
                 <span class="admin-dash">–</span>
-                <input class="admin-input" type="number" name="goles_visitante" min="0" max="30" placeholder="0"
+                <input aria-label="0" class="admin-input" type="number" name="goles_visitante" min="0" max="30" placeholder="0"
                   value="{{ p.goles_visitante if p.goles_visitante is not none else '' }}">
                 <button type="submit" class="admin-btn-save {% if p.bloqueado %}admin-btn-edit{% endif %}">
                   <span class="material-symbols-outlined">{{ 'edit' if p.bloqueado else 'check_circle' }}</span>
@@ -3903,11 +3903,11 @@ function _eliPartidoCardHTML(p) {
   } else {
     scoreArea = `
       <div class="pron-inputs" id="pron-inputs-${p.id}">
-        <input class="pron-input" type="number" name="local_${p.id}" min="0" max="20" placeholder="0"
+        <input aria-label="0" class="pron-input" type="number" name="local_${p.id}" min="0" max="20" placeholder="0"
           onchange="_checkEliEmpate(${p.id}, '${_esc(localNombre)}', '${_esc(visitNombre)}')"
           oninput="_checkEliEmpate(${p.id}, '${_esc(localNombre)}', '${_esc(visitNombre)}')">
         <span class="pron-sep">–</span>
-        <input class="pron-input" type="number" name="vis_${p.id}" min="0" max="20" placeholder="0"
+        <input aria-label="0" class="pron-input" type="number" name="vis_${p.id}" min="0" max="20" placeholder="0"
           onchange="_checkEliEmpate(${p.id}, '${_esc(localNombre)}', '${_esc(visitNombre)}')"
           oninput="_checkEliEmpate(${p.id}, '${_esc(localNombre)}', '${_esc(visitNombre)}')">
       </div>
@@ -4129,10 +4129,10 @@ function _adminEliCardHTML(p) {
     <form method="POST" action="/admin_resultado_eli?s=mundial" class="admin-form" style="margin-top:8px;">
       <input type="hidden" name="partido_id" value="${p.id}">
       <div class="admin-inputs-row">
-        <input class="admin-input" type="number" name="goles_local" min="0" max="30" placeholder="0" value="${p.goles_local??''}"
+        <input aria-label="0" class="admin-input" type="number" name="goles_local" min="0" max="30" placeholder="0" value="${p.goles_local??''}"
           onchange="_checkAdminEmpate(${p.id}, '${_esc(localNombre||'')}', '${_esc(visitNombre||'')}', this)">
         <span class="admin-dash">–</span>
-        <input class="admin-input" type="number" name="goles_visitante" min="0" max="30" placeholder="0" value="${p.goles_visit??''}"
+        <input aria-label="0" class="admin-input" type="number" name="goles_visitante" min="0" max="30" placeholder="0" value="${p.goles_visit??''}"
           onchange="_checkAdminEmpate(${p.id}, '${_esc(localNombre||'')}', '${_esc(visitNombre||'')}', this)">
         <button type="submit" class="admin-btn-save ${p.bloqueado?'admin-btn-edit':''}">
           <span class="material-symbols-outlined">${p.bloqueado?'edit':'check_circle'}</span>
@@ -4143,8 +4143,8 @@ function _adminEliCardHTML(p) {
       <div class="admin-pen-sel" id="admin-pen-${p.id}" style="display:${(p.goles_local===p.goles_visit && p.goles_local!==null)?'block':'none'};">
         <div class="admin-pen-label"><span class="material-symbols-outlined">sports_score</span> ¿Quién ganó en penales?</div>
         <div class="admin-pen-opciones">
-          ${localNombre ? `<label><input type="radio" name="penales_ganador" value="${_esc(localNombre)}" ${p.penales_ganador===localNombre?'checked':''}> ${_esc(localNombre)}</label>` : ''}
-          ${visitNombre ? `<label><input type="radio" name="penales_ganador" value="${_esc(visitNombre)}" ${p.penales_ganador===visitNombre?'checked':''}> ${_esc(visitNombre)}</label>` : ''}
+          ${localNombre ? `<label><input aria-label="Penales ganador" type="radio" name="penales_ganador" value="${_esc(localNombre)}" ${p.penales_ganador===localNombre?'checked':''}> ${_esc(localNombre)}</label>` : ''}
+          ${visitNombre ? `<label><input aria-label="Penales ganador" type="radio" name="penales_ganador" value="${_esc(visitNombre)}" ${p.penales_ganador===visitNombre?'checked':''}> ${_esc(visitNombre)}</label>` : ''}
         </div>
       </div>
       ${p.bloqueado?`<div class="admin-status-jugado"><span class="material-symbols-outlined">check_circle</span> ${p.goles_local}–${p.goles_visit}${p.penales_ganador?' (Pen: '+_esc(p.penales_ganador)+')':''}</div>`:''}
