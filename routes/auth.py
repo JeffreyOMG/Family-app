@@ -24,7 +24,20 @@ def login():
         user = con.execute(
             "SELECT id, nombre, usuario, password, rol, COALESCE(es_financiero, FALSE) AS es_financiero FROM usuarios WHERE usuario=%s", (usu,)
         ).fetchone()
-        if user and (user["password"] == pwd or check_password_hash(user["password"], pwd)):
+        login_ok = False
+        if user:
+            if check_password_hash(user["password"], pwd):
+                login_ok = True
+            elif user["password"] == pwd:
+                # Cuenta legacy con password en texto plano: aceptar por compatibilidad
+                # pero migrar a hash de inmediato para no dejarla expuesta.
+                login_ok = True
+                con.execute(
+                    "UPDATE usuarios SET password=%s WHERE id=%s",
+                    (generate_password_hash(pwd), user["id"])
+                )
+                con.commit()
+        if login_ok:
             if user["rol"] == "baneado":
                 error = "Tu cuenta ha sido suspendida. Contacta al administrador."
             else:
@@ -81,6 +94,15 @@ def _crear_usuario(nombre, usu, gmail, pwd, rol):
     """Inserta el usuario. Devuelve string de error o '' si OK."""
     try:
         con = get_db()
+
+        # Chequeo explícito: con ON CONFLICT DO NOTHING más abajo, un choque de
+        # nombre de usuario NO lanza IntegrityError, así que hay que detectarlo aquí.
+        existente = con.execute(
+            "SELECT id FROM usuarios WHERE usuario=%s", (usu,)
+        ).fetchone()
+        if existente:
+            return "El usuario ya existe"
+
         con.execute(
             "INSERT INTO usuarios(nombre, usuario, password, gmail, rol, es_nuevo) "
             "VALUES(%s, %s, %s, %s, %s, TRUE) ON CONFLICT(usuario) DO NOTHING",
