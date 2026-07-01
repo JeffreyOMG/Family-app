@@ -488,6 +488,38 @@
               <span class="pf2-theme-icon">⚙️</span>
               <span>Automático</span>
             </button>
+            <button class="pf2-theme-opt" id="theme-glass" onclick="pf2SetTheme('glass',this)">
+              <span class="pf2-theme-icon">🧊</span>
+              <span>Glass iPhone <small style="opacity:.65;font-weight:400;">(Experimental)</small></span>
+            </button>
+          </div>
+
+          <!-- Personalizar fondo — SOLO visible si el tema activo es Glass -->
+          <div class="pf2-glass-bg-card" id="glass-bg-customizer" style="display:none;">
+            <div class="pf2-aj-label" style="display:flex;align-items:center;gap:6px;">
+              🎨 Personalizar fondo
+            </div>
+            <div class="pf2-glass-bg-preview" id="glass-bg-preview"></div>
+            <div class="pf2-glass-bg-row">
+              <div class="pf2-glass-bg-pick">
+                <label for="glass-bg-color1">🎨 Color inicial</label>
+                <input type="color" id="glass-bg-color1" value="#7c3aed"
+                       oninput="pf2GlassBgLive(1,this.value)" onchange="pf2GlassBgSave()">
+              </div>
+              <div class="pf2-glass-bg-pick">
+                <label for="glass-bg-color2">🎨 Color final</label>
+                <input type="color" id="glass-bg-color2" value="#3b82f6"
+                       oninput="pf2GlassBgLive(2,this.value)" onchange="pf2GlassBgSave()">
+              </div>
+            </div>
+            <div class="pf2-glass-preset-row">
+              <button type="button" class="pf2-glass-preset-btn" onclick="pf2GlassBgPreset('#7c3aed','#3b82f6')">💜 Aurora</button>
+              <button type="button" class="pf2-glass-preset-btn" onclick="pf2GlassBgPreset('#0ea5e9','#22d3ee')">🌊 Ocean</button>
+              <button type="button" class="pf2-glass-preset-btn" onclick="pf2GlassBgPreset('#f97316','#ec4899')">🌅 Sunset</button>
+              <button type="button" class="pf2-glass-preset-btn" onclick="pf2GlassBgPreset('#1e2a63','#6d28d9')">🌌 Galaxy</button>
+              <button type="button" class="pf2-glass-preset-btn" onclick="pf2GlassBgPreset('#10b981','#14b8a6')">🌿 Emerald</button>
+              <button type="button" class="pf2-glass-preset-btn" onclick="pf2GlassBgPreset('#ef4444','#d946ef')">❤️ Cherry</button>
+            </div>
           </div>
           <div class="pf2-aj-divider"></div>
           <div class="pf2-aj-label" style="display:flex;align-items:center;justify-content:space-between;">
@@ -544,6 +576,26 @@
   </div>
 </div>
 
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     AVISO: TEMA GLASS iPhone (EXPERIMENTAL) — rendimiento
+═══════════════════════════════════════════════════════════════════ -->
+<div id="glass-warning-overlay" class="glass-warning-overlay" style="display:none;" onclick="if(event.target===this)pf2GlassWarningCancelar()">
+  <div class="glass-warning-box" onclick="event.stopPropagation()">
+    <h3>⚠️ Tema Glass iPhone (Experimental)</h3>
+    <p>Este tema utiliza efectos avanzados de desenfoque (Glass), transparencias y animaciones.</p>
+    <p>En dispositivos de gama baja o con poco rendimiento podría consumir más recursos o disminuir la fluidez.</p>
+    <p>Se recomienda únicamente para equipos con buen rendimiento.</p>
+    <label class="glass-warning-checkbox">
+      <input type="checkbox" id="glass-warning-no-mostrar">
+      No volver a mostrar
+    </label>
+    <div class="glass-warning-actions">
+      <button type="button" class="glass-warning-cancel" onclick="pf2GlassWarningCancelar()">Cancelar</button>
+      <button type="button" class="glass-warning-confirm" onclick="pf2GlassWarningConfirmar()">Activar tema</button>
+    </div>
+  </div>
+</div>
 
 <!-- ═══════════════════════════════════════════════════════════════════
      MODAL: CAMBIAR CONTRASEÑA
@@ -1296,10 +1348,10 @@
 
 /* Temas */
 .pf2-theme-options {
-  display: flex; gap: 10px; margin-bottom: 18px;
+  display: flex; gap: 10px; margin-bottom: 18px; flex-wrap: wrap;
 }
 .pf2-theme-opt {
-  flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px;
+  flex: 1; min-width: 96px; display: flex; flex-direction: column; align-items: center; gap: 6px;
   padding: 14px 8px; border-radius: 14px;
   border: 2px solid var(--border);
   background: var(--bg2); color: var(--text2);
@@ -2139,18 +2191,101 @@ function pf2AjustesSec(btn, sec) {
 
 // ─── APARIENCIA ────────────────────────────────────────────────────────
 function pf2SetTheme(mode, btn) {
-  document.querySelectorAll('.pf2-theme-opt').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  localStorage.setItem('theme', mode);
-  if (mode === 'auto') {
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    document.body.classList.toggle('dark-mode', prefersDark);
-  } else {
-    document.body.classList.toggle('dark-mode', mode === 'dark');
+  // El tema Glass iPhone requiere confirmar el aviso de rendimiento antes de activarse
+  if (mode === 'glass') {
+    if (localStorage.getItem('glassThemeWarningDismissed') === '1') {
+      pf2AplicarTema('glass', btn);
+    } else {
+      window._pf2GlassPendingBtn = btn;
+      document.getElementById('glass-warning-overlay').style.display = 'flex';
+    }
+    return;
   }
+  pf2AplicarTema(mode, btn);
+}
+
+function pf2AplicarTema(mode, btn) {
+  document.querySelectorAll('.pf2-theme-opt').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  localStorage.setItem('theme', mode);
+
+  if (mode === 'glass') {
+    document.body.classList.remove('dark-mode');
+    document.body.classList.add('theme-glass');
+  } else {
+    document.body.classList.remove('theme-glass');
+    if (mode === 'auto') {
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      document.body.classList.toggle('dark-mode', prefersDark);
+    } else {
+      document.body.classList.toggle('dark-mode', mode === 'dark');
+    }
+  }
+
+  // La sección "Personalizar fondo" solo existe con el tema Glass activo
+  const bgCustomizer = document.getElementById('glass-bg-customizer');
+  if (bgCustomizer) bgCustomizer.style.display = (mode === 'glass') ? 'block' : 'none';
+
   // Sincronizar toggle heredado si existe
   const toggleDark = document.getElementById('toggle-dark');
   if (toggleDark) toggleDark.checked = document.body.classList.contains('dark-mode');
+}
+
+// ─── FONDO PERSONALIZADO DEL TEMA GLASS (independiente del Accent) ─────
+function pf2GlassBgLive(which, color) {
+  document.documentElement.style.setProperty('--glass-bg-' + which, color);
+  pf2GlassBgUpdatePreview();
+}
+
+function pf2GlassBgSave() {
+  const c1 = document.getElementById('glass-bg-color1').value;
+  const c2 = document.getElementById('glass-bg-color2').value;
+  localStorage.setItem('glassBg1', c1);
+  localStorage.setItem('glassBg2', c2);
+}
+
+function pf2GlassBgPreset(c1, c2) {
+  document.getElementById('glass-bg-color1').value = c1;
+  document.getElementById('glass-bg-color2').value = c2;
+  pf2GlassBgLive(1, c1);
+  pf2GlassBgLive(2, c2);
+  pf2GlassBgSave();
+}
+
+function pf2GlassBgUpdatePreview() {
+  const prev = document.getElementById('glass-bg-preview');
+  if (!prev) return;
+  const c1 = document.documentElement.style.getPropertyValue('--glass-bg-1') || '#7c3aed';
+  const c2 = document.documentElement.style.getPropertyValue('--glass-bg-2') || '#3b82f6';
+  prev.style.background = 'linear-gradient(135deg,' + c1 + ',' + c2 + ')';
+}
+
+function pf2InitGlassBg() {
+  const c1 = localStorage.getItem('glassBg1') || '#7c3aed';
+  const c2 = localStorage.getItem('glassBg2') || '#3b82f6';
+  document.documentElement.style.setProperty('--glass-bg-1', c1);
+  document.documentElement.style.setProperty('--glass-bg-2', c2);
+  const i1 = document.getElementById('glass-bg-color1');
+  const i2 = document.getElementById('glass-bg-color2');
+  if (i1) i1.value = c1;
+  if (i2) i2.value = c2;
+  pf2GlassBgUpdatePreview();
+}
+
+function pf2GlassWarningConfirmar() {
+  const noMostrar = document.getElementById('glass-warning-no-mostrar');
+  if (noMostrar && noMostrar.checked) {
+    localStorage.setItem('glassThemeWarningDismissed', '1');
+  }
+  document.getElementById('glass-warning-overlay').style.display = 'none';
+  const btn = window._pf2GlassPendingBtn || document.getElementById('theme-glass');
+  pf2AplicarTema('glass', btn);
+  window._pf2GlassPendingBtn = null;
+}
+
+function pf2GlassWarningCancelar() {
+  document.getElementById('glass-warning-overlay').style.display = 'none';
+  window._pf2GlassPendingBtn = null;
 }
 
 function setAccent(color) {
@@ -2467,6 +2602,11 @@ document.addEventListener('DOMContentLoaded', () => {
   if (themeBtn) themeBtn.classList.add('active');
   const toggleDark = document.getElementById('toggle-dark');
   if (toggleDark) toggleDark.checked = document.body.classList.contains('dark-mode');
+
+  // Fondo personalizado del tema Glass
+  pf2InitGlassBg();
+  const bgCustomizer = document.getElementById('glass-bg-customizer');
+  if (bgCustomizer) bgCustomizer.style.display = (savedTheme === 'glass') ? 'block' : 'none';
 
   // Acento: re-aplicar para marcar el botón activo en la grid
   applyAccent(localStorage.getItem('accent') || '#ff4d8d');

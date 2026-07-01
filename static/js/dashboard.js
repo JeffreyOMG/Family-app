@@ -511,16 +511,21 @@ function mostrarToast(msg, tipo = 'ok') {
 // TEMA OSCURO
 // ─────────────────────────────
 function initTheme() {
-  if (localStorage.getItem('theme') === 'dark') {
-    document.body.classList.add('dark-mode');
-  } else {
+  const saved = localStorage.getItem('theme');
+  if (saved === 'glass') {
+    // Tema Glass iPhone (experimental) — independiente de claro/oscuro
     document.body.classList.remove('dark-mode');
+    document.body.classList.add('theme-glass');
+  } else {
+    document.body.classList.remove('theme-glass');
+    document.body.classList.toggle('dark-mode', saved === 'dark');
   }
   const cb = document.getElementById('toggle-dark');
   if (cb) cb.checked = document.body.classList.contains('dark-mode');
 }
 
 function toggleTheme(isDark) {
+  document.body.classList.remove('theme-glass');
   document.body.classList.toggle('dark-mode', isDark);
   localStorage.setItem('theme', isDark ? 'dark' : 'light');
 }

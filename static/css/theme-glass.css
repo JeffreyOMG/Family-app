@@ -1,0 +1,639 @@
+/* =========================================================================
+   🧊 TEMA "GLASS iPhone" (Liquid Glass) — EXPERIMENTAL — v2
+   -------------------------------------------------------------------------
+   100% independiente de Claro/Oscuro. Todo vive bajo "body.theme-glass".
+   No modifica style.css ni ninguna regla de los otros temas.
+
+   v2 agrega:
+   - Sistema de variables (--glass-blur, --glass-opacity, --glass-shadow,
+     --glass-border, --glass-radius) con dos "tiers": PC (completo) y
+     Móvil (optimizado, automático por media query, sin que el usuario
+     tenga que activar nada).
+   - Glass real (backdrop-filter) SOLO en contenedores principales:
+     navbar, sidebar, bottom-nav, cards principales, paneles, modales,
+     widgets, menús flotantes. Iconos/badges/chips/botones pequeños y
+     elementos repetitivos (filas de listas, opciones de encuesta, items
+     de notificación) NUNCA llevan backdrop-filter propio: heredan el
+     glass del contenedor padre.
+   - Fondo personalizable con 2 colores de usuario (--glass-bg-1/2),
+     independiente del Accent (que no se toca).
+   - prefers-reduced-motion: desactiva animaciones y el movimiento del
+     fondo, deja solo transiciones esenciales.
+   ========================================================================= */
+
+/* -------------------------------------------------------------------------
+   0. Variables — TIER PC (por defecto, calidad máxima)
+   ------------------------------------------------------------------------- */
+body.theme-glass {
+  /* Fondo personalizable (2 colores de usuario). Default = preset "Aurora". */
+  --glass-bg-1: #7c3aed;
+  --glass-bg-2: #3b82f6;
+
+  /* Glass tokens */
+  --glass-blur: 24px;
+  --glass-blur-soft: 12px;
+  --glass-opacity: .12;
+  --glass-opacity-strong: .18;
+  --glass-border-opacity: .34;
+  --glass-border: rgba(255, 255, 255, var(--glass-border-opacity));
+  --glass-border-soft: rgba(255, 255, 255, .20);
+  --glass-shine: rgba(255, 255, 255, .55);
+  --glass-shadow: 0 8px 32px rgba(15, 15, 40, .28);
+  --glass-shadow-sm: 0 4px 16px rgba(15, 15, 40, .18);
+  --glass-radius: 18px;
+  --glass-radius-sm: 14px;
+
+  /* Timings de animación (150–220ms) */
+  --glass-t-fast: 150ms;
+  --glass-t: 200ms;
+  --glass-ease: cubic-bezier(.4, 0, .2, 1);
+
+  /* Duración del movimiento del fondo — extremadamente lento, no distrae */
+  --glass-bg-motion: 90s;
+
+  /* Re-mapeo de las variables globales que usa TODA la app */
+  --bg: transparent;
+  --bg2: rgba(255, 255, 255, calc(var(--glass-opacity) * .6));
+
+  --card: rgba(255, 255, 255, var(--glass-opacity));
+  --card2: rgba(255, 255, 255, var(--glass-opacity-strong));
+  --surface: rgba(255, 255, 255, var(--glass-opacity));
+  --surface2: rgba(255, 255, 255, var(--glass-opacity-strong));
+
+  --border: var(--glass-border);
+  --border-soft: var(--glass-border-soft);
+
+  --text: #ffffff;
+  --text2: rgba(255, 255, 255, .78);
+  --text3: rgba(255, 255, 255, .56);
+
+  --score-empty-bg: rgba(255, 255, 255, .08);
+  --score-empty-color: rgba(255, 255, 255, .8);
+
+  color-scheme: dark;
+}
+
+/* -------------------------------------------------------------------------
+   0b. Variables — TIER MÓVIL (automático, sin acción del usuario)
+   Mismo breakpoint que ya usa el proyecto para su navegación móvil (768px).
+   Menos blur, menos sombra, menos opacidad de blur → mucho menos GPU,
+   compensado con un poco más de opacidad sólida para que se vea "casi igual".
+   ------------------------------------------------------------------------- */
+@media (max-width: 768px) {
+  body.theme-glass {
+    --glass-blur: 9px;
+    --glass-blur-soft: 0px;
+    --glass-opacity: .16;
+    --glass-opacity-strong: .22;
+    --glass-border-opacity: .26;
+    --glass-shadow: 0 4px 14px rgba(15, 15, 40, .18);
+    --glass-shadow-sm: 0 2px 8px rgba(15, 15, 40, .12);
+    --glass-bg-motion: 140s;
+  }
+}
+
+/* Transiciones suaves con el timing del tema */
+body.theme-glass, body.theme-glass * {
+  transition-timing-function: var(--glass-ease);
+}
+
+/* -------------------------------------------------------------------------
+   1. Fondo tipo Apple: degradado + blobs de luz a partir de los 2 colores
+   del usuario. Reutiliza .layout::before (ya existe, fijo, z-index:-1) →
+   cero DOM nuevo, cero cambios de tamaño/posición.
+   ------------------------------------------------------------------------- */
+body.theme-glass,
+body.theme-glass .layout,
+body.theme-glass .main-content {
+  background: transparent;
+}
+
+body.theme-glass .layout::before {
+  background:
+    radial-gradient(circle at 12% 18%, color-mix(in srgb, var(--glass-bg-1) 65%, white) 0%, transparent 42%),
+    radial-gradient(circle at 88% 12%, color-mix(in srgb, var(--glass-bg-2) 60%, white) 0%, transparent 46%),
+    radial-gradient(circle at 78% 82%, color-mix(in srgb, var(--glass-bg-2) 55%, black) 0%, transparent 48%),
+    radial-gradient(circle at 18% 88%, color-mix(in srgb, var(--glass-bg-1) 55%, black) 0%, transparent 48%),
+    linear-gradient(160deg,
+      color-mix(in srgb, var(--glass-bg-1) 78%, black) 0%,
+      var(--glass-bg-1) 30%,
+      var(--glass-bg-2) 65%,
+      color-mix(in srgb, var(--glass-bg-2) 78%, black) 100%);
+  background-size: 180% 180%, 180% 180%, 180% 180%, 180% 180%, 100% 100%;
+  animation: glassBgDrift var(--glass-bg-motion) ease-in-out infinite alternate;
+}
+
+@keyframes glassBgDrift {
+  0%   { background-position: 0% 0%, 100% 0%, 100% 100%, 0% 100%, 0% 0%; }
+  100% { background-position: 10% 6%, 90% 8%, 90% 92%, 8% 94%, 0% 0%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body.theme-glass .layout::before { animation: none; }
+}
+
+/* -------------------------------------------------------------------------
+   2. GLASS REAL — solo en contenedores principales
+   navbar · sidebar · bottom-nav · cards principales · paneles · modales ·
+   widgets · menús/dropdowns flotantes.
+   ------------------------------------------------------------------------- */
+body.theme-glass .navbar,
+body.theme-glass .sidebar,
+body.theme-glass .bottom-nav,
+body.theme-glass .modal-box,
+body.theme-glass .content-card,
+body.theme-glass .post-card,
+body.theme-glass .stat-card,
+body.theme-glass .auth-card,
+body.theme-glass .album-card,
+body.theme-glass .right-panel,
+body.theme-glass .notif-panel,
+body.theme-glass [class$="-panel"],
+body.theme-glass [class*="-panel "],
+body.theme-glass [class*="-widget"],
+body.theme-glass [class*="dropdown"],
+body.theme-glass [class*="-menu"]:not(.menu-item):not(.menu-text):not(.menu-logo) {
+  backdrop-filter: blur(var(--glass-blur)) saturate(160%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(160%);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow-sm);
+  border-radius: var(--glass-radius);
+  position: relative;
+}
+
+/* Brillo superior + reflejo interior tipo cristal real (no cajas planas) */
+body.theme-glass .navbar::before,
+body.theme-glass .sidebar::before,
+body.theme-glass .bottom-nav::before,
+body.theme-glass .modal-box::before,
+body.theme-glass .content-card::before,
+body.theme-glass .post-card::before,
+body.theme-glass .stat-card::before,
+body.theme-glass .auth-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(255, 255, 255, .16) 0%, rgba(255, 255, 255, 0) 30%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .35), inset 0 0 0 1px rgba(255, 255, 255, .04);
+}
+
+/* Repetitivos / pequeños: NUNCA backdrop-filter propio, heredan el glass del padre */
+body.theme-glass [class*="-chip"],
+body.theme-glass [class*="-badge"],
+body.theme-glass [class*="-tag"],
+body.theme-glass [class*="tooltip"],
+body.theme-glass .poll-option,
+body.theme-glass .poll-voter-chip,
+body.theme-glass .notif-item,
+body.theme-glass [class*="ranking-item"],
+body.theme-glass tr,
+body.theme-glass td,
+body.theme-glass th,
+body.theme-glass .material-symbols-outlined {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* Fallback elegante si el navegador no soporta backdrop-filter */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  body.theme-glass .navbar,
+  body.theme-glass .sidebar,
+  body.theme-glass .bottom-nav,
+  body.theme-glass .modal-box,
+  body.theme-glass .content-card,
+  body.theme-glass .post-card,
+  body.theme-glass .app-toast,
+  body.theme-glass .notif-panel {
+    background: rgba(30, 24, 60, .78) !important;
+  }
+}
+
+/* -------------------------------------------------------------------------
+   3. Navbar / Sidebar / Bottom nav — colores concretos sobre el token base
+   ------------------------------------------------------------------------- */
+body.theme-glass .navbar {
+  background: rgba(255, 255, 255, var(--glass-opacity)) !important;
+  border-bottom: 1px solid var(--glass-border-soft);
+}
+
+body.theme-glass .sidebar {
+  background: rgba(255, 255, 255, calc(var(--glass-opacity) - .02)) !important;
+  border-right: 1px solid var(--glass-border-soft);
+}
+
+body.theme-glass .nav-item,
+body.theme-glass .menu-item {
+  border-radius: var(--glass-radius-sm);
+  transition: transform var(--glass-t) var(--glass-ease), background-color var(--glass-t) ease;
+}
+
+body.theme-glass .nav-item:hover,
+body.theme-glass .menu-item:hover {
+  background: rgba(255, 255, 255, .10);
+  transform: translateY(-1px);
+}
+
+body.theme-glass .nav-item.active {
+  background: var(--accent-soft);
+  box-shadow: inset 0 0 0 1px var(--accent-border);
+}
+
+body.theme-glass .bottom-nav {
+  background: rgba(255, 255, 255, var(--glass-opacity-strong)) !important;
+  box-shadow: var(--glass-shadow);
+}
+
+body.theme-glass .bottom-nav-item {
+  transition: transform var(--glass-t) var(--glass-ease), color var(--glass-t) ease;
+}
+
+body.theme-glass .bottom-nav-item.active {
+  transform: translateY(-2px) scale(1.06);
+}
+
+/* -------------------------------------------------------------------------
+   4. Cards / paneles principales
+   ------------------------------------------------------------------------- */
+body.theme-glass .content-card,
+body.theme-glass .post-card {
+  border-radius: var(--glass-radius);
+  transition: box-shadow var(--glass-t) ease, filter var(--glass-t) ease;
+}
+
+body.theme-glass .content-card:hover,
+body.theme-glass .post-card:hover {
+  box-shadow: var(--glass-shadow);
+  filter: brightness(1.04);
+}
+
+body.theme-glass .post-card,
+body.theme-glass .content-card {
+  animation: glassFadeIn var(--glass-t) var(--glass-ease);
+}
+
+@keyframes glassFadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* En móvil: quitamos el blur real de .post-card (elemento repetitivo en el
+   feed, el más costoso en GPU) y dejamos un glass "sólido" equivalente
+   visualmente pero mucho más barato. El resto de contenedores principales
+   conserva su glass, solo con menos intensidad (variables del tier móvil). */
+@media (max-width: 768px) {
+  body.theme-glass .post-card {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background: rgba(255, 255, 255, calc(var(--glass-opacity-strong) + .04)) !important;
+  }
+  body.theme-glass .post-card::before { display: none; }
+  body.theme-glass .post-card,
+  body.theme-glass .content-card { animation: none; }
+}
+
+/* -------------------------------------------------------------------------
+   5. Botones — hover, click, ripple sutil (sin backdrop-filter propio)
+   ------------------------------------------------------------------------- */
+body.theme-glass .btn,
+body.theme-glass .btn-primary,
+body.theme-glass .btn-outline,
+body.theme-glass .btn-gold,
+body.theme-glass button {
+  transition: transform var(--glass-t-fast) var(--glass-ease),
+              box-shadow var(--glass-t-fast) ease, filter var(--glass-t-fast) ease,
+              background-color var(--glass-t-fast) ease;
+}
+
+body.theme-glass .btn:hover,
+body.theme-glass .btn-primary:hover,
+body.theme-glass .btn-outline:hover,
+body.theme-glass .btn-gold:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.08);
+}
+
+body.theme-glass .btn:active,
+body.theme-glass .btn-primary:active,
+body.theme-glass .btn-outline:active,
+body.theme-glass .btn-gold:active,
+body.theme-glass button:active {
+  transform: scale(.97);
+}
+
+body.theme-glass .btn-outline {
+  background: rgba(255, 255, 255, var(--glass-opacity)) !important;
+  border: 1px solid var(--glass-border-soft);
+}
+
+body.theme-glass .btn,
+body.theme-glass .btn-primary,
+body.theme-glass .btn-outline,
+body.theme-glass .btn-gold {
+  position: relative;
+  overflow: hidden;
+}
+
+body.theme-glass .btn::after,
+body.theme-glass .btn-primary::after,
+body.theme-glass .btn-outline::after,
+body.theme-glass .btn-gold::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(circle, var(--glass-shine) 0%, transparent 60%);
+  opacity: 0;
+  transform: scale(.4);
+  transition: opacity .35s ease, transform .35s ease;
+  pointer-events: none;
+}
+
+body.theme-glass .btn:active::after,
+body.theme-glass .btn-primary:active::after,
+body.theme-glass .btn-outline:active::after,
+body.theme-glass .btn-gold:active::after {
+  opacity: .25;
+  transform: scale(1.4);
+  transition: 0s;
+}
+
+/* -------------------------------------------------------------------------
+   6. Inputs — glow al recibir foco (sin blur propio, botones/inputs
+   pequeños no llevan backdrop-filter)
+   ------------------------------------------------------------------------- */
+body.theme-glass input,
+body.theme-glass textarea,
+body.theme-glass select,
+body.theme-glass .form-input {
+  background: rgba(255, 255, 255, var(--glass-opacity)) !important;
+  border: 1px solid var(--glass-border-soft) !important;
+  color: var(--text);
+  transition: box-shadow var(--glass-t) ease, border-color var(--glass-t) ease;
+}
+
+body.theme-glass input::placeholder,
+body.theme-glass textarea::placeholder {
+  color: var(--text3);
+}
+
+body.theme-glass input:focus,
+body.theme-glass textarea:focus,
+body.theme-glass select:focus,
+body.theme-glass .form-input:focus {
+  outline: none;
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 4px var(--accent-soft), 0 0 18px var(--accent-soft);
+}
+
+/* Color picker nativo: quitar chrome feo por defecto */
+body.theme-glass input[type="color"] {
+  padding: 2px;
+  height: 38px;
+  cursor: pointer;
+}
+
+/* -------------------------------------------------------------------------
+   7. Modales, dropdowns, menús flotantes
+   ------------------------------------------------------------------------- */
+body.theme-glass .modal-overlay {
+  background: rgba(10, 8, 30, .45) !important;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+body.theme-glass .modal-box {
+  background: rgba(40, 32, 80, .55) !important;
+  animation: glassModalIn var(--glass-t) var(--glass-ease);
+}
+
+@keyframes glassModalIn {
+  from { opacity: 0; transform: scale(.96); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+body.theme-glass [class*="dropdown"],
+body.theme-glass [class*="-menu"]:not(.menu-item):not(.menu-text):not(.menu-logo) {
+  background: rgba(40, 32, 80, .55) !important;
+  animation: glassDropdownIn var(--glass-t-fast) var(--glass-ease);
+}
+
+@keyframes glassDropdownIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Tooltips: sin blur propio (repetitivo/pequeño), solo fondo sólido + fade */
+body.theme-glass [class*="tooltip"] {
+  background: rgba(20, 16, 45, .85) !important;
+  border: 1px solid var(--glass-border-soft);
+  animation: glassFadeOnly .15s ease;
+}
+
+@keyframes glassFadeOnly {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body.theme-glass .post-card,
+  body.theme-glass .content-card,
+  body.theme-glass .modal-box,
+  body.theme-glass [class*="dropdown"],
+  body.theme-glass [class*="tooltip"],
+  body.theme-glass .app-toast.visible {
+    animation: none !important;
+  }
+  body.theme-glass .nav-item:hover,
+  body.theme-glass .menu-item:hover,
+  body.theme-glass .btn:hover,
+  body.theme-glass .btn-primary:hover,
+  body.theme-glass .btn-outline:hover,
+  body.theme-glass .btn-gold:hover,
+  body.theme-glass .content-card:hover,
+  body.theme-glass .post-card:hover,
+  body.theme-glass .bottom-nav-item.active {
+    transform: none !important;
+  }
+}
+
+/* -------------------------------------------------------------------------
+   8. Toasts (FAB también usa .btn/.btn-primary, ya cubierto arriba)
+   ------------------------------------------------------------------------- */
+body.theme-glass .app-toast {
+  background: rgba(40, 32, 80, .68) !important;
+  border: 1px solid var(--glass-border-soft);
+  box-shadow: var(--glass-shadow);
+  backdrop-filter: blur(var(--glass-blur)) saturate(160%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(160%);
+}
+
+body.theme-glass .app-toast.visible {
+  animation: glassToastIn var(--glass-t) var(--glass-ease);
+}
+
+@keyframes glassToastIn {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* -------------------------------------------------------------------------
+   9. Tablas / calendarios / rankings — filas = elementos repetitivos,
+   sin blur propio, solo heredan color de fondo del panel contenedor.
+   ------------------------------------------------------------------------- */
+body.theme-glass table,
+body.theme-glass [class*="table"],
+body.theme-glass [class*="calendar"] {
+  background: rgba(255, 255, 255, .05);
+  border-color: var(--glass-border-soft) !important;
+}
+
+body.theme-glass th, body.theme-glass td {
+  border-color: var(--glass-border-soft) !important;
+}
+
+body.theme-glass tr:hover td {
+  background: rgba(255, 255, 255, .06);
+}
+
+/* -------------------------------------------------------------------------
+   10. Inputs de búsqueda — igual que inputs normales, sin blur propio
+   ------------------------------------------------------------------------- */
+body.theme-glass [class*="search"] input,
+body.theme-glass [class*="-input"] {
+  background: rgba(255, 255, 255, var(--glass-opacity)) !important;
+  border-color: var(--glass-border-soft) !important;
+}
+
+/* -------------------------------------------------------------------------
+   11. Scrollbar a juego (cosmético)
+   ------------------------------------------------------------------------- */
+body.theme-glass ::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, .25);
+  border-radius: 10px;
+}
+
+/* =========================================================================
+   12. AVISO DE RENDIMIENTO (modal propio del tema, fuera de body.theme-glass
+   porque debe poder mostrarse ANTES de activar el tema)
+   ========================================================================= */
+.glass-warning-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100000;
+  background: rgba(10, 8, 24, .55);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  animation: glassFadeOnly .2s ease;
+}
+
+.glass-warning-box {
+  width: 100%;
+  max-width: 420px;
+  background: rgba(40, 32, 80, .85);
+  backdrop-filter: blur(26px) saturate(160%);
+  -webkit-backdrop-filter: blur(26px) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, .35);
+  border-radius: 20px;
+  box-shadow: 0 20px 60px rgba(10, 8, 30, .5);
+  padding: 22px;
+  color: #fff;
+  font-family: var(--font, 'DM Sans', sans-serif);
+  animation: glassModalIn .2s cubic-bezier(.4, 0, .2, 1);
+}
+
+.glass-warning-box h3 { margin: 0 0 10px; font-size: 17px; display: flex; align-items: center; gap: 8px; }
+.glass-warning-box p { margin: 0 0 10px; font-size: 13.5px; line-height: 1.5; color: rgba(255, 255, 255, .88); }
+
+.glass-warning-checkbox {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 12.5px; color: rgba(255, 255, 255, .75);
+  margin: 14px 0 18px; cursor: pointer; user-select: none;
+}
+
+.glass-warning-actions { display: flex; gap: 10px; justify-content: flex-end; }
+
+.glass-warning-actions button {
+  border: none; border-radius: 12px; padding: 10px 18px;
+  font-size: 13.5px; font-weight: 600; cursor: pointer;
+  transition: transform .18s ease, filter .18s ease;
+}
+
+.glass-warning-actions button:active { transform: scale(.96); }
+
+.glass-warning-cancel {
+  background: rgba(255, 255, 255, .12); color: #fff;
+  border: 1px solid rgba(255, 255, 255, .25) !important;
+}
+
+.glass-warning-confirm {
+  background: linear-gradient(135deg, #8b7cf6, #5b6ee8);
+  color: #fff;
+}
+
+.glass-warning-confirm:hover, .glass-warning-cancel:hover { filter: brightness(1.1); }
+
+@media (prefers-reduced-motion: reduce) {
+  .glass-warning-overlay, .glass-warning-box { animation: none !important; }
+}
+
+/* =========================================================================
+   13. PERSONALIZAR FONDO — card de ajustes (solo visible con Glass activo,
+   controlado por JS en perfil.html; estilos aislados aquí igualmente)
+   ========================================================================= */
+body.theme-glass .pf2-glass-bg-card {
+  background: rgba(255, 255, 255, var(--glass-opacity));
+  backdrop-filter: blur(var(--glass-blur-soft));
+  -webkit-backdrop-filter: blur(var(--glass-blur-soft));
+  border: 1px solid var(--glass-border-soft);
+  border-radius: var(--glass-radius-sm);
+  padding: 14px;
+  margin-top: 14px;
+}
+
+/* Estilos base (funcionan aunque el bloque se muestre antes de recibir
+   la clase theme-glass, ej. primer render) */
+.pf2-glass-bg-card {
+  background: rgba(120, 100, 200, .10);
+  border: 1px solid rgba(120, 100, 200, .25);
+  border-radius: 14px;
+  padding: 14px;
+  margin-top: 14px;
+}
+
+.pf2-glass-bg-row {
+  display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-bottom: 12px;
+}
+
+.pf2-glass-bg-pick {
+  display: flex; align-items: center; gap: 8px;
+}
+
+.pf2-glass-bg-pick label {
+  font-size: 12.5px; color: var(--text2); display: flex; align-items: center; gap: 4px;
+}
+
+.pf2-glass-preset-row {
+  display: flex; gap: 8px; flex-wrap: wrap;
+}
+
+.pf2-glass-preset-btn {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 12px; padding: 6px 12px; border-radius: 20px;
+  border: 1px solid var(--border); background: var(--bg2); color: var(--text);
+  cursor: pointer; transition: transform .18s ease, filter .18s ease;
+}
+
+.pf2-glass-preset-btn:hover { transform: translateY(-1px); filter: brightness(1.1); }
+.pf2-glass-preset-btn:active { transform: scale(.96); }
+
+.pf2-glass-bg-preview {
+  width: 100%; height: 42px; border-radius: 12px;
+  border: 1px solid var(--glass-border-soft, rgba(120,100,200,.3));
+  margin-bottom: 12px;
+}
