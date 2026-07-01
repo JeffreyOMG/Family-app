@@ -4984,9 +4984,10 @@ body.dark-mode .cruce-num {
 .navbar-desktop-only { display: flex; }
 
 /* ─────────────────────────────────────────────
-   MOBILE ONLY (≤768px)
+   MOBILE + TABLET (≤1024px) — mismo navbar/bottom-nav
+   que el móvil (logo FAMILYAPP, pill flotante, etc.)
 ───────────────────────────────────────────── */
-@media (max-width: 768px) {
+@media (max-width: 1024px) {
 
   /* ── 1. NAVBAR — fully transparent at rest ── */
   .navbar,
@@ -5387,9 +5388,9 @@ body.dark-mode {
 
 /* ═══════════════════════════════════════════════════════════════════════════
    TABLET HORIZONTAL (769px–1024px) — mismo shell de navegación que tablet
-   vertical / móvil: sidebar oculto + bottom-nav flotante + navbar compacta.
-   Antes esta franja caía en el modo "sidebar de escritorio" y se veía
-   distinta a la tablet en vertical; ahora usa exactamente el mismo layout.
+   vertical / móvil. El navbar Instagram-style y el bottom-nav ya se manejan
+   arriba (bloque extendido a 1024px); aquí solo lo que falta: sidebar oculto
+   y márgenes del contenido.
    ═══════════════════════════════════════════════════════════════════════════ */
 @media (min-width: 769px) and (max-width: 1024px) {
 
@@ -5409,38 +5410,12 @@ body.dark-mode {
   #menu-toggle,
   .hamburger-btn { display: none !important; }
 
-  /* Navbar compacta, igual que móvil */
-  .navbar {
-    left: 0 !important;
-    height: 56px;
-    padding: 0 14px;
-  }
-  .navbar-date { display: none !important; }
-  .navbar-right span.user-name-text { display: none; }
-  .navbar .user-avatar, .navbar .user-avatar-img { width: 34px; height: 34px; font-size: 13px; }
-
   .main-content {
     margin-left: 0 !important;
     margin-right: 0 !important;
-    margin-top: 56px !important;
-    padding: 12px 14px !important;
-    padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px)) !important;
     max-width: 100% !important;
     width: 100%;
     align-items: stretch !important;
-    overflow: visible !important;
-    height: auto !important;
-  }
-
-  /* Bottom nav flotante, igual que móvil */
-  .bottom-nav { display: flex !important; }
-
-  /* FAB de publicar, igual que móvil */
-  .compose-fab {
-    display: flex !important;
-    bottom: calc(max(18px, env(safe-area-inset-bottom, 18px)) + 64px + 16px) !important;
-    right: 20px !important;
-    z-index: 750 !important;
   }
 
   /* Feed a una sola columna, igual que móvil */
