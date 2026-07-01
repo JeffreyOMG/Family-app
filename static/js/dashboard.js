@@ -511,10 +511,10 @@ function mostrarToast(msg, tipo = 'ok') {
 // TEMA OSCURO
 // ─────────────────────────────
 function initTheme() {
-  if (localStorage.getItem('theme') === 'light') {
-    document.body.classList.remove('dark-mode');
-  } else {
+  if (localStorage.getItem('theme') === 'dark') {
     document.body.classList.add('dark-mode');
+  } else {
+    document.body.classList.remove('dark-mode');
   }
   const cb = document.getElementById('toggle-dark');
   if (cb) cb.checked = document.body.classList.contains('dark-mode');

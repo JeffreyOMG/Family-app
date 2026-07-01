@@ -19,10 +19,10 @@
   <script>
     (function(){
       // Tema
-      if(localStorage.getItem('theme')==='light'){
-        document.documentElement.classList.remove('dark-mode-pre');
-      } else {
+      if(localStorage.getItem('theme')==='dark'){
         document.documentElement.style.colorScheme='dark';
+      } else {
+        document.documentElement.classList.remove('dark-mode-pre');
       }
       // Acento: función mínima para el head (la completa está en dashboard.js)
       var hex = localStorage.getItem('accent') || '#ff4d8d';
