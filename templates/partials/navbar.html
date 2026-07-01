@@ -50,7 +50,7 @@
       <span class="notif-badge" id="notif-badge-desk" style="display:none">0</span>
     </button>
     <span class="navbar-date">{{ ahora }}</span>
-    <img src="{{ usuario.foto or '' }}" class="user-avatar-img navbar-av-img"
+    <img src="{{ usuario.foto | cl_url('avatar') or '' }}" class="user-avatar-img navbar-av-img"
          style="cursor:pointer;{{ '' if usuario.foto else 'display:none;' }}"
          onclick="irSeccion('perfil')" alt="perfil">
     <div class="user-avatar navbar-av-letter"
@@ -419,7 +419,7 @@ function subirAlInicio() {
     const meta  = TIPO_META[n.tipo] || { icono: 'circle_notifications', color: '#9ca3af', texto: () => n.texto_extra || n.tipo };
     const texto = meta.texto(n);
     const avatarHTML = n.actor_foto
-      ? `<img src="${n.actor_foto}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`
+      ? `<img src="${clUrl(n.actor_foto,'avatar')}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`
       : `<span style="font-size:15px;font-weight:700;">${(n.actor_nombre||'?')[0].toUpperCase()}</span>`;
 
     const snippet = n.post_texto

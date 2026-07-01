@@ -2514,7 +2514,7 @@
 
     // Avatar
     const avatarHTML = r.foto
-      ? `<img class="rkv2__avatar" src="${_esc(r.foto)}" alt="" loading="lazy">`
+      ? `<img class="rkv2__avatar" src="${clUrl(_esc(r.foto),'avatar')}" alt="" loading="lazy">`
       : `<div class="rkv2__avatar">👤</div>`;
 
     // Barra de participación
@@ -3249,7 +3249,7 @@
           // Filas de participantes
           const rowsHtml = rows.map(r => {
             const av = r.usuario_foto
-              ? `<img src="${_esc(r.usuario_foto)}" class="vpron-av-img" onerror="this.outerHTML='<div class=vpron-av-letter>${_esc((r.usuario_nombre||'?')[0].toUpperCase())}</div>'">`
+              ? `<img src="${clUrl(_esc(r.usuario_foto),'avatar')}" class="vpron-av-img" loading="lazy" onerror="this.outerHTML='<div class=vpron-av-letter>${_esc((r.usuario_nombre||'?')[0].toUpperCase())}</div>'">`
               : `<div class="vpron-av-letter">${_esc((r.usuario_nombre||'?')[0].toUpperCase())}</div>`;
 
             const fL = _flag(info.local,     info.cod_local  || info.cod_loc  || '');
