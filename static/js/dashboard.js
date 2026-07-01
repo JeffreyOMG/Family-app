@@ -526,7 +526,12 @@ function initTheme() {
   // Reaplicar dirección/intensidad/vibrancy/movimiento guardados del tema Glass
   // (independiente de si el usuario visitó Ajustes en esta carga de página)
   if (document.body.classList.contains('theme-glass')) {
-    const root = document.documentElement;
+    // IMPORTANTE: estas variables también se declaran dentro de la regla
+    // "body.theme-glass" en theme-glass.css. Si se fijan en <html>
+    // (documentElement), el valor propio declarado en el body SIEMPRE gana
+    // sobre el heredado, sin importar la especificidad — por eso antes la
+    // personalización "casi no se veía". Deben fijarse en document.body.
+    const root = document.body;
     root.style.setProperty('--glass-bg-1', localStorage.getItem('glassBg1') || '#7c3aed');
     root.style.setProperty('--glass-bg-2', localStorage.getItem('glassBg2') || '#3b82f6');
     document.body.setAttribute('data-glass-direction', localStorage.getItem('glassDirection') || 'diagonal');
@@ -534,8 +539,8 @@ function initTheme() {
     document.body.classList.remove('glass-intensity-soft', 'glass-intensity-intense');
     if (intensity === 'soft') document.body.classList.add('glass-intensity-soft');
     if (intensity === 'intense') document.body.classList.add('glass-intensity-intense');
-    const vibrancyPct = { soft: '45%', normal: '65%', vibrant: '85%' };
-    root.style.setProperty('--glass-vibrancy-pct', vibrancyPct[localStorage.getItem('glassVibrancy')] || '65%');
+    const vibrancyPct = { soft: '42%', normal: '55%', vibrant: '72%' };
+    root.style.setProperty('--glass-vibrancy-pct', vibrancyPct[localStorage.getItem('glassVibrancy')] || '55%');
     document.body.classList.toggle('glass-motion-off', localStorage.getItem('glassMotion') === '0');
     initGlassMobileOptimizations();
   }

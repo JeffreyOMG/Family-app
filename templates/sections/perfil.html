@@ -2349,7 +2349,7 @@ const PF2_GLASS_INTENSITY_LEVELS = ['soft', 'normal', 'intense'];
 const PF2_GLASS_INTENSITY_LABELS = { soft: 'Suave', normal: 'Normal', intense: 'Intenso' };
 const PF2_GLASS_VIBRANCY_LEVELS  = ['soft', 'normal', 'vibrant'];
 const PF2_GLASS_VIBRANCY_LABELS  = { soft: 'Suave', normal: 'Normal', vibrant: 'Vibrante' };
-const PF2_GLASS_VIBRANCY_PCT     = { soft: '45%', normal: '65%', vibrant: '85%' };
+const PF2_GLASS_VIBRANCY_PCT     = { soft: '42%', normal: '55%', vibrant: '72%' };
 
 // Color de un color-picker "en vivo" → solo toca el borrador + la vista previa
 function pf2GlassBgLive(which, color) {
@@ -2414,16 +2414,18 @@ function pf2GlassPreviewRender() {
   } else {
     stage.style.background = `linear-gradient(${angle}, ${d.bg1}, ${d.bg2})`;
   }
-  // Vibrancy: aplicamos un filtro de saturación proporcional (aproximación
-  // visual rápida de la mini-tarjeta; el efecto real usa color-mix en CSS).
-  const satMap = { soft: 0.75, normal: 1, vibrant: 1.3 };
-  stage.style.filter = 'saturate(' + (satMap[d.vibrancy] || 1) + ')';
+  // Vibrancy: aprox visual rápida de la mini-tarjeta (el efecto real usa
+  // color-mix en CSS). Rango más suave, igual que el fondo real.
+  const satMap = { soft: 0.7, normal: 0.9, vibrant: 1.15 };
+  stage.style.filter = 'saturate(' + (satMap[d.vibrancy] || 0.9) + ') brightness(.92)';
 
-  const blurMap = { soft: 6, normal: 12, intense: 20 };
-  const opMap   = { soft: 0.10, normal: 0.16, intense: 0.24 };
-  card.style.backdropFilter = 'blur(' + (blurMap[d.intensity] || 12) + 'px)';
+  // Relleno oscuro-neutro (nivel 2), NO blanco: así la vista previa coincide
+  // con cómo se ven de verdad las cards en la app (separadas del fondo).
+  const blurMap = { soft: 14, normal: 22, intense: 30 };
+  const opMap   = { soft: 0.20, normal: 0.30, intense: 0.40 };
+  card.style.backdropFilter = 'blur(' + (blurMap[d.intensity] || 22) + 'px)';
   card.style.webkitBackdropFilter = card.style.backdropFilter;
-  card.style.background = 'rgba(255,255,255,' + (opMap[d.intensity] || 0.16) + ')';
+  card.style.background = 'rgba(16,13,32,' + (opMap[d.intensity] || 0.30) + ')';
 
   stage.style.animation = d.motion ? 'glassBgDrift 6s ease-in-out infinite alternate' : 'none';
 
@@ -2434,7 +2436,11 @@ function pf2GlassPreviewRender() {
 // Aplica el borrador a TODA la app (documentElement + body + localStorage)
 function pf2GlassApplyDraft() {
   const d = PF2_GLASS_DRAFT;
-  const root = document.documentElement;
+  // OJO: --glass-bg-1/2 y --glass-vibrancy-pct se declaran también en
+  // "body.theme-glass" dentro de theme-glass.css. Fijarlas en <html>
+  // (documentElement) NO las sobreescribe ahí: el valor propio del body
+  // siempre gana sobre el heredado. Por eso se fijan en document.body.
+  const root = document.body;
   const body = document.body;
 
   root.style.setProperty('--glass-bg-1', d.bg1);
@@ -2508,8 +2514,10 @@ function pf2InitGlassBg() {
   PF2_GLASS_APPLIED = applied;
   PF2_GLASS_DRAFT = Object.assign({}, applied);
 
-  // Reaplicar al DOM (por si el CSS ya cargó con los defaults)
-  const root = document.documentElement;
+  // Reaplicar al DOM (por si el CSS ya cargó con los defaults).
+  // Igual que en pf2GlassApplyDraft: debe ser document.body, no
+  // documentElement, porque body.theme-glass redeclara estas variables.
+  const root = document.body;
   const body = document.body;
   root.style.setProperty('--glass-bg-1', applied.bg1);
   root.style.setProperty('--glass-bg-2', applied.bg2);

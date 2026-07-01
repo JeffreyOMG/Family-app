@@ -1,159 +1,158 @@
 /* =========================================================================
-   🧊 TEMA "GLASS iPhone" (Liquid Glass) — EXPERIMENTAL — v2
+   🧊 TEMA "GLASS iPhone" (Liquid Glass) — EXPERIMENTAL — v3
    -------------------------------------------------------------------------
    100% independiente de Claro/Oscuro. Todo vive bajo "body.theme-glass".
    No modifica style.css ni ninguna regla de los otros temas.
 
-   v2 agrega:
-   - Sistema de variables (--glass-blur, --glass-opacity, --glass-shadow,
-     --glass-border, --glass-radius) con dos "tiers": PC (completo) y
-     Móvil (optimizado, automático por media query, sin que el usuario
-     tenga que activar nada).
-   - Glass real (backdrop-filter) SOLO en contenedores principales:
-     navbar, sidebar, bottom-nav, cards principales, paneles, modales,
-     widgets, menús flotantes. Iconos/badges/chips/botones pequeños y
-     elementos repetitivos (filas de listas, opciones de encuesta, items
-     de notificación) NUNCA llevan backdrop-filter propio: heredan el
-     glass del contenedor padre.
-   - Fondo personalizable con 2 colores de usuario (--glass-bg-1/2),
-     independiente del Accent (que no se toca).
-   - prefers-reduced-motion: desactiva animaciones y el movimiento del
-     fondo, deja solo transiciones esenciales.
+   v3 — Refinamiento "Apple Quality":
+   - Jerarquía tipográfica real (título / texto / secundario / deshabilitado),
+     ya no todo blanco puro.
+   - Cards con relleno oscuro-neutro (no un simple "blanco al X%" sobre el
+     fondo morado), para que se separen visualmente del fondo en vez de
+     mezclarse con él.
+   - 3 niveles de profundidad de cristal con blur/opacidad propios:
+       Nivel 1 → navbar, sidebar, bottom-nav (el más opaco/legible)
+       Nivel 2 → cards, widgets, paneles, modales
+       Nivel 3 → botones, inputs (el más sutil)
+   - Fondo con vibrancia reducida por defecto + velo de calma para que
+     nunca compita con el contenido, mismo sistema de personalización
+     (2 colores + dirección + intensidad) pero con resultado visible.
+   - Reflejo superior + brillo interior + borde fino en todos los niveles,
+     no solo en los contenedores principales.
+   - Accent reforzado: nunca se apaga por el saturate() del glass.
+   - Refuerzos genéricos para tablas/rankings/listas que puedan venir sin
+     variables propias, para que no se vean como "tema claro" dentro de Glass.
    ========================================================================= */
 
 /* -------------------------------------------------------------------------
    0. Variables — TIER PC (por defecto, calidad máxima)
    ------------------------------------------------------------------------- */
 body.theme-glass {
-  /* Fondo personalizable (2 colores de usuario). Default = preset "Aurora". */
   --glass-bg-1: #7c3aed;
   --glass-bg-2: #3b82f6;
-
-  /* Dirección del degradado (el ángulo alimenta horizontal/vertical/diagonal;
-     "radial" reemplaza el linear-gradient por uno radial, ver bloque 1).
-     Default = diagonal, igual que el v2 original. */
   --glass-gradient-angle: 160deg;
+  --glass-vibrancy-pct: 55%;
 
-  /* Intensidad del color de fondo ("vibrancy"): 45%=Suave, 65%=Normal
-     (default), 85%=Vibrante. Alimenta los color-mix() de los blobs. */
-  --glass-vibrancy-pct: 65%;
+  --glass-t1-blur: 30px;
+  --glass-t1-opacity: .46;
+  --glass-t1-border-opacity: .16;
 
-  /* Glass tokens — tier "Normal" (default). Los tiers Suave/Intenso los
-     sobreescriben las clases .glass-intensity-* más abajo. */
-  --glass-blur: 24px;
+  --glass-t2-blur: 22px;
+  --glass-t2-opacity: .30;
+  --glass-t2-border-opacity: .22;
+
+  --glass-t3-blur: 10px;
+  --glass-t3-opacity: .16;
+  --glass-t3-border-opacity: .28;
+
+  --glass-blur: var(--glass-t2-blur);
   --glass-blur-soft: 12px;
-  --glass-opacity: .12;
-  --glass-opacity-strong: .18;
-  --glass-border-opacity: .34;
+  --glass-opacity: var(--glass-t3-opacity);
+  --glass-opacity-strong: var(--glass-t2-opacity);
+  --glass-border-opacity: var(--glass-t2-border-opacity);
+
   --glass-border: rgba(255, 255, 255, var(--glass-border-opacity));
-  --glass-border-soft: rgba(255, 255, 255, .20);
-  --glass-shine: rgba(255, 255, 255, .55);
-  --glass-shadow: 0 8px 32px rgba(15, 15, 40, .28);
-  --glass-shadow-sm: 0 4px 16px rgba(15, 15, 40, .18);
+  --glass-border-soft: rgba(255, 255, 255, .16);
+  --glass-shine: rgba(255, 255, 255, .5);
+  --glass-shadow: 0 14px 40px rgba(6, 4, 20, .45);
+  --glass-shadow-sm: 0 6px 20px rgba(6, 4, 20, .32);
   --glass-radius: 18px;
   --glass-radius-sm: 14px;
 
-  /* Timings de animación (150–220ms) */
+  --glass-fill-1: rgba(12, 10, 26, var(--glass-t1-opacity));
+  --glass-fill-2: rgba(16, 13, 32, var(--glass-t2-opacity));
+  --glass-fill-3: rgba(255, 255, 255, var(--glass-t3-opacity));
+
   --glass-t-fast: 150ms;
   --glass-t: 200ms;
   --glass-ease: cubic-bezier(.4, 0, .2, 1);
 
-  /* Duración del movimiento del fondo — extremadamente lento, no distrae */
   --glass-bg-motion: 90s;
 
-  /* Re-mapeo de las variables globales que usa TODA la app */
   --bg: transparent;
-  --bg2: rgba(255, 255, 255, calc(var(--glass-opacity) * .6));
+  --bg2: rgba(255, 255, 255, .06);
 
-  --card: rgba(255, 255, 255, var(--glass-opacity));
-  --card2: rgba(255, 255, 255, var(--glass-opacity-strong));
-  --surface: rgba(255, 255, 255, var(--glass-opacity));
-  --surface2: rgba(255, 255, 255, var(--glass-opacity-strong));
+  --card: var(--glass-fill-2);
+  --card2: rgba(20, 16, 40, calc(var(--glass-t2-opacity) + .08));
+  --surface: var(--glass-fill-2);
+  --surface2: rgba(20, 16, 40, calc(var(--glass-t2-opacity) + .08));
 
   --border: var(--glass-border);
   --border-soft: var(--glass-border-soft);
 
-  --text: #ffffff;
-  --text2: rgba(255, 255, 255, .78);
-  --text3: rgba(255, 255, 255, .56);
+  --text: rgba(255, 255, 255, .97);
+  --text2: rgba(235, 236, 245, .82);
+  --text3: rgba(198, 202, 224, .58);
+  --text4: rgba(198, 202, 224, .34);
+  --icon-muted: rgba(198, 202, 224, .62);
 
-  --score-empty-bg: rgba(255, 255, 255, .08);
-  --score-empty-color: rgba(255, 255, 255, .8);
+  --score-empty-bg: rgba(255, 255, 255, .07);
+  --score-empty-color: rgba(235, 236, 245, .75);
 
   color-scheme: dark;
 }
 
-/* -------------------------------------------------------------------------
-   0b. Variables — TIER MÓVIL (automático, sin acción del usuario)
-   Mismo breakpoint que ya usa el proyecto para su navegación móvil (768px).
-   Menos blur, menos sombra, menos opacidad de blur → mucho menos GPU,
-   compensado con un poco más de opacidad sólida para que se vea "casi igual".
-   ------------------------------------------------------------------------- */
 @media (max-width: 768px) {
   body.theme-glass {
-    --glass-blur: 9px;
-    --glass-blur-soft: 0px;
-    --glass-opacity: .16;
-    --glass-opacity-strong: .22;
-    --glass-border-opacity: .26;
-    --glass-shadow: 0 4px 14px rgba(15, 15, 40, .18);
-    --glass-shadow-sm: 0 2px 8px rgba(15, 15, 40, .12);
+    --glass-t1-blur: 12px;
+    --glass-t1-opacity: .58;
+    --glass-t1-border-opacity: .14;
+
+    --glass-t2-blur: 8px;
+    --glass-t2-opacity: .40;
+    --glass-t2-border-opacity: .18;
+
+    --glass-t3-blur: 0px;
+    --glass-t3-opacity: .20;
+    --glass-t3-border-opacity: .24;
+
+    --glass-shadow: 0 6px 18px rgba(6, 4, 20, .32);
+    --glass-shadow-sm: 0 3px 10px rgba(6, 4, 20, .22);
     --glass-bg-motion: 140s;
   }
 }
 
-/* -------------------------------------------------------------------------
-   0c. Intensidad del cristal — Suave / Normal (default) / Intenso.
-   El usuario elige en Ajustes > Apariencia > Intensidad del cristal.
-   Dos clases con doble-selector (mayor especificidad que el tier base de
-   arriba) para que ganen siempre, en PC y en Móvil.
-   ------------------------------------------------------------------------- */
 body.theme-glass.glass-intensity-soft {
-  --glass-blur: 14px;
-  --glass-blur-soft: 6px;
-  --glass-opacity: .08;
-  --glass-opacity-strong: .13;
-  --glass-border-opacity: .22;
-  --glass-shadow: 0 6px 20px rgba(15, 15, 40, .18);
-  --glass-shadow-sm: 0 3px 10px rgba(15, 15, 40, .12);
+  --glass-t1-blur: 20px;  --glass-t1-opacity: .36; --glass-t1-border-opacity: .12;
+  --glass-t2-blur: 14px;  --glass-t2-opacity: .20; --glass-t2-border-opacity: .16;
+  --glass-t3-blur: 6px;   --glass-t3-opacity: .11; --glass-t3-border-opacity: .20;
+  --glass-shadow: 0 8px 24px rgba(6, 4, 20, .30);
+  --glass-shadow-sm: 0 4px 12px rgba(6, 4, 20, .20);
 }
 body.theme-glass.glass-intensity-intense {
-  --glass-blur: 34px;
-  --glass-blur-soft: 18px;
-  --glass-opacity: .17;
-  --glass-opacity-strong: .25;
-  --glass-border-opacity: .44;
-  --glass-shadow: 0 10px 40px rgba(15, 15, 40, .36);
-  --glass-shadow-sm: 0 6px 22px rgba(15, 15, 40, .24);
+  --glass-t1-blur: 40px;  --glass-t1-opacity: .58; --glass-t1-border-opacity: .22;
+  --glass-t2-blur: 30px;  --glass-t2-opacity: .40; --glass-t2-border-opacity: .30;
+  --glass-t3-blur: 16px;  --glass-t3-opacity: .22; --glass-t3-border-opacity: .36;
+  --glass-shadow: 0 18px 50px rgba(6, 4, 20, .55);
+  --glass-shadow-sm: 0 9px 26px rgba(6, 4, 20, .38);
 }
 @media (max-width: 768px) {
   body.theme-glass.glass-intensity-soft {
-    --glass-blur: 4px;
-    --glass-blur-soft: 0px;
-    --glass-opacity: .12;
-    --glass-opacity-strong: .17;
-    --glass-shadow: 0 2px 8px rgba(15, 15, 40, .12);
-    --glass-shadow-sm: 0 1px 6px rgba(15, 15, 40, .10);
+    --glass-t1-blur: 8px;  --glass-t1-opacity: .48; --glass-t2-blur: 4px; --glass-t2-opacity: .32; --glass-t3-blur: 0px; --glass-t3-opacity: .16;
+    --glass-shadow: 0 4px 12px rgba(6, 4, 20, .22); --glass-shadow-sm: 0 2px 8px rgba(6, 4, 20, .16);
   }
   body.theme-glass.glass-intensity-intense {
-    --glass-blur: 14px;
-    --glass-blur-soft: 4px;
-    --glass-opacity: .20;
-    --glass-opacity-strong: .28;
-    --glass-shadow: 0 6px 20px rgba(15, 15, 40, .24);
-    --glass-shadow-sm: 0 3px 12px rgba(15, 15, 40, .16);
+    --glass-t1-blur: 16px; --glass-t1-opacity: .66; --glass-t2-blur: 12px; --glass-t2-opacity: .48; --glass-t3-blur: 4px; --glass-t3-opacity: .26;
+    --glass-shadow: 0 8px 24px rgba(6, 4, 20, .38); --glass-shadow-sm: 0 4px 14px rgba(6, 4, 20, .26);
   }
 }
 
-/* Transiciones suaves con el timing del tema */
+body.theme-glass {
+  --glass-blur: var(--glass-t2-blur);
+  --glass-opacity: var(--glass-t3-opacity);
+  --glass-opacity-strong: var(--glass-t2-opacity);
+  --glass-border-opacity: var(--glass-t2-border-opacity);
+  --glass-fill-1: rgba(12, 10, 26, var(--glass-t1-opacity));
+  --glass-fill-2: rgba(16, 13, 32, var(--glass-t2-opacity));
+  --glass-fill-3: rgba(255, 255, 255, var(--glass-t3-opacity));
+}
+
 body.theme-glass, body.theme-glass * {
   transition-timing-function: var(--glass-ease);
 }
 
 /* -------------------------------------------------------------------------
-   1. Fondo tipo Apple: degradado + blobs de luz a partir de los 2 colores
-   del usuario. Reutiliza .layout::before (ya existe, fijo, z-index:-1) →
-   cero DOM nuevo, cero cambios de tamaño/posición.
+   1. Fondo tipo Apple
    ------------------------------------------------------------------------- */
 body.theme-glass,
 body.theme-glass .layout,
@@ -163,38 +162,42 @@ body.theme-glass .main-content {
 
 body.theme-glass .layout::before {
   background:
-    radial-gradient(circle at 12% 18%, color-mix(in srgb, var(--glass-bg-1) calc(var(--glass-vibrancy-pct) + 0%), white) 0%, transparent 42%),
-    radial-gradient(circle at 88% 12%, color-mix(in srgb, var(--glass-bg-2) calc(var(--glass-vibrancy-pct) - 5%), white) 0%, transparent 46%),
-    radial-gradient(circle at 78% 82%, color-mix(in srgb, var(--glass-bg-2) calc(var(--glass-vibrancy-pct) - 10%), black) 0%, transparent 48%),
-    radial-gradient(circle at 18% 88%, color-mix(in srgb, var(--glass-bg-1) calc(var(--glass-vibrancy-pct) - 10%), black) 0%, transparent 48%),
+    radial-gradient(circle at 12% 18%, color-mix(in srgb, var(--glass-bg-1) calc(var(--glass-vibrancy-pct) - 8%), white) 0%, transparent 42%),
+    radial-gradient(circle at 88% 12%, color-mix(in srgb, var(--glass-bg-2) calc(var(--glass-vibrancy-pct) - 12%), white) 0%, transparent 46%),
+    radial-gradient(circle at 78% 82%, color-mix(in srgb, var(--glass-bg-2) calc(var(--glass-vibrancy-pct) - 14%), black) 0%, transparent 48%),
+    radial-gradient(circle at 18% 88%, color-mix(in srgb, var(--glass-bg-1) calc(var(--glass-vibrancy-pct) - 14%), black) 0%, transparent 48%),
     linear-gradient(var(--glass-gradient-angle),
-      color-mix(in srgb, var(--glass-bg-1) calc(var(--glass-vibrancy-pct) + 13%), black) 0%,
+      color-mix(in srgb, var(--glass-bg-1) calc(var(--glass-vibrancy-pct) + 6%), black) 0%,
       var(--glass-bg-1) 30%,
       var(--glass-bg-2) 65%,
-      color-mix(in srgb, var(--glass-bg-2) calc(var(--glass-vibrancy-pct) + 13%), black) 100%);
+      color-mix(in srgb, var(--glass-bg-2) calc(var(--glass-vibrancy-pct) + 6%), black) 100%);
   background-size: 180% 180%, 180% 180%, 180% 180%, 180% 180%, 100% 100%;
   animation: glassBgDrift var(--glass-bg-motion) ease-in-out infinite alternate;
 }
 
-/* Dirección del degradado — el usuario elige en Ajustes > Apariencia.
-   horizontal/vertical/diagonal solo cambian el ángulo del linear-gradient
-   (los blobs radiales se mantienen, dan profundidad en cualquier dirección). */
+body.theme-glass .layout::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: radial-gradient(ellipse at 50% 40%, rgba(6, 5, 16, 0) 0%, rgba(6, 5, 16, .22) 100%);
+}
+
 body.theme-glass[data-glass-direction="horizontal"] { --glass-gradient-angle: 90deg; }
 body.theme-glass[data-glass-direction="vertical"]   { --glass-gradient-angle: 180deg; }
 body.theme-glass[data-glass-direction="diagonal"]   { --glass-gradient-angle: 160deg; }
 
-/* Radial: reemplaza el linear-gradient de base por uno radial centrado,
-   los blobs radiales siguen encima dando la textura. */
 body.theme-glass[data-glass-direction="radial"] .layout::before {
   background:
-    radial-gradient(circle at 12% 18%, color-mix(in srgb, var(--glass-bg-1) calc(var(--glass-vibrancy-pct) + 0%), white) 0%, transparent 42%),
-    radial-gradient(circle at 88% 12%, color-mix(in srgb, var(--glass-bg-2) calc(var(--glass-vibrancy-pct) - 5%), white) 0%, transparent 46%),
-    radial-gradient(circle at 78% 82%, color-mix(in srgb, var(--glass-bg-2) calc(var(--glass-vibrancy-pct) - 10%), black) 0%, transparent 48%),
-    radial-gradient(circle at 18% 88%, color-mix(in srgb, var(--glass-bg-1) calc(var(--glass-vibrancy-pct) - 10%), black) 0%, transparent 48%),
+    radial-gradient(circle at 12% 18%, color-mix(in srgb, var(--glass-bg-1) calc(var(--glass-vibrancy-pct) - 8%), white) 0%, transparent 42%),
+    radial-gradient(circle at 88% 12%, color-mix(in srgb, var(--glass-bg-2) calc(var(--glass-vibrancy-pct) - 12%), white) 0%, transparent 46%),
+    radial-gradient(circle at 78% 82%, color-mix(in srgb, var(--glass-bg-2) calc(var(--glass-vibrancy-pct) - 14%), black) 0%, transparent 48%),
+    radial-gradient(circle at 18% 88%, color-mix(in srgb, var(--glass-bg-1) calc(var(--glass-vibrancy-pct) - 14%), black) 0%, transparent 48%),
     radial-gradient(circle at 50% 50%,
       var(--glass-bg-1) 0%,
       color-mix(in srgb, var(--glass-bg-1) 50%, var(--glass-bg-2)) 45%,
-      color-mix(in srgb, var(--glass-bg-2) calc(var(--glass-vibrancy-pct) + 13%), black) 100%);
+      color-mix(in srgb, var(--glass-bg-2) calc(var(--glass-vibrancy-pct) + 6%), black) 100%);
   background-size: 180% 180%, 180% 180%, 180% 180%, 180% 180%, 160% 160%;
 }
 
@@ -203,7 +206,6 @@ body.theme-glass[data-glass-direction="radial"] .layout::before {
   100% { background-position: 10% 6%, 90% 8%, 90% 92%, 8% 94%, 0% 0%; }
 }
 
-/* Movimiento del fondo — switch ON/OFF del usuario */
 body.theme-glass.glass-motion-off .layout::before {
   animation: none;
 }
@@ -213,9 +215,34 @@ body.theme-glass.glass-motion-off .layout::before {
 }
 
 /* -------------------------------------------------------------------------
-   2. GLASS REAL — solo en contenedores principales
-   navbar · sidebar · bottom-nav · cards principales · paneles · modales ·
-   widgets · menús/dropdowns flotantes.
+   2. GLASS REAL — NIVEL 1: navbar · sidebar · bottom-nav
+   ------------------------------------------------------------------------- */
+body.theme-glass .navbar,
+body.theme-glass .sidebar,
+body.theme-glass .bottom-nav {
+  background: var(--glass-fill-1) !important;
+  backdrop-filter: blur(var(--glass-t1-blur)) saturate(150%);
+  -webkit-backdrop-filter: blur(var(--glass-t1-blur)) saturate(150%);
+  border-color: rgba(255, 255, 255, var(--glass-t1-border-opacity));
+}
+body.theme-glass .navbar { border-bottom: 1px solid rgba(255, 255, 255, var(--glass-t1-border-opacity)); }
+body.theme-glass .sidebar { border-right: 1px solid rgba(255, 255, 255, var(--glass-t1-border-opacity)); }
+body.theme-glass .bottom-nav { box-shadow: var(--glass-shadow); }
+
+body.theme-glass .navbar::before,
+body.theme-glass .sidebar::before,
+body.theme-glass .bottom-nav::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(255, 255, 255, .10) 0%, rgba(255, 255, 255, 0) 30%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .22);
+}
+
+/* -------------------------------------------------------------------------
+   2b. GLASS REAL — NIVEL 2: cards · widgets · paneles · modales · dropdowns
    ------------------------------------------------------------------------- */
 body.theme-glass .modal-box,
 body.theme-glass .content-card,
@@ -230,51 +257,34 @@ body.theme-glass [class*="-panel "],
 body.theme-glass [class*="-widget"],
 body.theme-glass [class*="dropdown"],
 body.theme-glass [class*="-menu"]:not(.menu-item):not(.menu-text):not(.menu-logo) {
-  backdrop-filter: blur(var(--glass-blur)) saturate(160%);
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(160%);
-  border: 1px solid var(--glass-border);
-  box-shadow: var(--glass-shadow-sm);
+  background: var(--glass-fill-2) !important;
+  backdrop-filter: blur(var(--glass-t2-blur)) saturate(140%);
+  -webkit-backdrop-filter: blur(var(--glass-t2-blur)) saturate(140%);
+  border: 1px solid rgba(255, 255, 255, var(--glass-t2-border-opacity));
+  box-shadow: var(--glass-shadow-sm), 0 1px 0 rgba(255, 255, 255, .05) inset;
   border-radius: var(--glass-radius);
   position: relative;
 }
 
-/* .navbar / .sidebar / .bottom-nav van APARTE y SIN "position: relative":
-   en style.css ya son position:fixed (el sidebar cubre los 100vh, el navbar
-   va pegado arriba, el bottom-nav se centra con transform:translateX(-50%)).
-   Meterlos en la regla de arriba les pisaba ese fixed y rompía el layout
-   completo (sidebar "cortado", navbar flotando como tarjeta suelta y un
-   hueco enorme antes del contenido). position:fixed ya sirve de contexto
-   de posicionamiento para el ::before de brillo, así que no hace falta
-   tocar su position. Tampoco heredan el border-radius genérico: van a
-   filo (sidebar/navbar) o mantienen su propia forma de píldora (bottom-nav,
-   ver bloque 3). */
-body.theme-glass .navbar,
-body.theme-glass .sidebar,
-body.theme-glass .bottom-nav {
-  backdrop-filter: blur(var(--glass-blur)) saturate(160%);
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(160%);
-  border: 1px solid var(--glass-border);
-}
-
-/* Brillo superior + reflejo interior tipo cristal real (no cajas planas) */
-body.theme-glass .navbar::before,
-body.theme-glass .sidebar::before,
-body.theme-glass .bottom-nav::before,
 body.theme-glass .modal-box::before,
 body.theme-glass .content-card::before,
 body.theme-glass .post-card::before,
 body.theme-glass .stat-card::before,
-body.theme-glass .auth-card::before {
+body.theme-glass .auth-card::before,
+body.theme-glass .album-card::before,
+body.theme-glass .right-panel::before,
+body.theme-glass .notif-panel::before,
+body.theme-glass [class$="-panel"]::before,
+body.theme-glass [class*="-widget"]::before {
   content: "";
   position: absolute;
   inset: 0;
   border-radius: inherit;
   pointer-events: none;
-  background: linear-gradient(180deg, rgba(255, 255, 255, .16) 0%, rgba(255, 255, 255, 0) 30%);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .35), inset 0 0 0 1px rgba(255, 255, 255, .04);
+  background: linear-gradient(165deg, rgba(255, 255, 255, .14) 0%, rgba(255, 255, 255, 0) 32%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .30), inset 0 0 0 1px rgba(255, 255, 255, .03);
 }
 
-/* Repetitivos / pequeños: NUNCA backdrop-filter propio, heredan el glass del padre */
 body.theme-glass [class*="-chip"],
 body.theme-glass [class*="-badge"],
 body.theme-glass [class*="-tag"],
@@ -291,7 +301,6 @@ body.theme-glass .material-symbols-outlined {
   -webkit-backdrop-filter: none !important;
 }
 
-/* Fallback elegante si el navegador no soporta backdrop-filter */
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
   body.theme-glass .navbar,
   body.theme-glass .sidebar,
@@ -301,51 +310,86 @@ body.theme-glass .material-symbols-outlined {
   body.theme-glass .post-card,
   body.theme-glass .app-toast,
   body.theme-glass .notif-panel {
-    background: rgba(30, 24, 60, .78) !important;
+    background: rgba(16, 13, 32, .88) !important;
   }
 }
 
 /* -------------------------------------------------------------------------
-   3. Navbar / Sidebar / Bottom nav — colores concretos sobre el token base
+   3. Navbar / Sidebar / Bottom nav — detalles de interacción
    ------------------------------------------------------------------------- */
-body.theme-glass .navbar {
-  background: rgba(255, 255, 255, var(--glass-opacity)) !important;
-  border-bottom: 1px solid var(--glass-border-soft);
-}
-
-body.theme-glass .sidebar {
-  background: rgba(255, 255, 255, calc(var(--glass-opacity) - .02)) !important;
-  border-right: 1px solid var(--glass-border-soft);
-}
-
 body.theme-glass .nav-item,
 body.theme-glass .menu-item {
   border-radius: var(--glass-radius-sm);
   transition: transform var(--glass-t) var(--glass-ease), background-color var(--glass-t) ease;
+  color: var(--text2);
 }
 
 body.theme-glass .nav-item:hover,
 body.theme-glass .menu-item:hover {
-  background: rgba(255, 255, 255, .10);
+  background: rgba(255, 255, 255, .08);
   transform: translateY(-1px);
+  color: var(--text);
 }
 
 body.theme-glass .nav-item.active {
   background: var(--accent-soft);
-  box-shadow: inset 0 0 0 1px var(--accent-border);
+  box-shadow: inset 0 0 0 1px var(--accent-border), 0 0 16px -4px var(--accent);
+  color: var(--text);
 }
-
-body.theme-glass .bottom-nav {
-  background: rgba(255, 255, 255, var(--glass-opacity-strong)) !important;
-  box-shadow: var(--glass-shadow);
+body.theme-glass .nav-item.active .material-symbols-outlined,
+body.theme-glass .nav-item.active i {
+  color: var(--accent);
 }
 
 body.theme-glass .bottom-nav-item {
   transition: transform var(--glass-t) var(--glass-ease), color var(--glass-t) ease;
+  color: var(--icon-muted);
 }
 
 body.theme-glass .bottom-nav-item.active {
   transform: translateY(-2px) scale(1.06);
+  color: var(--accent);
+  filter: drop-shadow(0 0 6px var(--accent-soft));
+}
+
+/* -------------------------------------------------------------------------
+   3b. Jerarquía tipográfica
+   ------------------------------------------------------------------------- */
+body.theme-glass h1, body.theme-glass h2, body.theme-glass h3,
+body.theme-glass .card-title, body.theme-glass [class*="-title"],
+body.theme-glass [class*="-nombre"], body.theme-glass strong {
+  color: var(--text);
+}
+
+body.theme-glass p, body.theme-glass span, body.theme-glass label,
+body.theme-glass li, body.theme-glass div {
+  color: inherit;
+}
+
+body.theme-glass [class*="-sub"],
+body.theme-glass [class*="-meta"],
+body.theme-glass [class*="-fecha"],
+body.theme-glass [class*="-hora"],
+body.theme-glass [class*="-desc"],
+body.theme-glass [class*="-caption"],
+body.theme-glass .text-muted,
+body.theme-glass .text-secondary,
+body.theme-glass small,
+body.theme-glass time {
+  color: var(--text3) !important;
+}
+
+body.theme-glass [disabled],
+body.theme-glass .disabled,
+body.theme-glass [aria-disabled="true"] {
+  color: var(--text4) !important;
+  opacity: .8;
+}
+
+body.theme-glass [class*="-meta"] .material-symbols-outlined,
+body.theme-glass [class*="-sub"] .material-symbols-outlined,
+body.theme-glass [class*="-fecha"] .material-symbols-outlined {
+  color: var(--icon-muted);
 }
 
 /* -------------------------------------------------------------------------
@@ -354,13 +398,14 @@ body.theme-glass .bottom-nav-item.active {
 body.theme-glass .content-card,
 body.theme-glass .post-card {
   border-radius: var(--glass-radius);
-  transition: box-shadow var(--glass-t) ease, filter var(--glass-t) ease;
+  transition: box-shadow var(--glass-t) ease, filter var(--glass-t) ease, transform var(--glass-t) ease;
 }
 
 body.theme-glass .content-card:hover,
 body.theme-glass .post-card:hover {
   box-shadow: var(--glass-shadow);
-  filter: brightness(1.04);
+  filter: brightness(1.05);
+  transform: translateY(-1px);
 }
 
 body.theme-glass .post-card,
@@ -373,31 +418,17 @@ body.theme-glass .content-card {
   to   { opacity: 1; transform: translateY(0); }
 }
 
-/* En móvil: quitamos el blur real de .post-card (elemento repetitivo en el
-   feed, el más costoso en GPU) y dejamos un glass "sólido" equivalente
-   visualmente pero mucho más barato. El resto de contenedores principales
-   conserva su glass, solo con menos intensidad (variables del tier móvil). */
 @media (max-width: 768px) {
   body.theme-glass .post-card {
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
-    background: rgba(255, 255, 255, calc(var(--glass-opacity-strong) + .04)) !important;
+    background: rgba(16, 13, 32, calc(var(--glass-t2-opacity) + .10)) !important;
   }
   body.theme-glass .post-card::before { display: none; }
   body.theme-glass .post-card,
   body.theme-glass .content-card { animation: none; }
 }
 
-/* -------------------------------------------------------------------------
-   3b. Optimización móvil profunda (además del tier de variables de arriba):
-   - .glass-offscreen: dashboard.js la agrega/quita con IntersectionObserver
-     a tarjetas fuera del viewport → sin blur mientras no se ven.
-   - .glass-scrolling: dashboard.js la agrega al body durante el scroll →
-     baja transparencia/blur unos ms (mucho más barato que blur+scroll a
-     la vez) y la quita al parar.
-   - Nunca hay backdrop-filter anidado: un contenedor con blur nunca tiene
-     dentro OTRO elemento con blur propio (ver bloque 2, "repetitivos").
-   ------------------------------------------------------------------------- */
 @media (max-width: 768px) {
   body.theme-glass .glass-offscreen {
     backdrop-filter: none !important;
@@ -409,15 +440,15 @@ body.theme-glass .content-card {
   body.theme-glass.glass-scrolling .navbar,
   body.theme-glass.glass-scrolling .sidebar,
   body.theme-glass.glass-scrolling .bottom-nav {
-    backdrop-filter: blur(calc(var(--glass-blur) * .35)) !important;
-    -webkit-backdrop-filter: blur(calc(var(--glass-blur) * .35)) !important;
+    backdrop-filter: blur(calc(var(--glass-t2-blur) * .35)) !important;
+    -webkit-backdrop-filter: blur(calc(var(--glass-t2-blur) * .35)) !important;
     box-shadow: none !important;
     transition: none !important;
   }
 }
 
 /* -------------------------------------------------------------------------
-   5. Botones — hover, click, ripple sutil (sin backdrop-filter propio)
+   5. GLASS REAL — NIVEL 3: botones, inputs
    ------------------------------------------------------------------------- */
 body.theme-glass .btn,
 body.theme-glass .btn-primary,
@@ -434,7 +465,7 @@ body.theme-glass .btn-primary:hover,
 body.theme-glass .btn-outline:hover,
 body.theme-glass .btn-gold:hover {
   transform: translateY(-2px);
-  filter: brightness(1.08);
+  filter: brightness(1.1);
 }
 
 body.theme-glass .btn:active,
@@ -446,8 +477,11 @@ body.theme-glass button:active {
 }
 
 body.theme-glass .btn-outline {
-  background: rgba(255, 255, 255, var(--glass-opacity)) !important;
-  border: 1px solid var(--glass-border-soft);
+  background: var(--glass-fill-3) !important;
+  backdrop-filter: blur(var(--glass-t3-blur));
+  -webkit-backdrop-filter: blur(var(--glass-t3-blur));
+  border: 1px solid rgba(255, 255, 255, var(--glass-t3-border-opacity));
+  color: var(--text2);
 }
 
 body.theme-glass .btn,
@@ -456,6 +490,16 @@ body.theme-glass .btn-outline,
 body.theme-glass .btn-gold {
   position: relative;
   overflow: hidden;
+}
+
+body.theme-glass .btn::before,
+body.theme-glass .btn-outline::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(165deg, rgba(255, 255, 255, .22) 0%, rgba(255, 255, 255, 0) 45%);
 }
 
 body.theme-glass .btn::after,
@@ -482,16 +526,22 @@ body.theme-glass .btn-gold:active::after {
   transition: 0s;
 }
 
+body.theme-glass .btn-primary,
+body.theme-glass .accent-btn,
+body.theme-glass a.accent,
+body.theme-glass [class*="-link"] {
+  filter: saturate(1.15);
+}
+
 /* -------------------------------------------------------------------------
-   6. Inputs — glow al recibir foco (sin blur propio, botones/inputs
-   pequeños no llevan backdrop-filter)
+   6. Inputs
    ------------------------------------------------------------------------- */
 body.theme-glass input,
 body.theme-glass textarea,
 body.theme-glass select,
 body.theme-glass .form-input {
-  background: rgba(255, 255, 255, var(--glass-opacity)) !important;
-  border: 1px solid var(--glass-border-soft) !important;
+  background: var(--glass-fill-3) !important;
+  border: 1px solid rgba(255, 255, 255, var(--glass-t3-border-opacity)) !important;
   color: var(--text);
   transition: box-shadow var(--glass-t) ease, border-color var(--glass-t) ease;
 }
@@ -510,7 +560,6 @@ body.theme-glass .form-input:focus {
   box-shadow: 0 0 0 4px var(--accent-soft), 0 0 18px var(--accent-soft);
 }
 
-/* Color picker nativo: quitar chrome feo por defecto */
 body.theme-glass input[type="color"] {
   padding: 2px;
   height: 38px;
@@ -521,13 +570,13 @@ body.theme-glass input[type="color"] {
    7. Modales, dropdowns, menús flotantes
    ------------------------------------------------------------------------- */
 body.theme-glass .modal-overlay {
-  background: rgba(10, 8, 30, .45) !important;
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
+  background: rgba(6, 5, 14, .55) !important;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 
 body.theme-glass .modal-box {
-  background: rgba(40, 32, 80, .55) !important;
+  background: rgba(18, 15, 36, .74) !important;
   animation: glassModalIn var(--glass-t) var(--glass-ease);
 }
 
@@ -538,7 +587,7 @@ body.theme-glass .modal-box {
 
 body.theme-glass [class*="dropdown"],
 body.theme-glass [class*="-menu"]:not(.menu-item):not(.menu-text):not(.menu-logo) {
-  background: rgba(40, 32, 80, .55) !important;
+  background: rgba(18, 15, 36, .82) !important;
   animation: glassDropdownIn var(--glass-t-fast) var(--glass-ease);
 }
 
@@ -547,10 +596,10 @@ body.theme-glass [class*="-menu"]:not(.menu-item):not(.menu-text):not(.menu-logo
   to   { opacity: 1; transform: translateY(0); }
 }
 
-/* Tooltips: sin blur propio (repetitivo/pequeño), solo fondo sólido + fade */
 body.theme-glass [class*="tooltip"] {
-  background: rgba(20, 16, 45, .85) !important;
+  background: rgba(10, 8, 22, .92) !important;
   border: 1px solid var(--glass-border-soft);
+  color: var(--text2);
   animation: glassFadeOnly .15s ease;
 }
 
@@ -582,14 +631,15 @@ body.theme-glass [class*="tooltip"] {
 }
 
 /* -------------------------------------------------------------------------
-   8. Toasts (FAB también usa .btn/.btn-primary, ya cubierto arriba)
+   8. Toasts
    ------------------------------------------------------------------------- */
 body.theme-glass .app-toast {
-  background: rgba(40, 32, 80, .68) !important;
+  background: rgba(18, 15, 36, .82) !important;
   border: 1px solid var(--glass-border-soft);
   box-shadow: var(--glass-shadow);
-  backdrop-filter: blur(var(--glass-blur)) saturate(160%);
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(160%);
+  color: var(--text);
+  backdrop-filter: blur(var(--glass-t2-blur)) saturate(140%);
+  -webkit-backdrop-filter: blur(var(--glass-t2-blur)) saturate(140%);
 }
 
 body.theme-glass .app-toast.visible {
@@ -602,50 +652,77 @@ body.theme-glass .app-toast.visible {
 }
 
 /* -------------------------------------------------------------------------
-   9. Tablas / calendarios / rankings — filas = elementos repetitivos,
-   sin blur propio, solo heredan color de fondo del panel contenedor.
+   9. Tablas / calendarios / rankings / listas de posiciones
    ------------------------------------------------------------------------- */
 body.theme-glass table,
 body.theme-glass [class*="table"],
-body.theme-glass [class*="calendar"] {
-  background: rgba(255, 255, 255, .05);
+body.theme-glass [class*="calendar"],
+body.theme-glass [class*="ranking"],
+body.theme-glass [class*="clasificacion"],
+body.theme-glass [class*="posiciones"],
+body.theme-glass [class*="tabla-"] {
+  background: rgba(16, 13, 32, .28) !important;
   border-color: var(--glass-border-soft) !important;
+  color: var(--text2);
 }
 
 body.theme-glass th, body.theme-glass td {
   border-color: var(--glass-border-soft) !important;
+  color: var(--text2);
+  background: transparent !important;
+}
+
+body.theme-glass th {
+  color: var(--text3) !important;
 }
 
 body.theme-glass tr:hover td {
-  background: rgba(255, 255, 255, .06);
+  background: rgba(255, 255, 255, .05) !important;
+}
+
+body.theme-glass [class*="ranking-item"],
+body.theme-glass [class*="ranking-row"],
+body.theme-glass [class*="posicion-item"],
+body.theme-glass [class*="pos-item"],
+body.theme-glass [class*="fila-ranking"] {
+  background: rgba(255, 255, 255, .05) !important;
+  border: 1px solid var(--glass-border-soft) !important;
+  color: var(--text2) !important;
+}
+
+body.theme-glass [class*="pos-badge"],
+body.theme-glass [class*="rank-badge"],
+body.theme-glass [class*="posicion-num"] {
+  color: #1a1500;
+  text-shadow: none;
 }
 
 /* -------------------------------------------------------------------------
-   10. Inputs de búsqueda — igual que inputs normales, sin blur propio
+   10. Inputs de búsqueda
    ------------------------------------------------------------------------- */
 body.theme-glass [class*="search"] input,
 body.theme-glass [class*="-input"] {
-  background: rgba(255, 255, 255, var(--glass-opacity)) !important;
-  border-color: var(--glass-border-soft) !important;
+  background: var(--glass-fill-3) !important;
+  border-color: rgba(255, 255, 255, var(--glass-t3-border-opacity)) !important;
+  color: var(--text);
 }
 
 /* -------------------------------------------------------------------------
-   11. Scrollbar a juego (cosmético)
+   11. Scrollbar a juego
    ------------------------------------------------------------------------- */
 body.theme-glass ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, .25);
+  background: rgba(255, 255, 255, .22);
   border-radius: 10px;
 }
 
 /* =========================================================================
-   12. AVISO DE RENDIMIENTO (modal propio del tema, fuera de body.theme-glass
-   porque debe poder mostrarse ANTES de activar el tema)
+   12. AVISO DE RENDIMIENTO
    ========================================================================= */
 .glass-warning-overlay {
   position: fixed;
   inset: 0;
   z-index: 100000;
-  background: rgba(10, 8, 24, .55);
+  background: rgba(6, 5, 14, .6);
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
   display: flex;
@@ -658,12 +735,12 @@ body.theme-glass ::-webkit-scrollbar-thumb {
 .glass-warning-box {
   width: 100%;
   max-width: 420px;
-  background: rgba(40, 32, 80, .85);
-  backdrop-filter: blur(26px) saturate(160%);
-  -webkit-backdrop-filter: blur(26px) saturate(160%);
-  border: 1px solid rgba(255, 255, 255, .35);
+  background: rgba(18, 15, 36, .92);
+  backdrop-filter: blur(28px) saturate(150%);
+  -webkit-backdrop-filter: blur(28px) saturate(150%);
+  border: 1px solid rgba(255, 255, 255, .18);
   border-radius: 20px;
-  box-shadow: 0 20px 60px rgba(10, 8, 30, .5);
+  box-shadow: 0 24px 64px rgba(4, 3, 12, .55);
   padding: 22px;
   color: #fff;
   font-family: var(--font, 'DM Sans', sans-serif);
@@ -671,11 +748,11 @@ body.theme-glass ::-webkit-scrollbar-thumb {
 }
 
 .glass-warning-box h3 { margin: 0 0 10px; font-size: 17px; display: flex; align-items: center; gap: 8px; }
-.glass-warning-box p { margin: 0 0 10px; font-size: 13.5px; line-height: 1.5; color: rgba(255, 255, 255, .88); }
+.glass-warning-box p { margin: 0 0 10px; font-size: 13.5px; line-height: 1.5; color: rgba(235, 236, 245, .82); }
 
 .glass-warning-checkbox {
   display: flex; align-items: center; gap: 8px;
-  font-size: 12.5px; color: rgba(255, 255, 255, .75);
+  font-size: 12.5px; color: rgba(198, 202, 224, .68);
   margin: 14px 0 18px; cursor: pointer; user-select: none;
 }
 
@@ -690,8 +767,8 @@ body.theme-glass ::-webkit-scrollbar-thumb {
 .glass-warning-actions button:active { transform: scale(.96); }
 
 .glass-warning-cancel {
-  background: rgba(255, 255, 255, .12); color: #fff;
-  border: 1px solid rgba(255, 255, 255, .25) !important;
+  background: rgba(255, 255, 255, .10); color: #fff;
+  border: 1px solid rgba(255, 255, 255, .18) !important;
 }
 
 .glass-warning-confirm {
@@ -706,24 +783,21 @@ body.theme-glass ::-webkit-scrollbar-thumb {
 }
 
 /* =========================================================================
-   13. PERSONALIZAR FONDO — card de ajustes (solo visible con Glass activo,
-   controlado por JS en perfil.html; estilos aislados aquí igualmente)
+   13. PERSONALIZAR FONDO — card de ajustes
    ========================================================================= */
 body.theme-glass .pf2-glass-bg-card {
-  background: rgba(255, 255, 255, var(--glass-opacity));
-  backdrop-filter: blur(var(--glass-blur-soft));
-  -webkit-backdrop-filter: blur(var(--glass-blur-soft));
-  border: 1px solid var(--glass-border-soft);
+  background: var(--glass-fill-2);
+  backdrop-filter: blur(var(--glass-t2-blur));
+  -webkit-backdrop-filter: blur(var(--glass-t2-blur));
+  border: 1px solid rgba(255, 255, 255, var(--glass-t2-border-opacity));
   border-radius: var(--glass-radius-sm);
   padding: 14px;
   margin-top: 14px;
 }
 
-/* Estilos base (funcionan aunque el bloque se muestre antes de recibir
-   la clase theme-glass, ej. primer render) */
 .pf2-glass-bg-card {
-  background: rgba(120, 100, 200, .10);
-  border: 1px solid rgba(120, 100, 200, .25);
+  background: rgba(16, 13, 32, .30);
+  border: 1px solid rgba(120, 100, 200, .22);
   border-radius: 14px;
   padding: 14px;
   margin-top: 14px;
@@ -752,7 +826,7 @@ body.theme-glass .pf2-glass-bg-card {
   cursor: pointer; transition: transform .18s ease, filter .18s ease;
 }
 
-.pf2-glass-preset-btn:hover { transform: translateY(-1px); filter: brightness(1.1); }
+.pf2-glass-preset-btn:hover { transform: translateY(-1px); filter: brightness(1.15); }
 .pf2-glass-preset-btn:active { transform: scale(.96); }
 
 .pf2-glass-bg-preview {
@@ -762,7 +836,7 @@ body.theme-glass .pf2-glass-bg-card {
 }
 
 /* =========================================================================
-   14. DIRECCIÓN DEL DEGRADADO — selector de 4 opciones
+   14. DIRECCIÓN DEL DEGRADADO
    ========================================================================= */
 .pf2-glass-dir-row {
   display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px;
@@ -773,7 +847,7 @@ body.theme-glass .pf2-glass-bg-card {
   border: 1px solid var(--border); background: var(--bg2); color: var(--text);
   cursor: pointer; transition: transform .18s ease, filter .18s ease, background-color .18s ease;
 }
-.pf2-glass-dir-btn:hover { transform: translateY(-1px); filter: brightness(1.1); }
+.pf2-glass-dir-btn:hover { transform: translateY(-1px); filter: brightness(1.15); }
 .pf2-glass-dir-btn.pf2-active {
   background: var(--accent-soft, rgba(124,58,237,.2));
   border-color: var(--accent, #7c3aed);
@@ -782,7 +856,7 @@ body.theme-glass .pf2-glass-bg-card {
 }
 
 /* =========================================================================
-   15. SLIDERS (Intensidad del cristal / Fondo-vibrancy)
+   15. SLIDERS
    ========================================================================= */
 .pf2-glass-slider-block { margin-bottom: 14px; }
 .pf2-glass-slider-label {
@@ -801,14 +875,14 @@ body.theme-glass .pf2-glass-bg-card {
   -webkit-appearance: none; appearance: none;
   width: 18px; height: 18px; border-radius: 50%;
   background: #fff; border: 3px solid var(--accent, #7c3aed);
-  cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,.35);
+  cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,.4);
   transition: transform .15s ease;
 }
 .pf2-glass-slider::-webkit-slider-thumb:active { transform: scale(1.15); }
 .pf2-glass-slider::-moz-range-thumb {
   width: 18px; height: 18px; border-radius: 50%;
   background: #fff; border: 3px solid var(--accent, #7c3aed);
-  cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,.35);
+  cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,.4);
 }
 
 .pf2-glass-slider-ticks {
@@ -817,8 +891,7 @@ body.theme-glass .pf2-glass-bg-card {
 }
 
 /* =========================================================================
-   16. VISTA PREVIA — mini tarjeta que muestra los cambios en borrador,
-   sin tocar el resto de la app hasta pulsar "Aplicar"
+   16. VISTA PREVIA
    ========================================================================= */
 .pf2-glass-preview-wrap { margin-bottom: 14px; }
 .pf2-glass-preview-title {
@@ -831,19 +904,21 @@ body.theme-glass .pf2-glass-bg-card {
   width: 100%; height: 110px; border-radius: 16px;
   overflow: hidden; display: flex; align-items: center; justify-content: center;
   border: 1px solid var(--glass-border-soft, rgba(120,100,200,.3));
+  transition: background .2s ease, filter .2s ease;
 }
 
 .pf2-glass-preview-card {
   width: 76%; height: 60px; border-radius: 12px;
   display: flex; align-items: center; gap: 8px; padding: 0 12px;
-  border: 1px solid rgba(255,255,255,.34);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.35), 0 8px 22px rgba(15,15,40,.28);
+  border: 1px solid rgba(255,255,255,.20);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.28), 0 8px 22px rgba(6,4,20,.4);
   color: #fff; font-size: 12px; font-weight: 600;
+  transition: background .2s ease, backdrop-filter .2s ease;
 }
 
 .pf2-glass-preview-avatar {
   width: 26px; height: 26px; border-radius: 50%; flex-shrink: 0;
-  background: linear-gradient(135deg, rgba(255,255,255,.9), rgba(255,255,255,.4));
+  background: linear-gradient(135deg, rgba(255,255,255,.85), rgba(255,255,255,.35));
 }
 
 .pf2-glass-apply-row {
@@ -871,8 +946,7 @@ body.theme-glass .pf2-glass-bg-card {
 .pf2-glass-btn-ghost:active { transform: scale(.97); }
 
 /* =========================================================================
-   17. SWITCH (movimiento del fondo) — reutiliza el patrón visual de
-   pf2-toggle de la app (fallback propio para que funcione aislado)
+   17. SWITCH
    ========================================================================= */
 .pf2-glass-switch-row {
   display: flex; align-items: center; justify-content: space-between;
@@ -899,11 +973,10 @@ body.theme-glass .pf2-glass-bg-card {
 }
 
 /* =========================================================================
-   18. PANEL "OPCIONES AVANZADAS" — colapsable, agrupa dirección/intensidad/
-   fondo/movimiento/importar-exportar para no saturar la pantalla principal
+   18. PANEL "OPCIONES AVANZADAS"
    ========================================================================= */
 .pf2-glass-advanced {
-  margin-top: 4px; border-top: 1px solid var(--glass-border-soft, rgba(120,100,200,.25));
+  margin-top: 4px; border-top: 1px solid var(--glass-border-soft, rgba(120,100,200,.22));
   padding-top: 10px;
 }
 .pf2-glass-advanced-toggle {
@@ -928,13 +1001,12 @@ body.theme-glass .pf2-glass-bg-card {
 .pf2-glass-io-row { display: flex; gap: 8px; margin-top: 4px; flex-wrap: wrap; }
 .pf2-glass-io-row textarea {
   width: 100%; min-height: 64px; font-size: 11px; font-family: monospace;
-  background: rgba(255,255,255,.06); border: 1px solid var(--glass-border-soft, rgba(120,100,200,.3));
+  background: rgba(255,255,255,.05); border: 1px solid var(--glass-border-soft, rgba(120,100,200,.3));
   border-radius: 10px; color: var(--text); padding: 8px; resize: vertical;
 }
 
 /* =========================================================================
    19. AVISO DE RENDIMIENTO — dispositivo de gama baja detectado
-   (navigator.hardwareConcurrency / deviceMemory bajos)
    ========================================================================= */
 .glass-lowend-banner {
   display: flex; align-items: flex-start; gap: 10px;
