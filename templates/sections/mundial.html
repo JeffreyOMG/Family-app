@@ -2650,6 +2650,8 @@
     const pctPart     = total  > 0 ? Math.round(hechos    / total  * 100) : 0;
     const pctSin      = total  > 0 ? Math.round(sinPron   / total  * 100) : 0;
     const colSpan     = (tab !== 'grupos') ? 9 : 8;
+    const isGrupos    = tab === 'grupos';
+    const isEli       = tab === 'eli';
 
     // ── Comparación real contra el líder (no por puesto, por puntos + desempates oficiales) ──
     const TOTAL_POR_TAB = { global: 104, grupos: 72, eli: 32 };
@@ -2766,9 +2768,6 @@
           <span class="rkv2__prob-label">${probLabel}</span>
         </div>
       </div>`;
-
-    const isGrupos = tab === 'grupos';
-    const isEli    = tab === 'eli';
 
     // Chip de penales solo en global y eli (en grupos no hay penales)
     const penalesChip = (!isGrupos && (r.penales||0) > 0)
