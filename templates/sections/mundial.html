@@ -3335,7 +3335,7 @@
           // Filas de participantes
           const rowsHtml = rows.map(r => {
             const av = r.usuario_foto
-              ? `<img src="${clUrl(_esc(r.usuario_foto),'avatar')}" class="vpron-av-img" loading="lazy" onerror="this.outerHTML='<div class=vpron-av-letter>${_esc((r.usuario_nombre||'?')[0].toUpperCase())}</div>'">`
+              ? `<img src="${_esc(r.usuario_foto)}" class="vpron-av-img" onerror="this.outerHTML='<div class=vpron-av-letter>${_esc((r.usuario_nombre||'?')[0].toUpperCase())}</div>'">`
               : `<div class="vpron-av-letter">${_esc((r.usuario_nombre||'?')[0].toUpperCase())}</div>`;
 
             const fL = _flag(info.local,     info.cod_local  || info.cod_loc  || '');
