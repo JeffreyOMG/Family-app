@@ -2689,7 +2689,10 @@
       };
     }
 
-    const ITER = n > 40 ? 500 : 1200; // cuida el rendimiento si hay muchos participantes
+    // Más iteraciones = menos ruido en probabilidades bajas (ej. 0.08% real
+    // no se puede distinguir de 0% con pocas corridas). Se ajusta según la
+    // cantidad de participantes para no pegarle un golpe fuerte al rendimiento.
+    const ITER = n > 60 ? 3000 : (n > 30 ? 8000 : 15000);
     let c1 = 0, c2 = 0, c3 = 0, c5 = 0;
 
     for (let it = 0; it < ITER; it++) {
@@ -2739,10 +2742,11 @@
   function _rkv2FmtProb(frac, det) {
     if (det) return (frac >= 1 ? 100 : 0) + '%';
     const pct = frac * 100;
-    if (pct <= 0) return '<1%';
-    if (pct < 1) return '<1%';
-    if (pct >= 100) return '>99%';
-    if (pct > 99) return '>99%';
+    if (pct <= 0) return '<0.01%';       // ni en miles de simulaciones ocurrió: prácticamente cero, no "0%" seco
+    if (pct < 1) return pct.toFixed(2) + '%';   // ej. 0.08%, 0.42%
+    if (pct < 10) return pct.toFixed(1) + '%';  // ej. 3.8%, 9.2%
+    if (pct >= 100) return '>99.9%';
+    if (pct > 99.9) return '>99.9%';
     return Math.round(pct) + '%';
   }
 
@@ -2901,7 +2905,7 @@
     statsRow.dataset.statsUid = uid;
     // Círculo SVG de probabilidad
     const circum = 245;
-    const probNum = probVal.startsWith('<') ? 0 : (probVal.startsWith('>') ? 100 : (parseInt(probVal) || 0));
+    const probNum = probVal.startsWith('<') ? 0 : (probVal.startsWith('>') ? 100 : (parseFloat(probVal) || 0));
     const offset = circum - (circum * probNum / 100);
     const circleId = 'rk-circ-' + uid;
     const probCircleHTML = `
