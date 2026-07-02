@@ -1,0 +1,165 @@
+{% from 'components/verified_badge.html' import verified_badge %}
+{% macro render_post(p, usuario=None, comentarios_por_post=None) %}
+<article class="post-card{% if p.get('fijado_admin') %} post-card--admin-pin{% endif %}" id="post-{{ p.id }}" data-fijado="{{ 'true' if p.get('fijado') else 'false' }}" data-fijado-admin="{{ 'true' if p.get('fijado_admin') else 'false' }}">
+  {% if p.get('fijado_admin') %}
+  <div class="post-pin-banner post-pin-banner--admin">
+    <span class="material-symbols-outlined">push_pin</span>
+    <span>Fijado por el administrador</span>
+  </div>
+  {% elif p.get('fijado') %}
+  <div class="post-pin-banner">
+    <span class="material-symbols-outlined">push_pin</span>
+    <span>Publicación fijada</span>
+  </div>
+  {% endif %}
+  <div class="post-header">
+    {% if p.foto %}
+      <img src="{{ p.foto | cl_url('avatar_md') }}" class="user-avatar-img post-av" data-ver-perfil="{{ p.usuario }}" title="Ver perfil de {{ p.nombre }}" style="cursor:pointer;">
+    {% else %}
+      <div class="user-avatar post-av" data-ver-perfil="{{ p.usuario }}" title="Ver perfil de {{ p.nombre }}" style="cursor:pointer;">{{ (p.nombre[0] if p.nombre else 'U')|upper }}</div>
+    {% endif %}
+    <div class="post-meta-block">
+      <span class="post-name" data-ver-perfil="{{ p.usuario }}" title="Ver perfil" style="cursor:pointer;">{{ p.nombre }}{{ verified_badge(p, 'sm') }}</span>
+      <span class="post-handle"><span data-ver-perfil="{{ p.usuario }}" style="cursor:pointer;">@{{ p.usuario }}</span> · {{ p.fecha[:10] }}{% if p.get('visibilidad','general')=='privada' %} <span class="post-badge-privado">Solo miembros</span>{% endif %}</span>
+    </div>
+    {% if usuario and (p.usuario_id == usuario.id or usuario.rol == 'admin') %}
+    <button type="button" class="post-options-btn" title="Opciones"
+      onclick="abrirMenuPost({{ p.id }}, {{ 'true' if usuario and p.usuario_id == usuario.id else 'false' }}, {{ 'true' if p.get('fijado') else 'false' }}, event)">
+      <span class="material-symbols-outlined">more_horiz</span>
+    </button>
+    {% endif %}
+  </div>
+
+  {% if p.texto %}
+  {% set LIMIT = 450 %}
+  {% if p.texto | length <= LIMIT %}
+    <p class="post-text pv-trigger" onclick="abrirPost({{ p.id }})" style="cursor:pointer;">{{ p.texto }}</p>
+  {% else %}
+    {% set raw = p.texto[:LIMIT] %}
+    {% if p.texto[LIMIT] not in (' ', '\n', '\r') %}
+      {% set last_space = [raw.rfind(' '), raw.rfind('\n')] | max %}
+      {% if last_space > 350 %}
+        {% set raw = raw[:last_space] %}
+      {% endif %}
+    {% endif %}
+    <p class="post-text" style="cursor:default;">{{ raw }}<span class="post-text-more" onclick="abrirPost({{ p.id }})">… más</span></p>
+  {% endif %}
+  {% endif %}
+
+  {% if p.get('gif_url') %}
+  <img src="{{ p.gif_url }}" alt="GIF" class="post-gif-img" loading="lazy"
+       onclick="abrirMediaModal('{{ p.gif_url }}','imagen')">
+  {% endif %}
+
+  {% if p.media %}
+    {% if p.media_tipo == 'multi' %}
+      {% set imgs = p.media|fromjson %}
+      <div class="post-carousel">
+        <div class="pc-track">
+          {% for img in imgs %}<div class="pc-slide"><img src="{{ img | cl_url('carousel') }}" class="pc-img img-loading" loading="lazy" onclick="abrirMediaOPost({{ p.id }},'{{ img }}','imagen',event)" onload="this.classList.remove('img-loading');this.classList.add('img-loaded')" onerror="this.classList.remove('img-loading');this.classList.add('img-loaded')"></div>{% endfor %}
+        </div>
+        {% if imgs|length > 1 %}
+        <button class="pc-btn pc-prev" onclick="pcMove(this,-1)">&#8249;</button>
+        <button class="pc-btn pc-next" onclick="pcMove(this,1)">&#8250;</button>
+        <div class="pc-dots">{% for img in imgs %}<span class="pc-dot{% if loop.first %} active{% endif %}"></span>{% endfor %}</div>
+        {% endif %}
+      </div>
+    {% elif p.media_tipo == 'imagen' %}
+      <img src="{{ p.media | cl_url('feed') }}" class="post-media img-loading" loading="lazy" onclick="abrirMediaOPost({{ p.id }},'{{ p.media }}','imagen',event)" onload="this.classList.remove('img-loading');this.classList.add('img-loaded')" onerror="this.classList.remove('img-loading');this.classList.add('img-loaded')">
+    {% elif p.media_tipo == 'video' %}
+      <video class="post-media" preload="none" playsinline poster="{{ p.media | cl_poster }}"><source src="{{ p.media | cl_video('feed') }}"></video>
+    {% endif %}
+  {% endif %}
+
+  {# ── ENCUESTA ── #}
+  {% if p.get('poll') %}{% set poll = p.poll %}{% set ya_voto = poll.mi_voto is not none %}{% set mostrar = ya_voto or poll.expirada %}
+  <div class="post-poll" id="poll-{{ poll.id }}" data-poll="{{ poll.id }}">
+    {% for op in poll.opciones %}
+    <div class="poll-option {% if mostrar %}poll-voted{% endif %} {% if poll.mi_voto == op.id %}poll-my-vote{% endif %}"
+         {% if not mostrar %}onclick="votarEncuesta({{ poll.id }}, {{ op.id }})"{% endif %}
+         data-opcion="{{ op.id }}">
+      {% if op.imagen %}<img src="{{ op.imagen | cl_url('poll_opt') }}" class="poll-opt-img" loading="lazy">{% endif %}
+      <div class="poll-opt-body">
+        <div class="poll-opt-top">
+          <span class="poll-opt-txt">{{ op.texto }}</span>
+          {% if mostrar %}<span class="poll-opt-pct">{{ op.pct }}%</span>{% endif %}
+          {% if poll.mi_voto == op.id %}<span class="poll-check">✓</span>{% endif %}
+        </div>
+        {% if mostrar %}
+        <div class="poll-bar-wrap"><div class="poll-bar" style="width:{{ op.pct }}%"></div></div>
+        {% if not poll.anonima and op.votantes %}
+        <div class="poll-voters">
+          {% for v in op.votantes %}<span class="poll-voter-chip" title="{{ v.nombre }}">{% if v.foto %}<img src="{{ v.foto | cl_url('avatar') }}" class="poll-voter-av" loading="lazy">{% else %}<span class="poll-voter-init">{{ v.nombre[0]|upper }}</span>{% endif %}</span>{% endfor %}
+          {% if op.votos > op.votantes|length %}<span class="poll-voter-more">+{{ op.votos - op.votantes|length }}</span>{% endif %}
+        </div>
+        {% endif %}
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+    <div class="poll-meta">
+      <span class="poll-total">{{ poll.total_votos }} voto{{ 's' if poll.total_votos != 1 else '' }}</span>
+      {% if poll.anonima %}<span class="poll-anon-badge">Anónima</span>{% else %}<span class="poll-anon-badge poll-pub-badge">👥 Pública</span>{% endif %}
+      {% if ya_voto and not poll.expirada %}<button class="poll-change-btn" onclick="cambiarVoto({{ poll.id }})">Editar voto</button>{% endif %}
+      {% if poll.expirada %}<span class="poll-closed">Encuesta cerrada</span>{% endif %}
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="post-actions">
+    <button type="button"
+      class="post-action-btn like-btn {% if p.liked %}liked{% endif %}"
+      onclick="darLike({{ p.id }}, this)">
+      <span class="material-symbols-outlined heart-icon">favorite</span>
+      <span class="like-count">{{ p.total_likes }}</span>
+    </button>
+    <button type="button" class="post-action-btn" onclick="abrirComentarios({{ p.id }})">
+      <span class="material-symbols-outlined">chat_bubble</span>
+      <span id="cmt-count-{{ p.id }}">{{ (comentarios_por_post or {}).get(p.id, [])|length }}</span>
+    </button>
+    <button type="button" class="post-action-btn repost-btn {% if p.get('reposted') %}reposted{% endif %}"
+      onclick="repostear({{ p.id }}, this)">
+      <span class="material-symbols-outlined">repeat</span>
+      <span class="repost-count">{{ p.total_reposts if p.total_reposts is defined else 0 }}</span>
+    </button>
+    <button type="button" class="post-action-btn share-btn"
+      onclick="compartirPost({{ p.id }}, `{{ p.texto|truncate(80)|replace('`','') if p.texto else '' }}`)">
+      <span class="material-symbols-outlined">share</span>
+    </button>
+    <button type="button"
+      class="post-action-btn bookmark-btn {% if p.bookmarked %}saved{% endif %}"
+      style="margin-left:auto;"
+      onclick="toggleBookmark({{ p.id }}, this)">
+      <span class="material-symbols-outlined">bookmark</span>
+    </button>
+  </div>
+
+  {# ── Datos de comentarios como JSON para renderizado jerárquico en JS ── #}
+  {% set todos = (comentarios_por_post or {}).get(p.id, []) %}
+  <script type="application/json" id="cmts-data-{{ p.id }}">{{ todos | tojson }}</script>
+
+  <div id="comentarios-{{ p.id }}" class="comments-section"
+       data-post-id="{{ p.id }}" data-cmts-loaded="0">
+    {# JS renderizará aquí el árbol jerárquico — ver feedRenderComments() #}
+    <div class="feed-cmt-tree" id="feed-cmt-tree-{{ p.id }}"></div>
+
+    <div class="comment-form">
+      {% if usuario and usuario.foto %}
+        <img src="{{ usuario.foto | cl_url('avatar') }}" class="user-avatar-img comment-av">
+      {% else %}
+        <div class="user-avatar comment-av">{{ usuario.nombre[0]|upper if usuario else "?" }}</div>
+      {% endif %}
+      <input type="text" class="comment-input"
+        placeholder="Escribe un comentario..."
+        id="cinput-{{ p.id }}"
+        onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();enviarComentario({{ p.id }},this);}">
+      <button type="button" class="btn-emote-cmt" title="Emotes"
+        onclick="abrirEmotePicker(document.getElementById('cinput-{{ p.id }}'))">⭐</button>
+      <button type="button" class="btn-comment"
+        onclick="enviarComentario({{ p.id }}, document.getElementById('cinput-{{ p.id }}'))">
+        <span class="material-symbols-outlined">arrow_upward</span>
+      </button>
+    </div>
+  </div>
+</article>
+{% endmacro %}

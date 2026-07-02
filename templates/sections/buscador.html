@@ -1,0 +1,1145 @@
+{% from 'components/verified_badge.html' import verified_badge %}
+<section class="section" id="sec-buscador">
+
+  <!-- HEADER -->
+  <div class="bus-header">
+    <h1>
+      <span class="material-symbols-outlined">search</span>
+      Buscador
+    </h1>
+    <p class="bus-header-sub">Encuentra personas, publicaciones, eventos y noticias</p>
+  </div>
+
+  <!-- BARRA DE BÚSQUEDA -->
+  <form method="GET" action="/buscar" id="form-buscar" autocomplete="off">
+    <div class="bus-search-wrap">
+      <span class="material-symbols-outlined bus-search-icon">search</span>
+      <input aria-label="Buscar en toda la app..."
+        type="text" name="q" id="input-bq" class="bus-search-input"
+        placeholder="Buscar en toda la app..."
+        value="{{ busqueda or '' }}"
+        autocomplete="off"
+        autofocus
+      >
+      {% if busqueda %}
+      <button type="button" class="bus-clear-btn" onclick="limpiarBusqueda()" title="Limpiar">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+      {% endif %}
+      <button type="submit" class="bus-submit-btn">
+        <span class="material-symbols-outlined">arrow_forward</span>
+      </button>
+    </div>
+
+    <!-- CHIPS FILTRO -->
+    <div class="bus-chips">
+      {% for val, label, icon in [
+        ('todo','Todo','apps'),
+        ('usuarios','Usuarios','group'),
+        ('publicaciones','Posts','article'),
+        ('eventos','Eventos','event'),
+        ('noticias','Noticias','newspaper')
+      ] %}
+      <label class="bus-chip {% if (filtro_tipo or 'todo')==val %}active{% endif %}" id="chip-{{ val }}">
+        <input aria-label="Tipo" type="radio" name="tipo" value="{{ val }}"
+          {% if (filtro_tipo or 'todo')==val %}checked{% endif %}
+          onchange="mostrarResultados(); this.form.submit()" style="display:none;">
+        <span class="material-symbols-outlined">{{ icon }}</span>
+        {{ label }}
+      </label>
+      {% endfor %}
+      <!-- TAB GALERÍA -->
+      <button type="button" class="bus-chip" id="bus-chip-galeria" onclick="toggleGaleriaTab()">
+        <span class="material-symbols-outlined">photo_library</span>
+        Galería
+      </button>
+      <!-- TAB PRONÓSTICOS -->
+      <button type="button" class="bus-chip" id="bus-chip-pron" onclick="togglePronTab()">
+        <span class="material-symbols-outlined">sports_soccer</span>
+        Pronósticos
+      </button>
+    </div>
+  </form>
+
+  <!-- PANEL GALERÍA (estilo Instagram) -->
+  <div id="bus-galeria-panel" style="display:none;">
+    {% if usuario.rol in ('miembro', 'admin') %}
+    <div class="bus-galeria-subir">
+      <form id="bus-galeria-form" method="POST" action="/subir_archivo" enctype="multipart/form-data" class="bus-galeria-form">
+        <input aria-label="Archivo" type="file" id="bus-archivo-input" name="archivo" accept="image/*,video/*"
+          style="position:absolute;opacity:0;width:1px;height:1px;pointer-events:none;"
+          onchange="document.getElementById('bus-fn').textContent=this.files[0]?.name||''; document.getElementById('bus-galeria-form').submit();" required>
+        <button type="button" class="bus-galeria-upload-btn" onclick="busAbrirGaleria()">
+          <span class="material-symbols-outlined">add_photo_alternate</span>
+          <span>Subir foto / video</span>
+        </button>
+        <span id="bus-fn" style="font-size:.78rem;opacity:.5;"></span>
+      </form>
+    </div>
+    {% endif %}
+
+    {% if archivos %}
+    <div class="bus-ig-grid">
+      {% for a in archivos %}
+      <div class="bus-ig-item" onclick="abrirGaleriaModal('{{ a.ruta }}','{{ a.tipo }}')">
+        {% if a.tipo == 'imagen' %}
+          <img src="{{ a.ruta | cl_url('gallery') }}" alt="" loading="lazy">
+        {% else %}
+          <video src="{{ a.ruta | cl_video('feed') }}" muted preload="none" poster="{{ a.ruta | cl_poster }}"></video>
+          <div class="bus-ig-play"><span class="material-symbols-outlined">play_arrow</span></div>
+        {% endif %}
+        {% if a.tipo == 'video' %}
+        <div class="bus-ig-video-badge"><span class="material-symbols-outlined">videocam</span></div>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="bus-galeria-empty">
+      <span class="material-symbols-outlined">photo_library</span>
+      <p>Aún no hay fotos ni videos. ¡Sube el primero! 📷</p>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- PANEL PRONÓSTICOS -->
+  <div id="bus-pron-panel" style="display:none;">
+    <div class="bus-pron-search-wrap">
+      <div class="bus-search-wrap" style="margin-bottom:10px;">
+        <span class="material-symbols-outlined bus-search-icon">person_search</span>
+        <input aria-label="Buscar pronósticos de todos..." type="text" id="pron-input-q" class="bus-search-input"
+          placeholder="Buscar pronósticos de todos..."
+          autocomplete="off"
+          oninput="debounceSearchPron()">
+        <button type="button" class="bus-clear-btn" id="pron-clear-btn" style="display:none;" onclick="limpiarPronSearch()">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </div>
+
+      <!-- Pestañas Grupos / Eliminatorias -->
+      <div class="pron-fechas-wrap" id="pron-fase-tabs" style="margin-bottom:.5rem;">
+        <button class="pron-fecha-chip active" id="pron-fase-btn-grupos" onclick="pronFase('grupos', this)">⚽ Grupos</button>
+        <button class="pron-fecha-chip" id="pron-fase-btn-eli" onclick="pronFase('eli', this)">🏆 Eliminatorias</button>
+      </div>
+
+      <!-- Sub-tabs Grupos A–L -->
+      <div class="pron-fechas-wrap" id="pron-sub-grupos" style="margin-bottom:.5rem;">
+        <button class="pron-fecha-chip active" onclick="pronSubGrupo('TODOS', this)">Todos</button>
+        <button class="pron-fecha-chip" onclick="pronSubGrupo('A', this)">A</button>
+        <button class="pron-fecha-chip" onclick="pronSubGrupo('B', this)">B</button>
+        <button class="pron-fecha-chip" onclick="pronSubGrupo('C', this)">C</button>
+        <button class="pron-fecha-chip" onclick="pronSubGrupo('D', this)">D</button>
+        <button class="pron-fecha-chip" onclick="pronSubGrupo('E', this)">E</button>
+        <button class="pron-fecha-chip" onclick="pronSubGrupo('F', this)">F</button>
+        <button class="pron-fecha-chip" onclick="pronSubGrupo('G', this)">G</button>
+        <button class="pron-fecha-chip" onclick="pronSubGrupo('H', this)">H</button>
+        <button class="pron-fecha-chip" onclick="pronSubGrupo('I', this)">I</button>
+        <button class="pron-fecha-chip" onclick="pronSubGrupo('J', this)">J</button>
+        <button class="pron-fecha-chip" onclick="pronSubGrupo('K', this)">K</button>
+        <button class="pron-fecha-chip" onclick="pronSubGrupo('L', this)">L</button>
+      </div>
+
+      <!-- Sub-tabs Eliminatorias -->
+      <div class="pron-fechas-wrap" id="pron-sub-eli" style="display:none; margin-bottom:.5rem;">
+        <button class="pron-fecha-chip active" onclick="pronSubEli('TODOS', this)">Todos</button>
+        <button class="pron-fecha-chip" onclick="pronSubEli('16avos', this)">16avos</button>
+        <button class="pron-fecha-chip" onclick="pronSubEli('Octavos', this)">Octavos</button>
+        <button class="pron-fecha-chip" onclick="pronSubEli('Cuartos', this)">Cuartos</button>
+        <button class="pron-fecha-chip" onclick="pronSubEli('Semis', this)">Semis</button>
+        <button class="pron-fecha-chip" onclick="pronSubEli('Final', this)">Final</button>
+      </div>
+    </div>
+    <div id="pron-loading" style="display:none;">
+      <div class="pron-skeleton-list">
+        <div class="pron-sk-item"><div class="pron-sk-av skeleton"></div><div class="pron-sk-body"><div class="pron-sk-line skeleton"></div><div class="pron-sk-line pron-sk-short skeleton"></div></div></div>
+        <div class="pron-sk-item"><div class="pron-sk-av skeleton"></div><div class="pron-sk-body"><div class="pron-sk-line skeleton"></div><div class="pron-sk-line pron-sk-short skeleton"></div></div></div>
+        <div class="pron-sk-item"><div class="pron-sk-av skeleton"></div><div class="pron-sk-body"><div class="pron-sk-line skeleton"></div><div class="pron-sk-line pron-sk-short skeleton"></div></div></div>
+      </div>
+    </div>
+    <div id="pron-results"></div>
+    <div id="pron-empty" style="display:none;" class="bus-empty">
+      <div class="bus-empty-icon"><span class="material-symbols-outlined">sports_soccer</span></div>
+      <h3>Sin pronósticos</h3>
+      <p>No hay pronósticos calificados para mostrar aún.</p>
+    </div>
+  </div>
+
+  <!-- PANEL RESULTADOS -->
+  <div id="bus-resultados-panel">
+    {% if resultados is not none %}
+
+      {% if busqueda %}
+      <div class="bus-results-meta">
+        <span class="bus-count">{{ resultados|length }}</span>
+        resultado{{ 's' if resultados|length != 1 else '' }} para
+        <strong>"{{ busqueda }}"</strong>
+      </div>
+      {% endif %}
+
+      {% if resultados %}
+        {% set tipo_config = {
+          'Usuario':     ('group',   'bus-icon-blue',   'blue'),
+          'Publicación': ('article', 'bus-icon-purple', 'purple'),
+          'Evento':      ('event',   'bus-icon-green',  'green'),
+          'Noticia':     ('newspaper','bus-icon-orange','orange')
+        } %}
+        {% for tipo_grp in ['Usuario','Publicación','Evento','Noticia'] %}
+          {% set items = resultados|selectattr('tipo','equalto',tipo_grp)|list %}
+          {% if items %}
+          <div class="bus-group">
+            <div class="bus-group-header">
+              {% set cfg = tipo_config[tipo_grp] %}
+              <span class="material-symbols-outlined bus-group-icon {{ cfg[1] }}">{{ cfg[0] }}</span>
+              <span class="bus-group-label">{{ tipo_grp }}s</span>
+              <span class="bus-group-count">{{ items|length }}</span>
+            </div>
+
+            <div class="bus-group-items">
+              {% for r in items %}
+              <div class="bus-result-item{% if r.tipo == 'Usuario' %} bus-result-usuario{% endif %}"
+                {% if r.tipo == 'Usuario' and r.get('usuario') %}data-ver-perfil="{{ r.usuario }}" title="Ver perfil de {{ r.titulo }}" style="cursor:pointer;"{% endif %}>
+
+                <!-- Icono/Avatar -->
+                {% if r.tipo == 'Usuario' %}
+                  {% if r.foto %}
+                    <img src="{{ r.foto | cl_url('avatar_md') }}" class="bus-avatar-img" alt="{{ r.titulo }}" loading="lazy">
+                  {% else %}
+                    <div class="bus-avatar-letter {{ cfg[1] }}">{{ r.titulo[0]|upper }}</div>
+                  {% endif %}
+                {% else %}
+                  <div class="bus-tipo-icon {{ cfg[1] }}">
+                    <span class="material-symbols-outlined">{{ cfg[0] }}</span>
+                  </div>
+                {% endif %}
+
+                <!-- Contenido -->
+                <div class="bus-item-info">
+                  <div class="bus-item-title">{{ r.titulo }}{% if r.tipo == 'Usuario' %}{{ verified_badge(r, 'sm') }}{% endif %}</div>
+                  <div class="bus-item-desc">{{ r.descripcion }}</div>
+                  {% if r.get('fecha') %}
+                    <div class="bus-item-meta">
+                      <span class="material-symbols-outlined">schedule</span>
+                      {{ r.fecha }}
+                      {% if r.get('autor') %}· {{ r.autor }}{% endif %}
+                    </div>
+                  {% endif %}
+                </div>
+
+                <!-- Badge tipo -->
+                <span class="bus-badge bus-badge-{{ tipo_grp|lower|replace('ó','o')|replace('ú','u')|replace('é','e') }}">{{ r.tipo }}</span>
+
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+          {% endif %}
+        {% endfor %}
+
+      {% elif busqueda %}
+      <!-- SIN RESULTADOS -->
+      <div class="bus-empty">
+        <div class="bus-empty-icon">
+          <span class="material-symbols-outlined">search_off</span>
+        </div>
+        <h3>Sin resultados</h3>
+        <p>No encontramos nada para <strong>"{{ busqueda }}"</strong></p>
+        <div class="bus-sugerencias">
+          <p>Sugerencias:</p>
+          <ul>
+            <li>Revisa que no haya errores ortográficos</li>
+            <li>Prueba con términos más generales</li>
+            <li>Cambia el filtro de categoría</li>
+          </ul>
+        </div>
+      </div>
+      {% endif %}
+
+    {% endif %}
+  </div>
+
+</section>
+
+<!-- MODAL VISOR GALERÍA -->
+<div id="bus-galeria-modal" onclick="this.style.display='none'"
+  style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:9999;justify-content:center;align-items:center;cursor:zoom-out;">
+  <div id="bus-galeria-modal-content" style="max-width:92vw;max-height:92vh;" onclick="event.stopPropagation()"></div>
+  <button onclick="document.getElementById('bus-galeria-modal').style.display='none'"
+    style="position:absolute;top:16px;right:20px;background:rgba(255,255,255,.15);border:none;color:#fff;width:38px;height:38px;border-radius:50%;cursor:pointer;font-size:20px;display:flex;align-items:center;justify-content:center;">✕</button>
+</div>
+
+<style>
+/* ---- HEADER ---- */
+.bus-header { margin-bottom: 20px; }
+.bus-header h1 {
+  display: flex; align-items: center; gap: 10px;
+  font-size: 1.5rem; font-weight: 700; margin-bottom: 4px;
+}
+.bus-header h1 .material-symbols-outlined { font-size: 26px; color: var(--accent, #0095f6); }
+.bus-header-sub { font-size: .85rem; color: var(--text2, #666); margin-left: 36px; }
+
+/* ---- BARRA ---- */
+.bus-search-wrap {
+  display: flex; align-items: center; gap: 0;
+  background: var(--card, #fff);
+  border: 1.5px solid var(--border, #dbdbdb);
+  border-radius: 14px;
+  padding: 6px 6px 6px 16px;
+  margin-bottom: 12px;
+  transition: border-color .2s, box-shadow .2s;
+}
+.bus-search-wrap:focus-within {
+  border-color: var(--accent, #0095f6);
+  box-shadow: 0 0 0 3px rgba(0,149,246,.1);
+}
+.bus-search-icon {
+  font-size: 20px; color: var(--text3, #999);
+  flex-shrink: 0; margin-right: 8px;
+}
+.bus-search-input {
+  flex: 1; background: none; border: none; outline: none;
+  font-size: .95rem; color: var(--text, #111);
+  font-family: inherit; padding: 6px 0;
+}
+.bus-search-input::placeholder { color: var(--text3, #999); }
+.bus-clear-btn {
+  background: none; border: none; cursor: pointer;
+  color: var(--text3); padding: 4px;
+  display: flex; align-items: center;
+  border-radius: 6px; transition: color .15s, background .15s;
+}
+.bus-clear-btn:hover { color: var(--text); background: var(--bg2, #f5f5f5); }
+.bus-clear-btn .material-symbols-outlined { font-size: 18px; }
+.bus-submit-btn {
+  background: var(--accent-gradient, linear-gradient(135deg,#ff6b9d,#ff4d8d,#c9236a)); color: #fff;
+  border: none; cursor: pointer;
+  width: 36px; height: 36px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; transition: opacity .15s;
+  margin-left: 4px;
+}
+.bus-submit-btn:hover { opacity: .8; }
+.bus-submit-btn .material-symbols-outlined { font-size: 18px; }
+
+/* ---- CHIPS ---- */
+.bus-chips {
+  display: flex; gap: 8px; flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+.bus-chip {
+  display: flex; align-items: center; gap: 5px;
+  padding: 6px 14px;
+  border-radius: 20px; cursor: pointer;
+  font-size: .82rem; font-weight: 500;
+  border: 1px solid var(--border, #dbdbdb);
+  background: var(--card, #fff);
+  color: var(--text2, #666);
+  transition: all .15s; user-select: none;
+  font-family: inherit;
+}
+.bus-chip .material-symbols-outlined { font-size: 15px; }
+.bus-chip:hover {
+  border-color: var(--accent, #0095f6);
+  color: var(--accent, #0095f6);
+}
+.bus-chip.active {
+  background: var(--accent-gradient, linear-gradient(135deg,#ff6b9d,#ff4d8d,#c9236a));
+  border-color: var(--accent, #ff4d8d);
+  color: #fff;
+  box-shadow: 0 2px 10px var(--accent-border); font-weight: 600;
+}
+
+/* ---- META RESULTADOS ---- */
+.bus-results-meta {
+  font-size: .88rem; color: var(--text2, #666);
+  margin-bottom: 16px; display: flex; align-items: center; gap: 5px;
+}
+.bus-count {
+  font-weight: 700; color: var(--text);
+  background: var(--card2, #f5f5f5); border: 1px solid var(--border);
+  border-radius: 20px; padding: 1px 10px; font-size: .8rem;
+}
+
+/* ---- GRUPOS RESULTADO ---- */
+.bus-group { margin-bottom: 24px; }
+.bus-group-header {
+  display: flex; align-items: center; gap: 8px;
+  margin-bottom: 10px; padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+.bus-group-icon { font-size: 18px; }
+.bus-group-label { font-weight: 700; font-size: .9rem; flex: 1; }
+.bus-group-count {
+  font-size: .75rem; font-weight: 600; color: var(--text2);
+  background: var(--card2); border: 1px solid var(--border);
+  border-radius: 12px; padding: 1px 8px;
+}
+.bus-group-items {
+  background: var(--card, #fff); border: 1px solid var(--border);
+  border-radius: 12px; overflow: hidden;
+}
+.bus-result-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 16px; border-bottom: 1px solid var(--border);
+  transition: background .12s;
+}
+.bus-result-item:last-child { border-bottom: none; }
+.bus-result-item:hover { background: var(--bg2, #f9f9f9); }
+.bus-avatar-img {
+  width: 40px; height: 40px; border-radius: 50%;
+  object-fit: cover; border: 1.5px solid var(--border); flex-shrink: 0;
+}
+.bus-avatar-letter {
+  width: 40px; height: 40px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: .9rem; flex-shrink: 0; color: #fff;
+}
+.bus-tipo-icon {
+  width: 40px; height: 40px; border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.bus-tipo-icon .material-symbols-outlined { font-size: 20px; font-variation-settings: 'FILL' 1; }
+.bus-icon-blue   { background: rgba(0,149,246,.14); color: #0095f6; }
+.bus-icon-purple { background: rgba(156,39,176,.13); color: #9c27b0; }
+.bus-icon-green  { background: rgba(0,166,80,.13);  color: #00a650; }
+.bus-icon-orange { background: rgba(255,152,0,.13); color: #ff9800; }
+.bus-item-info { flex: 1; min-width: 0; }
+.bus-item-title { font-size: .9rem; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bus-item-desc  { font-size: .78rem; color: var(--text2); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bus-item-meta  { display: flex; align-items: center; gap: 4px; font-size: .73rem; color: var(--text3); margin-top: 3px; }
+.bus-item-meta .material-symbols-outlined { font-size: 13px; }
+.bus-badge {
+  flex-shrink: 0; font-size: .7rem; font-weight: 700; padding: 2px 8px;
+  border-radius: 10px;
+}
+.bus-badge-usuario     { background: rgba(0,149,246,.12); color: #0095f6; }
+.bus-badge-publicacion { background: rgba(156,39,176,.12); color: #9c27b0; }
+.bus-badge-evento      { background: rgba(0,166,80,.12); color: #00a650; }
+.bus-badge-noticia     { background: rgba(255,152,0,.12); color: #ff9800; }
+
+/* ---- SIN RESULTADOS ---- */
+.bus-empty {
+  text-align: center; padding: 40px 20px;
+  background: var(--card); border: 1px solid var(--border); border-radius: 14px;
+}
+.bus-empty-icon {
+  width: 64px; height: 64px; border-radius: 18px;
+  background: var(--bg2); border: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 14px;
+}
+.bus-empty-icon .material-symbols-outlined { font-size: 30px; color: var(--text2); }
+.bus-empty h3 { font-size: 1rem; margin-bottom: 6px; }
+.bus-empty > p { font-size: .88rem; color: var(--text2); margin-bottom: 16px; }
+.bus-sugerencias {
+  background: var(--bg2, #f5f5f5);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px 20px;
+  font-size: .83rem; color: var(--text2);
+}
+.bus-sugerencias p { font-weight: 600; margin-bottom: 8px; color: var(--text); }
+.bus-sugerencias ul { padding-left: 18px; line-height: 2; }
+
+/* ---- GALERÍA INSTAGRAM STYLE ---- */
+.bus-galeria-subir {
+  margin-bottom: 14px;
+}
+.bus-galeria-form {
+  display: flex; align-items: center; gap: 10px;
+}
+.bus-galeria-upload-btn {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 9px 16px;
+  background: var(--card); border: 1.5px dashed var(--border);
+  border-radius: 10px; cursor: pointer; font-size: .85rem;
+  font-weight: 600; color: var(--text2); font-family: inherit;
+  transition: border-color .15s, color .15s;
+}
+.bus-galeria-upload-btn:hover {
+  border-color: var(--accent); color: var(--accent);
+}
+.bus-galeria-upload-btn .material-symbols-outlined { font-size: 20px; }
+
+/* GRID INSTAGRAM */
+.bus-ig-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 3px;
+}
+@media (min-width: 600px) {
+  .bus-ig-grid { grid-template-columns: repeat(4, 1fr); gap: 4px; }
+}
+@media (min-width: 900px) {
+  .bus-ig-grid { grid-template-columns: repeat(5, 1fr); gap: 4px; }
+}
+.bus-ig-item {
+  position: relative; aspect-ratio: 1;
+  overflow: hidden; cursor: pointer; background: var(--card2);
+}
+.bus-ig-item img,
+.bus-ig-item video {
+  width: 100%; height: 100%; object-fit: cover;
+  display: block; transition: transform .22s ease;
+}
+.bus-ig-item:hover img,
+.bus-ig-item:hover video { transform: scale(1.04); }
+.bus-ig-play {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(0,0,0,.25); opacity: 0;
+  transition: opacity .18s;
+}
+.bus-ig-item:hover .bus-ig-play { opacity: 1; }
+.bus-ig-play .material-symbols-outlined {
+  font-size: 42px; color: #fff;
+  filter: drop-shadow(0 2px 8px rgba(0,0,0,.5));
+  font-variation-settings: 'FILL' 1;
+}
+.bus-ig-video-badge {
+  position: absolute; top: 6px; right: 6px;
+  background: rgba(0,0,0,.55); border-radius: 6px;
+  padding: 2px 6px; display: flex; align-items: center;
+}
+.bus-ig-video-badge .material-symbols-outlined {
+  font-size: 14px; color: #fff;
+}
+.bus-galeria-empty {
+  text-align: center; padding: 60px 20px;
+  color: var(--text2);
+}
+.bus-galeria-empty .material-symbols-outlined { font-size: 52px; opacity: .3; display: block; margin-bottom: 10px; }
+.bus-galeria-empty p { font-size: .9rem; opacity: .6; }
+
+/* ---- DARK MODE ---- */
+body.dark-mode .bus-search-wrap {
+  background: var(--card); border-color: var(--border);
+}
+body.dark-mode .bus-search-input { color: var(--text); }
+body.dark-mode .bus-submit-btn { background: var(--accent-gradient, linear-gradient(135deg,#ff6b9d,#ff4d8d,#c9236a)); color: #fff; }
+body.dark-mode .bus-chip {
+  background: var(--card); border-color: var(--border); color: var(--text2);
+}
+body.dark-mode .bus-chip.active {
+  background: var(--accent-gradient, linear-gradient(135deg,#ff6b9d,#ff4d8d,#c9236a)); border-color: var(--accent); color: #fff;
+}
+body.dark-mode .bus-group-items { background: var(--card); border-color: var(--border); }
+body.dark-mode .bus-result-item { border-bottom-color: var(--border); }
+body.dark-mode .bus-result-item:hover { background: var(--card2); }
+body.dark-mode .bus-item-title { color: var(--text); }
+body.dark-mode .bus-group-count { background: var(--card2); border-color: var(--border); }
+body.dark-mode .bus-empty { background: var(--card); border-color: var(--border); }
+body.dark-mode .bus-empty-icon,
+body.dark-mode .bus-sugerencias { background: var(--card2); border-color: var(--border); }
+body.dark-mode .bus-avatar-img { border-color: var(--border); }
+body.dark-mode .bus-clear-btn:hover { background: var(--card2); }
+body.dark-mode .bus-galeria-upload-btn { background: var(--card); border-color: var(--border); color: var(--text2); }
+body.dark-mode .bus-galeria-empty { color: var(--text2); }
+</style>
+
+<script>
+function limpiarBusqueda() {
+  document.getElementById('input-bq').value = '';
+  document.getElementById('form-buscar').submit();
+}
+
+function mostrarResultados() {
+  // Al activar un filtro normal, ocultar galería
+  document.getElementById('bus-galeria-panel').style.display = 'none';
+  document.getElementById('bus-resultados-panel').style.display = '';
+  document.getElementById('bus-chip-galeria').classList.remove('active');
+}
+
+function toggleGaleriaTab() {
+  const panel = document.getElementById('bus-galeria-panel');
+  const resPanel = document.getElementById('bus-resultados-panel');
+  const chipGal = document.getElementById('bus-chip-galeria');
+  const isOpen = panel.style.display !== 'none';
+
+  if (isOpen) {
+    // Cerrar galería, volver a resultados
+    panel.style.display = 'none';
+    resPanel.style.display = '';
+    chipGal.classList.remove('active');
+    // Reactivar chip "Todo"
+    document.querySelectorAll('.bus-chip').forEach(c => c.classList.remove('active'));
+    document.getElementById('chip-todo').classList.add('active');
+  } else {
+    // Abrir galería
+    _cerrarPronPanel();
+    panel.style.display = 'block';
+    resPanel.style.display = 'none';
+    chipGal.classList.add('active');
+    // Desactivar otros chips
+    document.querySelectorAll('.bus-chip:not(#bus-chip-galeria)').forEach(c => c.classList.remove('active'));
+  }
+}
+
+function abrirGaleriaModal(src, tipo) {
+  const modal = document.getElementById('bus-galeria-modal');
+  const content = document.getElementById('bus-galeria-modal-content');
+  content.innerHTML = tipo === 'imagen'
+    ? `<img src="${clUrl(src,'comp_full')}" style="max-width:92vw;max-height:90vh;border-radius:12px;display:block;">`
+    : `<video src="${src}" controls autoplay style="max-width:92vw;max-height:90vh;border-radius:12px;"></video>`;
+  modal.style.display = 'flex';
+}
+
+function buscarCategoria(tipo) {
+  const form = document.getElementById('form-buscar');
+  const radio = form.querySelector(`input[name="tipo"][value="${tipo}"]`);
+  if (radio) radio.checked = true;
+  form.submit();
+}
+
+document.getElementById('input-bq')?.addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    mostrarResultados();
+    document.getElementById('form-buscar').submit();
+  }
+});
+
+// Compatibilidad con WebView de Android — el label+display:none no siempre
+// dispara el selector de archivos en APKs. Usamos .click() explícito sobre el input.
+function busAbrirGaleria() {
+  var inp = document.getElementById('bus-archivo-input');
+  if (!inp) return;
+  setTimeout(function() { inp.click(); }, 50);
+}
+</script>
+
+<!-- ══ PANEL PRONÓSTICOS — estilos ══════════════════════════════════════ -->
+<style>
+.bus-pron-search-wrap { margin-bottom: 14px; }
+.pron-fechas-wrap {
+  display: flex; flex-wrap: wrap; gap: 6px;
+  padding: 4px 0 8px; overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.pron-fechas-wrap::-webkit-scrollbar { display: none; }
+.pron-fecha-chip {
+  padding: 5px 13px; border-radius: 20px; font-size: 12px; font-weight: 600;
+  border: 1px solid var(--border); background: var(--card); color: var(--text2);
+  cursor: pointer; transition: all .15s; white-space: nowrap; flex-shrink: 0;
+}
+.pron-fecha-chip.active {
+  background: var(--accent); border-color: var(--accent); color: #fff;
+}
+.pron-fecha-chip:hover:not(.active) { background: var(--bg2); }
+
+/* Skeleton */
+.pron-skeleton-list { display: flex; flex-direction: column; gap: 10px; }
+.pron-sk-item { display: flex; gap: 10px; align-items: center; padding: 14px 16px; background: var(--card); border-radius: 14px; border: 1px solid var(--border); }
+.pron-sk-av { width: 38px; height: 38px; border-radius: 50%; flex-shrink: 0; }
+.pron-sk-body { flex: 1; display: flex; flex-direction: column; gap: 8px; }
+.pron-sk-line { height: 12px; border-radius: 6px; }
+.pron-sk-short { width: 50%; }
+.skeleton { background: linear-gradient(90deg, var(--bg2) 25%, var(--border) 50%, var(--bg2) 75%); background-size: 200% 100%; animation: sk-shimmer 1.4s infinite; }
+@keyframes sk-shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+
+/* ── Card partido colapsable ── */
+.pron-partido-group {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 16px; overflow: hidden; margin-bottom: 12px;
+  box-shadow: 0 1px 4px rgba(0,0,0,.04);
+  transition: box-shadow .2s;
+}
+.pron-partido-group:hover { box-shadow: 0 3px 12px rgba(0,0,0,.08); }
+
+/* Header clickable */
+.pron-partido-header {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 14px 10px;
+  background: var(--bg2);
+  cursor: pointer;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: background .15s;
+}
+.pron-partido-header:active { background: var(--border); }
+
+/* Layout equipo con bandera */
+.pron-match-body {
+  flex: 1; min-width: 0;
+  display: flex; align-items: center; gap: 8px;
+}
+.pron-teams-wrap {
+  flex: 1; display: flex; align-items: center; gap: 6px; min-width: 0;
+}
+.pron-team {
+  display: flex; align-items: center; gap: 5px;
+  min-width: 0; flex: 1;
+}
+.pron-team-flag {
+  flex-shrink: 0; line-height: 1; display: flex; align-items: center;
+}
+.pron-flag-img {
+  width: 26px; height: 19px;
+  object-fit: contain;
+  border-radius: 2px;
+  display: block;
+}
+.pron-team-name {
+  font-size: 12px; font-weight: 700; color: var(--text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.pron-vs {
+  font-size: 10px; font-weight: 800; color: var(--text3);
+  flex-shrink: 0; padding: 0 2px;
+}
+.pron-partido-score-box {
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  flex-shrink: 0;
+}
+.pron-partido-score {
+  background: var(--card); border: 1.5px solid var(--border);
+  border-radius: 8px; padding: 4px 10px;
+  font-size: 15px; font-weight: 900; color: var(--text);
+  white-space: nowrap;
+}
+.pron-score-label { font-size: 9px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: .4px; }
+
+/* Meta row (grupo, fecha, contador, chevron) */
+.pron-meta-row {
+  display: flex; align-items: center; gap: 6px; margin-top: 5px;
+}
+.pron-grupo-badge {
+  font-size: 10px; font-weight: 700; padding: 2px 8px;
+  border-radius: 10px; background: rgba(var(--accent-rgb,20,184,166),.12);
+  color: var(--accent); border: 1px solid rgba(var(--accent-rgb,20,184,166),.22);
+  white-space: nowrap;
+}
+.pron-count-badge {
+  font-size: 10px; font-weight: 600; padding: 2px 7px;
+  border-radius: 10px; background: var(--card); border: 1px solid var(--border);
+  color: var(--text3); margin-left: auto; white-space: nowrap;
+}
+.pron-chevron {
+  font-size: 16px; color: var(--text3); flex-shrink: 0;
+  transition: transform .25s; display: flex; align-items: center;
+}
+.pron-partido-group.open .pron-chevron { transform: rotate(180deg); }
+
+/* Body rows (colapsable) */
+.pron-rows-body {
+  display: none; border-top: 1px solid var(--border);
+}
+.pron-partido-group.open .pron-rows-body { display: block; }
+
+/* Fila de usuario */
+.pron-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 14px; border-bottom: 1px solid var(--border);
+  transition: background .15s;
+}
+.pron-row:last-child { border-bottom: none; }
+.pron-row:hover { background: var(--bg2); }
+.pron-av-img { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; flex-shrink: 0; border: 1.5px solid var(--border); }
+.pron-av-letter {
+  width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0;
+  background: var(--accent); color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 700;
+}
+.pron-user-info { flex: 1; min-width: 0; }
+.pron-user-name { font-size: 13px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pron-user-handle { font-size: 11px; color: var(--text3); }
+.pron-pred {
+  display: flex; flex-direction: column; align-items: flex-end; gap: 3px;
+  flex-shrink: 0;
+}
+.pron-pred-score {
+  background: var(--bg2); border: 1.5px solid var(--border);
+  border-radius: 7px; padding: 3px 9px; font-size: 13px; font-weight: 800;
+  color: var(--text); white-space: nowrap;
+  display: flex; align-items: center; gap: 4px;
+}
+.pron-pred-score .pron-flag-img { width: 20px; height: 14px; }
+.pron-pts {
+  font-size: 10px; font-weight: 800; padding: 2px 7px;
+  border-radius: 10px; min-width: 32px; text-align: center; white-space: nowrap;
+}
+.pron-pts-3 { background: rgba(22,163,74,.15); color: #16a34a; }
+.pron-pts-1 { background: rgba(234,179,8,.15);  color: #ca8a04; }
+.pron-pts-0 { background: rgba(239,68,68,.12);  color: #dc2626; }
+.pron-pts-4 { background: rgba(99,102,241,.15); color: #6366f1; }
+
+/* Penales */
+.pron-pen-res-badge {
+  font-size: 9px; font-weight: 700; padding: 1px 5px; border-radius: 6px;
+  margin-top: 2px; text-align: center; white-space: nowrap;
+  background: rgba(99,102,241,.12); color: #6366f1;
+  border: 1px solid rgba(99,102,241,.25);
+}
+.pron-pen-tag {
+  font-size: 9px; font-weight: 700; padding: 2px 6px;
+  border-radius: 8px; white-space: nowrap; text-align: center;
+}
+.pron-pen-ok   { background: rgba(22,163,74,.15); color: #16a34a; }
+.pron-pen-fail { background: rgba(239,68,68,.12); color: #dc2626; }
+.pron-pen-neutral { background: rgba(99,102,241,.12); color: #6366f1; }
+
+/* Mobile tweaks */
+@media (max-width: 400px) {
+  .pron-team-name { font-size: 11px; }
+  .pron-partido-score { font-size: 13px; padding: 3px 8px; }
+  .pron-flag-img { width: 22px; height: 16px; }
+  .pron-partido-header { padding: 10px 12px 8px; gap: 8px; }
+  .pron-row { padding: 9px 12px; gap: 8px; }
+}
+</style>
+
+<!-- ══ PANEL PRONÓSTICOS — JS ════════════════════════════════════════════ -->
+<script>
+(function() {
+  let _pronData  = null;
+  let _fechaAct  = '';
+  let _queryAct  = '';
+  let _pronTimer = null;
+  let _pronFase  = 'grupos';
+  let _pronSubG  = 'TODOS';
+  let _pronSubE  = 'TODOS';
+
+  // ── Mapa nombre de equipo → código FIFA (para /static/banderas/XXX.png) ──
+  // Códigos basados exactamente en los archivos disponibles en /static/banderas/
+  // ALG ARG AUS AUT BEL BIH BRA CAN CIV COD COL CPV CRO CUW CZE ECU EGY ENG
+  // ESP FRA GER GHA HAI IRN IRQ JOR JPN KOR KSA MAR MEX NED NOR NZL PAN PAR
+  // POR QAT RSA SCO SEN SUI SWE TUN TUR URU USA UZB
+  const _NOMBRE_A_FIFA = {
+    // América
+    'Argentina':'ARG',
+    'Brazil':'BRA','Brasil':'BRA',
+    'Mexico':'MEX','México':'MEX',
+    'USA':'USA','United States':'USA','Estados Unidos':'USA',
+    'Canada':'CAN','Canadá':'CAN',
+    'Ecuador':'ECU',
+    'Uruguay':'URU',
+    'Colombia':'COL',
+    'Paraguay':'PAR',
+    'Panama':'PAN','Panamá':'PAN',
+    'Haiti':'HAI','Haití':'HAI',
+    'Costa Rica':'CRC',
+    'Honduras':'HON',
+    'Jamaica':'JAM',
+    'Trinidad y Tobago':'TRI',
+    'Guatemala':'GUA',
+    'El Salvador':'SLV',
+    'Venezuela':'VEN',
+    'Bolivia':'BOL',
+    'Chile':'CHI',
+    'Peru':'PER','Perú':'PER',
+    'New Zealand':'NZL','Nueva Zelanda':'NZL',
+    // Europa
+    'France':'FRA','Francia':'FRA',
+    'Germany':'GER','Alemania':'GER',
+    'Spain':'ESP','España':'ESP',
+    'England':'ENG',
+    'Portugal':'POR',
+    'Netherlands':'NED','Países Bajos':'NED',
+    'Belgium':'BEL','Bélgica':'BEL',
+    'Italy':'ITA','Italia':'ITA',
+    'Croatia':'CRO','Croacia':'CRO',
+    'Switzerland':'SUI','Suiza':'SUI',
+    'Denmark':'DEN','Dinamarca':'DEN',
+    'Sweden':'SWE','Suecia':'SWE',
+    'Poland':'POL','Polonia':'POL',
+    'Serbia':'SRB',
+    'Scotland':'SCO','Escocia':'SCO',
+    'Wales':'WAL','Gales':'WAL',
+    'Turkey':'TUR','Turquía':'TUR',
+    'Ukraine':'UKR','Ucrania':'UKR',
+    'Austria':'AUT',
+    'Norway':'NOR','Noruega':'NOR',
+    'Czech Republic':'CZE','República Checa':'CZE',
+    'Slovakia':'SVK','Eslovaquia':'SVK',
+    'Romania':'ROU','Rumania':'ROU',
+    'Hungary':'HUN','Hungría':'HUN',
+    'Bosnia':'BIH','Bosnia y Herzegovina':'BIH','Bosnia y Herz.':'BIH',
+      'Bosnia and Herzegovina':'BIH',
+    'Curaçao':'CUW','Curazao':'CUW',
+    // Asia / Medio Oriente
+    'Japan':'JPN','Japón':'JPN',
+    'South Korea':'KOR','Corea del Sur':'KOR',
+    'Australia':'AUS',
+    'Qatar':'QAT','Catar':'QAT',
+    'Saudi Arabia':'KSA','Arabia Saudita':'KSA',
+    'Iran':'IRN','Irán':'IRN',
+    'Iraq':'IRQ','Irak':'IRQ',
+    'Jordan':'JOR','Jordania':'JOR',
+    'Uzbekistan':'UZB','Uzbekistán':'UZB',
+    'China':'CHN','India':'IND','Indonesia':'IDN',
+    // África
+    'Morocco':'MAR','Marruecos':'MAR',
+    'Senegal':'SEN',
+    'Ghana':'GHA',
+    'Nigeria':'NGA',
+    'Egypt':'EGY','Egipto':'EGY',
+    'Algeria':'ALG','Argelia':'ALG',
+    'Ivory Coast':'CIV','Costa de Marfil':'CIV',
+    'South Africa':'RSA','Sudáfrica':'RSA',
+    'Tunisia':'TUN','Túnez':'TUN',
+    'Cameroon':'CMR','Camerún':'CMR',
+    'Kenya':'KEN','Kenia':'KEN',
+    'Congo':'COD','DR Congo':'COD',
+    'Cape Verde':'CPV','Cabo Verde':'CPV',
+  };
+
+  function _flag(nombre, codFifa) {
+    // Primero usar el código FIFA directo si viene de la API
+    let fifa = codFifa || '';
+    if (!fifa && nombre) {
+      // Buscar exacto
+      fifa = _NOMBRE_A_FIFA[nombre] || '';
+      if (!fifa) {
+        // Buscar case-insensitive
+        const lower = nombre.toLowerCase();
+        for (const [k, v] of Object.entries(_NOMBRE_A_FIFA)) {
+          if (k.toLowerCase() === lower) { fifa = v; break; }
+        }
+      }
+    }
+    if (!fifa || fifa === 'xx') return '<span style="font-size:18px;line-height:1;">⚽</span>';
+    const esc = s => String(s||'').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    return `<img class="pron-flag-img" loading="lazy" decoding="async" src="/static/banderas/${fifa}.png" alt="${esc(nombre)}">`;
+  }
+
+  function _cerrarOtrosPaneles() {
+    document.getElementById('bus-galeria-panel').style.display = 'none';
+    document.getElementById('bus-resultados-panel').style.display = 'none';
+    document.querySelectorAll('.bus-chip').forEach(c => c.classList.remove('active'));
+  }
+
+  window._cerrarPronPanel = function() {
+    document.getElementById('bus-pron-panel').style.display = 'none';
+    document.getElementById('bus-chip-pron').classList.remove('active');
+  };
+
+  window.togglePronTab = function() {
+    const panel = document.getElementById('bus-pron-panel');
+    const isOpen = panel.style.display !== 'none';
+    if (isOpen) {
+      panel.style.display = 'none';
+      document.getElementById('bus-chip-pron').classList.remove('active');
+      document.getElementById('bus-resultados-panel').style.display = '';
+      document.querySelectorAll('.bus-chip').forEach(c => c.classList.remove('active'));
+      document.getElementById('chip-todo').classList.add('active');
+    } else {
+      _cerrarOtrosPaneles();
+      panel.style.display = 'block';
+      document.getElementById('bus-chip-pron').classList.add('active');
+      if (!_pronData) _cargarPron();
+      else _renderPron();
+    }
+  };
+
+  window.selFechaPron = function(btn, fecha) {
+    document.querySelectorAll('.pron-fecha-chip').forEach(c => c.classList.remove('active'));
+    btn.classList.add('active');
+    _fechaAct = fecha;
+    _renderPron();
+  };
+
+  window.debounceSearchPron = function() {
+    clearTimeout(_pronTimer);
+    _pronTimer = setTimeout(() => {
+      const q = document.getElementById('pron-input-q').value.trim();
+      document.getElementById('pron-clear-btn').style.display = q ? 'flex' : 'none';
+      _queryAct = q;
+      _renderPron();
+    }, 280);
+  };
+
+  window.limpiarPronSearch = function() {
+    document.getElementById('pron-input-q').value = '';
+    document.getElementById('pron-clear-btn').style.display = 'none';
+    _queryAct = '';
+    _renderPron();
+  };
+
+  // Toggle colapsar/expandir un partido
+  window._togglePartido = function(el) {
+    const card = el.closest('.pron-partido-group');
+    card.classList.toggle('open');
+  };
+
+  async function _cargarPron() {
+    document.getElementById('pron-loading').style.display = 'block';
+    document.getElementById('pron-results').innerHTML = '';
+    document.getElementById('pron-empty').style.display = 'none';
+    try {
+      const res  = await fetch('/api/buscar/pronosticos');
+      const json = await res.json();
+      if (!json.ok) throw new Error(json.msg);
+      _pronData = json.data;
+      _poblarFechas(json.fechas || []);
+      _renderPron();
+    } catch(e) {
+      document.getElementById('pron-loading').style.display = 'none';
+      document.getElementById('pron-results').innerHTML =
+        `<div class="bus-empty"><div class="bus-empty-icon"><span class="material-symbols-outlined">wifi_off</span></div><h3>Error al cargar</h3><p>${e.message}</p></div>`;
+    }
+  }
+
+  function _poblarFechas(grupos) {
+    // ya no se usa dinámicamente — sub-tabs están fijos en el HTML
+  }
+
+  window.pronFase = function(fase, btn) {
+    _pronFase = fase;
+    document.querySelectorAll('#pron-fase-tabs .pron-fecha-chip').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('pron-sub-grupos').style.display = fase === 'grupos' ? 'flex' : 'none';
+    document.getElementById('pron-sub-eli').style.display    = fase === 'eli'    ? 'flex' : 'none';
+    _renderPron();
+  };
+
+  window.pronSubGrupo = function(g, btn) {
+    _pronSubG = g;
+    document.querySelectorAll('#pron-sub-grupos .pron-fecha-chip').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    _renderPron();
+  };
+
+  window.pronSubEli = function(f, btn) {
+    _pronSubE = f;
+    document.querySelectorAll('#pron-sub-eli .pron-fecha-chip').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    _renderPron();
+  };
+
+  function _normFase(f) {
+    if (!f) return '';
+    const fl = f.toLowerCase();
+    if (fl.includes('16') || fl === 'r16' || fl.includes('dieciseis')) return '16avos';
+    if (fl.includes('octavo'))  return 'Octavos';
+    if (fl.includes('cuarto'))  return 'Cuartos';
+    if (fl.includes('semi') || fl.includes('tercer')) return 'Semis';
+    if (fl.includes('final'))   return 'Final';
+    return f;
+  }
+
+  function _renderPron() {
+    document.getElementById('pron-loading').style.display = 'none';
+    if (!_pronData) return;
+
+    let data = _pronData;
+
+    // Filtro fase principal
+    if (_pronFase === 'grupos') {
+      data = data.filter(r => r.fase === 'Grupos');
+    } else {
+      data = data.filter(r => r.fase === 'Eliminatoria');
+    }
+
+    // Filtro sub-tab
+    if (_pronFase === 'grupos' && _pronSubG !== 'TODOS') {
+      data = data.filter(r => (r.grupo || '').toUpperCase() === _pronSubG);
+    }
+    if (_pronFase === 'eli' && _pronSubE !== 'TODOS') {
+      data = data.filter(r => _normFase(r.grupo) === _pronSubE);
+    }
+
+    // Filtro búsqueda
+    if (_queryAct) {
+      const q = _queryAct.toLowerCase();
+      data = data.filter(r =>
+        r.usuario_nombre.toLowerCase().includes(q) ||
+        r.usuario_handle.toLowerCase().includes(q)
+      );
+    }
+
+    if (!data.length) {
+      document.getElementById('pron-results').innerHTML = '';
+      document.getElementById('pron-empty').style.display = 'block';
+      return;
+    }
+    document.getElementById('pron-empty').style.display = 'none';
+
+    // Agrupar por partido
+    const partidos = {};
+    data.forEach(r => {
+      const key = `${r.local}|${r.visitante}|${r.res_local}-${r.res_visit}|${r.fecha_partido}`;
+      if (!partidos[key]) partidos[key] = { info: r, rows: [] };
+      partidos[key].rows.push(r);
+    });
+
+    const esc = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    const ptsClass = p => p >= 4 ? 'pron-pts-4' : p === 3 ? 'pron-pts-3' : p === 1 ? 'pron-pts-1' : 'pron-pts-0';
+
+    let html = '';
+    Object.values(partidos).forEach(({ info, rows }) => {
+      const flagL = _flag(info.local,     info.cod_local  || info.cod_loc  || '');
+      const flagV = _flag(info.visitante, info.cod_visit  || info.cod_vis  || '');
+
+      const rowsHtml = rows.map(r => {
+        const av = r.usuario_foto
+          ? `<img src="${clUrl(esc(r.usuario_foto),'avatar')}" class="pron-av-img" onerror="this.outerHTML='<div class=pron-av-letter>${esc(r.usuario_nombre[0]?.toUpperCase()||'?')}</div>'">`
+          : `<div class="pron-av-letter">${esc(r.usuario_nombre[0]?.toUpperCase()||'?')}</div>`;
+
+        // Penales del pronóstico
+        let penTag = '';
+        if (r.p_penales) {
+          if (!info.res_penales) {
+            penTag = `<span class="pron-pen-tag pron-pen-neutral">🥅 ${esc(r.p_penales)}</span>`;
+          } else {
+            const ok = r.p_penales === info.res_penales;
+            penTag = `<span class="pron-pen-tag ${ok ? 'pron-pen-ok' : 'pron-pen-fail'}">${ok ? '✅' : '❌'} Pen: ${esc(r.p_penales)}</span>`;
+          }
+        }
+
+        return `<div class="pron-row">
+          ${av}
+          <div class="pron-user-info">
+            <div class="pron-user-name">${esc(r.usuario_nombre)}</div>
+            <div class="pron-user-handle">@${esc(r.usuario_handle)}</div>
+          </div>
+          <div class="pron-pred">
+            <span class="pron-pred-score">
+              ${_flag(r.local || info.local, r.cod_local || info.cod_local || info.cod_loc || '')}
+              ${r.p_local ?? '?'} - ${r.p_vis ?? '?'}
+              ${_flag(r.visitante || info.visitante, r.cod_visit || info.cod_visit || info.cod_vis || '')}
+            </span>
+            ${penTag}
+            <span class="pron-pts ${ptsClass(r.puntos)}">${r.puntos ?? 0} pts</span>
+          </div>
+        </div>`;
+      }).join('');
+
+      html += `<div class="pron-partido-group">
+        <div class="pron-partido-header" onclick="_togglePartido(this)">
+          <div class="pron-match-body">
+            <div style="flex:1;min-width:0;">
+              <div class="pron-teams-wrap">
+                <div class="pron-team">
+                  <span class="pron-team-flag">${flagL}</span>
+                  <span class="pron-team-name">${esc(info.local)}</span>
+                </div>
+                <span class="pron-vs">vs</span>
+                <div class="pron-team">
+                  <span class="pron-team-flag">${flagV}</span>
+                  <span class="pron-team-name">${esc(info.visitante)}</span>
+                </div>
+              </div>
+              <div class="pron-meta-row">
+                <span class="pron-grupo-badge">${esc(info.grupo)} · ${esc(info.fase)}</span>
+                <span class="pron-count-badge">${rows.length} pronóstico${rows.length!==1?'s':''}</span>
+              </div>
+            </div>
+          </div>
+          <div class="pron-partido-score-box">
+            <span class="pron-score-label">Resultado</span>
+            <span class="pron-partido-score">${info.res_local} - ${info.res_visit}</span>
+            ${info.res_penales ? `<div class="pron-pen-res-badge">🥅 Pen: ${esc(info.res_penales)}</div>` : ''}
+          </div>
+          <span class="pron-chevron material-symbols-outlined">expand_more</span>
+        </div>
+        <div class="pron-rows-body">${rowsHtml}</div>
+      </div>`;
+    });
+
+    document.getElementById('pron-results').innerHTML = html;
+  }
+})();
+</script>
+

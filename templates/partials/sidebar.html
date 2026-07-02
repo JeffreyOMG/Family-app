@@ -1,0 +1,71 @@
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-brand">
+    <div class="brand-name">
+    </div>
+    <div class="menu-item">
+        <img src="{{ url_for('static', filename='icono/completo.png') }}"
+          alt="Familia"
+          class="menu-logo">
+    </div>
+  </div>
+
+  <nav class="sidebar-nav">
+    {# ── Secciones visibles para TODOS ──────────────────────────────────── #}
+    {% set nav_publico = [
+      ('inicio',    'home',          'Inicio'),
+      ('mundial',   'sports_soccer', 'Mundial'),
+      ('buscador',  'search',        'Buscador'),
+      ('perfil',    'person',        'Perfil'),
+    ] %}
+    {% for sec, icon, label in nav_publico %}
+    <a class="nav-item {% if seccion_activa==sec %}active{% endif %}" data-sec="{{ sec }}" href="#{{ sec }}">
+      <span class="material-symbols-outlined">{{ icon }}</span>
+      <span class="menu-text">{{ label }}</span>
+    </a>
+    {% endfor %}
+
+    {# ── Secciones SOLO para miembro / admin ────────────────────────────── #}
+    {% if usuario.rol in ('miembro', 'admin') %}
+    {% set nav_miembro = [
+      ('recaudacion','savings',      'Recaudación'),
+      ('noticias',  'calendar_month','Noticias'),
+    ] %}
+    {% for sec, icon, label in nav_miembro %}
+    <a class="nav-item {% if seccion_activa==sec %}active{% endif %}" data-sec="{{ sec }}" href="#{{ sec }}">
+      <span class="material-symbols-outlined">{{ icon }}</span>
+      <span class="menu-text">{{ label }}</span>
+    </a>
+    {% endfor %}
+    {% endif %}
+
+    {# ── Panel ADMIN ─────────────────────────────────────────────────────── #}
+    {% if usuario.rol == 'admin' %}
+    <a class="nav-item nav-item--admin {% if seccion_activa=='admin' %}active{% endif %}" href="/admin">
+      <span class="material-symbols-outlined">admin_panel_settings</span>
+      <span class="menu-text">Panel Admin</span>
+    </a>
+    {% endif %}
+  </nav>
+
+  <div class="sidebar-footer">
+    <div class="user-info">
+      <img src="{{ usuario.foto or '' }}" class="user-avatar-img sidebar-av-img" alt="foto" style="{{ '' if usuario.foto else 'display:none;' }}">
+      <div class="user-avatar sidebar-av-letter" style="{{ 'display:none;' if usuario.foto else '' }}">{{ usuario.nombre[0]|upper }}</div>
+      <div class="user-details menu-text">
+        <div class="user-name">{{ usuario.nombre.split()[0] }}</div>
+        {# ── Badge de rol con color ───────────────────────────────────────── #}
+        {% if usuario.rol == 'admin' %}
+          <div class="role-badge role-badge--admin">🔴 Admin</div>
+        {% elif usuario.rol == 'miembro' %}
+          <div class="role-badge role-badge--miembro">🟢 Miembro</div>
+        {% else %}
+          <div class="role-badge role-badge--invitado">🟡 Invitado</div>
+        {% endif %}
+      </div>
+    </div>
+    <a href="/logout" class="logout-btn" title="Cerrar sesión">
+      <span class="material-symbols-outlined">logout</span>
+      <span class="menu-text">Salir</span>
+    </a>
+  </div>
+</aside>
