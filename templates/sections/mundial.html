@@ -2014,12 +2014,21 @@
         border-bottom-color: rgba(15,15,25,.06) !important;
       }
       .rkv2__stats-inner {
+        /* width:0 + min-width:100% evita que este grid "empuje" el ancho de la
+           tabla que lo contiene (celda colspan) — sin esto, en tablas con
+           overflow-x:auto el contenido del grid termina desalineando/corriendo
+           toda la fila, tanto en PC como en móvil */
+        width: 0;
+        min-width: 100%;
+        box-sizing: border-box;
         padding: 18px 18px 18px 52px;
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
         gap: 12px;
         animation: rkv2-stats-in .28s var(--rk-ease);
       }
+      .rkv2__stat-item, .rkv2__leader-box, .rkv2__stats-legend { min-width: 0; }
+      .rkv2__leader-main, .rkv2__leader-desc, .rkv2__case { min-width: 0; }
       @keyframes rkv2-stats-in { from{opacity:0;transform:translateY(-6px)} to{opacity:1;transform:translateY(0)} }
 
       /* Tarjeta de stat */
@@ -2131,6 +2140,20 @@
       body:not(.dark-mode):not(.theme-glass) .rkv2__case { background:rgba(15,15,25,.035); }
       .rkv2__case-ic { font-size:.85rem; flex-shrink:0; }
       .rkv2__case b { font-weight:800; }
+      .rkv2__case--imposible { background: rgba(156,156,156,.1); }
+      body:not(.dark-mode):not(.theme-glass) .rkv2__case--imposible { background: rgba(156,156,156,.14); }
+
+      /* Badges de probabilidad Top2 / Top3 / Top5 */
+      .rkv2__prob-badges { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+      .rkv2__prob-badge {
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        flex: 1 1 0; min-width: 64px;
+        background: rgba(255,255,255,.045); border: 1px solid rgba(255,255,255,.08);
+        border-radius: 10px; padding: 7px 6px;
+      }
+      body:not(.dark-mode):not(.theme-glass) .rkv2__prob-badge { background: rgba(15,15,25,.035); border-color: rgba(15,15,25,.09); }
+      .rkv2__prob-badge-val { font-family: 'Bebas Neue', monospace; font-size: 1.05rem; line-height: 1.1; }
+      .rkv2__prob-badge-label { font-size: .56rem; text-transform: uppercase; letter-spacing: .05em; opacity: .6; margin-top: 2px; }
 
       /* ── Círculo de probabilidad (SVG) ─────────────────── */
       .rkv2__prob-circle { position: relative; width: 88px; height: 88px; flex-shrink: 0; }
@@ -2616,6 +2639,96 @@
     }).join('') + '</div>';
   }
 
+  // ── Simulación Montecarlo: probabilidad de 1°, Top2, Top3 y Top5 ─────
+  // Proyecta los partidos que faltan usando el rendimiento histórico real
+  // de cada participante (su tasa de exactos y de ganadores sobre lo que
+  // ha pronosticado) y aplica los mismos criterios de desempate oficiales
+  // (penales acertados > exactos > ganadores) para ordenar cada simulación.
+  function _rkv2Simular(rows, restantes, targetId) {
+    const n = (rows || []).length;
+    if (n === 0) return { p1: 0, top2: 0, top3: 0, top5: 0 };
+
+    // Promedio de la liga (usado como respaldo para quien no tiene historial propio)
+    let sumEx = 0, sumGan = 0, sumHechos = 0;
+    rows.forEach(x => { sumHechos += (x.pronosticos_hechos || 0); sumEx += (x.exactos || 0); sumGan += (x.ganadores || 0); });
+    const ligaExactRate = sumHechos > 0 ? sumEx / sumHechos : 0.08;
+    const ligaGanRate   = sumHechos > 0 ? sumGan / sumHechos : 0.35;
+
+    const jugadores = rows.map(x => {
+      const hechos = x.pronosticos_hechos || 0;
+      const totalP = x.total_partidos || 0;
+      return {
+        id: x.id,
+        pts: x.puntos || 0,
+        pen: x.penales || 0,
+        ex:  x.exactos || 0,
+        partRate:  totalP > 0 ? Math.min(1, hechos / totalP) : 1,
+        exactRate: hechos >= 3 ? x.exactos / hechos : ligaExactRate,
+        ganRate:   hechos >= 3 ? x.ganadores / hechos : ligaGanRate,
+      };
+    });
+
+    if (restantes <= 0) {
+      // No quedan partidos: la "simulación" es simplemente el orden actual
+      const ordenados = jugadores.slice().sort((a, b) => (b.pts - a.pts) || (b.pen - a.pen) || (b.ex - a.ex));
+      let pos = 1, prevPos = 1, foundPos = ordenados.length;
+      for (let k = 0; k < ordenados.length; k++) {
+        if (k > 0) {
+          const tied = ordenados[k].pts === ordenados[k-1].pts && ordenados[k].pen === ordenados[k-1].pen && ordenados[k].ex === ordenados[k-1].ex;
+          pos = tied ? prevPos : k + 1;
+        }
+        prevPos = pos;
+        if (String(ordenados[k].id) === String(targetId)) { foundPos = pos; break; }
+      }
+      return {
+        p1:   foundPos === 1 ? 100 : 0,
+        top2: foundPos <= 2 ? 100 : 0,
+        top3: foundPos <= 3 ? 100 : 0,
+        top5: foundPos <= 5 ? 100 : 0,
+      };
+    }
+
+    const ITER = n > 40 ? 500 : 1200; // cuida el rendimiento si hay muchos participantes
+    let c1 = 0, c2 = 0, c3 = 0, c5 = 0;
+
+    for (let it = 0; it < ITER; it++) {
+      const sim = jugadores.map(j => ({ id: j.id, pts: j.pts, pen: j.pen, ex: j.ex }));
+      for (let s = 0; s < n; s++) {
+        const j = jugadores[s];
+        let pts = sim[s].pts, ex = sim[s].ex;
+        for (let g = 0; g < restantes; g++) {
+          if (Math.random() > j.partRate) continue; // proyecta que no pronostica ese partido
+          const roll = Math.random();
+          if (roll < j.exactRate) { pts += 3; ex += 1; }
+          else if (roll < j.exactRate + j.ganRate) { pts += 1; }
+        }
+        sim[s].pts = pts; sim[s].ex = ex;
+      }
+      sim.sort((a, b) => (b.pts - a.pts) || (b.pen - a.pen) || (b.ex - a.ex));
+
+      let pos = 1, prevPos = 1, foundPos = n;
+      for (let k = 0; k < sim.length; k++) {
+        if (k > 0) {
+          const tied = sim[k].pts === sim[k-1].pts && sim[k].pen === sim[k-1].pen && sim[k].ex === sim[k-1].ex;
+          pos = tied ? prevPos : k + 1;
+        }
+        prevPos = pos;
+        if (String(sim[k].id) === String(targetId)) { foundPos = pos; break; }
+      }
+      if (foundPos === 1) c1++;
+      if (foundPos <= 2) c2++;
+      if (foundPos <= 3) c3++;
+      if (foundPos <= 5) c5++;
+    }
+
+    return {
+      p1:   Math.round(c1 / ITER * 100),
+      top2: Math.round(c2 / ITER * 100),
+      top3: Math.round(c3 / ITER * 100),
+      top5: Math.round(c5 / ITER * 100),
+    };
+  }
+
   // ── Toggle estadísticas expandibles ─────────────────────────────────
   function _rkv2ToggleStats(uid, tab, btn) {
     const panel = document.getElementById('rkv2-panel-' + tab);
@@ -2663,44 +2776,58 @@
     const jugados   = total; // partidos con resultado ya registrado en esta categoría
     const restantes = Math.max(0, TOTAL_TORNEO - jugados);
     const faseLabel = tab === 'grupos' ? 'la fase de grupos' : (tab === 'eli' ? 'la fase eliminatoria' : 'el torneo');
+    const potencialMax = restantes * 3; // máximo de puntos que CUALQUIERA puede sumar en lo que queda (todo exacto)
+
+    // ── Simulación estadística (Montecarlo) con los partidos que realmente faltan ──
+    // Usa el rendimiento histórico real de cada participante (su % de exactos y de
+    // ganadores sobre lo que ha pronosticado) para proyectar los partidos que faltan,
+    // y respeta los mismos criterios de desempate oficiales (penales > exactos > ganadores).
+    const sim = _rkv2Simular(rows, restantes, r.id);
 
     let leaderColor = '#f5c518', leaderIcon = '🏆', leaderTitle = '', leaderDesc = '', casesHTML = '';
-    let probLabel = '', probVal = '';
+    let probLabel = 'prob. de ser campeón';
+    let probVal = sim.p1 + '%';
 
     if (isLeader) {
       leaderTitle = '🏆 Vas líder';
-      leaderDesc  = 'Tienes la mayor cantidad de puntos del ranking. Mantén el ritmo para no perder el primer lugar.';
+      leaderDesc  = restantes > 0
+        ? `Tienes la mayor cantidad de puntos del ranking. Faltan ${restantes} de los ${TOTAL_TORNEO} partidos de ${faseLabel}: aún así el resto puede acercarse, mantén el ritmo.`
+        : 'Terminaste con la mayor cantidad de puntos del ranking. ¡Felicitaciones!';
       leaderColor = '#f5c518'; leaderIcon = '🏆';
-      probVal = '100%'; probLabel = 'de seguir 1°';
+      probLabel = restantes > 0 ? 'prob. de seguir campeón' : 'campeón final';
     } else if (ptsDiff > 0) {
-      // Caminos posibles para superarlo (exacto = 3 pts, ganador = 1 pt)
-      const soloExactos  = Math.ceil(ptsDiff / 3);
-      const soloGanador  = ptsDiff;
-      const mixExactos   = Math.floor(ptsDiff / 3);
-      const mixResto     = ptsDiff % 3;
-
       leaderColor = '#2196f3'; leaderIcon = '🎯';
 
       if (restantes === 0) {
         leaderTitle = `Quedaste a ${ptsDiff} pts de ${leader.nombre}`;
         leaderDesc  = `Ya no quedan partidos por jugar en ${faseLabel} (${TOTAL_TORNEO} en total), así que esta diferencia ya no se puede cerrar.`;
         leaderColor = '#9c9c9c'; leaderIcon = '🏁';
-        probVal = '0%'; probLabel = 'prob. estimada';
+        probVal = '0%';
+      } else if (ptsDiff > potencialMax) {
+        // Imposible matemáticamente: ni acertando TODO lo que falta como exacto alcanza
+        leaderTitle = `A ${ptsDiff} pts de ${leader.nombre}: ya no alcanza`;
+        leaderDesc  = `${leader.nombre} lleva ${leader.puntos} pts y ${rNombre} lleva ${r.puntos} pts. Solo faltan ${restantes} de los ${TOTAL_TORNEO} partidos de ${faseLabel} (máximo ${potencialMax} pts en juego), así que aunque acertaras todos como exacto no te alcanza para superarlo.`;
+        leaderColor = '#9c9c9c'; leaderIcon = '🏁';
+        casesHTML = `<div class="rkv2__cases">
+          <div class="rkv2__case rkv2__case--imposible"><span class="rkv2__case-ic">🚫</span><span>Matemáticamente imposible: quedan <b>${restantes}</b> partido${restantes===1?'':'s'} (${potencialMax} pts máx. posibles) y necesitas <b>${ptsDiff}</b> pts de ventaja.</span></div>
+        </div>`;
+        probVal = '0%';
       } else {
+        const soloExactos = Math.ceil(ptsDiff / 3);           // siempre cabe en "restantes" si llegamos aquí
+        const soloGanador = ptsDiff;                          // 1 pt c/u
+        const soloGanadorFactible = soloGanador <= restantes;
+        const mixExactos  = Math.floor(ptsDiff / 3);
+        const mixResto    = ptsDiff % 3;
+        const mixFactible = mixResto > 0 && (mixExactos + mixResto) <= restantes;
+
         leaderTitle = `Vas a ${ptsDiff} pts de ${leader.nombre}`;
-        leaderDesc  = `${leader.nombre} lleva ${leader.puntos} pts y ${rNombre} lleva ${r.puntos} pts. Faltan ${restantes} de los ${TOTAL_TORNEO} partidos de ${faseLabel}. Esto es lo que necesitas sacarle de ventaja (suponiendo que ${leader.nombre} no sume más puntos):`;
+        leaderDesc  = `${leader.nombre} lleva ${leader.puntos} pts y ${rNombre} lleva ${r.puntos} pts. Faltan ${restantes} de los ${TOTAL_TORNEO} partidos de ${faseLabel}. Esto es lo que necesitas sacarle de ventaja en lo que queda (suponiendo que ${leader.nombre} no sume más puntos):`;
 
         casesHTML = `<div class="rkv2__cases">
-          <div class="rkv2__case"><span class="rkv2__case-ic">⚽</span><span>Solo con exactos: <b>${soloExactos}</b> exacto${soloExactos===1?'':'s'} más que él</span></div>
-          <div class="rkv2__case"><span class="rkv2__case-ic">✓</span><span>Solo con ganadores: <b>${soloGanador}</b> acierto${soloGanador===1?'':'s'} de ganador más que él</span></div>
-          ${mixResto > 0 ? `<div class="rkv2__case"><span class="rkv2__case-ic">🔀</span><span>Mezcla: <b>${mixExactos}</b> exacto${mixExactos===1?'':'s'} + <b>${mixResto}</b> ganador${mixResto===1?'':'es'} más que él</span></div>` : ''}
+          <div class="rkv2__case"><span class="rkv2__case-ic">⚽</span><span>Solo con exactos: <b>${soloExactos}</b> exacto${soloExactos===1?'':'s'} más que él (de los ${restantes} que quedan)</span></div>
+          ${soloGanadorFactible ? `<div class="rkv2__case"><span class="rkv2__case-ic">✓</span><span>Solo con ganadores: <b>${soloGanador}</b> acierto${soloGanador===1?'':'s'} de ganador más que él</span></div>` : ''}
+          ${mixFactible ? `<div class="rkv2__case"><span class="rkv2__case-ic">🔀</span><span>Mezcla: <b>${mixExactos}</b> exacto${mixExactos===1?'':'s'} + <b>${mixResto}</b> ganador${mixResto===1?'':'es'} más que él</span></div>` : ''}
         </div>`;
-
-        // Estimación basada en partidos restantes reales del torneo (104 totales) + tu rendimiento histórico
-        const potencialMax = restantes * 3; // máximo de puntos que podrías sacarle en lo que queda
-        const ratio = Math.min(1, ptsDiff / Math.max(potencialMax, 1));
-        const probEstimada = Math.max(2, Math.min(92, Math.round((1 - ratio) * 70 + (pctAcierto - 50) * 0.3)));
-        probVal = probEstimada + '%'; probLabel = 'prob. estimada';
       }
     } else {
       // Empatados en puntos → aplicar criterios oficiales de desempate en orden
@@ -2727,16 +2854,14 @@
         leaderTitle = '🤝 Empate total con el líder';
         leaderDesc  = 'Mismos puntos y mismos criterios de desempate. La FIFA definiría por sorteo.';
         leaderColor = '#9c9c9c'; leaderIcon = '🤝';
-        probVal = '50%'; probLabel = 'sería sorteo';
       } else if (resuelto.ganaLider) {
         leaderTitle = '⚠️ Empatado en puntos, pero vas detrás';
         leaderDesc  = `${leader.nombre} te supera en ${resuelto.c.label}. En caso de empatar de nuevo, necesitas superarlo justo ahí para quedar 1°.`;
         leaderColor = '#ff9800'; leaderIcon = '⚠️';
         casesHTML = `<div class="rkv2__cases">
           <div class="rkv2__case"><span class="rkv2__case-ic">📊</span><span>${resuelto.c.label}: ${rNombre} <b>${resuelto.c.valR}</b> · ${leader.nombre} <b>${resuelto.c.valL}</b></span></div>
-          <div class="rkv2__case"><span class="rkv2__case-ic">🎯</span><span>Faltan ${restantes} de ${TOTAL_TORNEO} partidos en ${faseLabel} para que puedas mejorar en <b>${resuelto.c.label}</b></span></div>
+          ${restantes > 0 ? `<div class="rkv2__case"><span class="rkv2__case-ic">🎯</span><span>Faltan ${restantes} de ${TOTAL_TORNEO} partidos en ${faseLabel} para que puedas mejorar en <b>${resuelto.c.label}</b></span></div>` : ''}
         </div>`;
-        probVal = '35%'; probLabel = 'prob. estimada';
       } else {
         leaderTitle = '🥇 Empatado en puntos, pero vas adelante';
         leaderDesc  = `Superas a ${leader.nombre} en ${resuelto.c.label}, que es el primer criterio de desempate oficial.`;
@@ -2744,9 +2869,15 @@
         casesHTML = `<div class="rkv2__cases">
           <div class="rkv2__case"><span class="rkv2__case-ic">📊</span><span>${resuelto.c.label}: ${rNombre} <b>${resuelto.c.valR}</b> · ${leader.nombre} <b>${resuelto.c.valL}</b></span></div>
         </div>`;
-        probVal = '85%'; probLabel = 'prob. estimada';
       }
     }
+
+    // ── Probabilidades adicionales aparte de ser campeón: Top 2, Top 3 y Top 5 ──
+    const probBadgesHTML = `<div class="rkv2__prob-badges">
+      <div class="rkv2__prob-badge"><span class="rkv2__prob-badge-val">${sim.top2}%</span><span class="rkv2__prob-badge-label">Top 2</span></div>
+      <div class="rkv2__prob-badge"><span class="rkv2__prob-badge-val">${sim.top3}%</span><span class="rkv2__prob-badge-label">Top 3</span></div>
+      <div class="rkv2__prob-badge"><span class="rkv2__prob-badge-val">${sim.top5}%</span><span class="rkv2__prob-badge-label">Top 5</span></div>
+    </div>`;
 
     const statsRow = document.createElement('tr');
     statsRow.className = 'rkv2__stats-row';
@@ -2892,9 +3023,9 @@
           </div>
         </div>
         <div class="rkv2__leader-circle">${probCircleHTML}</div>
-        <div class="rkv2__leader-desc-row">${casesHTML}</div>
+        <div class="rkv2__leader-desc-row">${casesHTML}${probBadgesHTML}</div>
         <div class="rkv2__leader-disclaimer-row">
-          <div class="rkv2__leader-disclaimer"><span>ℹ️</span><span>Cálculo estadístico estimado a partir de los ${TOTAL_TORNEO} partidos de ${faseLabel}. No es una predicción garantizada.</span></div>
+          <div class="rkv2__leader-disclaimer"><span>ℹ️</span><span>Simulación estadística basada en los ${restantes} partido${restantes===1?'':'s'} que faltan de los ${TOTAL_TORNEO} de ${faseLabel} y en el rendimiento histórico de cada participante. No es una predicción garantizada.</span></div>
         </div>
       </div>
 
