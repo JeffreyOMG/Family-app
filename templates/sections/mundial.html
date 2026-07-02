@@ -223,12 +223,14 @@
       justify-content: center;
     }
 
-    #mw-vid {
+    #mw-vid, #mw-yt-player {
       /* PC: ocupa el ancho disponible manteniendo ratio */
       width: 100%;
       height: 100%;
       object-fit: contain;
       display: block;
+      border: 0;
+      pointer-events: none; /* el overlay captura el click, no el iframe */
     }
 
     #mw-skip-btn {
@@ -265,7 +267,7 @@
 
     /* MÓVIL: video vertical tipo TikTok, object-fit cover */
     @media (max-width: 600px) {
-      #mw-vid {
+      #mw-vid, #mw-yt-player {
         object-fit: cover;
       }
       #mw-skip-btn {
@@ -278,10 +280,7 @@
   </style>
 
   <div id="mw-intro-overlay">
-    <video id="mw-vid"
-           src="static/intro_mundial.mp4"
-           autoplay playsinline muted webkit-playsinline preload="auto" x5-video-player-type="h5">
-    </video>
+    <div id="mw-yt-player"></div>
     <button id="mw-skip-btn" style="display:none" onclick="mwSkip()">Saltar ▶</button>
     <!-- Hint sonido — se oculta al primer toque -->
     <div id="mw-sound-hint" style="
@@ -296,44 +295,102 @@
     <div id="mw-vid-bar"><div id="mw-vid-prog"></div></div>
   </div>
 
+  <script src="https://www.youtube.com/iframe_api"></script>
   <script>
   (function() {
-    const SEEN    = 'mw_intro_seen_v1';
-    const overlay = document.getElementById('mw-intro-overlay');
-    const vid     = document.getElementById('mw-vid');
-    const prog    = document.getElementById('mw-vid-prog');
-    const skipBtn = document.getElementById('mw-skip-btn');
-    const visto   = !!localStorage.getItem(SEEN);
+    const SEEN     = 'mw_intro_seen_v1';
+    const YT_ID    = 'nAAOe-APxWU'; // video de intro
+    const overlay  = document.getElementById('mw-intro-overlay');
+    const prog     = document.getElementById('mw-vid-prog');
+    const skipBtn  = document.getElementById('mw-skip-btn');
+    const visto    = !!localStorage.getItem(SEEN);
 
     // El overlay empieza oculto — solo se activa cuando el menú dispara el evento
     overlay.style.display = 'none';
-    vid.pause();
 
-    function activarIntro() {
-      overlay.style.display = 'flex';
-      document.body.style.overflow = 'hidden';
-      vid.currentTime = 0;
-      vid.muted = true;
-      vid.play().catch(function(){});
+    let ytPlayer     = null;
+    let ytReady      = false;
+    let pendingStart = false;
+    let progTimer    = null;
+    let antiSkipTimer= null;
+    let last = 0;
+
+    function crearPlayer() {
+      if (ytPlayer) return;
+      ytPlayer = new YT.Player('mw-yt-player', {
+        videoId: YT_ID,
+        playerVars: {
+          autoplay: 1,
+          controls: 0,
+          disablekb: 1,
+          fs: 0,
+          modestbranding: 1,
+          rel: 0,
+          playsinline: 1,
+          mute: 1,
+          vq: 'hd1080' // forzar calidad HD
+        },
+        events: {
+          onReady: function() {
+            ytReady = true;
+            try { ytPlayer.setPlaybackQuality('hd1080'); } catch(e){}
+            if (pendingStart) { pendingStart = false; iniciarReproduccion(); }
+          },
+          onStateChange: function(e) {
+            if (e.data === YT.PlayerState.ENDED) cerrarOverlay();
+            if (e.data === YT.PlayerState.PLAYING) {
+              try { ytPlayer.setPlaybackQuality('hd1080'); } catch(e){}
+            }
+          }
+        }
+      });
+    }
+
+    // Cargar la API de YT en cuanto esté disponible
+    window.onYouTubeIframeAPIReady = function() { crearPlayer(); };
+    if (window.YT && window.YT.Player) crearPlayer();
+
+    function iniciarReproduccion() {
+      if (!ytReady) { pendingStart = true; return; }
+      ytPlayer.seekTo(0);
+      ytPlayer.mute();
+      ytPlayer.playVideo();
 
       // Intentar con audio (PC); en móvil el primer toque lo activa
-      vid.muted = false; vid.volume = 1.0;
-      var _pp = vid.play();
-      if (_pp) _pp.catch(function(){ vid.muted = true; vid.play().catch(function(){}); });
+      setTimeout(function() {
+        try { ytPlayer.unMute(); ytPlayer.setVolume(100); } catch(e){}
+      }, 50);
 
       if (visto) {
         skipBtn.style.display = 'block';
       } else {
         skipBtn.style.display = 'none';
         // Anti-skip primera vez
-        let last = 0;
-        vid.addEventListener('timeupdate', function antiSkip() {
-          if (vid.currentTime > last + 1.5) vid.currentTime = last;
-          else last = vid.currentTime;
-          // dejar de escuchar cuando ya vio
-          if (localStorage.getItem(SEEN)) vid.removeEventListener('timeupdate', antiSkip);
-        });
+        last = 0;
+        clearInterval(antiSkipTimer);
+        antiSkipTimer = setInterval(function() {
+          if (!ytPlayer || !ytPlayer.getCurrentTime) return;
+          const t = ytPlayer.getCurrentTime();
+          if (t > last + 1.5) ytPlayer.seekTo(last, true);
+          else last = t;
+          if (localStorage.getItem(SEEN)) clearInterval(antiSkipTimer);
+        }, 400);
       }
+
+      // Barra de progreso
+      clearInterval(progTimer);
+      progTimer = setInterval(function() {
+        if (!ytPlayer || !ytPlayer.getDuration) return;
+        const dur = ytPlayer.getDuration();
+        const cur = ytPlayer.getCurrentTime();
+        if (dur) prog.style.width = (cur / dur * 100) + '%';
+      }, 250);
+    }
+
+    function activarIntro() {
+      overlay.style.display = 'flex';
+      document.body.style.overflow = 'hidden';
+      iniciarReproduccion();
     }
 
     // Escuchar el evento que dispara el menú
@@ -344,44 +401,40 @@
     function tryUnmute() {
       if (audioOn) return;
       audioOn = true;
-      vid.muted  = false;
-      vid.volume = 1.0;
+      try { ytPlayer.unMute(); ytPlayer.setVolume(100); } catch(e){}
       var hint = document.getElementById('mw-sound-hint');
       if (hint) { hint.style.transition='opacity .4s'; hint.style.opacity='0'; setTimeout(function(){ hint.remove(); },420); }
     }
     overlay.addEventListener('touchstart', tryUnmute, {passive:true});
     overlay.addEventListener('click',      tryUnmute);
 
-    // Barra de progreso
-    vid.addEventListener('timeupdate', function() {
-      if (vid.duration) prog.style.width = (vid.currentTime / vid.duration * 100) + '%';
-    });
-
     function cerrarOverlay() {
       localStorage.setItem(SEEN, '1');
+      clearInterval(progTimer);
+      clearInterval(antiSkipTimer);
       document.body.style.overflow = '';
       overlay.style.transition = 'opacity .5s ease';
       overlay.style.opacity = '0';
       setTimeout(function() {
         overlay.remove();
+        try { if (ytPlayer && ytPlayer.stopVideo) ytPlayer.stopVideo(); } catch(e){}
         // Después del video → mostrar términos si aplica
         if (typeof mwCheckTerminos === 'function') mwCheckTerminos('post_video');
       }, 520);
     }
 
-    // Al terminar → cerrar
-    vid.addEventListener('ended', cerrarOverlay);
-
     // Skip
     window.mwSkip = function() {
-      vid.pause();
+      try { if (ytPlayer && ytPlayer.pauseVideo) ytPlayer.pauseVideo(); } catch(e){}
       cerrarOverlay();
     };
 
     // Si el usuario navega fuera de mundial → limpiar overlay y pausar video
     document.addEventListener('mundial:salir', function() {
       if (overlay && overlay.parentNode) {
-        vid.pause();
+        try { if (ytPlayer && ytPlayer.pauseVideo) ytPlayer.pauseVideo(); } catch(e){}
+        clearInterval(progTimer);
+        clearInterval(antiSkipTimer);
         document.body.style.overflow = '';
         document.documentElement.style.overflow = '';
         overlay.style.display = 'none';

@@ -62,12 +62,16 @@ try:
 except ImportError:  # pragma: no cover - entorno sin numpy instalado
     _HAS_NUMPY = False
 
-N_SIMULACIONES_DEFAULT = 1_000_000
-N_SIMULACIONES_MIN     = 1_000_000
-N_SIMULACIONES_MAX     = 3_000_000
+N_SIMULACIONES_DEFAULT = 30_000
+N_SIMULACIONES_MIN     = 5_000
+N_SIMULACIONES_MAX     = 100_000
 # Techo de "trabajo" (partidos_pendientes * simulaciones) para no colgar el
-# request si al inicio del torneo hay decenas de partidos pendientes a la vez.
-_TRABAJO_MAX = 45_000_000
+# request ni disparar el uso de RAM si al inicio del torneo hay decenas de
+# partidos pendientes a la vez. Con estos límites el peor caso se mantiene
+# en el orden de unos pocos MB, muy lejos de agotar la RAM de una instancia
+# pequeña (antes: hasta 3.000.000 de simulaciones, cientos de MB a GB por
+# request, causa raíz de los 502/503 que tumbaban todo el servidor).
+_TRABAJO_MAX = 2_000_000
 
 TOTAL_PARTIDOS = {"global": 104, "grupos": 72, "eli": 32}
 
@@ -329,10 +333,17 @@ def _max_extra_por_partido(pronosticos: dict, eli: bool) -> dict[int, int]:
 # 4) SIMULACIÓN MONTE CARLO
 # ────────────────────────────────────────────────────────────────
 
-def _simular_numpy(ids, base, pendientes, n_sim, seed=None):
+def _simular_numpy(ids, base, pendientes, n_sim, seed=None, rng=None):
+    """Simula UN bloque de `n_sim` simulaciones.
+
+    Si se pasa `rng` (np.random.Generator), se reutiliza — así varios
+    bloques consecutivos comparten la misma secuencia aleatoria en vez de
+    reiniciarla en cada bloque. Si no, se crea uno nuevo con `seed`.
+    """
     U = len(ids)
     idx_of = {uid: i for i, uid in enumerate(ids)}
-    rng = np.random.default_rng(seed)
+    if rng is None:
+        rng = np.random.default_rng(seed)
 
     pts = np.zeros((U, n_sim), dtype=np.int32)
     pen = np.zeros((U, n_sim), dtype=np.int16)
@@ -464,6 +475,49 @@ def _posiciones_numpy(pts, pen, exa, gan, categoria):
     return posicion
 
 
+# Tamaño de bloque para la simulación Monte Carlo. En vez de reservar matrices
+# de tamaño (usuarios × n_sim) de una sola vez —lo que con muchos usuarios y
+# muchas simulaciones puede llegar a cientos de MB o más y tumbar instancias
+# con poca RAM (causa de los reinicios en Render)—, se simula en bloques de a
+# lo sumo CHUNK_SIM simulaciones por vez y solo se acumulan los CONTADORES de
+# campeón/top2/top3 (unos pocos enteros por usuario). Las matrices grandes
+# (pts, pen, exa, gan, score, posicion) se descartan al final de cada bloque,
+# así el pico de memoria queda acotado por CHUNK_SIM en vez de por n_sim.
+CHUNK_SIM = 10_000
+
+
+def _simular_y_contar_numpy(ids, base, pendientes, n_sim, categoria, seed=None, chunk_size=CHUNK_SIM):
+    """Corre la simulación Monte Carlo completa en bloques, devolviendo
+    directamente las probabilidades por usuario sin mantener nunca en
+    memoria una matriz (usuarios × n_sim) completa."""
+    U = len(ids)
+    campeon_count = np.zeros(U, dtype=np.int64)
+    top2_count = np.zeros(U, dtype=np.int64)
+    top3_count = np.zeros(U, dtype=np.int64)
+
+    rng = np.random.default_rng(seed)  # se reutiliza entre bloques: la
+                                        # secuencia aleatoria continúa en vez
+                                        # de reiniciarse en cada bloque.
+    restante = n_sim
+    while restante > 0:
+        n_chunk = min(chunk_size, restante)
+        pts, pen, exa, gan = _simular_numpy(ids, base, pendientes, n_chunk, rng=rng)
+        posiciones_chunk = _posiciones_numpy(pts, pen, exa, gan, categoria)
+
+        campeon_count += (posiciones_chunk == 1).sum(axis=1)
+        top2_count += (posiciones_chunk <= 2).sum(axis=1)
+        top3_count += (posiciones_chunk <= 3).sum(axis=1)
+
+        # Liberar explícitamente las matrices del bloque antes del siguiente
+        del pts, pen, exa, gan, posiciones_chunk
+        restante -= n_chunk
+
+    prob_campeon = {uid: float(campeon_count[i] / n_sim) for i, uid in enumerate(ids)}
+    prob_top2 = {uid: float(top2_count[i] / n_sim) for i, uid in enumerate(ids)}
+    prob_top3 = {uid: float(top3_count[i] / n_sim) for i, uid in enumerate(ids)}
+    return prob_campeon, prob_top2, prob_top3
+
+
 def _posiciones_python(pts, pen, exa, gan, categoria, n_sim):
     U = len(pts)
     posicion = [[1] * n_sim for _ in range(U)]
@@ -550,22 +604,19 @@ def calcular_probabilidades_ranking(con, categoria: str = "global", n_sim_solici
     n_partidos = max(len(pendientes), 1)
     ajustado = False
     if n_sim * n_partidos > _TRABAJO_MAX:
-        n_sim_ajustado = max(200_000, _TRABAJO_MAX // n_partidos)
+        # Bug corregido: antes usaba max(200_000, ...), que con muchos
+        # partidos pendientes SUBÍA las simulaciones en vez de bajarlas
+        # (200_000 siempre ganaba el max() frente a _TRABAJO_MAX // n_partidos
+        # cuando éste era menor). El piso correcto es N_SIMULACIONES_MIN.
+        n_sim_ajustado = max(N_SIMULACIONES_MIN, _TRABAJO_MAX // n_partidos)
         if n_sim_ajustado < n_sim:
             n_sim = n_sim_ajustado
             ajustado = True
 
     if _HAS_NUMPY:
-        pts, pen, exa, gan = _simular_numpy(ids, base, pendientes, n_sim)
-        posiciones = _posiciones_numpy(pts, pen, exa, gan, categoria)
-        prob_campeon = {}
-        prob_top2 = {}
-        prob_top3 = {}
-        for i, uid in enumerate(ids):
-            fila = posiciones[i]
-            prob_campeon[uid] = float((fila == 1).mean())
-            prob_top2[uid] = float((fila <= 2).mean())
-            prob_top3[uid] = float((fila <= 3).mean())
+        prob_campeon, prob_top2, prob_top3 = _simular_y_contar_numpy(
+            ids, base, pendientes, n_sim, categoria
+        )
     else:
         logger.warning("numpy no disponible: usando fallback puro-Python con muchas menos simulaciones")
         n_sim = min(n_sim, 5000)
