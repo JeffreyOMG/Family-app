@@ -591,7 +591,11 @@ def calcular_probabilidades_ranking(con, categoria: str = "global", n_sim_solici
         # Según la lógica de mundial.py, un partido está 'cerrado' cuando tiene resultado.
         # Mientras no tenga resultado (goles_local IS NULL), el usuario aún puede puntuar.
         
-        max_teorico = b["puntos"] + (futuros["grupos"]["total"] * 3) + (futuros["eli"]["total"] * 4)
+        max_teorico = (
+            b["puntos"]
+            + futuros["grupos"]["total"] * 3
+            + futuros["eli"]["total"] * 4
+        )
 
         # Lógica de `puede_ser_campeon`:
         # Un usuario puede ser campeón si su máximo teórico es mayor o igual
@@ -642,7 +646,10 @@ def calcular_probabilidades_ranking(con, categoria: str = "global", n_sim_solici
         "motor": "numpy" if _HAS_NUMPY else "python",
         "total_partidos_categoria": TOTAL_PARTIDOS.get(categoria, 104),
         "partidos_pendientes_con_pronosticos": len([m for m in pendientes_sim if m["pronosticos"]]),
-        "partidos_pendientes_totales": futuros["grupos"] + futuros["eli"],
+        "partidos_pendientes_totales": (
+            futuros["grupos"]["total"] +
+            futuros["eli"]["total"]
+        ),
         "metodologia": (
             "Cada partido pendiente con pronóstico se resuelve por sorteo neutro 1/3-1/3-1/3. "
             "El máximo teórico considera los puntos actuales más los puntos máximos de todos los partidos "
