@@ -2841,12 +2841,12 @@
         const mixExactos  = Math.floor(ptsDiff / 3);
         const mixResto    = ptsDiff % 3;
         const mixFactible = mixResto > 0 && (mixExactos + mixResto) <= restantes;
-        // Camino más rápido si hay empates que terminan en penales: cada exacto con
+        // Camino alternativo si hay empates que terminan en penales: cada exacto con
         // penal acertado vale 4 pts en vez de 3. Solo aplica en global/eli (en grupos
-        // no hay penales) y solo tiene sentido mostrarlo si de verdad achica el número
-        // de partidos necesarios frente a "solo con exactos".
+        // no hay penales). Se muestra siempre que sea una ruta factible, aunque en
+        // cantidad de partidos empate con "solo exactos" — sigue siendo información útil.
         const soloExactosConPenal = isGrupos ? null : Math.ceil(ptsDiff / 4);
-        const soloExactosConPenalFactible = !isGrupos && soloExactosConPenal <= restantes && soloExactosConPenal < soloExactos;
+        const soloExactosConPenalFactible = !isGrupos && soloExactosConPenal <= restantes;
 
         leaderTitle = `Vas a ${ptsDiff} pts de ${leader.nombre}`;
         leaderDesc  = `${leader.nombre} lleva ${leader.puntos} pts y ${rNombre} lleva ${r.puntos} pts. Faltan ${restantes} de los ${TOTAL_TORNEO} partidos de ${faseLabel}. Esto es lo que necesitas sacarle de ventaja en lo que queda (suponiendo que ${leader.nombre} no sume más puntos):`;
