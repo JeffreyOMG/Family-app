@@ -2797,7 +2797,8 @@
     const jugados   = total; // partidos con resultado ya registrado en esta categoría
     const restantes = Math.max(0, TOTAL_TORNEO - jugados);
     const faseLabel = tab === 'grupos' ? 'la fase de grupos' : (tab === 'eli' ? 'la fase eliminatoria' : 'el torneo');
-    const potencialMax = restantes * 3; // máximo de puntos que CUALQUIERA puede sumar en lo que queda (todo exacto)
+    const maxPtsPorPartido = isGrupos ? 3 : 4; // en grupos no hay penales; en eli/global un exacto+penal acertado vale 4
+    const potencialMax = restantes * maxPtsPorPartido; // máximo de puntos que CUALQUIERA puede sumar en lo que queda
 
     // ── Simulación estadística (Montecarlo) con los partidos que realmente faltan ──
     // Usa el rendimiento histórico real de cada participante (su % de exactos y de
@@ -2827,7 +2828,7 @@
       } else if (ptsDiff > potencialMax) {
         // Imposible matemáticamente: ni acertando TODO lo que falta como exacto alcanza
         leaderTitle = `A ${ptsDiff} pts de ${leader.nombre}: ya no alcanza`;
-        leaderDesc  = `${leader.nombre} lleva ${leader.puntos} pts y ${rNombre} lleva ${r.puntos} pts. Solo faltan ${restantes} de los ${TOTAL_TORNEO} partidos de ${faseLabel} (máximo ${potencialMax} pts en juego), así que aunque acertaras todos como exacto no te alcanza para superarlo.`;
+        leaderDesc  = `${leader.nombre} lleva ${leader.puntos} pts y ${rNombre} lleva ${r.puntos} pts. Solo faltan ${restantes} de los ${TOTAL_TORNEO} partidos de ${faseLabel} (máximo ${potencialMax} pts en juego${isGrupos ? '' : ', contando exactos + acierto de penal'}), así que ni en el mejor escenario posible te alcanza para superarlo.`;
         leaderColor = '#9c9c9c'; leaderIcon = '🏁';
         casesHTML = `<div class="rkv2__cases">
           <div class="rkv2__case rkv2__case--imposible"><span class="rkv2__case-ic">🚫</span><span>Matemáticamente imposible: quedan <b>${restantes}</b> partido${restantes===1?'':'s'} (${potencialMax} pts máx. posibles) y necesitas <b>${ptsDiff}</b> pts de ventaja.</span></div>
@@ -2840,6 +2841,12 @@
         const mixExactos  = Math.floor(ptsDiff / 3);
         const mixResto    = ptsDiff % 3;
         const mixFactible = mixResto > 0 && (mixExactos + mixResto) <= restantes;
+        // Camino más rápido si hay empates que terminan en penales: cada exacto con
+        // penal acertado vale 4 pts en vez de 3. Solo aplica en global/eli (en grupos
+        // no hay penales) y solo tiene sentido mostrarlo si de verdad achica el número
+        // de partidos necesarios frente a "solo con exactos".
+        const soloExactosConPenal = isGrupos ? null : Math.ceil(ptsDiff / 4);
+        const soloExactosConPenalFactible = !isGrupos && soloExactosConPenal <= restantes && soloExactosConPenal < soloExactos;
 
         leaderTitle = `Vas a ${ptsDiff} pts de ${leader.nombre}`;
         leaderDesc  = `${leader.nombre} lleva ${leader.puntos} pts y ${rNombre} lleva ${r.puntos} pts. Faltan ${restantes} de los ${TOTAL_TORNEO} partidos de ${faseLabel}. Esto es lo que necesitas sacarle de ventaja en lo que queda (suponiendo que ${leader.nombre} no sume más puntos):`;
@@ -2848,6 +2855,7 @@
           <div class="rkv2__case"><span class="rkv2__case-ic">⚽</span><span>Solo con exactos: <b>${soloExactos}</b> exacto${soloExactos===1?'':'s'} más que él (de los ${restantes} que quedan)</span></div>
           ${soloGanadorFactible ? `<div class="rkv2__case"><span class="rkv2__case-ic">✓</span><span>Solo con ganadores: <b>${soloGanador}</b> acierto${soloGanador===1?'':'s'} de ganador más que él</span></div>` : ''}
           ${mixFactible ? `<div class="rkv2__case"><span class="rkv2__case-ic">🔀</span><span>Mezcla: <b>${mixExactos}</b> exacto${mixExactos===1?'':'s'} + <b>${mixResto}</b> ganador${mixResto===1?'':'es'} más que él</span></div>` : ''}
+          ${soloExactosConPenalFactible ? `<div class="rkv2__case"><span class="rkv2__case-ic">🥅</span><span>Con exactos + penales: <b>${soloExactosConPenal}</b> exacto${soloExactosConPenal===1?'':'s'} en empate acertando también el penal (4 pts c/u) — solo cuenta si esos partidos realmente van a penales</span></div>` : ''}
         </div>`;
       }
     } else {
