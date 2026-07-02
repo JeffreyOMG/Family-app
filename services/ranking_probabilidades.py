@@ -206,8 +206,10 @@ def _conteo_partidos_futuros(con, categoria: str) -> dict[str, dict[str, int]]:
     
     if categoria in ("global", "grupos"):
         # Grupos: bloqueado=0 o sin goles_local
+        # Solo contamos partidos que NO tienen resultado registrado (goles_local IS NULL).
+        # Esto garantiza que los partidos ya jugados sin pronóstico no se vuelvan a sumar.
         c_grupos_total = con.execute(
-            "SELECT COUNT(*) as c FROM partidos_mundial WHERE bloqueado=0 OR goles_local IS NULL"
+            "SELECT COUNT(*) as c FROM partidos_mundial WHERE goles_local IS NULL"
         ).fetchone()
         res["grupos"]["total"] = int(c_grupos_total["c"] or 0)
         # Para grupos, todos los partidos pendientes admiten pronóstico
@@ -215,8 +217,9 @@ def _conteo_partidos_futuros(con, categoria: str) -> dict[str, dict[str, int]]:
         
     if categoria in ("global", "eli"):
         # Eliminatorias: bloqueado=0 o sin goles_local
+        # Solo contamos partidos que NO tienen resultado registrado (goles_local IS NULL).
         c_eli_total = con.execute(
-            "SELECT COUNT(*) as c FROM partidos_eliminacion WHERE (bloqueado=0 OR goles_local IS NULL)"
+            "SELECT COUNT(*) as c FROM partidos_eliminacion WHERE goles_local IS NULL"
         ).fetchone()
         res["eli"]["total"] = int(c_eli_total["c"] or 0)
         # Eliminatorias con pronóstico posible (equipos definidos)
@@ -582,12 +585,11 @@ def calcular_probabilidades_ranking(con, categoria: str = "global", n_sim_solici
 
         # Cálculo del máximo teórico para el usuario `uid`:
         # Suma los puntos actuales, más los puntos máximos que puede obtener
-        # de partidos que aún no se jugaron (es decir, que todavía no tienen resultado registrado).
+        # de partidos que aún no se jugaron (goles_local IS NULL).
         # Se asume que el usuario puede pronosticar y acertar todos estos partidos.
         
-        # Los conteos de `futuros["grupos"]["total"]` y `futuros["eli"]["total"]`
-        # ya representan todos los partidos que aún no tienen resultado registrado.
-        # Estos son los partidos que el usuario *todavía puede pronosticar*.
+        # Según la lógica de mundial.py, un partido está 'cerrado' cuando tiene resultado.
+        # Mientras no tenga resultado (goles_local IS NULL), el usuario aún puede puntuar.
         
         max_teorico = b["puntos"] + (futuros["grupos"]["total"] * 3) + (futuros["eli"]["total"] * 4)
 
