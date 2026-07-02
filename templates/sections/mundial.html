@@ -2681,10 +2681,11 @@
         if (String(ordenados[k].id) === String(targetId)) { foundPos = pos; break; }
       }
       return {
-        p1:   foundPos === 1 ? 100 : 0,
-        top2: foundPos <= 2 ? 100 : 0,
-        top3: foundPos <= 3 ? 100 : 0,
-        top5: foundPos <= 5 ? 100 : 0,
+        det: true, // determinístico: aquí sí es correcto decir 0%/100% en seco
+        p1:   foundPos === 1 ? 1 : 0,
+        top2: foundPos <= 2 ? 1 : 0,
+        top3: foundPos <= 3 ? 1 : 0,
+        top5: foundPos <= 5 ? 1 : 0,
       };
     }
 
@@ -2722,11 +2723,27 @@
     }
 
     return {
-      p1:   Math.round(c1 / ITER * 100),
-      top2: Math.round(c2 / ITER * 100),
-      top3: Math.round(c3 / ITER * 100),
-      top5: Math.round(c5 / ITER * 100),
+      det: false, // probabilístico: nunca debe leerse como "imposible" aunque salga bajo
+      p1:   c1 / ITER,
+      top2: c2 / ITER,
+      top3: c3 / ITER,
+      top5: c5 / ITER,
     };
+  }
+
+  // ── Formatea una fracción 0..1 a texto de porcentaje sin mentir por redondeo ──
+  // En modo probabilístico (det:false), Math.round podía convertir un 0.3% real
+  // en "0%" literal, que se lee igual que "matemáticamente imposible". Acá nunca
+  // se muestra 0%/100% en seco salvo que la fracción sea exactamente 0 o 1 en el
+  // caso determinístico (sin partidos restantes).
+  function _rkv2FmtProb(frac, det) {
+    if (det) return (frac >= 1 ? 100 : 0) + '%';
+    const pct = frac * 100;
+    if (pct <= 0) return '<1%';
+    if (pct < 1) return '<1%';
+    if (pct >= 100) return '>99%';
+    if (pct > 99) return '>99%';
+    return Math.round(pct) + '%';
   }
 
   // ── Toggle estadísticas expandibles ─────────────────────────────────
@@ -2786,7 +2803,7 @@
 
     let leaderColor = '#f5c518', leaderIcon = '🏆', leaderTitle = '', leaderDesc = '', casesHTML = '';
     let probLabel = 'prob. de ser campeón';
-    let probVal = sim.p1 + '%';
+    let probVal = _rkv2FmtProb(sim.p1, sim.det);
 
     if (isLeader) {
       leaderTitle = '🏆 Vas líder';
@@ -2874,9 +2891,9 @@
 
     // ── Probabilidades adicionales aparte de ser campeón: Top 2, Top 3 y Top 5 ──
     const probBadgesHTML = `<div class="rkv2__prob-badges">
-      <div class="rkv2__prob-badge"><span class="rkv2__prob-badge-val">${sim.top2}%</span><span class="rkv2__prob-badge-label">Top 2</span></div>
-      <div class="rkv2__prob-badge"><span class="rkv2__prob-badge-val">${sim.top3}%</span><span class="rkv2__prob-badge-label">Top 3</span></div>
-      <div class="rkv2__prob-badge"><span class="rkv2__prob-badge-val">${sim.top5}%</span><span class="rkv2__prob-badge-label">Top 5</span></div>
+      <div class="rkv2__prob-badge"><span class="rkv2__prob-badge-val">${_rkv2FmtProb(sim.top2, sim.det)}</span><span class="rkv2__prob-badge-label">Top 2</span></div>
+      <div class="rkv2__prob-badge"><span class="rkv2__prob-badge-val">${_rkv2FmtProb(sim.top3, sim.det)}</span><span class="rkv2__prob-badge-label">Top 3</span></div>
+      <div class="rkv2__prob-badge"><span class="rkv2__prob-badge-val">${_rkv2FmtProb(sim.top5, sim.det)}</span><span class="rkv2__prob-badge-label">Top 5</span></div>
     </div>`;
 
     const statsRow = document.createElement('tr');
@@ -2884,7 +2901,7 @@
     statsRow.dataset.statsUid = uid;
     // Círculo SVG de probabilidad
     const circum = 245;
-    const probNum = parseInt(probVal) || 0;
+    const probNum = probVal.startsWith('<') ? 0 : (probVal.startsWith('>') ? 100 : (parseInt(probVal) || 0));
     const offset = circum - (circum * probNum / 100);
     const circleId = 'rk-circ-' + uid;
     const probCircleHTML = `
