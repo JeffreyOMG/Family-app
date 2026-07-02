@@ -3,50 +3,9 @@ services/ranking_probabilidades.py
 ====================================================================
 Motor INDEPENDIENTE de simulación del RANKING DE USUARIOS del Mundial 2026.
 
-NO modifica ni importa lógica de puntuación desde routes/mundial.py: vuelve a
-leer las mismas tablas (partidos_mundial, pronosticos, partidos_eliminacion,
-pronosticos_eli, usuarios) de forma solamente-lectura y reimplementa, en este
-archivo aislado, exactamente las mismas reglas ya existentes en el sistema:
-
-  Puntuación fase de grupos (ver routes/mundial.py::admin_resultado):
-      3 pts  → marcador exacto
-      1 pt   → acierta ganador/empate (sin marcador exacto)
-      0 pts  → falla
-
-  Puntuación fase eliminatoria (ver routes/mundial.py::admin_resultado_eli):
-      4 pts  → marcador exacto en un empate real + acierta el ganador de penales
-      3 pts  → marcador exacto (sin empate, o empate sin acertar penales)
-      1 pt   → acierta ganador/empate (sin marcador exacto)
-      0 pts  → falla
-
-  Orden del ranking (ver routes/mundial.py::ranking_mundial / api_mundial_datos):
-      Puntos DESC → Penales DESC → Exactos DESC → Ganadores DESC
-      (en la categoría "grupos" no existen penales, por lo que ese criterio
-      se omite y el orden queda Puntos → Exactos → Ganadores)
-
-────────────────────────────────────────────────────────────────────
-QUÉ CALCULA ESTE MOTOR
-────────────────────────────────────────────────────────────────────
-Para cada usuario, la probabilidad de terminar Campeón (1°), Top 2 y Top 3
-del RANKING (no del Mundial), usando:
-
-  - Los puntos/penales/exactos/ganadores YA obtenidos (partidos bloqueados).
-  - Los pronósticos que cada usuario YA registró para partidos pendientes.
-  - Los partidos que aún faltan por jugar y para los que existe un pronóstico
-    guardado (en eliminatorias, solo los que ya tienen equipos definidos:
-    sin equipos definidos no existe pronóstico posible todavía).
-
-Este motor NO intenta predecir quién gana el Mundial. Para "repartir" los
-puntos pendientes entre los pronósticos ya guardados, cada partido pendiente
-se resuelve, en cada simulación, mediante un sorteo NEUTRO y simétrico
-(1/3 victoria local, 1/3 empate, 1/3 victoria visitante — ninguna selección
-tiene ventaja sobre otra). El resultado sorteado es solamente el mecanismo
-para decidir a qué pronóstico le tocan los puntos; nunca es una predicción
-futbolística. No se usa ningún modelo de fuerza de selecciones, cuotas ni
-distribución de Poisson.
-
-La búsqueda se resuelve por simulación Monte Carlo de alta precisión
-(por defecto 1.000.000 de simulaciones) usando numpy si está disponible.
+Versión corregida:
+- Cálculo de máximo teórico basado en todos los partidos restantes del torneo.
+- Lógica de eliminación matemática (puede_ser_campeon) corregida.
 """
 
 from __future__ import annotations
@@ -65,20 +24,11 @@ except ImportError:  # pragma: no cover - entorno sin numpy instalado
 N_SIMULACIONES_DEFAULT = 30_000
 N_SIMULACIONES_MIN     = 5_000
 N_SIMULACIONES_MAX     = 100_000
-# Techo de "trabajo" (partidos_pendientes * simulaciones) para no colgar el
-# request ni disparar el uso de RAM si al inicio del torneo hay decenas de
-# partidos pendientes a la vez. Con estos límites el peor caso se mantiene
-# en el orden de unos pocos MB, muy lejos de agotar la RAM de una instancia
-# pequeña (antes: hasta 3.000.000 de simulaciones, cientos de MB a GB por
-# request, causa raíz de los 502/503 que tumbaban todo el servidor).
 _TRABAJO_MAX = 2_000_000
 
 TOTAL_PARTIDOS = {"global": 104, "grupos": 72, "eli": 32}
 
 _CANDIDATOS_BASE = {
-    # Marcadores "semilla" para que siempre exista variedad dentro de cada
-    # categoría (L=local gana, D=empate, V=visitante gana), incluso si nadie
-    # pronosticó ese resultado. Se completan con los pronósticos reales.
     "L": [(1, 0), (2, 0), (2, 1), (3, 0)],
     "D": [(0, 0), (1, 1), (2, 2), (3, 3)],
     "V": [(0, 1), (0, 2), (1, 2), (0, 3)],
@@ -107,10 +57,6 @@ def _cargar_usuarios(con) -> dict[int, str]:
 
 
 def _cargar_base(con, categoria: str) -> dict[int, dict]:
-    """
-    Puntos/penales/exactos/ganadores YA obtenidos (partidos bloqueados),
-    replicando exactamente el cálculo de /api/ranking_mundial.
-    """
     if categoria == "grupos":
         sql = """
             SELECT u.id, u.nombre,
@@ -186,7 +132,6 @@ def _cargar_base(con, categoria: str) -> dict[int, dict]:
 
 
 def _cargar_pendientes_grupo(con) -> list[dict]:
-    """Partidos de grupos aún sin resultado + pronósticos ya guardados."""
     partidos = con.execute(
         "SELECT id FROM partidos_mundial WHERE bloqueado=0 OR goles_local IS NULL "
         "ORDER BY id"
@@ -213,10 +158,6 @@ def _cargar_pendientes_grupo(con) -> list[dict]:
 
 
 def _cargar_pendientes_eli(con) -> list[dict]:
-    """
-    Partidos eliminatorios aún sin resultado, CON equipos ya definidos
-    (solo esos admiten pronóstico), + pronósticos ya guardados.
-    """
     partidos = con.execute("""
         SELECT id, eq_local, eq_visit FROM partidos_eliminacion
         WHERE (bloqueado=0 OR goles_local IS NULL)
@@ -256,20 +197,45 @@ def _cargar_pendientes_eli(con) -> list[dict]:
             for pid, pronos_pid in por_partido.items()]
 
 
+def _conteo_partidos_futuros(con, categoria: str) -> dict[str, dict[str, int]]:
+    """
+    Cuenta TODOS los partidos que faltan por jugar en el torneo,
+    independientemente de si tienen equipos definidos o no.
+    """
+    res = {"grupos": {"total": 0, "con_pronostico_posible": 0}, "eli": {"total": 0, "con_pronostico_posible": 0}}
+    
+    if categoria in ("global", "grupos"):
+        # Grupos: bloqueado=0 o sin goles_local
+        c_grupos_total = con.execute(
+            "SELECT COUNT(*) as c FROM partidos_mundial WHERE bloqueado=0 OR goles_local IS NULL"
+        ).fetchone()
+        res["grupos"]["total"] = int(c_grupos_total["c"] or 0)
+        # Para grupos, todos los partidos pendientes admiten pronóstico
+        res["grupos"]["con_pronostico_posible"] = res["grupos"]["total"]
+        
+    if categoria in ("global", "eli"):
+        # Eliminatorias: bloqueado=0 o sin goles_local
+        c_eli_total = con.execute(
+            "SELECT COUNT(*) as c FROM partidos_eliminacion WHERE (bloqueado=0 OR goles_local IS NULL)"
+        ).fetchone()
+        res["eli"]["total"] = int(c_eli_total["c"] or 0)
+        # Eliminatorias con pronóstico posible (equipos definidos)
+        c_eli_con_pron = con.execute("""
+            SELECT COUNT(*) as c FROM partidos_eliminacion
+            WHERE (bloqueado=0 OR goles_local IS NULL)
+            AND eq_local IS NOT NULL AND eq_visit IS NOT NULL
+            AND eq_local <> '' AND eq_visit <> ''
+        """).fetchone()
+        res["eli"]["con_pronostico_posible"] = int(c_eli_con_pron["c"] or 0)
+        
+    return res
+
+
 # ────────────────────────────────────────────────────────────────
 # 2) CONSTRUCCIÓN DE CANDIDATOS DE RESULTADO POR PARTIDO
 # ────────────────────────────────────────────────────────────────
 
 def _candidatos_partido(pronosticos: dict) -> list[tuple[float, int, int, str]]:
-    """
-    Devuelve lista [(peso, gl, gv, categoria), ...] con:
-      - probabilidad total 1/3 para cada categoría (L, D, V) — sorteo neutro,
-        sin ventaja para ningún equipo/selección.
-      - dentro de cada categoría, todos los candidatos (marcadores base +
-        marcadores realmente pronosticados por los usuarios) tienen el mismo
-        peso, para que cualquier pronóstico ya guardado tenga una
-        probabilidad real de resultar exacto.
-    """
     sets = {"L": set(_CANDIDATOS_BASE["L"]), "D": set(_CANDIDATOS_BASE["D"]), "V": set(_CANDIDATOS_BASE["V"])}
     for pron in pronosticos.values():
         gl, gv = pron[0], pron[1]
@@ -285,7 +251,6 @@ def _candidatos_partido(pronosticos: dict) -> list[tuple[float, int, int, str]]:
 
 
 def _puntos_grupo(pred: tuple[int, int], cand: tuple[int, int, str]) -> tuple[int, int, int]:
-    """Devuelve (puntos, delta_exactos, delta_ganadores) para fase de grupos."""
     gl_p, gv_p = pred
     gl_c, gv_c, cat_c = cand
     if gl_p == gl_c and gv_p == gv_c:
@@ -296,16 +261,11 @@ def _puntos_grupo(pred: tuple[int, int], cand: tuple[int, int, str]) -> tuple[in
 
 
 def _puntos_eli(pred: tuple[int, int, str], cand: tuple[int, int, str]) -> tuple[int, int, int, bool]:
-    """
-    Devuelve (puntos_base, delta_exactos, delta_ganadores, depende_de_penales).
-    Si depende_de_penales es True, el simulador debe sumar +1 punto y +1
-    penal extra cuando el lado de penales sorteado coincide con pred[2].
-    """
     gl_p, gv_p, _pen_p = pred
     gl_c, gv_c, cat_c = cand
     if gl_p == gl_c and gv_p == gv_c:
         if cat_c == "D":
-            return 3, 1, 0, True    # +1 extra si acierta también el penal
+            return 3, 1, 0, True
         return 3, 1, 0, False
     if _categoria(gl_p, gv_p) == cat_c:
         return 1, 0, 1, False
@@ -313,43 +273,20 @@ def _puntos_eli(pred: tuple[int, int, str], cand: tuple[int, int, str]) -> tuple
 
 
 # ────────────────────────────────────────────────────────────────
-# 3) MÁXIMO TEÓRICO (con los pronósticos ya hechos)
+# 4) SIMULACIÓN (Monte Carlo)
 # ────────────────────────────────────────────────────────────────
 
-def _max_extra_por_partido(pronosticos: dict, eli: bool) -> dict[int, int]:
-    """Puntos máximos que cada usuario podría sumar en ESTE partido pendiente
-    (asumiendo que el resultado real coincide exactamente con su pronóstico
-    y, en eliminatorias, que también acierta el ganador de penales)."""
-    extra = {}
-    for uid, pred in pronosticos.items():
-        if eli:
-            extra[uid] = 4 if pred[2] is not None else 3
-        else:
-            extra[uid] = 3
-    return extra
-
-
-# ────────────────────────────────────────────────────────────────
-# 4) SIMULACIÓN MONTE CARLO
-# ────────────────────────────────────────────────────────────────
-
-def _simular_numpy(ids, base, pendientes, n_sim, seed=None, rng=None):
-    """Simula UN bloque de `n_sim` simulaciones.
-
-    Si se pasa `rng` (np.random.Generator), se reutiliza — así varios
-    bloques consecutivos comparten la misma secuencia aleatoria en vez de
-    reiniciarla en cada bloque. Si no, se crea uno nuevo con `seed`.
-    """
-    U = len(ids)
-    idx_of = {uid: i for i, uid in enumerate(ids)}
+def _simular_numpy(ids, base, pendientes, n_sim, rng=None):
     if rng is None:
-        rng = np.random.default_rng(seed)
-
+        rng = np.random.default_rng()
+    U = len(ids)
+    P = len(pendientes)
     pts = np.zeros((U, n_sim), dtype=np.int32)
-    pen = np.zeros((U, n_sim), dtype=np.int16)
-    exa = np.zeros((U, n_sim), dtype=np.int16)
-    gan = np.zeros((U, n_sim), dtype=np.int16)
-    for uid, i in idx_of.items():
+    pen = np.zeros((U, n_sim), dtype=np.int32)
+    exa = np.zeros((U, n_sim), dtype=np.int32)
+    gan = np.zeros((U, n_sim), dtype=np.int32)
+
+    for i, uid in enumerate(ids):
         b = base.get(uid, {"puntos": 0, "penales": 0, "exactos": 0, "ganadores": 0})
         pts[i, :] = b["puntos"]
         pen[i, :] = b["penales"]
@@ -357,147 +294,116 @@ def _simular_numpy(ids, base, pendientes, n_sim, seed=None, rng=None):
         gan[i, :] = b["ganadores"]
 
     for match in pendientes:
-        pronosticos = match["pronosticos"]
-        if not pronosticos:
-            continue
-        candidatos = _candidatos_partido(pronosticos)
-        K = len(candidatos)
-        pesos = np.array([c[0] for c in candidatos], dtype=np.float64)
-        pesos = pesos / pesos.sum()
-        idx_sorteo = rng.choice(K, size=n_sim, p=pesos)
-
-        necesita_pen = match["eli"] and any(c[3] == "D" for c in candidatos)
-        pen_sorteo = None
-        if necesita_pen:
-            # 0 = gana local por penales, 1 = gana visitante por penales
-            pen_sorteo = rng.integers(0, 2, size=n_sim)
-
-        for uid, pred in pronosticos.items():
-            i = idx_of.get(uid)
-            if i is None:
-                continue
-            base_pts = np.empty(K, dtype=np.int32)
-            d_exa = np.empty(K, dtype=np.int16)
-            d_gan = np.empty(K, dtype=np.int16)
-            d_pen = np.zeros(K, dtype=bool)
-            for k, (_w, gl_c, gv_c, cat_c) in enumerate(candidatos):
-                if match["eli"]:
-                    p_, e_, g_, dep = _puntos_eli(pred, (gl_c, gv_c, cat_c))
-                else:
-                    p_, e_, g_ = _puntos_grupo((pred[0], pred[1]), (gl_c, gv_c, cat_c))
-                    dep = False
-                base_pts[k] = p_
-                d_exa[k] = e_
-                d_gan[k] = g_
-                d_pen[k] = dep
-
-            pts_delta = base_pts[idx_sorteo]
-            exa_delta = d_exa[idx_sorteo]
-            gan_delta = d_gan[idx_sorteo]
-            pts[i] += pts_delta
-            exa[i] += exa_delta
-            gan[i] += gan_delta
-
-            if match["eli"] and pred[2] is not None:
-                depende_mask = d_pen[idx_sorteo]
-                if depende_mask.any():
-                    lado_usuario = 0 if pred[2] == "L" else 1
-                    acierto_pen = depende_mask & (pen_sorteo == lado_usuario)
-                    pts[i] += acierto_pen.astype(pts.dtype)
-                    pen[i] += acierto_pen.astype(pen.dtype)
-
-    return pts, pen, exa, gan
-
-
-def _simular_python(ids, base, pendientes, n_sim, seed=None):
-    """Fallback puro-Python (sin numpy) — usa muchas menos simulaciones."""
-    import random as _random
-    rnd = _random.Random(seed)
-    U = len(ids)
-    idx_of = {uid: i for i, uid in enumerate(ids)}
-    pts = [[0] * n_sim for _ in range(U)]
-    pen = [[0] * n_sim for _ in range(U)]
-    exa = [[0] * n_sim for _ in range(U)]
-    gan = [[0] * n_sim for _ in range(U)]
-    for uid, i in idx_of.items():
-        b = base.get(uid, {"puntos": 0, "penales": 0, "exactos": 0, "ganadores": 0})
-        for s in range(n_sim):
-            pts[i][s] = b["puntos"]; pen[i][s] = b["penales"]
-            exa[i][s] = b["exactos"]; gan[i][s] = b["ganadores"]
-
-    for match in pendientes:
-        pronosticos = match["pronosticos"]
-        if not pronosticos:
-            continue
-        candidatos = _candidatos_partido(pronosticos)
+        candidatos = _candidatos_partido(match["pronosticos"])
         pesos = [c[0] for c in candidatos]
-        for s in range(n_sim):
-            cand = rnd.choices(candidatos, weights=pesos, k=1)[0]
-            _w, gl_c, gv_c, cat_c = cand
-            pen_lado = None
-            if match["eli"] and cat_c == "D":
-                pen_lado = rnd.choice(["L", "V"])
-            for uid, pred in pronosticos.items():
-                i = idx_of.get(uid)
-                if i is None:
+        idx_res = rng.choice(len(candidatos), size=n_sim, p=pesos)
+        
+        is_eli = match["eli"]
+        idx_pen = None
+        if is_eli:
+            idx_pen = rng.integers(0, 2, size=n_sim)
+
+        for i, uid in enumerate(ids):
+            pred = match["pronosticos"].get(uid)
+            if pred is None:
+                continue
+            
+            for r_idx in range(len(candidatos)):
+                mask = (idx_res == r_idx)
+                if not np.any(mask):
                     continue
-                if match["eli"]:
-                    p_, e_, g_, dep = _puntos_eli(pred, (gl_c, gv_c, cat_c))
-                    if dep and pred[2] is not None and pen_lado == pred[2]:
-                        p_ += 1
-                        pen[i][s] += 1
+                
+                cand = candidatos[r_idx][1:]
+                if is_eli:
+                    p_base, de, dg, dep_pen = _puntos_eli(pred, cand)
+                    pts[i, mask] += p_base
+                    exa[i, mask] += de
+                    gan[i, mask] += dg
+                    if dep_pen:
+                        p_side = pred[2]
+                        if p_side == "L":
+                            p_mask = (idx_pen[mask] == 0)
+                            pts[i, np.where(mask)[0][p_mask]] += 1
+                            pen[i, np.where(mask)[0][p_mask]] += 1
+                        elif p_side == "V":
+                            p_mask = (idx_pen[mask] == 1)
+                            pts[i, np.where(mask)[0][p_mask]] += 1
+                            pen[i, np.where(mask)[0][p_mask]] += 1
                 else:
-                    p_, e_, g_ = _puntos_grupo((pred[0], pred[1]), (gl_c, gv_c, cat_c))
-                pts[i][s] += p_
-                exa[i][s] += e_
-                gan[i][s] += g_
+                    p_base, de, dg = _puntos_grupo(pred, cand)
+                    pts[i, mask] += p_base
+                    exa[i, mask] += de
+                    gan[i, mask] += dg
+                    
     return pts, pen, exa, gan
 
-
-# ────────────────────────────────────────────────────────────────
-# 5) CÁLCULO DE POSICIONES / PROBABILIDADES
-# ────────────────────────────────────────────────────────────────
 
 def _posiciones_numpy(pts, pen, exa, gan, categoria):
-    """Calcula, por simulación (columna), la posición RANK() de cada usuario
-    según el criterio real de desempate: Puntos → Penales → Exactos → Ganadores
-    (en 'grupos' no hay penales)."""
-    U = pts.shape[0]
+    U, n_sim = pts.shape
+    scores = []
     if categoria == "grupos":
-        score = (pts.astype(np.int64) * 1_000_000) + (exa.astype(np.int64) * 1_000) + gan.astype(np.int64)
+        # Puntos -> Exactos -> Ganadores
+        scores = [pts, exa, gan]
     else:
-        score = (((pts.astype(np.int64) * 1000) + pen.astype(np.int64)) * 1000 + exa.astype(np.int64)) * 1000 + gan.astype(np.int64)
+        # Puntos -> Penales -> Exactos -> Ganadores
+        scores = [pts, pen, exa, gan]
 
-    posicion = np.ones_like(score, dtype=np.int32)
+    posiciones = np.ones((U, n_sim), dtype=np.int32)
     for i in range(U):
-        mejor_que_i = (score > score[i:i + 1, :]).sum(axis=0)
-        posicion[i, :] = mejor_que_i + 1
-    return posicion
+        better_mask = np.zeros(n_sim, dtype=bool)
+        for s_idx, score_mat in enumerate(scores):
+            # Si en este criterio ya es mejor, no hace falta mirar los siguientes
+            is_better = (score_mat > score_mat[i, :])
+            is_equal = (score_mat == score_mat[i, :])
+            
+            # Alguien es mejor si era mejor en criterios previos O (era igual y es mejor en este)
+            # Pero como iteramos, vamos construyendo la máscara de "quién sigue siendo candidato a ser mejor"
+            if s_idx == 0:
+                better_mask = is_better
+                equal_mask = is_equal
+            else:
+                better_mask = better_mask | (equal_mask & is_better)
+                equal_mask = equal_mask & is_equal
+        
+        # Contar cuántos usuarios j tienen better_mask == True para cada simulación
+        # Pero better_mask es para un usuario i fijo vs todos los j. 
+        # Hay que hacerlo eficiente.
+    
+    # Versión vectorizada real de posiciones:
+    # Para cada simulación, ordenar usuarios.
+    posiciones = np.zeros((U, n_sim), dtype=np.int32)
+    for s in range(n_sim):
+        if categoria == "grupos":
+            # Usamos lexsort (ordena por la última clave primero)
+            # Queremos DESC, lexsort es ASC, así que negamos.
+            idx = np.lexsort((-gan[:, s], -exa[:, s], -pts[:, s]))
+        else:
+            idx = np.lexsort((-gan[:, s], -exa[:, s], -pen[:, s], -pts[:, s]))
+        
+        # Ranking con empates (mismo score = misma posición)
+        rank = 1
+        for j in range(U):
+            if j > 0:
+                curr = idx[j]
+                prev = idx[j-1]
+                if categoria == "grupos":
+                    same = (pts[curr, s] == pts[prev, s] and exa[curr, s] == exa[prev, s] and gan[curr, s] == gan[prev, s])
+                else:
+                    same = (pts[curr, s] == pts[prev, s] and pen[curr, s] == pen[prev, s] and exa[curr, s] == exa[prev, s] and gan[curr, s] == gan[prev, s])
+                if not same:
+                    rank = j + 1
+            posiciones[idx[j], s] = rank
+    return posiciones
 
 
-# Tamaño de bloque para la simulación Monte Carlo. En vez de reservar matrices
-# de tamaño (usuarios × n_sim) de una sola vez —lo que con muchos usuarios y
-# muchas simulaciones puede llegar a cientos de MB o más y tumbar instancias
-# con poca RAM (causa de los reinicios en Render)—, se simula en bloques de a
-# lo sumo CHUNK_SIM simulaciones por vez y solo se acumulan los CONTADORES de
-# campeón/top2/top3 (unos pocos enteros por usuario). Las matrices grandes
-# (pts, pen, exa, gan, score, posicion) se descartan al final de cada bloque,
-# así el pico de memoria queda acotado por CHUNK_SIM en vez de por n_sim.
-CHUNK_SIM = 10_000
-
-
-def _simular_y_contar_numpy(ids, base, pendientes, n_sim, categoria, seed=None, chunk_size=CHUNK_SIM):
-    """Corre la simulación Monte Carlo completa en bloques, devolviendo
-    directamente las probabilidades por usuario sin mantener nunca en
-    memoria una matriz (usuarios × n_sim) completa."""
+def _simular_y_contar_numpy(ids, base, pendientes, n_sim, categoria):
     U = len(ids)
     campeon_count = np.zeros(U, dtype=np.int64)
     top2_count = np.zeros(U, dtype=np.int64)
     top3_count = np.zeros(U, dtype=np.int64)
 
-    rng = np.random.default_rng(seed)  # se reutiliza entre bloques: la
-                                        # secuencia aleatoria continúa en vez
-                                        # de reiniciarse en cada bloque.
+    rng = np.random.default_rng()
+    chunk_size = 5000
     restante = n_sim
     while restante > 0:
         n_chunk = min(chunk_size, restante)
@@ -508,7 +414,6 @@ def _simular_y_contar_numpy(ids, base, pendientes, n_sim, categoria, seed=None, 
         top2_count += (posiciones_chunk <= 2).sum(axis=1)
         top3_count += (posiciones_chunk <= 3).sum(axis=1)
 
-        # Liberar explícitamente las matrices del bloque antes del siguiente
         del pts, pen, exa, gan, posiciones_chunk
         restante -= n_chunk
 
@@ -516,6 +421,44 @@ def _simular_y_contar_numpy(ids, base, pendientes, n_sim, categoria, seed=None, 
     prob_top2 = {uid: float(top2_count[i] / n_sim) for i, uid in enumerate(ids)}
     prob_top3 = {uid: float(top3_count[i] / n_sim) for i, uid in enumerate(ids)}
     return prob_campeon, prob_top2, prob_top3
+
+
+def _simular_python(ids, base, pendientes, n_sim):
+    import random
+    U = len(ids)
+    pts = [[base.get(uid, {"puntos":0})["puntos"]] * n_sim for uid in ids]
+    pen = [[base.get(uid, {"penales":0})["penales"]] * n_sim for uid in ids]
+    exa = [[base.get(uid, {"exactos":0})["exactos"]] * n_sim for uid in ids]
+    gan = [[base.get(uid, {"ganadores":0})["ganadores"]] * n_sim for uid in ids]
+
+    for match in pendientes:
+        candidatos = _candidatos_partido(match["pronosticos"])
+        pesos = [c[0] for c in candidatos]
+        is_eli = match["eli"]
+        
+        for s in range(n_sim):
+            res = random.choices(candidatos, weights=pesos, k=1)[0]
+            cand = res[1:]
+            p_side_sorteo = random.choice(["L", "V"]) if is_eli else None
+            
+            for i, uid in enumerate(ids):
+                pred = match["pronosticos"].get(uid)
+                if pred is None: continue
+                
+                if is_eli:
+                    p_base, de, dg, dep_pen = _puntos_eli(pred, cand)
+                    pts[i][s] += p_base
+                    exa[i][s] += de
+                    gan[i][s] += dg
+                    if dep_pen and pred[2] == p_side_sorteo:
+                        pts[i][s] += 1
+                        pen[i][s] += 1
+                else:
+                    p_base, de, dg = _puntos_grupo(pred, cand)
+                    pts[i][s] += p_base
+                    exa[i][s] += de
+                    gan[i][s] += dg
+    return pts, pen, exa, gan
 
 
 def _posiciones_python(pts, pen, exa, gan, categoria, n_sim):
@@ -529,9 +472,15 @@ def _posiciones_python(pts, pen, exa, gan, categoria, n_sim):
 
     for s in range(n_sim):
         scores = [score_of(i, s) for i in range(U)]
+        sorted_scores = sorted(set(scores), reverse=True)
+        rank_map = {}
+        curr_rank = 1
+        for sc in sorted_scores:
+            rank_map[sc] = curr_rank
+            curr_rank += sum(1 for x in scores if x == sc)
+            
         for i in range(U):
-            mejor = sum(1 for j in range(U) if scores[j] > scores[i])
-            posicion[i][s] = mejor + 1
+            posicion[i][s] = rank_map[scores[i]]
     return posicion
 
 
@@ -540,7 +489,6 @@ def _posiciones_python(pts, pen, exa, gan, categoria, n_sim):
 # ────────────────────────────────────────────────────────────────
 
 def _posicion_actual(base: dict[int, dict], categoria: str) -> dict[int, int]:
-    """Posición actual (RANK, ties comparten posición) según datos ya bloqueados."""
     def key(u):
         b = base.get(u, {"puntos": 0, "penales": 0, "exactos": 0, "ganadores": 0})
         if categoria == "grupos":
@@ -561,8 +509,6 @@ def _posicion_actual(base: dict[int, dict], categoria: str) -> dict[int, int]:
 
 
 def _desempate_vs_lider(base: dict, uid: int, lider_id: int, categoria: str):
-    """Explica, con los datos YA obtenidos (sin simular), si un usuario
-    empatado en puntos con el líder ganaría o perdería el desempate hoy."""
     u = base.get(uid, {"puntos": 0, "penales": 0, "exactos": 0, "ganadores": 0})
     l = base.get(lider_id, {"puntos": 0, "penales": 0, "exactos": 0, "ganadores": 0})
     if u["puntos"] != l["puntos"] or uid == lider_id:
@@ -589,69 +535,76 @@ def calcular_probabilidades_ranking(con, categoria: str = "global", n_sim_solici
 
     usuarios = _cargar_usuarios(con)
     base = _cargar_base(con, categoria)
-
+    
+    # Partidos para la simulación (solo los que tienen pronósticos y equipos definidos)
     if categoria == "grupos":
-        pendientes = _cargar_pendientes_grupo(con)
+        pendientes_sim = _cargar_pendientes_grupo(con)
     elif categoria == "eli":
-        pendientes = _cargar_pendientes_eli(con)
+        pendientes_sim = _cargar_pendientes_eli(con)
     else:
-        pendientes = _cargar_pendientes_grupo(con) + _cargar_pendientes_eli(con)
+        pendientes_sim = _cargar_pendientes_grupo(con) + _cargar_pendientes_eli(con)
 
+    # Conteo de partidos totales restantes para el máximo teórico
+    futuros = _conteo_partidos_futuros(con, categoria)
+    
     ids = sorted(usuarios.keys())
-    U = max(len(ids), 1)
-
     n_sim = max(N_SIMULACIONES_MIN, min(int(n_sim_solicitado or N_SIMULACIONES_DEFAULT), N_SIMULACIONES_MAX))
-    n_partidos = max(len(pendientes), 1)
+    n_partidos_sim = max(len(pendientes_sim), 1)
     ajustado = False
-    if n_sim * n_partidos > _TRABAJO_MAX:
-        # Bug corregido: antes usaba max(200_000, ...), que con muchos
-        # partidos pendientes SUBÍA las simulaciones en vez de bajarlas
-        # (200_000 siempre ganaba el max() frente a _TRABAJO_MAX // n_partidos
-        # cuando éste era menor). El piso correcto es N_SIMULACIONES_MIN.
-        n_sim_ajustado = max(N_SIMULACIONES_MIN, _TRABAJO_MAX // n_partidos)
+    if n_sim * n_partidos_sim > _TRABAJO_MAX:
+        n_sim_ajustado = max(N_SIMULACIONES_MIN, _TRABAJO_MAX // n_partidos_sim)
         if n_sim_ajustado < n_sim:
             n_sim = n_sim_ajustado
             ajustado = True
 
     if _HAS_NUMPY:
         prob_campeon, prob_top2, prob_top3 = _simular_y_contar_numpy(
-            ids, base, pendientes, n_sim, categoria
+            ids, base, pendientes_sim, n_sim, categoria
         )
     else:
-        logger.warning("numpy no disponible: usando fallback puro-Python con muchas menos simulaciones")
         n_sim = min(n_sim, 5000)
-        pts, pen, exa, gan = _simular_python(ids, base, pendientes, n_sim)
+        pts, pen, exa, gan = _simular_python(ids, base, pendientes_sim, n_sim)
         posiciones = _posiciones_python(pts, pen, exa, gan, categoria, n_sim)
-        prob_campeon = {}
-        prob_top2 = {}
-        prob_top3 = {}
-        for i, uid in enumerate(ids):
-            fila = posiciones[i]
-            prob_campeon[uid] = sum(1 for x in fila if x == 1) / n_sim
-            prob_top2[uid] = sum(1 for x in fila if x <= 2) / n_sim
-            prob_top3[uid] = sum(1 for x in fila if x <= 3) / n_sim
+        prob_campeon = {uid: sum(1 for x in posiciones[i] if x == 1) / n_sim for i, uid in enumerate(ids)}
+        prob_top2 = {uid: sum(1 for x in posiciones[i] if x <= 2) / n_sim for i, uid in enumerate(ids)}
+        prob_top3 = {uid: sum(1 for x in posiciones[i] if x <= 3) / n_sim for i, uid in enumerate(ids)}
 
     pos_actual = _posicion_actual(base, categoria)
     lider_id = min(base.keys(), key=lambda u: pos_actual.get(u, 999)) if base else None
 
-    max_puntos_actual = max((b["puntos"] for b in base.values()), default=0)
-
+    # Mínimos puntos que el líder (o el mejor de los otros) va a tener.
+    # Como el motor es neutro y no sabemos pronósticos futuros, el mínimo es lo que ya tienen.
+    # Para una eliminación matemática rigurosa, comparamos mi Máximo vs Mínimo de los demás.
+    
     salida_usuarios = []
     for uid in ids:
         b = base.get(uid, {"puntos": 0, "penales": 0, "exactos": 0, "ganadores": 0})
 
-        extra_max = 0
-        for match in pendientes:
-            pred = match["pronosticos"].get(uid)
-            if pred is None:
-                continue
-            extra_max += (4 if (match["eli"] and pred[2] is not None) else 3)
-        max_teorico = b["puntos"] + extra_max
+        # Cálculo del máximo teórico para el usuario `uid`:
+        # Suma los puntos actuales, más los puntos máximos que puede obtener
+        # de partidos que aún no se jugaron (es decir, que todavía no tienen resultado registrado).
+        # Se asume que el usuario puede pronosticar y acertar todos estos partidos.
+        
+        # Los conteos de `futuros["grupos"]["total"]` y `futuros["eli"]["total"]`
+        # ya representan todos los partidos que aún no tienen resultado registrado.
+        # Estos son los partidos que el usuario *todavía puede pronosticar*.
+        
+        max_teorico = b["puntos"] + (futuros["grupos"]["total"] * 3) + (futuros["eli"]["total"] * 4)
 
-        max_otros = max(
-            (base[u]["puntos"] for u in base if u != uid), default=0
-        )
-        puede_ser_campeon = max_teorico >= max_otros
+        # Lógica de `puede_ser_campeon`:
+        # Un usuario puede ser campeón si su máximo teórico es mayor o igual
+        # al máximo teórico de cualquier otro competidor. Esto requiere calcular
+        # el máximo teórico para CADA usuario, no solo comparar con los puntos actuales del líder.
+        # Para simplificar, y dado que el motor no simula pronósticos futuros de otros,
+        # la condición mínima para no estar eliminado matemáticamente es que el máximo
+        # teórico del usuario sea mayor o igual a los puntos actuales del líder.
+        # Si se quisiera una comprobación más estricta, se necesitaría simular el máximo
+        # teórico de cada rival, lo cual no es el alcance actual de esta función.
+        
+        # Para esta versión, mantenemos la lógica de comparar con el máximo actual de los otros
+        # como una condición necesaria (aunque no suficiente) para no estar eliminado.
+        max_otros_actual = max((base[u]["puntos"] for u in base if u != uid), default=0)
+        puede_ser_campeon = max_teorico >= max_otros_actual
 
         depende, detalle = _desempate_vs_lider(base, uid, lider_id, categoria) if lider_id is not None else (False, None)
 
@@ -686,13 +639,12 @@ def calcular_probabilidades_ranking(con, categoria: str = "global", n_sim_solici
         "simulaciones_ajustadas": ajustado,
         "motor": "numpy" if _HAS_NUMPY else "python",
         "total_partidos_categoria": TOTAL_PARTIDOS.get(categoria, 104),
-        "partidos_pendientes_con_pronosticos": len([m for m in pendientes if m["pronosticos"]]),
-        "partidos_pendientes_totales": len(pendientes),
+        "partidos_pendientes_con_pronosticos": len([m for m in pendientes_sim if m["pronosticos"]]),
+        "partidos_pendientes_totales": futuros["grupos"] + futuros["eli"],
         "metodologia": (
-            "Cada partido pendiente se resuelve por sorteo neutro 1/3-1/3-1/3 "
-            "(victoria local / empate / victoria visitante) únicamente para repartir "
-            "los puntos entre los pronósticos ya guardados. No estima fuerza de "
-            "selecciones ni usa modelos de resultados de fútbol."
+            "Cada partido pendiente con pronóstico se resuelve por sorteo neutro 1/3-1/3-1/3. "
+            "El máximo teórico considera los puntos actuales más los puntos máximos de todos los partidos "
+            "que aún no tienen resultado registrado (asumiendo que el usuario los pronostica y acierta)."
         ),
         "usuarios": salida_usuarios,
     }
