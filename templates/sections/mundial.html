@@ -1889,7 +1889,10 @@
       .rkv2__dot--penal   { background: #8b5cf6; color: #fff; font-size: 12px; box-shadow: 0 0 10px rgba(139,92,246,.5), 0 2px 5px rgba(0,0,0,.2); }
 
       /* ── Ver más ─────────────────────────────────────── */
-      .rkv2__ver-mas-wrap { display: flex; justify-content: center; padding: 20px 12px 8px; box-sizing: border-box; }
+      .rkv2__ver-mas-wrap {
+        display: flex; justify-content: center; padding: 20px 12px 8px; box-sizing: border-box;
+        position: sticky; left: 0; width: 100%;
+      }
       .rkv2__ver-mas-btn {
         display: inline-flex; align-items: center; justify-content: center;
         gap: 10px; flex-wrap: wrap; row-gap: 6px;
@@ -2011,6 +2014,7 @@
         background: rgba(255,255,255,.018) !important;
         border-top: 1px solid rgba(255,255,255,.06) !important;
         border-bottom: 1px solid rgba(255,255,255,.06) !important;
+        position: sticky; left: 0;
       }
       body:not(.dark-mode):not(.theme-glass) .rkv2__stats-row td {
         background: rgba(15,15,25,.018) !important;
@@ -2021,9 +2025,13 @@
         /* width:0 + min-width:100% evita que este grid "empuje" el ancho de la
            tabla que lo contiene (celda colspan) — sin esto, en tablas con
            overflow-x:auto el contenido del grid termina desalineando/corriendo
-           toda la fila, tanto en PC como en móvil */
+           toda la fila, tanto en PC como en móvil.
+           max-width limita el panel al ancho real visible: la celda (sticky)
+           puede ser tan ancha como toda la tabla scrolleable, pero el panel
+           no debe extenderse más allá de lo que cabe en pantalla. */
         width: 0;
         min-width: 100%;
+        max-width: calc(100vw - 24px);
         box-sizing: border-box;
         padding: 18px 18px 18px 52px;
         display: grid;
