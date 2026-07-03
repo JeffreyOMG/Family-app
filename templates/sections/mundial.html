@@ -1889,9 +1889,11 @@
       .rkv2__dot--penal   { background: #8b5cf6; color: #fff; font-size: 12px; box-shadow: 0 0 10px rgba(139,92,246,.5), 0 2px 5px rgba(0,0,0,.2); }
 
       /* ── Ver más ─────────────────────────────────────── */
-      .rkv2__ver-mas-wrap { display: flex; justify-content: center; padding: 20px 12px 8px; }
+      .rkv2__ver-mas-wrap { display: flex; justify-content: center; padding: 20px 12px 8px; box-sizing: border-box; }
       .rkv2__ver-mas-btn {
-        display: inline-flex; align-items: center; gap: 10px;
+        display: inline-flex; align-items: center; justify-content: center;
+        gap: 10px; flex-wrap: wrap; row-gap: 6px;
+        max-width: 100%; box-sizing: border-box;
         background: rgba(255,255,255,.04); border: 1.5px solid rgba(255,255,255,.12);
         color: rgba(255,255,255,.8); font-size: 13px; font-weight: 600;
         border-radius: 24px; padding: 11px 22px; cursor: pointer;
@@ -1904,11 +1906,13 @@
         box-shadow: 0 6px 18px var(--accent-soft, rgba(255,77,141,.18));
       }
       .rkv2__ver-mas-btn:active { transform: scale(.97); }
-      .rkv2__ver-mas-icon { font-size: 14px; opacity: .8; transition: transform .2s var(--rk-ease); }
+      .rkv2__ver-mas-icon { font-size: 14px; opacity: .8; transition: transform .2s var(--rk-ease); flex-shrink: 0; }
       .rkv2__ver-mas-btn:hover .rkv2__ver-mas-icon { transform: translateY(2px); }
+      .rkv2__ver-mas-text { white-space: nowrap; }
       .rkv2__ver-mas-count {
         background: rgba(255,255,255,.09); border-radius: 10px;
         padding: 2px 9px; font-size: 11px; opacity: .7; font-weight: 700;
+        white-space: nowrap; flex-shrink: 0;
       }
 
       /* Fila previa "tú" fuera del top */
@@ -2262,7 +2266,10 @@
         .rkv2__pos-num { font-size: 13px; min-width: 14px; }
         .rkv2__cambio { font-size: 9px; padding: 2px 4px; }
         .rkv2__mas-btn { padding: 6px 11px; font-size: 10.5px; }
-        .rkv2__ver-mas-btn { font-size: 12px; padding: 10px 17px; }
+        .rkv2__ver-mas-wrap { padding: 16px 10px 6px; }
+        .rkv2__ver-mas-btn { font-size: 12px; padding: 10px 16px; gap: 8px; width: 100%; max-width: 300px; }
+        .rkv2__ver-mas-icon { font-size: 13px; }
+        .rkv2__ver-mas-count { font-size: 10px; padding: 2px 8px; }
         .rkv2__legend { font-size: 10.5px; gap: 10px; padding: 11px 12px; }
         /* ── Panel "Ver más" en móvil ── */
         .rkv2__stats-inner {
@@ -2322,6 +2329,11 @@
       }
       @media (max-width: 340px) {
         .rkv2__stats-inner { grid-template-columns: 1fr; }
+      }
+      @media (max-width: 360px) {
+        .rkv2__ver-mas-btn { font-size: 11px; padding: 9px 13px; gap: 6px; border-radius: 18px; max-width: 100%; }
+        .rkv2__ver-mas-text { font-size: 11px; }
+        .rkv2__ver-mas-count { font-size: 9.5px; padding: 2px 7px; }
       }
       @media (min-width: 481px) and (max-width: 880px) {
         .rkv2__player-name { max-width: 120px; }
@@ -2526,7 +2538,7 @@
         <div class="rkv2__ver-mas-wrap">
           <button class="rkv2__ver-mas-btn" onclick="_rkv2VerMas('${tab}')">
             <span class="rkv2__ver-mas-icon">↓</span>
-            Ver ${Math.min(_RKV2_PAGE_SIZE, faltante)} participante${Math.min(_RKV2_PAGE_SIZE, faltante) === 1 ? '' : 's'} más
+            <span class="rkv2__ver-mas-text">Ver ${Math.min(_RKV2_PAGE_SIZE, faltante)} participante${Math.min(_RKV2_PAGE_SIZE, faltante) === 1 ? '' : 's'} más</span>
             <span class="rkv2__ver-mas-count">${faltante} restante${faltante === 1 ? '' : 's'}</span>
           </button>
         </div>` : ''}
