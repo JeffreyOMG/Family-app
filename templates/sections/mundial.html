@@ -2362,6 +2362,25 @@
         .rkv2__prob-circle { width: 80px; height: 80px; }
         .rkv2__prob-circle svg { width: 80px; height: 80px; }
       }
+      /* ── Panel de stats en pantallas anchas (PC) ──────────────────────
+         En mobile/tablet el grid usa auto-fill/1fr y llena todo el ancho
+         a propósito (columnas angostas, muchas filas). En desktop eso
+         mismo estira cada tarjeta y la caja "Frente al líder" a un ancho
+         enorme con espacios vacíos gigantes. Acá se limita el ancho del
+         contenido y se centra, dejando el fondo de la tarjeta a todo lo
+         ancho de la tabla (no se toca nada de lo anterior, que es lo que
+         ya funciona bien en mobile). */
+      @media (min-width: 881px) {
+        .rkv2__stats-inner {
+          max-width: 980px;
+          margin-left: auto;
+          margin-right: auto;
+          padding: 22px 24px;
+          grid-template-columns: repeat(auto-fit, minmax(150px, 200px));
+          justify-content: center;
+        }
+        .rkv2__leader-box { grid-template-columns: 1fr auto; gap: 12px 28px; }
+      }
     </style>
 
 
