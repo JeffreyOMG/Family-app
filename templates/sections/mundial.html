@@ -1671,8 +1671,9 @@
         color: var(--accent, #ff4d8d); font-weight: 700;
         box-shadow: 0 2px 14px var(--accent-soft, rgba(255,77,141,.18));
       }
-      .rkv2__panel { display: none; }
+      .rkv2__panel { display: none; position: relative; }
       .rkv2__panel.active { display: block; }
+      .rkv2__stats-spacer td { padding: 0 !important; border: none !important; height: 0; transition: height .28s var(--rk-ease); }
 
       /* ── Tabla — contenedor ───────────────────────────── */
       .rkv2__wrap {
@@ -2009,18 +2010,23 @@
       /* ════════════════════════════════════════════════════
          PANEL EXPANDIBLE — tarjetas premium
       ════════════════════════════════════════════════════ */
-      .rkv2__stats-container { display: flex; flex-direction: column; gap: 10px; }
-      .rkv2__stats-container:not(:empty) { margin-top: 10px; }
+      .rkv2__stats-container { position: absolute; left: 0; top: 0; pointer-events: none; z-index: 2; }
       .rkv2__stats-panel {
+        position: absolute;
+        left: 0;
+        box-sizing: border-box;
         border-radius: var(--rk-radius-sm);
-        background: rgba(255,255,255,.018);
+        background: #17171f;
         border: 1px solid rgba(255,255,255,.06);
         overflow: hidden;
+        pointer-events: auto;
+        box-shadow: 0 10px 26px -12px rgba(0,0,0,.4);
         animation: rkv2-stats-in .28s var(--rk-ease);
       }
       body:not(.dark-mode):not(.theme-glass) .rkv2__stats-panel {
-        background: rgba(15,15,25,.018);
+        background: #fbfbfd;
         border-color: rgba(15,15,25,.06);
+        box-shadow: 0 10px 26px -12px rgba(15,15,25,.16);
       }
       .rkv2__stats-panel-header {
         display: flex; align-items: center; gap: 10px;
@@ -2785,8 +2791,11 @@
     const existingRow = panel.querySelector('.rkv2__stats-panel[data-stats-uid="' + uid + '"]');
     if (existingRow) {
       existingRow.remove();
+      const oldSpacer = panel.querySelector('.rkv2__stats-spacer[data-spacer-uid="' + uid + '"]');
+      if (oldSpacer) oldSpacer.remove();
       btn.classList.remove('is-open');
       btn.innerHTML = 'Más <span class="rkv2__mas-ic">▾</span>';
+      _rkv2SyncStatsPanels(panel);
       return;
     }
     btn.classList.add('is-open');
@@ -3105,16 +3114,28 @@
 
       </div>`;
 
-    // Insertar en el contenedor de paneles, FUERA de .rkv2__wrap (que tiene
-    // scroll horizontal por las muchas columnas de la tabla en móvil). Así el
-    // panel nunca depende del ancho ni del scroll de la tabla, y no se corta
-    // ni se desalinea aunque el usuario haya scrolleado la tabla antes o
-    // después de abrirlo.
+    // Técnica "placeholder + overlay": el panel visual vive FUERA de
+    // .rkv2__wrap (que tiene scroll horizontal por las muchas columnas de la
+    // tabla en móvil), así que nunca depende del ancho ni del scroll interno
+    // de la tabla. Pero para que siga apareciendo pegado a la fila del
+    // usuario (como antes) — y empuje visualmente las filas de abajo — se
+    // deja una fila "spacer" vacía dentro de la tabla, justo debajo de la
+    // fila del usuario, cuya altura se sincroniza con la del panel real.
+    const spacerTr = document.createElement('tr');
+    spacerTr.className = 'rkv2__stats-spacer';
+    spacerTr.dataset.spacerUid = uid;
+    const spacerTd = document.createElement('td');
+    spacerTd.colSpan = 9;
+    spacerTr.appendChild(spacerTd);
+    tr.after(spacerTr);
+
     const container = panel.querySelector('.rkv2__stats-container');
     if (container) container.appendChild(statsRow);
 
     const closeBtn = statsRow.querySelector('.rkv2__stats-panel-close');
     if (closeBtn) closeBtn.addEventListener('click', () => _rkv2ToggleStats(uid, tab, btn));
+
+    _rkv2SyncStatsPanels(panel);
 
     requestAnimationFrame(() => {
       setTimeout(() => {
@@ -3123,9 +3144,60 @@
           const fill = el.querySelector('.rkv2__prob-circle__fill');
           if (fill) fill.style.strokeDashoffset = fill.dataset.offset;
         }
+        // El alto real del panel (con contenido ya pintado) puede diferir del
+        // primer cálculo; se re-sincroniza para que el spacer quede exacto.
+        _rkv2SyncStatsPanels(panel);
       }, 80);
     });
   }
+
+  // ── Alinea cada panel abierto justo debajo de la fila de su participante ──
+  // Se recalcula: al abrir/cerrar un panel, al hacer resize/rotar el celular,
+  // y al terminar de pintar el contenido (ver arriba). El cálculo usa
+  // getBoundingClientRect(), que da coordenadas de viewport para ambos
+  // elementos en la misma llamada — el scroll vertical de la página se
+  // cancela solo en la resta, y el scroll horizontal de .rkv2__wrap no
+  // afecta nada porque el panel vive fuera de ese contenedor.
+  function _rkv2SyncStatsPanels(panel) {
+    if (!panel) return;
+    const wrap = panel.querySelector('.rkv2__wrap');
+    const container = panel.querySelector('.rkv2__stats-container');
+    if (!wrap || !container) return;
+    const panelRect = panel.getBoundingClientRect();
+    const wrapRect = wrap.getBoundingClientRect();
+    const panels = container.querySelectorAll('.rkv2__stats-panel');
+    panels.forEach(statsRow => {
+      const uid = statsRow.dataset.statsUid;
+      const spacer = panel.querySelector('.rkv2__stats-spacer[data-spacer-uid="' + uid + '"]');
+      if (!spacer) return;
+      const spacerRect = spacer.getBoundingClientRect();
+      const top = spacerRect.top - panelRect.top;
+      const left = wrapRect.left - panelRect.left;
+      statsRow.style.top = top + 'px';
+      statsRow.style.left = left + 'px';
+      statsRow.style.width = wrapRect.width + 'px';
+      // La fila spacer reserva el mismo alto que el panel real para que las
+      // filas siguientes de la tabla se empujen hacia abajo visualmente.
+      const neededHeight = statsRow.offsetHeight;
+      spacer.querySelector('td').style.height = neededHeight + 'px';
+    });
+  }
+
+  // Re-sincroniza todos los paneles abiertos (de cualquier pestaña visible)
+  // ante cambios de tamaño de ventana o rotación del celular.
+  let _rkv2SyncScheduled = false;
+  function _rkv2ScheduleSyncAll() {
+    if (_rkv2SyncScheduled) return;
+    _rkv2SyncScheduled = true;
+    requestAnimationFrame(() => {
+      _rkv2SyncScheduled = false;
+      document.querySelectorAll('.rkv2__panel').forEach(p => {
+        if (p.querySelector('.rkv2__stats-panel')) _rkv2SyncStatsPanels(p);
+      });
+    });
+  }
+  window.addEventListener('resize', _rkv2ScheduleSyncAll);
+  window.addEventListener('orientationchange', _rkv2ScheduleSyncAll);
 
   // ── Admin: reiniciar tracking de posiciones ──────────────────────────
   async function resetSnapshotRanking(btn) {
