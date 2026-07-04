@@ -2009,34 +2009,41 @@
       /* ════════════════════════════════════════════════════
          PANEL EXPANDIBLE — tarjetas premium
       ════════════════════════════════════════════════════ */
-      .rkv2__stats-row td {
-        padding: 0 !important;
-        background: rgba(255,255,255,.018) !important;
-        border-top: 1px solid rgba(255,255,255,.06) !important;
-        border-bottom: 1px solid rgba(255,255,255,.06) !important;
+      .rkv2__stats-container { display: flex; flex-direction: column; gap: 10px; }
+      .rkv2__stats-container:not(:empty) { margin-top: 10px; }
+      .rkv2__stats-panel {
+        border-radius: var(--rk-radius-sm);
+        background: rgba(255,255,255,.018);
+        border: 1px solid rgba(255,255,255,.06);
+        overflow: hidden;
+        animation: rkv2-stats-in .28s var(--rk-ease);
       }
-      body:not(.dark-mode):not(.theme-glass) .rkv2__stats-row td {
-        background: rgba(15,15,25,.018) !important;
-        border-top-color: rgba(15,15,25,.06) !important;
-        border-bottom-color: rgba(15,15,25,.06) !important;
+      body:not(.dark-mode):not(.theme-glass) .rkv2__stats-panel {
+        background: rgba(15,15,25,.018);
+        border-color: rgba(15,15,25,.06);
       }
+      .rkv2__stats-panel-header {
+        display: flex; align-items: center; gap: 10px;
+        padding: 12px 16px; border-bottom: 1px solid rgba(255,255,255,.06);
+      }
+      body:not(.dark-mode):not(.theme-glass) .rkv2__stats-panel-header { border-bottom-color: rgba(15,15,25,.06); }
+      .rkv2__stats-panel-avatar {
+        width: 26px; height: 26px; border-radius: 50%; object-fit: cover; flex-shrink: 0;
+        background: rgba(255,255,255,.08);
+      }
+      .rkv2__stats-panel-name { font-size: .82rem; font-weight: 700; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .rkv2__stats-panel-close {
+        background: none; border: none; color: rgba(255,255,255,.4); cursor: pointer;
+        font-size: 16px; line-height: 1; padding: 4px; border-radius: 6px; flex-shrink: 0;
+        transition: background .15s var(--rk-ease), color .15s var(--rk-ease);
+      }
+      .rkv2__stats-panel-close:hover { background: rgba(255,255,255,.08); color: rgba(255,255,255,.85); }
       .rkv2__stats-inner {
-        /* width:0 + min-width:100% evita que este grid "empuje" el ancho de la
-           tabla que lo contiene (celda colspan) — sin esto, en tablas con
-           overflow-x:auto el contenido del grid termina desalineando/corriendo
-           toda la fila, tanto en PC como en móvil.
-           En pantallas donde la tabla necesita scroll horizontal (muchas
-           columnas), _rkv2ToggleStats() fija un width en px por JS igual al
-           ancho realmente visible del wrap, para que el panel nunca dependa
-           del ancho total scrolleable de la tabla. */
-        width: 0;
-        min-width: 100%;
         box-sizing: border-box;
         padding: 18px 18px 18px 52px;
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
         gap: 12px;
-        animation: rkv2-stats-in .28s var(--rk-ease);
       }
       .rkv2__stat-item, .rkv2__leader-box, .rkv2__stats-legend { min-width: 0; }
       .rkv2__leader-main, .rkv2__leader-desc, .rkv2__case { min-width: 0; }
@@ -2550,6 +2557,7 @@
           </button>
         </div>` : ''}
       </div>
+      <div class="rkv2__stats-container"></div>
       <div class="rkv2__legend">
         <span class="rkv2__legend-item"><span class="rkv2__legend-dot rkv2__legend-dot--exact">⚽</span> Exacto</span>
         <span class="rkv2__legend-item"><span class="rkv2__legend-dot rkv2__legend-dot--win">✓</span> Ganador</span>
@@ -2774,9 +2782,8 @@
     const panel = document.getElementById('rkv2-panel-' + tab);
     const tr = panel.querySelector('tr[data-uid="' + uid + '"]');
     if (!tr) return;
-    const existingRow = panel.querySelector('tr.rkv2__stats-row[data-stats-uid="' + uid + '"]');
+    const existingRow = panel.querySelector('.rkv2__stats-panel[data-stats-uid="' + uid + '"]');
     if (existingRow) {
-      if (existingRow._rkv2ResizeObs) existingRow._rkv2ResizeObs.disconnect();
       existingRow.remove();
       btn.classList.remove('is-open');
       btn.innerHTML = 'Más <span class="rkv2__mas-ic">▾</span>';
@@ -2928,8 +2935,8 @@
       <div class="rkv2__prob-badge"><span class="rkv2__prob-badge-val">${_rkv2FmtProb(sim.top5, sim.det)}</span><span class="rkv2__prob-badge-label">Top 5</span></div>
     </div>`;
 
-    const statsRow = document.createElement('tr');
-    statsRow.className = 'rkv2__stats-row';
+    const statsRow = document.createElement('div');
+    statsRow.className = 'rkv2__stats-panel';
     statsRow.dataset.statsUid = uid;
     // Círculo SVG de probabilidad
     const circum = 245;
@@ -2965,7 +2972,17 @@
       ? `<span class="rkv2__stats-legend-item"><span class="rkv2__stats-legend-dot" style="background:#8b5cf6;box-shadow:0 0 6px rgba(139,92,246,.45)"></span>Acierto por penales</span>`
       : '';
 
-    statsRow.innerHTML = `<td colspan="${colSpan}"><div class="rkv2__stats-inner">
+    const avatarHTML = r.foto
+      ? `<img class="rkv2__stats-panel-avatar" src="${clUrl(_esc(r.foto),'avatar')}" alt="" loading="lazy">`
+      : `<div class="rkv2__stats-panel-avatar" style="display:flex;align-items:center;justify-content:center;font-size:13px;">👤</div>`;
+
+    statsRow.innerHTML = `
+      <div class="rkv2__stats-panel-header">
+        ${avatarHTML}
+        <span class="rkv2__stats-panel-name">${_esc(r.nombre)}</span>
+        <button class="rkv2__stats-panel-close" type="button" aria-label="Cerrar">✕</button>
+      </div>
+      <div class="rkv2__stats-inner">
 
       <div class="rkv2__stats-phase-row" style="grid-column:1/-1;display:flex;align-items:center;gap:10px;margin-bottom:2px;">
         ${faseTag}
@@ -3086,34 +3103,18 @@
         ${legendPenales}
       </div>
 
-    </div></td>`;
+      </div>`;
 
-    // Insertar primero en el DOM, luego animar el círculo
-    tr.insertAdjacentElement('afterend', statsRow);
+    // Insertar en el contenedor de paneles, FUERA de .rkv2__wrap (que tiene
+    // scroll horizontal por las muchas columnas de la tabla en móvil). Así el
+    // panel nunca depende del ancho ni del scroll de la tabla, y no se corta
+    // ni se desalinea aunque el usuario haya scrolleado la tabla antes o
+    // después de abrirlo.
+    const container = panel.querySelector('.rkv2__stats-container');
+    if (container) container.appendChild(statsRow);
 
-    // ── Fix: el panel no debe depender del ancho scrolleable de la tabla ──
-    // .rkv2__stats-inner usa min-width:100% de su <td colspan>, y ese <td>
-    // puede ser tan ancho como TODA la tabla (columnas con nowrap/min-width
-    // en pantallas chicas obligan a scroll horizontal). Sin este fix, si la
-    // tabla estaba scrolleada hacia la derecha (o simplemente es más ancha
-    // que la pantalla), el panel se ve cortado/desalineado por la izquierda.
-    // Se resetea el scroll y se fuerza el ancho real visible por JS.
-    const wrapEl = panel.querySelector('.rkv2__wrap');
-    if (wrapEl) {
-      wrapEl.scrollTo({ left: 0, behavior: 'smooth' });
-      const innerEl = statsRow.querySelector('.rkv2__stats-inner');
-      const fitWidth = () => {
-        if (!innerEl) return;
-        innerEl.style.width = wrapEl.clientWidth + 'px';
-        innerEl.style.minWidth = '0';
-      };
-      fitWidth();
-      if (window.ResizeObserver) {
-        const ro = new ResizeObserver(fitWidth);
-        ro.observe(wrapEl);
-        statsRow._rkv2ResizeObs = ro;
-      }
-    }
+    const closeBtn = statsRow.querySelector('.rkv2__stats-panel-close');
+    if (closeBtn) closeBtn.addEventListener('click', () => _rkv2ToggleStats(uid, tab, btn));
 
     requestAnimationFrame(() => {
       setTimeout(() => {
