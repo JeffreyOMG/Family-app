@@ -2014,7 +2014,6 @@
         background: rgba(255,255,255,.018) !important;
         border-top: 1px solid rgba(255,255,255,.06) !important;
         border-bottom: 1px solid rgba(255,255,255,.06) !important;
-        position: sticky; left: 0;
       }
       body:not(.dark-mode):not(.theme-glass) .rkv2__stats-row td {
         background: rgba(15,15,25,.018) !important;
@@ -2026,12 +2025,12 @@
            tabla que lo contiene (celda colspan) — sin esto, en tablas con
            overflow-x:auto el contenido del grid termina desalineando/corriendo
            toda la fila, tanto en PC como en móvil.
-           max-width limita el panel al ancho real visible: la celda (sticky)
-           puede ser tan ancha como toda la tabla scrolleable, pero el panel
-           no debe extenderse más allá de lo que cabe en pantalla. */
+           En pantallas donde la tabla necesita scroll horizontal (muchas
+           columnas), _rkv2ToggleStats() fija un width en px por JS igual al
+           ancho realmente visible del wrap, para que el panel nunca dependa
+           del ancho total scrolleable de la tabla. */
         width: 0;
         min-width: 100%;
-        max-width: calc(100vw - 24px);
         box-sizing: border-box;
         padding: 18px 18px 18px 52px;
         display: grid;
@@ -2777,6 +2776,7 @@
     if (!tr) return;
     const existingRow = panel.querySelector('tr.rkv2__stats-row[data-stats-uid="' + uid + '"]');
     if (existingRow) {
+      if (existingRow._rkv2ResizeObs) existingRow._rkv2ResizeObs.disconnect();
       existingRow.remove();
       btn.classList.remove('is-open');
       btn.innerHTML = 'Más <span class="rkv2__mas-ic">▾</span>';
@@ -3090,6 +3090,30 @@
 
     // Insertar primero en el DOM, luego animar el círculo
     tr.insertAdjacentElement('afterend', statsRow);
+
+    // ── Fix: el panel no debe depender del ancho scrolleable de la tabla ──
+    // .rkv2__stats-inner usa min-width:100% de su <td colspan>, y ese <td>
+    // puede ser tan ancho como TODA la tabla (columnas con nowrap/min-width
+    // en pantallas chicas obligan a scroll horizontal). Sin este fix, si la
+    // tabla estaba scrolleada hacia la derecha (o simplemente es más ancha
+    // que la pantalla), el panel se ve cortado/desalineado por la izquierda.
+    // Se resetea el scroll y se fuerza el ancho real visible por JS.
+    const wrapEl = panel.querySelector('.rkv2__wrap');
+    if (wrapEl) {
+      wrapEl.scrollTo({ left: 0, behavior: 'smooth' });
+      const innerEl = statsRow.querySelector('.rkv2__stats-inner');
+      const fitWidth = () => {
+        if (!innerEl) return;
+        innerEl.style.width = wrapEl.clientWidth + 'px';
+        innerEl.style.minWidth = '0';
+      };
+      fitWidth();
+      if (window.ResizeObserver) {
+        const ro = new ResizeObserver(fitWidth);
+        ro.observe(wrapEl);
+        statsRow._rkv2ResizeObs = ro;
+      }
+    }
 
     requestAnimationFrame(() => {
       setTimeout(() => {
