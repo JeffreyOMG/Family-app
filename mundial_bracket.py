@@ -31,40 +31,40 @@ DIECISEISAVOS = [
     {"id": 83,  "slot_l": "2K",  "slot_v": "2L",         "fecha": "Jue. 2 jul, 6:00 p.m.",  "sede": "BMO Field, Toronto",                 "fijo": True},
     {"id": 85,  "slot_l": "1B",  "slot_v": "3-EFGIJ",    "fecha": "Jue. 2 jul, 10:00 p.m.",  "sede": "BC Place, Vancouver",                "fijo": False},
     # Vie 3 jul
-    {"id": 86,  "slot_l": "1J",  "slot_v": "2H",         "fecha": "Vie. 3 jul, 1:00 p.m.",  "sede": "Hard Rock Stadium, Miami",           "fijo": True},
-    {"id": 88,  "slot_l": "2D",  "slot_v": "2G",         "fecha": "Vie. 3 jul, 5:00 p.m.",  "sede": "AT&T Stadium, Arlington",            "fijo": True},
+    {"id": 88,  "slot_l": "2D",  "slot_v": "2G",         "fecha": "Vie. 3 jul, 1:00 p.m.",  "sede": "AT&T Stadium, Arlington",            "fijo": True},
+    {"id": 86,  "slot_l": "1J",  "slot_v": "2H",         "fecha": "Vie. 3 jul, 5:00 p.m.",  "sede": "Hard Rock Stadium, Miami",           "fijo": True},
     {"id": 87,  "slot_l": "1K",  "slot_v": "3-DEIJL",    "fecha": "Vie. 3 jul, 8:30 p.m.",  "sede": "Arrowhead Stadium, Kansas City",     "fijo": False},
 ]
 
 OCTAVOS = [
-    # Sáb 4 jul
+    # Sáb 4 jul (ya jugados, FIFA no publicó hora exacta — se conserva)
     {"id": 90,  "dep1": 73, "dep2": 75, "fecha": "Sáb. 4 jul, 12:00 p.m.",  "sede": "NRG Stadium, Houston"},
     {"id": 89,  "dep1": 74, "dep2": 77, "fecha": "Sáb. 4 jul, 4:00 p.m.",  "sede": "Lincoln Financial Field, Philadelphia"},
     # Dom 5 jul
-    {"id": 91,  "dep1": 76, "dep2": 78, "fecha": "Dom. 5 jul, 4:00 p.m.",  "sede": "MetLife Stadium, East Rutherford"},
-    {"id": 92,  "dep1": 79, "dep2": 80, "fecha": "Dom. 5 jul, 8:00 p.m.",  "sede": "Estadio Azteca, CDMX"},
+    {"id": 91,  "dep1": 76, "dep2": 78, "fecha": "Dom. 5 jul, 3:00 p.m.",  "sede": "MetLife Stadium, East Rutherford"},
+    {"id": 92,  "dep1": 79, "dep2": 80, "fecha": "Dom. 5 jul, 7:00 p.m.",  "sede": "Estadio Azteca, CDMX"},
     # Lun 6 jul
-    {"id": 93,  "dep1": 83, "dep2": 84, "fecha": "Lun. 6 jul, 4:00 p.m.",  "sede": "AT&T Stadium, Arlington"},
-    {"id": 94,  "dep1": 81, "dep2": 82, "fecha": "Lun. 6 jul, 8:00 p.m.",  "sede": "Lumen Field, Seattle"},
+    {"id": 93,  "dep1": 83, "dep2": 84, "fecha": "Lun. 6 jul, 2:00 p.m.",  "sede": "AT&T Stadium, Arlington"},
+    {"id": 94,  "dep1": 81, "dep2": 82, "fecha": "Lun. 6 jul, 7:00 p.m.",  "sede": "Lumen Field, Seattle"},
     # Mar 7 jul
-    {"id": 95,  "dep1": 86, "dep2": 88, "fecha": "Mar. 7 jul, 3:00 p.m.",  "sede": "Mercedes-Benz Stadium, Atlanta"},
-    {"id": 96,  "dep1": 85, "dep2": 87, "fecha": "Mar. 7 jul, 8:00 p.m.",  "sede": "BC Place, Vancouver"},
+    {"id": 95,  "dep1": 86, "dep2": 88, "fecha": "Mar. 7 jul, 11:00 a.m.", "sede": "Mercedes-Benz Stadium, Atlanta"},
+    {"id": 96,  "dep1": 85, "dep2": 87, "fecha": "Mar. 7 jul, 3:00 p.m.",  "sede": "BC Place, Vancouver"},
 ]
 
 CUARTOS = [
-    {"id": 97,  "dep1": 89, "dep2": 90, "fecha": "Jue. 9 jul, 7:00 p.m.",  "sede": "Gillette Stadium, Foxborough"},
-    {"id": 98,  "dep1": 93, "dep2": 94, "fecha": "Vie. 10 jul, 7:00 p.m.", "sede": "SoFi Stadium, Los Angeles"},
-    {"id": 99,  "dep1": 91, "dep2": 92, "fecha": "Sáb. 11 jul, 3:00 p.m.", "sede": "Hard Rock Stadium, Miami"},
+    {"id": 97,  "dep1": 89, "dep2": 90, "fecha": "Jue. 9 jul, 3:00 p.m.",  "sede": "Gillette Stadium, Foxborough"},
+    {"id": 98,  "dep1": 93, "dep2": 94, "fecha": "Vie. 10 jul, 2:00 p.m.", "sede": "SoFi Stadium, Los Angeles"},
+    {"id": 99,  "dep1": 91, "dep2": 92, "fecha": "Sáb. 11 jul, 4:00 p.m.", "sede": "Hard Rock Stadium, Miami"},
     {"id": 100, "dep1": 95, "dep2": 96, "fecha": "Sáb. 11 jul, 8:00 p.m.", "sede": "Arrowhead Stadium, Kansas City"},
 ]
 
 SEMIFINALES = [
-    {"id": 101, "dep1": 97, "dep2": 98,  "fecha": "Mar. 14 jul, 7:00 p.m.", "sede": "AT&T Stadium, Arlington"},
-    {"id": 102, "dep1": 99, "dep2": 100, "fecha": "Mié. 15 jul, 7:00 p.m.", "sede": "Mercedes-Benz Stadium, Atlanta"},
+    {"id": 101, "dep1": 97, "dep2": 98,  "fecha": "Mar. 14 jul, 2:00 p.m.", "sede": "AT&T Stadium, Arlington"},
+    {"id": 102, "dep1": 99, "dep2": 100, "fecha": "Mié. 15 jul, 2:00 p.m.", "sede": "Mercedes-Benz Stadium, Atlanta"},
 ]
 
-TERCER_PUESTO = {"id": 103, "dep1": 101, "dep2": 102, "fecha": "Sáb. 18 jul, 3:00 p.m.", "sede": "Hard Rock Stadium, Miami",         "tipo": "perdedor"}
-FINAL         = {"id": 104, "dep1": 101, "dep2": 102, "fecha": "Dom. 19 jul, 3:00 p.m.", "sede": "MetLife Stadium, East Rutherford",  "tipo": "ganador"}
+TERCER_PUESTO = {"id": 103, "dep1": 101, "dep2": 102, "fecha": "Sáb. 18 jul, 4:00 p.m.", "sede": "Hard Rock Stadium, Miami",         "tipo": "perdedor"}
+FINAL         = {"id": 104, "dep1": 101, "dep2": 102, "fecha": "Dom. 19 jul, 2:00 p.m.", "sede": "MetLife Stadium, East Rutherford",  "tipo": "ganador"}
 
 # IDs de cruces con tercero (admin debe asignar manualmente)
 CRUCES_CON_TERCERO = {74, 77, 79, 80, 81, 82, 85, 87}
