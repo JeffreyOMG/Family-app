@@ -3436,6 +3436,7 @@
     <div class="vpron-fase-tabs">
       <button class="vpron-fase-btn active" onclick="vpronFase('grupos', this)">⚽ Grupos</button>
       <button class="vpron-fase-btn" onclick="vpronFase('eli', this)">🏆 Eliminatorias</button>
+      <button class="vpron-fase-btn" onclick="vpronFase('participantes', this)">👤 Participantes</button>
     </div>
 
     <!-- Sub-tabs Grupos: A…L -->
@@ -3612,6 +3613,11 @@
         const cont = document.getElementById('vpron-content');
         if (!_vpronData) { cont.innerHTML = '<div class="vpron-loading">Cargando…</div>'; return; }
 
+        if (_vpronFase === 'participantes') {
+          _vpronRenderParticipantes(cont);
+          return;
+        }
+
         let datos = _vpronData.filter(r =>
           _vpronFase === 'grupos' ? r.fase === 'Grupos' : r.fase === 'Eliminatoria'
         );
@@ -3724,6 +3730,120 @@
               <span class="vpron-chevron material-symbols-outlined">expand_more</span>
             </div>
             <div class="vpron-rows-body">${rowsHtml}</div>
+          </div>`;
+        });
+
+        cont.innerHTML = html;
+      }
+
+      // ── Vista "Participantes" ────────────────────────────────────────
+      // Lista de todos los participantes (foto, # pronósticos hechos, #
+      // sin pronosticar), orden A-Z, ocultando a quienes tienen 0 pts.
+      // Al hacer click se despliegan todos sus pronósticos + puntos totales.
+      function _vpronRenderParticipantes(cont) {
+        // Total de partidos con resultado ya cargado (todas las fases)
+        const totalSet = new Set();
+        _vpronData.forEach(r => totalSet.add(r.fase + '|' + r.partido_id));
+        const totalPartidos = totalSet.size;
+
+        // Agrupar pronósticos por participante (handle único)
+        const mapa = {};
+        _vpronData.forEach(r => {
+          const key = r.usuario_handle;
+          if (!mapa[key]) {
+            mapa[key] = {
+              nombre: r.usuario_nombre,
+              handle: r.usuario_handle,
+              foto:   r.usuario_foto,
+              puntos: 0,
+              hechos: 0,
+              rows:   []
+            };
+          }
+          mapa[key].puntos += (r.puntos || 0);
+          mapa[key].hechos += 1;
+          mapa[key].rows.push(r);
+        });
+
+        // Ocultar participantes con 0 pts totales
+        let participantes = Object.values(mapa).filter(p => p.puntos > 0);
+
+        // Filtro de búsqueda (nombre o @usuario)
+        if (_vpronQ) {
+          const q = _vpronQ.toLowerCase();
+          participantes = participantes.filter(p =>
+            p.nombre.toLowerCase().includes(q) || p.handle.toLowerCase().includes(q)
+          );
+        }
+
+        // Orden alfabético A-Z por nombre
+        participantes.sort((a, b) => a.nombre.localeCompare(b.nombre, 'es', { sensitivity: 'base' }));
+
+        if (!participantes.length) {
+          cont.innerHTML = '<div class="vpron-empty">Sin participantes disponibles para esta selección.</div>';
+          return;
+        }
+
+        let html = '';
+        participantes.forEach(p => {
+          const sinPron = Math.max(0, totalPartidos - p.hechos);
+          const av = p.foto
+            ? `<img src="${_esc(p.foto)}" class="vpron-av-img" onerror="this.outerHTML='<div class=vpron-av-letter>${_esc((p.nombre||'?')[0].toUpperCase())}</div>'">`
+            : `<div class="vpron-av-letter">${_esc((p.nombre||'?')[0].toUpperCase())}</div>`;
+
+          // Ordenar sus pronósticos: Grupos primero, luego Eliminatoria, cronológico
+          const rowsOrdenadas = p.rows.slice().sort((a, b) => {
+            if (a.fase !== b.fase) return a.fase === 'Grupos' ? -1 : 1;
+            return (a.partido_id || 0) - (b.partido_id || 0);
+          });
+
+          const detalleHtml = rowsOrdenadas.map(r => {
+            const flagL = _flag(r.local, r.cod_local || '');
+            const flagV = _flag(r.visitante, r.cod_visit || '');
+            let penTag = '';
+            if (r.p_penales) {
+              if (!r.res_penales) {
+                penTag = `<span class="vpron-pen-tag vpron-pen-neutral">🥅 ${_esc(r.p_penales)}</span>`;
+              } else {
+                const ok = r.p_penales === r.res_penales;
+                penTag = `<span class="vpron-pen-tag ${ok ? 'vpron-pen-ok' : 'vpron-pen-fail'}">${ok ? '✅' : '❌'} Pen: ${_esc(r.p_penales)}</span>`;
+              }
+            }
+            return `<div class="vpron-row">
+              <div class="vpron-user-info" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+                ${flagL}<span class="vpron-team-name">${_esc(r.local)}</span>
+                <span class="vpron-vs">vs</span>
+                <span class="vpron-team-name">${_esc(r.visitante)}</span>${flagV}
+                <span class="vpron-grupo-badge" style="margin-left:6px;">${_esc(r.grupo)} · ${_esc(r.fase)}</span>
+              </div>
+              <div class="vpron-pred">
+                <span class="vpron-pred-score">${r.p_local ?? '?'} - ${r.p_vis ?? '?'} <span style="opacity:.55;font-weight:600;">(real ${r.res_local}-${r.res_visit})</span></span>
+                ${penTag}
+                <span class="vpron-pts-badge ${ptsCls(r.puntos)}">${r.puntos ?? 0} pts</span>
+              </div>
+            </div>`;
+          }).join('');
+
+          html += `<div class="vpron-partido-group">
+            <div class="vpron-partido-header" onclick="_vpronToggle(this)">
+              <div class="vpron-match-body" style="gap:10px;">
+                ${av}
+                <div style="flex:1;min-width:0;">
+                  <div class="vpron-user-name">${_esc(p.nombre)}</div>
+                  <div class="vpron-user-handle">@${_esc(p.handle)}</div>
+                  <div class="vpron-meta-row">
+                    <span class="vpron-grupo-badge">${p.hechos} pronóstico${p.hechos!==1?'s':''}</span>
+                    <span class="vpron-count-badge" style="${sinPron>0?'color:#dc2626;border-color:rgba(220,38,38,.3);background:rgba(220,38,38,.08);':''}">${sinPron} sin pronosticar</span>
+                  </div>
+                </div>
+              </div>
+              <div class="vpron-score-box">
+                <span class="vpron-score-label">Puntos</span>
+                <span class="vpron-score-num">${p.puntos}</span>
+              </div>
+              <span class="vpron-chevron material-symbols-outlined">expand_more</span>
+            </div>
+            <div class="vpron-rows-body">${detalleHtml}</div>
           </div>`;
         });
 
