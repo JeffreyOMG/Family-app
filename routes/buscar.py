@@ -129,7 +129,7 @@ def api_buscar_pronosticos():
     if fecha:
         sql_eli += " AND pe.fecha LIKE %s"
         params_e += [f"%{fecha}%"]
-    sql_eli += " ORDER BY pe.id, u.nombre"
+    sql_eli += " ORDER BY pe.orden, u.nombre"
 
     def _split(s):
         if s and "|" in s:
@@ -182,4 +182,25 @@ def api_buscar_pronosticos():
     """
     grupos = [row["grupo"] for row in con.execute(grupos_sql).fetchall()]
 
-    return jsonify({"ok": True, "data": resultados, "fechas": grupos})
+    # ── Último partido jugado (global, sin filtros) ─────────────────────────
+    # La fase eliminatoria siempre ocurre después de grupos, así que si hay
+    # algún resultado eliminatorio, ese es el más reciente; si no, el último
+    # de grupos por id (orden de calendario).
+    ultimo = None
+    fila_eli = con.execute("""
+        SELECT id AS partido_id FROM partidos_eliminacion
+        WHERE bloqueado=1 AND goles_local IS NOT NULL AND goles_visit IS NOT NULL
+        ORDER BY orden DESC LIMIT 1
+    """).fetchone()
+    if fila_eli:
+        ultimo = {"fase": "Eliminatoria", "partido_id": fila_eli["partido_id"]}
+    else:
+        fila_g = con.execute("""
+            SELECT id AS partido_id FROM partidos_mundial
+            WHERE bloqueado=1 AND goles_local IS NOT NULL
+            ORDER BY id DESC LIMIT 1
+        """).fetchone()
+        if fila_g:
+            ultimo = {"fase": "Grupos", "partido_id": fila_g["partido_id"]}
+
+    return jsonify({"ok": True, "data": resultados, "fechas": grupos, "ultimo": ultimo})

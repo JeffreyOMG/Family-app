@@ -641,11 +641,26 @@ function busAbrirGaleria() {
 /* ── Card partido colapsable ── */
 .pron-partido-group {
   background: var(--card); border: 1px solid var(--border);
-  border-radius: 16px; overflow: hidden; margin-bottom: 12px;
+  border-radius: 16px; overflow: visible; margin-bottom: 12px;
   box-shadow: 0 1px 4px rgba(0,0,0,.04);
   transition: box-shadow .2s;
+  position: relative;
 }
 .pron-partido-group:hover { box-shadow: 0 3px 12px rgba(0,0,0,.08); }
+.pron-partido-group--ultimo {
+  border: 1.5px solid #22c55e;
+  box-shadow: 0 0 0 3px rgba(34,197,94,.15), 0 3px 12px rgba(34,197,94,.12);
+}
+.pron-ultimo-badge {
+  display: flex; align-items: center; gap: 4px;
+  position: absolute; top: -10px; left: 14px;
+  background: #22c55e; color: #06280f;
+  font-size: 10px; font-weight: 800; letter-spacing: .2px;
+  padding: 3px 8px 3px 6px; border-radius: 999px;
+  box-shadow: 0 2px 6px rgba(34,197,94,.35);
+  z-index: 1;
+}
+.pron-ultimo-badge .material-symbols-outlined { font-size: 12px; }
 
 /* Header clickable */
 .pron-partido-header {
@@ -656,6 +671,7 @@ function busAbrirGaleria() {
   user-select: none;
   -webkit-tap-highlight-color: transparent;
   transition: background .15s;
+  border-radius: 16px 16px 0 0;
 }
 .pron-partido-header:active { background: var(--border); }
 
@@ -724,6 +740,7 @@ function busAbrirGaleria() {
 /* Body rows (colapsable) */
 .pron-rows-body {
   display: none; border-top: 1px solid var(--border);
+  border-radius: 0 0 16px 16px; overflow: hidden;
 }
 .pron-partido-group.open .pron-rows-body { display: block; }
 
@@ -794,6 +811,7 @@ function busAbrirGaleria() {
 <script>
 (function() {
   let _pronData  = null;
+  let _pronUltimo = null;
   let _fechaAct  = '';
   let _queryAct  = '';
   let _pronTimer = null;
@@ -972,6 +990,7 @@ function busAbrirGaleria() {
       const json = await res.json();
       if (!json.ok) throw new Error(json.msg);
       _pronData = json.data;
+      _pronUltimo = json.ultimo || null;
       _poblarFechas(json.fechas || []);
       _renderPron();
     } catch(e) {
@@ -1069,6 +1088,9 @@ function busAbrirGaleria() {
 
     let html = '';
     Object.values(partidos).forEach(({ info, rows }) => {
+      const esUltimo = _pronUltimo
+        && _pronUltimo.fase === info.fase
+        && Number(_pronUltimo.partido_id) === Number(info.partido_id);
       const flagL = _flag(info.local,     info.cod_local  || info.cod_loc  || '');
       const flagV = _flag(info.visitante, info.cod_visit  || info.cod_vis  || '');
 
@@ -1106,8 +1128,9 @@ function busAbrirGaleria() {
         </div>`;
       }).join('');
 
-      html += `<div class="pron-partido-group">
+      html += `<div class="pron-partido-group${esUltimo ? ' pron-partido-group--ultimo' : ''}">
         <div class="pron-partido-header" onclick="_togglePartido(this)">
+          ${esUltimo ? `<div class="pron-ultimo-badge"><span class="material-symbols-outlined">bolt</span> Último partido jugado</div>` : ''}
           <div class="pron-match-body">
             <div style="flex:1;min-width:0;">
               <div class="pron-teams-wrap">
