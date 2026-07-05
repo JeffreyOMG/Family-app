@@ -120,6 +120,7 @@
       <div class="pron-fechas-wrap" id="pron-fase-tabs" style="margin-bottom:.5rem;">
         <button class="pron-fecha-chip active" id="pron-fase-btn-grupos" onclick="pronFase('grupos', this)">⚽ Grupos</button>
         <button class="pron-fecha-chip" id="pron-fase-btn-eli" onclick="pronFase('eli', this)">🏆 Eliminatorias</button>
+        <button class="pron-fecha-chip" id="pron-fase-btn-part" onclick="pronFase('participantes', this)">👤 Participantes</button>
       </div>
 
       <!-- Sub-tabs Grupos A–L -->
@@ -1042,6 +1043,11 @@ function busAbrirGaleria() {
     document.getElementById('pron-loading').style.display = 'none';
     if (!_pronData) return;
 
+    if (_pronFase === 'participantes') {
+      _renderParticipantes();
+      return;
+    }
+
     let data = _pronData;
 
     // Filtro fase principal
@@ -1158,6 +1164,127 @@ function busAbrirGaleria() {
           <span class="pron-chevron material-symbols-outlined">expand_more</span>
         </div>
         <div class="pron-rows-body">${rowsHtml}</div>
+      </div>`;
+    });
+
+    document.getElementById('pron-results').innerHTML = html;
+  }
+
+  // ── Vista "Participantes" ────────────────────────────────────────────
+  // Lista de todos los participantes (foto, # pronósticos hechos, # sin
+  // pronosticar), orden A-Z, ocultando a quienes tienen 0 pts totales.
+  // Al hacer click se despliegan todos sus pronósticos + puntos totales.
+  function _renderParticipantes() {
+    if (!_pronData) return;
+
+    // Total de partidos con resultado ya cargado (todas las fases)
+    const totalSet = new Set();
+    _pronData.forEach(r => totalSet.add(r.fase + '|' + r.partido_id));
+    const totalPartidos = totalSet.size;
+
+    // Agrupar pronósticos por participante (handle único)
+    const mapa = {};
+    _pronData.forEach(r => {
+      const key = r.usuario_handle;
+      if (!mapa[key]) {
+        mapa[key] = {
+          nombre: r.usuario_nombre,
+          handle: r.usuario_handle,
+          foto:   r.usuario_foto,
+          puntos: 0,
+          hechos: 0,
+          rows:   []
+        };
+      }
+      mapa[key].puntos += (r.puntos || 0);
+      mapa[key].hechos += 1;
+      mapa[key].rows.push(r);
+    });
+
+    // Ocultar participantes con 0 pts totales
+    let participantes = Object.values(mapa).filter(p => p.puntos > 0);
+
+    // Filtro de búsqueda (nombre o @usuario)
+    if (_queryAct) {
+      const q = _queryAct.toLowerCase();
+      participantes = participantes.filter(p =>
+        p.nombre.toLowerCase().includes(q) || p.handle.toLowerCase().includes(q)
+      );
+    }
+
+    // Orden alfabético A-Z por nombre
+    participantes.sort((a, b) => a.nombre.localeCompare(b.nombre, 'es', { sensitivity: 'base' }));
+
+    if (!participantes.length) {
+      document.getElementById('pron-results').innerHTML = '';
+      document.getElementById('pron-empty').style.display = 'block';
+      return;
+    }
+    document.getElementById('pron-empty').style.display = 'none';
+
+    const esc = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    const ptsClass = p => p >= 4 ? 'pron-pts-4' : p === 3 ? 'pron-pts-3' : p === 1 ? 'pron-pts-1' : 'pron-pts-0';
+
+    let html = '';
+    participantes.forEach(p => {
+      const sinPron = Math.max(0, totalPartidos - p.hechos);
+      const av = p.foto
+        ? `<img src="${clUrl(esc(p.foto),'avatar')}" class="pron-av-img" onerror="this.outerHTML='<div class=pron-av-letter>${esc(p.nombre[0]?.toUpperCase()||'?')}</div>'">`
+        : `<div class="pron-av-letter">${esc(p.nombre[0]?.toUpperCase()||'?')}</div>`;
+
+      // Ordenar sus pronósticos: Grupos primero, luego Eliminatoria, cronológico
+      const rowsOrdenadas = p.rows.slice().sort((a, b) => {
+        if (a.fase !== b.fase) return a.fase === 'Grupos' ? -1 : 1;
+        return (a.partido_id || 0) - (b.partido_id || 0);
+      });
+
+      const detalleHtml = rowsOrdenadas.map(r => {
+        const flagL = _flag(r.local, r.cod_local || '');
+        const flagV = _flag(r.visitante, r.cod_visit || '');
+        let penTag = '';
+        if (r.p_penales) {
+          if (!r.res_penales) {
+            penTag = `<span class="pron-pen-tag pron-pen-neutral">🥅 ${esc(r.p_penales)}</span>`;
+          } else {
+            const ok = r.p_penales === r.res_penales;
+            penTag = `<span class="pron-pen-tag ${ok ? 'pron-pen-ok' : 'pron-pen-fail'}">${ok ? '✅' : '❌'} Pen: ${esc(r.p_penales)}</span>`;
+          }
+        }
+        return `<div class="pron-row">
+          <div class="pron-user-info" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+            ${flagL}<span class="pron-team-name">${esc(r.local)}</span>
+            <span class="pron-vs">vs</span>
+            <span class="pron-team-name">${esc(r.visitante)}</span>${flagV}
+            <span class="pron-grupo-badge" style="margin-left:6px;">${esc(r.grupo)} · ${esc(r.fase)}</span>
+          </div>
+          <div class="pron-pred">
+            <span class="pron-pred-score">${r.p_local ?? '?'} - ${r.p_vis ?? '?'} <span style="opacity:.55;font-weight:600;">(real ${r.res_local}-${r.res_visit})</span></span>
+            ${penTag}
+            <span class="pron-pts ${ptsClass(r.puntos)}">${r.puntos ?? 0} pts</span>
+          </div>
+        </div>`;
+      }).join('');
+
+      html += `<div class="pron-partido-group">
+        <div class="pron-partido-header" onclick="_togglePartido(this)">
+          <div class="pron-match-body" style="gap:10px;">
+            ${av}
+            <div style="flex:1;min-width:0;">
+              <div class="pron-user-name">${esc(p.nombre)}</div>
+              <div class="pron-user-handle">@${esc(p.handle)}</div>
+              <div class="pron-meta-row">
+                <span class="pron-grupo-badge">${p.hechos} pronóstico${p.hechos!==1?'s':''}</span>
+                <span class="pron-count-badge" style="${sinPron>0?'color:#dc2626;border-color:rgba(220,38,38,.3);background:rgba(220,38,38,.08);':''}">${sinPron} sin pronosticar</span>
+              </div>
+            </div>
+          </div>
+          <div class="pron-partido-score-box">
+            <span class="pron-score-label">Puntos</span>
+            <span class="pron-partido-score">${p.puntos}</span>
+          </div>
+          <span class="pron-chevron material-symbols-outlined">expand_more</span>
+        </div>
+        <div class="pron-rows-body">${detalleHtml}</div>
       </div>`;
     });
 
