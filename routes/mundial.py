@@ -1538,13 +1538,14 @@ def ranking_mundial_v2():
     ranking_grupos_list  = _apply_cambio(ranking_grupos_list,  snap_grupos)
     ranking_eli_list     = _apply_cambio(ranking_eli_list,     snap_eli)
 
-    # ── Guardar snapshot: posición actual + cambio (persistente) ─────────
-    def _save_snapshot(categoria, ranking_list):
+    # ── Guardar snapshot: posición actual + cambio + puntos (persistente) ─
+    def _save_snapshot(categoria, ranking_list, pts_key):
         nuevos = {}
         for r in ranking_list:
             nuevos[r["id"]] = {
                 "pos_actual": r["posicion"],
                 "cambio":     r["cambio"],
+                "puntos":     r.get(pts_key, 0),
             }
         datos = json.dumps(nuevos)
         con.execute("""
@@ -1553,25 +1554,54 @@ def ranking_mundial_v2():
             ON CONFLICT(categoria) DO UPDATE
             SET datos=%s, actualizado=NOW()
         """, (categoria, datos, datos))
+        return nuevos
 
-    def _save_historial(categoria, ranking_list):
-        datos = json.dumps([{
-            "id": r["id"], "nombre": r["nombre"],
-            "posicion": r["posicion"], "puntos": r.get("pts_global", r.get("pts_g", r.get("pts_e", 0)))
-        } for r in ranking_list])
+    def _hubo_cambio_real(ranking_list, pts_key, snapshot_previo):
+        """
+        Compara (posición, puntos) actuales contra el snapshot anterior.
+        Solo retorna True si algo realmente cambió (nuevo resultado oficial,
+        recalculo de puntos, o entra/sale un participante). Esto evita
+        guardar un registro de historial en cada poll de 30s cuando nada
+        cambió — que es la inmensa mayoría de las veces.
+        """
+        if len(ranking_list) != len(snapshot_previo):
+            return True
+        for r in ranking_list:
+            prev = snapshot_previo.get(r["id"])
+            if prev is None:
+                return True
+            if prev.get("pos_actual") != r["posicion"] or prev.get("puntos") != r.get(pts_key, 0):
+                return True
+        return False
+
+    # Guardar historial SOLO si el ranking cambió de verdad desde el último
+    # snapshot guardado (comparación en memoria, sin consultas extra —
+    # snap_* ya se cargaron arriba para calcular ▲▼).
+    def _save_historial_compacto(categoria, ranking_list, pts_key):
+        # Formato compacto [[id,posicion,puntos], ...] — sin nombres ni
+        # claves repetidas, para minimizar almacenamiento. El nombre se
+        # resuelve en el navegador con los datos ya cargados del ranking.
+        datos = json.dumps([[r["id"], r["posicion"], r.get(pts_key, 0)] for r in ranking_list])
         con.execute("""
             INSERT INTO ranking_historial(categoria, datos, creado)
             VALUES(%s, %s, NOW())
         """, (categoria, datos))
-        con.execute("""
-            DELETE FROM ranking_historial
-            WHERE creado < NOW() - INTERVAL '7 days'
-        """)
 
-    _save_snapshot("global",        ranking_global_list)
-    _save_snapshot("grupos",        ranking_grupos_list)
-    _save_snapshot("eliminatorias", ranking_eli_list)
-    _save_historial("global",        ranking_global_list)
+    cambio_global = _hubo_cambio_real(ranking_global_list, "pts_global", snap_global)
+    cambio_grupos = _hubo_cambio_real(ranking_grupos_list, "pts_g",      snap_grupos)
+    cambio_eli    = _hubo_cambio_real(ranking_eli_list,    "pts_e",      snap_eli)
+
+    _save_snapshot("global",        ranking_global_list, "pts_global")
+    _save_snapshot("grupos",        ranking_grupos_list, "pts_g")
+    _save_snapshot("eliminatorias", ranking_eli_list,     "pts_e")
+
+    if cambio_global:
+        _save_historial_compacto("global",        ranking_global_list, "pts_global")
+    if cambio_grupos:
+        _save_historial_compacto("grupos",        ranking_grupos_list, "pts_g")
+    if cambio_eli:
+        _save_historial_compacto("eliminatorias", ranking_eli_list,     "pts_e")
+
     con.commit()
 
     # ── Últimos 5 resultados reales por usuario ───────────────────────────
@@ -1653,8 +1683,17 @@ def ranking_mundial_v2():
     })
 
 
+_ranking_tables_listas = False
+
 def _ensure_ranking_tables(con):
-    """Crea las tablas ranking_snapshot y ranking_historial si no existen."""
+    """
+    Crea las tablas ranking_snapshot y ranking_historial (+ índice) si no
+    existen. Se ejecuta solo una vez por proceso (flag en memoria) para no
+    repetir estos checks de esquema en cada request/poll.
+    """
+    global _ranking_tables_listas
+    if _ranking_tables_listas:
+        return
     con.execute("""
         CREATE TABLE IF NOT EXISTS ranking_snapshot (
             categoria   TEXT PRIMARY KEY,
@@ -1670,7 +1709,12 @@ def _ensure_ranking_tables(con):
             creado    TIMESTAMPTZ NOT NULL DEFAULT NOW()
         )
     """)
+    con.execute("""
+        CREATE INDEX IF NOT EXISTS idx_ranking_historial_cat_creado
+        ON ranking_historial(categoria, creado DESC)
+    """)
     con.commit()
+    _ranking_tables_listas = True
 
 
 @mundial_bp.route("/api/admin/ranking_snapshot_reset", methods=["POST"])
@@ -1685,6 +1729,49 @@ def ranking_snapshot_reset():
     con.execute("DELETE FROM ranking_snapshot")
     con.commit()
     return jsonify({"ok": True})
+
+
+@mundial_bp.route("/api/ranking_historial")
+def api_ranking_historial():
+    """
+    Historial del ranking (evolución de posición/puntos) para graficar en
+    el tab de ranking del Mundial. Cada registro representa un cambio real
+    del ranking (no un poll periódico), así que no hace falta downsamplear.
+    categoria: global | grupos | eliminatorias
+    """
+    if "uid" not in session:
+        return jsonify({}), 401
+
+    categoria = request.args.get("categoria", "global")
+    if categoria not in ("global", "grupos", "eliminatorias"):
+        categoria = "global"
+
+    con = get_db()
+    _ensure_ranking_tables(con)
+
+    # Consulta indexada (categoria, creado) y acotada: como cada fila ya es
+    # un cambio real (no un poll cada 30s), el volumen es naturalmente bajo,
+    # pero igual limitamos por seguridad ante un historial muy largo.
+    rows = con.execute("""
+        SELECT creado, datos
+        FROM ranking_historial
+        WHERE categoria=%s
+        ORDER BY creado DESC
+        LIMIT 500
+    """, (categoria,)).fetchall()
+
+    import json as _json
+    rows_ordenadas = sorted(rows, key=lambda r: r["creado"])  # cronológico asc
+
+    historial = []
+    for r in rows_ordenadas:
+        try:
+            datos = _json.loads(r["datos"])  # [[id,posicion,puntos], ...]
+        except Exception:
+            datos = []
+        historial.append({"fecha": r["creado"], "datos": datos})
+
+    return jsonify({"categoria": categoria, "historial": historial})
 
 
 @mundial_bp.route("/api/admin/ranking_eli_toggle", methods=["POST"])

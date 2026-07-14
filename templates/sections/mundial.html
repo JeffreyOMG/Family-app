@@ -1988,6 +1988,37 @@
       .rkv2__help-close:hover { background:rgba(239,83,80,.18); color:#ef5350; transform:rotate(90deg); }
       body:not(.dark-mode):not(.theme-glass) .rkv2__help-close { background:rgba(15,15,25,.06); border-color:rgba(15,15,25,.12); color:rgba(15,15,25,.55); }
 
+      /* ── Modal de historial (gráfica) ────────────────── */
+      .rkv2__hist-box {
+        background: #1a1a2e; border: 1px solid rgba(255,255,255,.12);
+        border-radius: 18px; padding: 22px 20px 20px;
+        max-width: 640px; width: calc(100% - 32px);
+        position: relative; box-shadow: 0 18px 50px rgba(0,0,0,.6);
+        max-height: 90vh; overflow-y: auto;
+        animation: rkv2-pop-in .25s var(--rk-ease);
+      }
+      body:not(.dark-mode):not(.theme-glass) .rkv2__hist-box { background:#fff; border-color:rgba(15,15,25,.1); box-shadow:0 18px 50px rgba(15,15,25,.18); }
+      .rkv2__hist-box h3 { margin:0 0 4px; font-size:1rem; font-weight:700; color:#fff; display:flex; align-items:center; gap:8px; }
+      body:not(.dark-mode):not(.theme-glass) .rkv2__hist-box h3 { color:#111; }
+      .rkv2__hist-sub { margin: 0 0 16px; font-size: .78rem; color: rgba(255,255,255,.45); }
+      body:not(.dark-mode):not(.theme-glass) .rkv2__hist-sub { color: rgba(15,15,25,.5); }
+      .rkv2__hist-metrics { display:flex; gap:6px; margin-bottom:16px; }
+      .rkv2__hist-metric-btn {
+        flex:1; padding:8px 10px; border-radius:10px; cursor:pointer;
+        background: rgba(255,255,255,.045); border:1.5px solid rgba(255,255,255,.09);
+        color: rgba(255,255,255,.5); font-family:'DM Sans',sans-serif; font-size:.78rem; font-weight:600;
+        transition: background .2s var(--rk-ease), color .2s var(--rk-ease), border-color .2s var(--rk-ease);
+      }
+      body:not(.dark-mode):not(.theme-glass) .rkv2__hist-metric-btn { background:#f3f4f7; border-color:rgba(15,15,25,.1); color:rgba(15,15,25,.5); }
+      .rkv2__hist-metric-btn.active { background: var(--accent-soft, rgba(255,77,141,.14)); border-color: var(--accent-border, rgba(255,77,141,.5)); color: var(--accent, #ff4d8d); }
+      .rkv2__hist-chart-wrap { position: relative; height: 300px; }
+      .rkv2__hist-legend { display:flex; flex-wrap:wrap; gap:8px 14px; margin-top:16px; }
+      .rkv2__hist-legend-item { display:flex; align-items:center; gap:6px; font-size:.76rem; color: rgba(255,255,255,.65); }
+      body:not(.dark-mode):not(.theme-glass) .rkv2__hist-legend-item { color: rgba(15,15,25,.65); }
+      .rkv2__hist-legend-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+      .rkv2__hist-empty { text-align:center; padding:40px 12px; color:rgba(255,255,255,.4); font-size:.85rem; line-height:1.6; }
+      body:not(.dark-mode):not(.theme-glass) .rkv2__hist-empty { color:rgba(15,15,25,.45); }
+
       /* ── Loading ──────────────────────────────────────── */
       .rkv2__loading { text-align:center; padding:36px; color:rgba(255,255,255,.38); font-size:.85rem; display:flex; align-items:center; justify-content:center; gap:9px; }
       body:not(.dark-mode):not(.theme-glass) .rkv2__loading { color:rgba(15,15,25,.42); }
@@ -2397,7 +2428,25 @@
           </button>
           {% endif %}
         </div>
+        <button class="rkv2__help-btn" onclick="rkv2HistOpen()" title="Historial del ranking" style="margin-left:8px;">📈</button>
         <button class="rkv2__help-btn" onclick="rkv2HelpOpen()" title="¿Cómo funciona el ranking?">?</button>
+      </div>
+
+      <!-- Modal historial del ranking -->
+      <div class="rkv2__help-overlay" id="rkv2-hist-overlay" onclick="if(event.target===this)rkv2HistClose()">
+        <div class="rkv2__hist-box">
+          <button class="rkv2__help-close" onclick="rkv2HistClose()">✕</button>
+          <h3>📈 Historial del ranking</h3>
+          <p class="rkv2__hist-sub" id="rkv2-hist-sub">Evolución día a día — <span id="rkv2-hist-categoria">Global</span></p>
+          <div class="rkv2__hist-metrics">
+            <button class="rkv2__hist-metric-btn active" id="rkv2-hist-btn-puntos" onclick="_rkv2HistSetMetric('puntos')">Puntos</button>
+            <button class="rkv2__hist-metric-btn" id="rkv2-hist-btn-posicion" onclick="_rkv2HistSetMetric('posicion')">Posición</button>
+          </div>
+          <div class="rkv2__hist-chart-wrap" id="rkv2-hist-chart-wrap">
+            <canvas id="rkv2-hist-canvas"></canvas>
+          </div>
+          <div class="rkv2__hist-legend" id="rkv2-hist-legend"></div>
+        </div>
       </div>
 
       <!-- Modal ayuda ranking -->
@@ -2474,6 +2523,7 @@
   // Cache de datos y hashes por tab para diff inteligente
   let _rkv2Cache    = null;
   let _rkv2Hashes   = { global: '', grupos: '', eli: '' };
+  let _rkv2ActiveTab = 'global';
 
   // ── Cambio de sub-tab (sin re-fetch) ────────────────────────────────
   function rkv2Tab(tab, btn) {
@@ -2481,7 +2531,202 @@
     document.querySelectorAll('.rkv2__panel').forEach(p => p.classList.remove('active'));
     btn.classList.add('active');
     document.getElementById('rkv2-panel-' + tab).classList.add('active');
+    _rkv2ActiveTab = tab;
     if (_rkv2Cache) _rkv2RenderIfChanged(tab, _rkv2Cache, false);
+  }
+
+  // ══════════════════════════════════════════
+  // HISTORIAL DEL RANKING (gráfica) — carga 100% diferida
+  // Chart.js y los datos solo se piden si el usuario abre el modal.
+  // ══════════════════════════════════════════
+  let _rkv2HistChart    = null;
+  let _rkv2HistMetric   = 'puntos';
+  let _rkv2HistData     = null;   // cache en memoria de la última categoría pedida
+  let _rkv2HistCatCache = null;
+  let _rkv2ChartJsReady = null;   // Promise, para no cargar el script 2 veces
+
+  const _RKV2_CATEGORIA_MAP   = { global: 'global', grupos: 'grupos', eli: 'eliminatorias' };
+  const _RKV2_CATEGORIA_LABEL = { global: 'Global', grupos: 'Grupos', eli: 'Eliminatorias' };
+  const _RKV2_TAB_KEY          = { global: 'ranking_global', grupos: 'ranking_grupos', eli: 'ranking_eli' };
+  const _RKV2_HIST_COLORS = [
+    '#ff4d8d', '#4dc9ff', '#ffc94d', '#7ee787', '#c084fc',
+    '#ff8a4d', '#4dffdb', '#ff6b6b', '#a5d6ff', '#f5c518',
+  ];
+
+  function _rkv2HistColor(idx) {
+    return _RKV2_HIST_COLORS[idx % _RKV2_HIST_COLORS.length];
+  }
+
+  // Carga Chart.js una sola vez, solo cuando realmente se necesita.
+  function _rkv2EnsureChartJs() {
+    if (window.Chart) return Promise.resolve();
+    if (_rkv2ChartJsReady) return _rkv2ChartJsReady;
+    _rkv2ChartJsReady = new Promise((resolve, reject) => {
+      const s = document.createElement('script');
+      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.5.0/chart.umd.min.js';
+      s.onload = () => resolve();
+      s.onerror = () => reject(new Error('No se pudo cargar Chart.js'));
+      document.head.appendChild(s);
+    });
+    return _rkv2ChartJsReady;
+  }
+
+  // Nombres de los participantes: se resuelven con lo que YA está cargado
+  // en memoria (_rkv2Cache) del ranking actual — cero peticiones extra.
+  function _rkv2NombrePorId(id) {
+    const key = _RKV2_TAB_KEY[_rkv2ActiveTab] || 'ranking_global';
+    const lista = (_rkv2Cache && _rkv2Cache[key]) || [];
+    const encontrado = lista.find(r => r.id === id);
+    return encontrado ? encontrado.nombre : ('Usuario ' + id);
+  }
+
+  async function rkv2HistOpen() {
+    const ov = document.getElementById('rkv2-hist-overlay');
+    if (ov.parentElement !== document.body) document.body.appendChild(ov);
+    ov.classList.add('open');
+    document.body.style.overflow = 'hidden';
+    document.getElementById('rkv2-hist-categoria').textContent = _RKV2_CATEGORIA_LABEL[_rkv2ActiveTab] || 'Global';
+
+    const wrap = document.getElementById('rkv2-hist-chart-wrap');
+    const legendEl = document.getElementById('rkv2-hist-legend');
+    const categoria = _RKV2_CATEGORIA_MAP[_rkv2ActiveTab] || 'global';
+
+    // Si ya tenemos en memoria el historial de esta misma categoría, no
+    // volvemos a pedirlo (evita llamadas repetidas al abrir/cerrar el modal).
+    if (_rkv2HistCatCache === categoria && _rkv2HistData) {
+      try { await _rkv2EnsureChartJs(); _rkv2HistRender(); } catch (e) { /* silencioso */ }
+      return;
+    }
+
+    wrap.innerHTML = '<div class="rkv2__hist-empty">Cargando historial…</div>';
+    legendEl.innerHTML = '';
+
+    try {
+      const [_, res] = await Promise.all([
+        _rkv2EnsureChartJs(),
+        fetch('/api/ranking_historial?categoria=' + categoria),
+      ]);
+      if (!res.ok) throw new Error('no ok');
+      const data = await res.json();
+      _rkv2HistData    = data.historial || [];
+      _rkv2HistCatCache = categoria;
+      _rkv2HistRender();
+    } catch (e) {
+      console.warn('hist load error', e);
+      wrap.innerHTML = '<div class="rkv2__hist-empty">No se pudo cargar el historial. Intenta de nuevo más tarde.</div>';
+    }
+  }
+
+  function rkv2HistClose() {
+    const ov = document.getElementById('rkv2-hist-overlay');
+    ov.classList.remove('open');
+    document.body.style.overflow = '';
+  }
+
+  function _rkv2HistSetMetric(metric) {
+    _rkv2HistMetric = metric;
+    document.getElementById('rkv2-hist-btn-puntos').classList.toggle('active', metric === 'puntos');
+    document.getElementById('rkv2-hist-btn-posicion').classList.toggle('active', metric === 'posicion');
+    _rkv2HistRender();
+  }
+
+  function _rkv2HistRender() {
+    const historial = _rkv2HistData || [];
+    const wrap = document.getElementById('rkv2-hist-chart-wrap');
+    const legendEl = document.getElementById('rkv2-hist-legend');
+
+    if (historial.length < 2) {
+      wrap.innerHTML = '<div class="rkv2__hist-empty">Todavía no hay suficiente historial acumulado.<br>Vuelve más adelante para ver cómo evoluciona el ranking a medida que se juegan partidos.</div>';
+      legendEl.innerHTML = '';
+      return;
+    }
+    if (!document.getElementById('rkv2-hist-canvas')) {
+      wrap.innerHTML = '<canvas id="rkv2-hist-canvas"></canvas>';
+    }
+
+    // Formato compacto: cada entrada de "datos" es [id, posicion, puntos]
+    const idxId = 0, idxPos = 1, idxPts = 2;
+
+    // Participantes únicos, en orden de aparición
+    const participantes = [];
+    const vistos = new Set();
+    historial.forEach(punto => (punto.datos || []).forEach(row => {
+      if (!vistos.has(row[idxId])) { vistos.add(row[idxId]); participantes.push(row[idxId]); }
+    }));
+
+    // Etiquetas de fecha corta para el eje X + fecha completa para el tooltip
+    const fullDates = historial.map(p => p.fecha);
+    const labels = historial.map(p => {
+      const d = new Date(p.fecha);
+      if (isNaN(d)) return p.fecha;
+      return d.toLocaleDateString('es-CO', { day: '2-digit', month: '2-digit' });
+    });
+
+    const metricKey = _rkv2HistMetric === 'posicion' ? idxPos : idxPts;
+    const muchosParticipantes = participantes.length > 15;
+
+    const datasets = participantes.map((id, idx) => {
+      const color = _rkv2HistColor(idx);
+      const serie = historial.map(punto => {
+        const reg = (punto.datos || []).find(row => row[idxId] === id);
+        return reg ? reg[metricKey] : null;
+      });
+      const esYo = id === _MI_ID_RKV2;
+      return {
+        label: _rkv2NombrePorId(id),
+        data: serie,
+        borderColor: color,
+        backgroundColor: color,
+        spanGaps: true,
+        tension: .3,
+        pointRadius: muchosParticipantes ? 0 : (esYo ? 3 : 2),
+        pointHitRadius: 8,
+        pointHoverRadius: 5,
+        borderWidth: esYo ? 3 : 1.4,
+      };
+    });
+
+    legendEl.innerHTML = datasets.map(ds =>
+      `<div class="rkv2__hist-legend-item"><span class="rkv2__hist-legend-dot" style="background:${ds.borderColor}"></span>${_esc(ds.label)}</div>`
+    ).join('');
+
+    if (_rkv2HistChart) { _rkv2HistChart.destroy(); _rkv2HistChart = null; }
+    const ctx = document.getElementById('rkv2-hist-canvas').getContext('2d');
+    _rkv2HistChart = new Chart(ctx, {
+      type: 'line',
+      data: { labels, datasets },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: muchosParticipantes ? false : { duration: 400 },
+        interaction: { mode: 'nearest', axis: 'x', intersect: false },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              title: items => {
+                const i = items[0]?.dataIndex;
+                if (i == null) return '';
+                const d = new Date(fullDates[i]);
+                return isNaN(d) ? fullDates[i] : d.toLocaleString('es-CO');
+              }
+            }
+          }
+        },
+        scales: {
+          x: { ticks: { color: 'rgba(255,255,255,.5)' }, grid: { color: 'rgba(255,255,255,.06)' } },
+          y: {
+            reverse: _rkv2HistMetric === 'posicion',
+            ticks: {
+              color: 'rgba(255,255,255,.5)',
+              precision: 0,
+              callback: v => _rkv2HistMetric === 'posicion' ? '#' + v : v
+            },
+            grid: { color: 'rgba(255,255,255,.06)' }
+          }
+        }
+      }
+    });
   }
 
   // ── Carga desde API ─────────────────────────────────────────────────
@@ -2494,16 +2739,31 @@
       _rkv2Cache = data;
       // Render los 3 tabs: con animación solo si ya había datos antes (no primer render)
       const animate = !!prevCache;
-      ['global', 'grupos', 'eli'].forEach(tab => _rkv2RenderIfChanged(tab, data, animate));
+      let _rkv2HuboCambioReal = false;
+      ['global', 'grupos', 'eli'].forEach(tab => {
+        if (_rkv2RenderIfChanged(tab, data, animate)) _rkv2HuboCambioReal = true;
+      });
+      // El ranking cambió de verdad (no un poll sin novedades): el historial
+      // pudo haberse actualizado en el backend, así que invalidamos el cache
+      // en memoria del modal de historial para que la próxima apertura traiga
+      // datos frescos. Reutiliza el hash que YA se calcula para el render de
+      // las tablas — cero comparaciones ni fetches adicionales. Si nada
+      // cambió, el cache del historial se conserva intacto.
+      if (_rkv2HuboCambioReal) {
+        _rkv2HistData = null;
+        _rkv2HistCatCache = null;
+      }
     } catch(e) { console.warn('rkv2 load error', e); }
   }
 
   // ── Render con diff: solo actualiza si los datos cambiaron ──────────
+  // Devuelve true/false para que _rkv2Load sepa si hubo un cambio real
+  // (usado también para invalidar el cache del historial).
   function _rkv2RenderIfChanged(tab, data, animate) {
     const keyMap = { global: 'ranking_global', grupos: 'ranking_grupos', eli: 'ranking_eli' };
     const rows = data[keyMap[tab]] || [];
     const newHash = rows.map(r => `${r.id}:${r.posicion}:${r.puntos}:${r.cambio}:${r.ganadores}`).join('|');
-    if (newHash === _rkv2Hashes[tab]) return;  // nada cambió → no tocar DOM
+    if (newHash === _rkv2Hashes[tab]) return false;  // nada cambió → no tocar DOM
     // Guardar qué usuarios cambiaron de posición para animarlos después del render
     const cambiosPosicion = {};
     if (animate) {
@@ -2522,6 +2782,7 @@
     }
     _rkv2Hashes[tab] = newHash;
     _rkv2Render(tab, rows, cambiosPosicion);
+    return true;
   }
 
   // ── Render completo (siempre limpio, sin diff de filas) ──────────────
