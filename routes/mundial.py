@@ -1768,7 +1768,7 @@ def api_ranking_historial():
     """, (categoria,)).fetchall()
 
     import json as _json
-    from datetime import timezone, timedelta
+    from datetime import datetime, timezone, timedelta
 
     rows_ordenadas = sorted(rows, key=lambda r: r["creado"])  # cronológico asc
 
@@ -1807,11 +1807,27 @@ def api_ranking_historial():
     # ni se descarta nada: si un día tuvo dos cambios de ranking, el
     # historial completo de arriba los conserva ambos; acá solo se elige
     # cuál representar en el desplegable de días).
+    #
+    # OJO: con.execute(...).fetchall() en este proyecto usa database._Row,
+    # que convierte cada datetime/date a STRING antes de entregarlo (ver
+    # database.py: _Row._conv). Por eso r["creado"] NUNCA es un objeto
+    # datetime real acá — es un string tipo "2026-07-05 10:00:00" (o con
+    # offset "+00:00" si la columna es TIMESTAMPTZ). Hay que parsearlo
+    # explícitamente antes de operar con tzinfo/timedelta.
     _BOGOTA_OFFSET = timedelta(hours=-5)
     por_dia = {}
     orden_dias = []
     for h in historial:
-        creado = h["fecha"]
+        creado_raw = h["fecha"]
+        if isinstance(creado_raw, str):
+            try:
+                creado = datetime.fromisoformat(creado_raw)
+            except ValueError:
+                # Fallback por si el string viene sin microsegundos/offset
+                # en un formato que fromisoformat no reconozca.
+                creado = datetime.strptime(creado_raw[:19], "%Y-%m-%d %H:%M:%S")
+        else:
+            creado = creado_raw  # ya es datetime (defensivo, por si cambia el driver)
         if creado.tzinfo is None:
             creado = creado.replace(tzinfo=timezone.utc)
         dia_local = (creado + _BOGOTA_OFFSET).date()
