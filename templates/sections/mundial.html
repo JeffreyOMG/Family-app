@@ -1989,70 +1989,64 @@
       body:not(.dark-mode):not(.theme-glass) .rkv2__help-close { background:rgba(15,15,25,.06); border-color:rgba(15,15,25,.12); color:rgba(15,15,25,.55); }
 
       /* ── Modal de historial (gráfica) ────────────────── */
+      /* La clase .modal-box (agregada en el HTML) ya resuelve fondo,
+         borde, sombra y color heredando las variables de tema del resto
+         de la app (--surface/--card, --border, --text) y recibe el
+         tratamiento del tema Glass automáticamente (theme-glass.css la
+         reconoce). Acá solo se ajustan medidas propias de este modal. */
       .rkv2__hist-box {
-        background: #1a1a2e; border: 1px solid rgba(255,255,255,.12);
         border-radius: 18px; padding: 22px 20px 20px;
         max-width: 640px; width: calc(100% - 32px);
-        position: relative; box-shadow: 0 18px 50px rgba(0,0,0,.6);
+        position: relative;
         max-height: 90vh; overflow-y: auto;
         animation: rkv2-pop-in .25s var(--rk-ease);
       }
-      body:not(.dark-mode):not(.theme-glass) .rkv2__hist-box { background:#fff; border-color:rgba(15,15,25,.1); box-shadow:0 18px 50px rgba(15,15,25,.18); }
-      .rkv2__hist-box h3 { margin:0 0 4px; font-size:1rem; font-weight:700; color:#fff; display:flex; align-items:center; gap:8px; }
-      body:not(.dark-mode):not(.theme-glass) .rkv2__hist-box h3 { color:#111; }
-      .rkv2__hist-sub { margin: 0 0 16px; font-size: .78rem; color: rgba(255,255,255,.45); }
-      body:not(.dark-mode):not(.theme-glass) .rkv2__hist-sub { color: rgba(15,15,25,.5); }
+      .rkv2__hist-box h3 { margin:0 0 4px; font-size:1rem; font-weight:700; color: var(--text); display:flex; align-items:center; gap:8px; }
+      .rkv2__hist-sub { margin: 0 0 16px; font-size: .78rem; color: var(--text3); }
       .rkv2__hist-metrics { display:flex; gap:6px; margin-bottom:16px; }
       .rkv2__hist-metric-btn {
         flex:1; padding:8px 10px; border-radius:10px; cursor:pointer;
-        background: rgba(255,255,255,.045); border:1.5px solid rgba(255,255,255,.09);
-        color: rgba(255,255,255,.5); font-family:'DM Sans',sans-serif; font-size:.78rem; font-weight:600;
+        background: var(--surface2, var(--card2)); border:1.5px solid var(--border);
+        color: var(--text3); font-family:'DM Sans',sans-serif; font-size:.78rem; font-weight:600;
         transition: background .2s var(--rk-ease), color .2s var(--rk-ease), border-color .2s var(--rk-ease);
       }
-      body:not(.dark-mode):not(.theme-glass) .rkv2__hist-metric-btn { background:#f3f4f7; border-color:rgba(15,15,25,.1); color:rgba(15,15,25,.5); }
-      .rkv2__hist-metric-btn.active { background: var(--accent-soft, rgba(255,77,141,.14)); border-color: var(--accent-border, rgba(255,77,141,.5)); color: var(--accent, #ff4d8d); }
+      .rkv2__hist-metric-btn.active { background: var(--accent-soft); border-color: var(--accent-border); color: var(--accent); }
       .rkv2__hist-chart-wrap { position: relative; height: 300px; }
-      .rkv2__hist-empty { text-align:center; padding:40px 12px; color:rgba(255,255,255,.4); font-size:.85rem; line-height:1.6; }
-      body:not(.dark-mode):not(.theme-glass) .rkv2__hist-empty { color:rgba(15,15,25,.45); }
+      .rkv2__hist-empty { text-align:center; padding:40px 12px; color: var(--text3); font-size:.85rem; line-height:1.6; }
 
       /* ── Historial: tabs de modo (Evolución / Por fecha) ─ */
       .rkv2__hist-modetabs { display:flex; gap:6px; margin-bottom:16px; }
       .rkv2__hist-modetab-btn {
         flex:1; padding:9px 10px; border-radius:10px; cursor:pointer;
-        background: rgba(255,255,255,.045); border:1.5px solid rgba(255,255,255,.09);
-        color: rgba(255,255,255,.5); font-family:'DM Sans',sans-serif; font-size:.8rem; font-weight:600;
+        background: var(--surface2, var(--card2)); border:1.5px solid var(--border);
+        color: var(--text3); font-family:'DM Sans',sans-serif; font-size:.8rem; font-weight:600;
         display:flex; align-items:center; justify-content:center; gap:6px;
         transition: background .2s var(--rk-ease), color .2s var(--rk-ease), border-color .2s var(--rk-ease);
       }
-      .rkv2__hist-modetab-btn:hover:not(.active) { background: rgba(255,255,255,.08); color: rgba(255,255,255,.85); border-color: rgba(255,255,255,.16); }
-      .rkv2__hist-modetab-btn.active { background: var(--accent-soft, rgba(255,77,141,.14)); border-color: var(--accent-border, rgba(255,77,141,.5)); color: var(--accent, #ff4d8d); font-weight:700; }
-      body:not(.dark-mode):not(.theme-glass) .rkv2__hist-modetab-btn { background:#f3f4f7; border-color:rgba(15,15,25,.1); color:rgba(15,15,25,.5); }
+      .rkv2__hist-modetab-btn:hover:not(.active) { background: var(--border-soft, var(--border)); color: var(--text); border-color: var(--text3); }
+      .rkv2__hist-modetab-btn.active { background: var(--accent-soft); border-color: var(--accent-border); color: var(--accent); font-weight:700; }
 
       /* ── Historial: toolbar de selección de jugador/métrica ─ */
       .rkv2__hist-toolbar { display:flex; flex-wrap:wrap; gap:12px; margin-bottom:4px; }
       .rkv2__hist-field { flex:1; min-width:130px; display:flex; flex-direction:column; gap:5px; }
-      .rkv2__hist-field label { font-size:.65rem; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:rgba(255,255,255,.4); }
-      body:not(.dark-mode):not(.theme-glass) .rkv2__hist-field label { color:rgba(15,15,25,.45); }
+      .rkv2__hist-field label { font-size:.65rem; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color: var(--text3); }
       .rkv2__hist-select {
         width:100%; padding:9px 10px; border-radius:10px; cursor:pointer;
-        background-color: rgba(255,255,255,.05); border:1.5px solid rgba(255,255,255,.1);
-        color:#fff; font-family:'DM Sans',sans-serif; font-size:.8rem; font-weight:600;
+        background-color: var(--surface2, var(--card2)); border:1.5px solid var(--border);
+        color: var(--text); font-family:'DM Sans',sans-serif; font-size:.8rem; font-weight:600;
         appearance:none; -webkit-appearance:none;
-        background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6'><path d='M0 0l5 6 5-6z' fill='%23ffffff88'/></svg>");
         background-repeat:no-repeat; background-position: right 10px center;
         transition: border-color .2s var(--rk-ease);
       }
-      .rkv2__hist-select:focus { outline:none; border-color: var(--accent-border, rgba(255,77,141,.5)); }
-      body:not(.dark-mode):not(.theme-glass) .rkv2__hist-select {
-        background-color:#f3f4f7; border-color:rgba(15,15,25,.1); color:#111;
-        background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6'><path d='M0 0l5 6 5-6z' fill='%23111111aa'/></svg>");
-      }
-      .rkv2__hist-select option { background:#1a1a2e; color:#fff; }
-      body:not(.dark-mode):not(.theme-glass) .rkv2__hist-select option { background:#fff; color:#111; }
+      /* Flecha del select en un tono neutro que funciona sobre cualquier
+         fondo de tema, sin depender de un color de tinta fijo. */
+      .rkv2__hist-select { background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6'><path d='M0 0l5 6 5-6z' fill='%23888888'/></svg>"); }
+      .rkv2__hist-select:focus { outline:none; border-color: var(--accent-border); }
+      .rkv2__hist-select option { background: var(--surface, var(--card)); color: var(--text); }
 
       /* ── Historial: comparar con... ──────────────────── */
       .rkv2__hist-compare-toggle {
-        background:none; border:none; color: var(--accent, #ff4d8d); font-family:'DM Sans',sans-serif;
+        background:none; border:none; color: var(--accent); font-family:'DM Sans',sans-serif;
         font-size:.76rem; font-weight:700; cursor:pointer; padding:2px 0 14px; display:inline-flex; align-items:center; gap:4px;
       }
       .rkv2__hist-compare-toggle:hover { text-decoration: underline; }
@@ -2061,14 +2055,11 @@
       /* ── Historial: resumen de estadísticas ──────────── */
       .rkv2__hist-stats { display:grid; grid-template-columns: repeat(3, 1fr); gap:8px; margin-top:16px; }
       .rkv2__hist-stat {
-        background: rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.08);
+        background: var(--surface2, var(--card2)); border:1px solid var(--border);
         border-radius:12px; padding:10px 6px; text-align:center;
       }
-      body:not(.dark-mode):not(.theme-glass) .rkv2__hist-stat { background:#f8f8fa; border-color:rgba(15,15,25,.08); }
-      .rkv2__hist-stat-label { font-size:.6rem; font-weight:700; text-transform:uppercase; letter-spacing:.03em; color:rgba(255,255,255,.4); margin-bottom:4px; }
-      body:not(.dark-mode):not(.theme-glass) .rkv2__hist-stat-label { color:rgba(15,15,25,.45); }
-      .rkv2__hist-stat-value { font-size:1.05rem; font-weight:800; color:#fff; font-variant-numeric: tabular-nums; }
-      body:not(.dark-mode):not(.theme-glass) .rkv2__hist-stat-value { color:#111; }
+      .rkv2__hist-stat-label { font-size:.6rem; font-weight:700; text-transform:uppercase; letter-spacing:.03em; color: var(--text3); margin-bottom:4px; }
+      .rkv2__hist-stat-value { font-size:1.05rem; font-weight:800; color: var(--text); font-variant-numeric: tabular-nums; }
       .rkv2__hist-stat-value.up   { color:#4caf50; }
       .rkv2__hist-stat-value.down { color:#ef5350; }
       .rkv2__hist-stat-value.gold { color:#f5c518; }
@@ -2492,7 +2483,7 @@
 
       <!-- Modal historial del ranking -->
       <div class="rkv2__help-overlay" id="rkv2-hist-overlay" onclick="if(event.target===this)rkv2HistClose()">
-        <div class="rkv2__hist-box">
+        <div class="rkv2__hist-box modal-box">
           <button class="rkv2__help-close" onclick="rkv2HistClose()">✕</button>
           <h3>📈 Historial del ranking</h3>
           <p class="rkv2__hist-sub" id="rkv2-hist-sub"><span id="rkv2-hist-categoria">Global</span></p>
@@ -2634,7 +2625,8 @@
   // ══════════════════════════════════════════
   let _rkv2HistChart    = null;
   let _rkv2HistMetric   = 'puntos';
-  let _rkv2HistData     = null;   // cache en memoria de la última categoría pedida
+  let _rkv2HistData     = null;   // cache en memoria: historial COMPLETO (todos los cambios reales) de la última categoría pedida — lo usa la gráfica "Evolución"
+  let _rkv2HistDataDia  = null;   // cache en memoria: resumen "un registro por día" — lo usa únicamente el selector/tabla de "Por fecha"
   let _rkv2HistCatCache = null;
   let _rkv2ChartJsReady = null;   // Promise, para no cargar el script 2 veces
 
@@ -2709,7 +2701,8 @@
       ]);
       if (!res.ok) throw new Error('no ok');
       const data = await res.json();
-      _rkv2HistData    = data.historial || [];
+      _rkv2HistData     = data.historial || [];
+      _rkv2HistDataDia  = data.historial_por_dia || [];
       _rkv2HistCatCache = categoria;
       _rkv2HistRefrescarVista();
     } catch (e) {
@@ -2874,6 +2867,10 @@
 
     if (_rkv2HistChart) { _rkv2HistChart.destroy(); _rkv2HistChart = null; }
     const ctx = document.getElementById('rkv2-hist-canvas').getContext('2d');
+    // Lee el color de texto/borde real del tema activo (Claro/Oscuro/Glass)
+    // en vez de un blanco fijo, para que la gráfica se vea bien en los 3.
+    const _rkv2ThemeText3 = getComputedStyle(document.body).getPropertyValue('--text3').trim() || 'rgba(128,128,128,.6)';
+    const _rkv2ThemeGrid  = getComputedStyle(document.body).getPropertyValue('--border').trim() || 'rgba(128,128,128,.15)';
     _rkv2HistChart = new Chart(ctx, {
       type: 'line',
       data: { labels, datasets },
@@ -2904,15 +2901,15 @@
           }
         },
         scales: {
-          x: { ticks: { color: 'rgba(255,255,255,.5)' }, grid: { color: 'rgba(255,255,255,.06)' } },
+          x: { ticks: { color: _rkv2ThemeText3 }, grid: { color: _rkv2ThemeGrid } },
           y: {
             reverse: _rkv2HistMetric === 'posicion',
             ticks: {
-              color: 'rgba(255,255,255,.5)',
+              color: _rkv2ThemeText3,
               precision: 0,
               callback: v => _rkv2HistMetric === 'posicion' ? '#' + v : v
             },
-            grid: { color: 'rgba(255,255,255,.06)' }
+            grid: { color: _rkv2ThemeGrid }
           }
         }
       }
@@ -2959,18 +2956,31 @@
   }
 
   // ── Vista "Por fecha": cómo se veía el ranking completo ese día ──────
+  // Usa el resumen "un registro por día" (_rkv2HistDataDia) — la gráfica
+  // de Evolución sigue usando _rkv2HistData (resolución completa), así que
+  // no se pierde ningún cambio real del ranking, solo se simplifica esta
+  // vista puntual a un día por opción.
   function _rkv2FmtFechaLarga(fecha) {
     const d = new Date(fecha);
     if (isNaN(d)) return fecha;
-    const txt  = d.toLocaleDateString('es-CO', { day: 'numeric', month: 'long' });
-    const hora = d.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
-    return `${txt} · ${hora}`;
+    return d.toLocaleDateString('es-CO', { day: 'numeric', month: 'long', year: 'numeric' });
+  }
+
+  // Normaliza una fila de "datos" a [id, posicion, puntos] sin importar si
+  // viene en el formato viejo ({id,nombre,posicion,puntos}, usado hasta el
+  // 13 de julio) o en el formato compacto actual ([id,posicion,puntos]).
+  // El backend ya normaliza esto, pero se deja también acá como defensa
+  // extra por si el navegador tiene en caché una respuesta vieja.
+  function _rkv2NormalizarFila(row) {
+    if (Array.isArray(row)) return [row[0], row[1], row[2]];
+    if (row && typeof row === 'object') return [row.id, row.posicion, row.puntos];
+    return [undefined, undefined, undefined];
   }
 
   function _rkv2HistFechaPoblarSelect() {
     const sel = document.getElementById('rkv2-hist-fecha-select');
     if (!sel) return;
-    const historial = _rkv2HistData || [];
+    const historial = _rkv2HistDataDia || [];
     if (!historial.length) { sel.innerHTML = ''; return; }
     const prevValue = sel.value;
     // El historial ya viene ordenado cronológicamente ascendente (más
@@ -2990,7 +3000,7 @@
     const cont = document.getElementById('rkv2-hist-fecha-tabla');
     const sel  = document.getElementById('rkv2-hist-fecha-select');
     if (!cont || !sel) return;
-    const historial = _rkv2HistData || [];
+    const historial = _rkv2HistDataDia || [];
     if (!historial.length) {
       cont.innerHTML = '<div class="rkv2__hist-empty">Todavía no hay historial acumulado para esta categoría.</div>';
       return;
@@ -3004,7 +3014,7 @@
     const fotoPorId = {};
     actuales.forEach(r => { fotoPorId[r.id] = r.foto; });
 
-    const filas = (entry.datos || []).slice().sort((a, b) => a[1] - b[1]); // por posición asc
+    const filas = (entry.datos || []).map(_rkv2NormalizarFila).sort((a, b) => a[1] - b[1]); // por posición asc
 
     const rowsHTML = filas.map(row => {
       const [id, pos, pts] = row;
@@ -3056,6 +3066,7 @@
       // cambió, el cache del historial se conserva intacto.
       if (_rkv2HuboCambioReal) {
         _rkv2HistData = null;
+        _rkv2HistDataDia = null;
         _rkv2HistCatCache = null;
       }
     } catch(e) { console.warn('rkv2 load error', e); }

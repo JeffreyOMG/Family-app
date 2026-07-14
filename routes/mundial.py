@@ -1577,6 +1577,13 @@ def ranking_mundial_v2():
     # Guardar historial SOLO si el ranking cambió de verdad desde el último
     # snapshot guardado (comparación en memoria, sin consultas extra —
     # snap_* ya se cargaron arriba para calcular ▲▼).
+    #
+    # Se guarda UN registro por cada cambio real de ranking (no por día):
+    # si en un mismo día hay dos partidos que modifican la clasificación,
+    # ambos cambios quedan guardados. Agrupar "por día" para simplificar
+    # la vista se hace únicamente al leer/mostrar (ver api_ranking_historial
+    # y el selector de fecha en el frontend), nunca al guardar — así no se
+    # pierde información real del torneo.
     def _save_historial_compacto(categoria, ranking_list, pts_key):
         # Formato compacto [[id,posicion,puntos], ...] — sin nombres ni
         # claves repetidas, para minimizar almacenamiento. El nombre se
@@ -1761,17 +1768,63 @@ def api_ranking_historial():
     """, (categoria,)).fetchall()
 
     import json as _json
+    from datetime import timezone, timedelta
+
     rows_ordenadas = sorted(rows, key=lambda r: r["creado"])  # cronológico asc
 
+    # ── Normalizar formato de "datos" ─────────────────────────────────────
+    # El 2026-07-13 se cambió el formato de guardado de
+    # [{"id","nombre","posicion","puntos"}, ...] (formato viejo, usado desde
+    # el 2 de julio) a [[id,posicion,puntos], ...] (formato compacto actual).
+    # Las filas guardadas ANTES de ese cambio siguen existiendo en la base
+    # de datos con el formato viejo. Sin esta normalización, esas fechas
+    # antiguas no se pueden leer correctamente (el frontend asume arrays).
+    # Se normaliza acá, una sola vez, para que el resto del código (backend
+    # y frontend) trabaje siempre con el mismo formato compacto.
+    def _normalizar_datos(raw):
+        out = []
+        for item in raw:
+            if isinstance(item, dict):
+                out.append([item.get("id"), item.get("posicion"), item.get("puntos", 0)])
+            elif isinstance(item, (list, tuple)) and len(item) >= 3:
+                out.append([item[0], item[1], item[2]])
+        return out
+
+    # Historial completo, con TODOS los cambios reales (sin colapsar por
+    # día) — esto es lo que usa la gráfica de "Evolución" para no perder
+    # resolución cuando hubo varios cambios el mismo día.
     historial = []
     for r in rows_ordenadas:
         try:
-            datos = _json.loads(r["datos"])  # [[id,posicion,puntos], ...]
+            datos = _normalizar_datos(_json.loads(r["datos"]))
         except Exception:
             datos = []
         historial.append({"fecha": r["creado"], "datos": datos})
 
-    return jsonify({"categoria": categoria, "historial": historial})
+    # Además de la lista completa, se entrega un resumen "un registro por
+    # día" (America/Bogota) para poblar cómodamente el selector de la vista
+    # "Por fecha" — se usa la ÚLTIMA fila real de cada día (no se inventa
+    # ni se descarta nada: si un día tuvo dos cambios de ranking, el
+    # historial completo de arriba los conserva ambos; acá solo se elige
+    # cuál representar en el desplegable de días).
+    _BOGOTA_OFFSET = timedelta(hours=-5)
+    por_dia = {}
+    orden_dias = []
+    for h in historial:
+        creado = h["fecha"]
+        if creado.tzinfo is None:
+            creado = creado.replace(tzinfo=timezone.utc)
+        dia_local = (creado + _BOGOTA_OFFSET).date()
+        if dia_local not in por_dia:
+            orden_dias.append(dia_local)
+        por_dia[dia_local] = h  # se sobreescribe: la última fila real del día gana
+    historial_por_dia = [por_dia[d] for d in orden_dias]
+
+    return jsonify({
+        "categoria": categoria,
+        "historial": historial,            # resolución completa (para la gráfica)
+        "historial_por_dia": historial_por_dia,  # un resumen por día (para el selector de fecha)
+    })
 
 
 @mundial_bp.route("/api/admin/ranking_eli_toggle", methods=["POST"])
