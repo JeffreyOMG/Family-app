@@ -2012,12 +2012,70 @@
       body:not(.dark-mode):not(.theme-glass) .rkv2__hist-metric-btn { background:#f3f4f7; border-color:rgba(15,15,25,.1); color:rgba(15,15,25,.5); }
       .rkv2__hist-metric-btn.active { background: var(--accent-soft, rgba(255,77,141,.14)); border-color: var(--accent-border, rgba(255,77,141,.5)); color: var(--accent, #ff4d8d); }
       .rkv2__hist-chart-wrap { position: relative; height: 300px; }
-      .rkv2__hist-legend { display:flex; flex-wrap:wrap; gap:8px 14px; margin-top:16px; }
-      .rkv2__hist-legend-item { display:flex; align-items:center; gap:6px; font-size:.76rem; color: rgba(255,255,255,.65); }
-      body:not(.dark-mode):not(.theme-glass) .rkv2__hist-legend-item { color: rgba(15,15,25,.65); }
-      .rkv2__hist-legend-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
       .rkv2__hist-empty { text-align:center; padding:40px 12px; color:rgba(255,255,255,.4); font-size:.85rem; line-height:1.6; }
       body:not(.dark-mode):not(.theme-glass) .rkv2__hist-empty { color:rgba(15,15,25,.45); }
+
+      /* ── Historial: tabs de modo (Evolución / Por fecha) ─ */
+      .rkv2__hist-modetabs { display:flex; gap:6px; margin-bottom:16px; }
+      .rkv2__hist-modetab-btn {
+        flex:1; padding:9px 10px; border-radius:10px; cursor:pointer;
+        background: rgba(255,255,255,.045); border:1.5px solid rgba(255,255,255,.09);
+        color: rgba(255,255,255,.5); font-family:'DM Sans',sans-serif; font-size:.8rem; font-weight:600;
+        display:flex; align-items:center; justify-content:center; gap:6px;
+        transition: background .2s var(--rk-ease), color .2s var(--rk-ease), border-color .2s var(--rk-ease);
+      }
+      .rkv2__hist-modetab-btn:hover:not(.active) { background: rgba(255,255,255,.08); color: rgba(255,255,255,.85); border-color: rgba(255,255,255,.16); }
+      .rkv2__hist-modetab-btn.active { background: var(--accent-soft, rgba(255,77,141,.14)); border-color: var(--accent-border, rgba(255,77,141,.5)); color: var(--accent, #ff4d8d); font-weight:700; }
+      body:not(.dark-mode):not(.theme-glass) .rkv2__hist-modetab-btn { background:#f3f4f7; border-color:rgba(15,15,25,.1); color:rgba(15,15,25,.5); }
+
+      /* ── Historial: toolbar de selección de jugador/métrica ─ */
+      .rkv2__hist-toolbar { display:flex; flex-wrap:wrap; gap:12px; margin-bottom:4px; }
+      .rkv2__hist-field { flex:1; min-width:130px; display:flex; flex-direction:column; gap:5px; }
+      .rkv2__hist-field label { font-size:.65rem; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:rgba(255,255,255,.4); }
+      body:not(.dark-mode):not(.theme-glass) .rkv2__hist-field label { color:rgba(15,15,25,.45); }
+      .rkv2__hist-select {
+        width:100%; padding:9px 10px; border-radius:10px; cursor:pointer;
+        background-color: rgba(255,255,255,.05); border:1.5px solid rgba(255,255,255,.1);
+        color:#fff; font-family:'DM Sans',sans-serif; font-size:.8rem; font-weight:600;
+        appearance:none; -webkit-appearance:none;
+        background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6'><path d='M0 0l5 6 5-6z' fill='%23ffffff88'/></svg>");
+        background-repeat:no-repeat; background-position: right 10px center;
+        transition: border-color .2s var(--rk-ease);
+      }
+      .rkv2__hist-select:focus { outline:none; border-color: var(--accent-border, rgba(255,77,141,.5)); }
+      body:not(.dark-mode):not(.theme-glass) .rkv2__hist-select {
+        background-color:#f3f4f7; border-color:rgba(15,15,25,.1); color:#111;
+        background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6'><path d='M0 0l5 6 5-6z' fill='%23111111aa'/></svg>");
+      }
+      .rkv2__hist-select option { background:#1a1a2e; color:#fff; }
+      body:not(.dark-mode):not(.theme-glass) .rkv2__hist-select option { background:#fff; color:#111; }
+
+      /* ── Historial: comparar con... ──────────────────── */
+      .rkv2__hist-compare-toggle {
+        background:none; border:none; color: var(--accent, #ff4d8d); font-family:'DM Sans',sans-serif;
+        font-size:.76rem; font-weight:700; cursor:pointer; padding:2px 0 14px; display:inline-flex; align-items:center; gap:4px;
+      }
+      .rkv2__hist-compare-toggle:hover { text-decoration: underline; }
+      .rkv2__hist-compare-wrap { display:flex; gap:10px; margin-bottom:14px; }
+
+      /* ── Historial: resumen de estadísticas ──────────── */
+      .rkv2__hist-stats { display:grid; grid-template-columns: repeat(3, 1fr); gap:8px; margin-top:16px; }
+      .rkv2__hist-stat {
+        background: rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.08);
+        border-radius:12px; padding:10px 6px; text-align:center;
+      }
+      body:not(.dark-mode):not(.theme-glass) .rkv2__hist-stat { background:#f8f8fa; border-color:rgba(15,15,25,.08); }
+      .rkv2__hist-stat-label { font-size:.6rem; font-weight:700; text-transform:uppercase; letter-spacing:.03em; color:rgba(255,255,255,.4); margin-bottom:4px; }
+      body:not(.dark-mode):not(.theme-glass) .rkv2__hist-stat-label { color:rgba(15,15,25,.45); }
+      .rkv2__hist-stat-value { font-size:1.05rem; font-weight:800; color:#fff; font-variant-numeric: tabular-nums; }
+      body:not(.dark-mode):not(.theme-glass) .rkv2__hist-stat-value { color:#111; }
+      .rkv2__hist-stat-value.up   { color:#4caf50; }
+      .rkv2__hist-stat-value.down { color:#ef5350; }
+      .rkv2__hist-stat-value.gold { color:#f5c518; }
+
+      /* ── Historial: vista "Por fecha" (mini-ranking histórico) ─ */
+      .rkv2__hist-date-table .rkv2__table td, .rkv2__hist-date-table .rkv2__table th { padding: 10px 12px; }
+      .rkv2__hist-date-table { margin-top:2px; }
 
       /* ── Loading ──────────────────────────────────────── */
       .rkv2__loading { text-align:center; padding:36px; color:rgba(255,255,255,.38); font-size:.85rem; display:flex; align-items:center; justify-content:center; gap:9px; }
@@ -2437,15 +2495,50 @@
         <div class="rkv2__hist-box">
           <button class="rkv2__help-close" onclick="rkv2HistClose()">✕</button>
           <h3>📈 Historial del ranking</h3>
-          <p class="rkv2__hist-sub" id="rkv2-hist-sub">Evolución día a día — <span id="rkv2-hist-categoria">Global</span></p>
-          <div class="rkv2__hist-metrics">
-            <button class="rkv2__hist-metric-btn active" id="rkv2-hist-btn-puntos" onclick="_rkv2HistSetMetric('puntos')">Puntos</button>
-            <button class="rkv2__hist-metric-btn" id="rkv2-hist-btn-posicion" onclick="_rkv2HistSetMetric('posicion')">Posición</button>
+          <p class="rkv2__hist-sub" id="rkv2-hist-sub"><span id="rkv2-hist-categoria">Global</span></p>
+
+          <div class="rkv2__hist-modetabs">
+            <button class="rkv2__hist-modetab-btn active" id="rkv2-hist-mode-evo" onclick="_rkv2HistSetMode('evolucion')"><span>📈</span><span>Evolución</span></button>
+            <button class="rkv2__hist-modetab-btn" id="rkv2-hist-mode-fecha" onclick="_rkv2HistSetMode('fecha')"><span>🗓️</span><span>Por fecha</span></button>
           </div>
-          <div class="rkv2__hist-chart-wrap" id="rkv2-hist-chart-wrap">
-            <canvas id="rkv2-hist-canvas"></canvas>
+
+          <!-- ── Vista: evolución de un jugador ─────────────── -->
+          <div id="rkv2-hist-view-evolucion">
+            <div class="rkv2__hist-toolbar">
+              <div class="rkv2__hist-field">
+                <label>Jugador</label>
+                <select id="rkv2-hist-jugador" class="rkv2__hist-select" onchange="_rkv2HistOnJugadorChange()"></select>
+              </div>
+              <div class="rkv2__hist-field">
+                <label>Mostrar</label>
+                <div class="rkv2__hist-metrics" style="margin-bottom:0;">
+                  <button class="rkv2__hist-metric-btn active" id="rkv2-hist-btn-puntos" onclick="_rkv2HistSetMetric('puntos')">Puntos</button>
+                  <button class="rkv2__hist-metric-btn" id="rkv2-hist-btn-posicion" onclick="_rkv2HistSetMetric('posicion')">Posición</button>
+                </div>
+              </div>
+            </div>
+
+            <button class="rkv2__hist-compare-toggle" id="rkv2-hist-compare-btn" onclick="_rkv2HistToggleCompare()">➕ Comparar con...</button>
+            <div class="rkv2__hist-compare-wrap" id="rkv2-hist-compare-wrap" style="display:none;">
+              <select id="rkv2-hist-compare-1" class="rkv2__hist-select" onchange="_rkv2HistRender()"><option value="">— Ninguno —</option></select>
+              <select id="rkv2-hist-compare-2" class="rkv2__hist-select" onchange="_rkv2HistRender()"><option value="">— Ninguno —</option></select>
+            </div>
+
+            <div class="rkv2__hist-chart-wrap" id="rkv2-hist-chart-wrap">
+              <canvas id="rkv2-hist-canvas"></canvas>
+            </div>
+
+            <div class="rkv2__hist-stats" id="rkv2-hist-stats"></div>
           </div>
-          <div class="rkv2__hist-legend" id="rkv2-hist-legend"></div>
+
+          <!-- ── Vista: ranking completo en una fecha ────────── -->
+          <div id="rkv2-hist-view-fecha" style="display:none;">
+            <div class="rkv2__hist-field" style="margin-bottom:14px;">
+              <label>Fecha</label>
+              <select id="rkv2-hist-fecha-select" class="rkv2__hist-select" onchange="_rkv2HistFechaRender()"></select>
+            </div>
+            <div id="rkv2-hist-fecha-tabla"></div>
+          </div>
         </div>
       </div>
 
@@ -2557,6 +2650,14 @@
     return _RKV2_HIST_COLORS[idx % _RKV2_HIST_COLORS.length];
   }
 
+  // Colores fijos para jugador principal / comparación (máx. 3 líneas a la vez)
+  const _RKV2_HIST_SEL_COLORS = ['#ff4d8d', '#4dc9ff', '#ffc94d'];
+
+  // Estado de la vista del historial
+  let _rkv2HistMode        = 'evolucion'; // 'evolucion' | 'fecha'
+  let _rkv2HistJugadorId   = null;        // jugador principal seleccionado
+  let _rkv2HistCompareOpen = false;       // panel "Comparar con..." visible
+
   // Carga Chart.js una sola vez, solo cuando realmente se necesita.
   function _rkv2EnsureChartJs() {
     if (window.Chart) return Promise.resolve();
@@ -2588,18 +2689,18 @@
     document.getElementById('rkv2-hist-categoria').textContent = _RKV2_CATEGORIA_LABEL[_rkv2ActiveTab] || 'Global';
 
     const wrap = document.getElementById('rkv2-hist-chart-wrap');
-    const legendEl = document.getElementById('rkv2-hist-legend');
     const categoria = _RKV2_CATEGORIA_MAP[_rkv2ActiveTab] || 'global';
 
     // Si ya tenemos en memoria el historial de esta misma categoría, no
     // volvemos a pedirlo (evita llamadas repetidas al abrir/cerrar el modal).
+    // Este cache se invalida solo desde _rkv2Load cuando el ranking cambia
+    // de verdad — ver comentario en esa función.
     if (_rkv2HistCatCache === categoria && _rkv2HistData) {
-      try { await _rkv2EnsureChartJs(); _rkv2HistRender(); } catch (e) { /* silencioso */ }
+      try { await _rkv2EnsureChartJs(); _rkv2HistRefrescarVista(); } catch (e) { /* silencioso */ }
       return;
     }
 
     wrap.innerHTML = '<div class="rkv2__hist-empty">Cargando historial…</div>';
-    legendEl.innerHTML = '';
 
     try {
       const [_, res] = await Promise.all([
@@ -2610,7 +2711,7 @@
       const data = await res.json();
       _rkv2HistData    = data.historial || [];
       _rkv2HistCatCache = categoria;
-      _rkv2HistRender();
+      _rkv2HistRefrescarVista();
     } catch (e) {
       console.warn('hist load error', e);
       wrap.innerHTML = '<div class="rkv2__hist-empty">No se pudo cargar el historial. Intenta de nuevo más tarde.</div>';
@@ -2623,6 +2724,27 @@
     document.body.style.overflow = '';
   }
 
+  // ── Modo: Evolución (gráfica de un jugador) vs Por fecha (tabla) ─────
+  function _rkv2HistSetMode(mode) {
+    _rkv2HistMode = mode;
+    document.getElementById('rkv2-hist-mode-evo').classList.toggle('active', mode === 'evolucion');
+    document.getElementById('rkv2-hist-mode-fecha').classList.toggle('active', mode === 'fecha');
+    document.getElementById('rkv2-hist-view-evolucion').style.display = mode === 'evolucion' ? '' : 'none';
+    document.getElementById('rkv2-hist-view-fecha').style.display    = mode === 'fecha'     ? '' : 'none';
+    _rkv2HistRefrescarVista();
+  }
+
+  // Puebla selectores (jugador / comparar / fecha) y dibuja la vista activa
+  function _rkv2HistRefrescarVista() {
+    _rkv2HistPoblarSelectores();
+    if (_rkv2HistMode === 'fecha') {
+      _rkv2HistFechaPoblarSelect();
+      _rkv2HistFechaRender();
+    } else {
+      _rkv2HistRender();
+    }
+  }
+
   function _rkv2HistSetMetric(metric) {
     _rkv2HistMetric = metric;
     document.getElementById('rkv2-hist-btn-puntos').classList.toggle('active', metric === 'puntos');
@@ -2630,29 +2752,94 @@
     _rkv2HistRender();
   }
 
+  // ── Selector de jugador + selectores de comparación ──────────────────
+  function _rkv2HistPoblarSelectores() {
+    const key = _RKV2_TAB_KEY[_rkv2ActiveTab] || 'ranking_global';
+    let participantes = ((_rkv2Cache && _rkv2Cache[key]) || []).map(r => ({ id: r.id, nombre: r.nombre }));
+
+    // Fallback por si el ranking en memoria no coincide (no debería pasar)
+    if (!participantes.length && _rkv2HistData) {
+      const vistos = new Set();
+      _rkv2HistData.forEach(p => (p.datos || []).forEach(row => {
+        if (!vistos.has(row[0])) { vistos.add(row[0]); participantes.push({ id: row[0], nombre: 'Usuario ' + row[0] }); }
+      }));
+    }
+    if (!participantes.length) return;
+
+    const selJugador = document.getElementById('rkv2-hist-jugador');
+    if (selJugador) {
+      selJugador.innerHTML = participantes.map(p =>
+        `<option value="${p.id}">${_esc(p.nombre)}${(+p.id === +_MI_ID_RKV2) ? ' (tú)' : ''}</option>`
+      ).join('');
+      // El usuario actual seleccionado automáticamente; si no está en la
+      // lista (o es la primera carga), tomar el primer participante.
+      if (_rkv2HistJugadorId == null || !participantes.some(p => +p.id === +_rkv2HistJugadorId)) {
+        const yo = participantes.find(p => +p.id === +_MI_ID_RKV2);
+        _rkv2HistJugadorId = yo ? yo.id : participantes[0].id;
+      }
+      selJugador.value = _rkv2HistJugadorId;
+    }
+
+    ['rkv2-hist-compare-1', 'rkv2-hist-compare-2'].forEach(elId => {
+      const sel = document.getElementById(elId);
+      if (!sel) return;
+      const prevValue = sel.value;
+      sel.innerHTML = '<option value="">— Ninguno —</option>' +
+        participantes.map(p => `<option value="${p.id}">${_esc(p.nombre)}</option>`).join('');
+      if (prevValue && participantes.some(p => String(p.id) === prevValue)) sel.value = prevValue;
+    });
+  }
+
+  function _rkv2HistOnJugadorChange() {
+    const el = document.getElementById('rkv2-hist-jugador');
+    if (!el) return;
+    const v = parseInt(el.value, 10);
+    if (!isNaN(v)) _rkv2HistJugadorId = v;
+    _rkv2HistRender();
+  }
+
+  function _rkv2HistToggleCompare() {
+    _rkv2HistCompareOpen = !_rkv2HistCompareOpen;
+    const wrap = document.getElementById('rkv2-hist-compare-wrap');
+    const btn  = document.getElementById('rkv2-hist-compare-btn');
+    if (wrap) wrap.style.display = _rkv2HistCompareOpen ? 'flex' : 'none';
+    if (btn)  btn.textContent = _rkv2HistCompareOpen ? '➖ Ocultar comparación' : '➕ Comparar con...';
+    _rkv2HistRender();
+  }
+
+  function _rkv2HistGetCompareIds() {
+    if (!_rkv2HistCompareOpen) return [];
+    const ids = [];
+    ['rkv2-hist-compare-1', 'rkv2-hist-compare-2'].forEach(elId => {
+      const el = document.getElementById(elId);
+      if (el && el.value) {
+        const v = parseInt(el.value, 10);
+        if (!isNaN(v) && v !== _rkv2HistJugadorId && !ids.includes(v)) ids.push(v);
+      }
+    });
+    return ids;
+  }
+
+  // ── Gráfica: solo el jugador seleccionado (+ hasta 2 de comparación) ─
   function _rkv2HistRender() {
+    if (_rkv2HistMode !== 'evolucion') return;
     const historial = _rkv2HistData || [];
     const wrap = document.getElementById('rkv2-hist-chart-wrap');
-    const legendEl = document.getElementById('rkv2-hist-legend');
+    const statsEl = document.getElementById('rkv2-hist-stats');
 
     if (historial.length < 2) {
       wrap.innerHTML = '<div class="rkv2__hist-empty">Todavía no hay suficiente historial acumulado.<br>Vuelve más adelante para ver cómo evoluciona el ranking a medida que se juegan partidos.</div>';
-      legendEl.innerHTML = '';
+      if (statsEl) statsEl.innerHTML = '';
       return;
     }
+    if (_rkv2HistJugadorId == null) return;
     if (!document.getElementById('rkv2-hist-canvas')) {
       wrap.innerHTML = '<canvas id="rkv2-hist-canvas"></canvas>';
     }
 
     // Formato compacto: cada entrada de "datos" es [id, posicion, puntos]
     const idxId = 0, idxPos = 1, idxPts = 2;
-
-    // Participantes únicos, en orden de aparición
-    const participantes = [];
-    const vistos = new Set();
-    historial.forEach(punto => (punto.datos || []).forEach(row => {
-      if (!vistos.has(row[idxId])) { vistos.add(row[idxId]); participantes.push(row[idxId]); }
-    }));
+    const seleccionados = [_rkv2HistJugadorId, ..._rkv2HistGetCompareIds()];
 
     // Etiquetas de fecha corta para el eje X + fecha completa para el tooltip
     const fullDates = historial.map(p => p.fecha);
@@ -2663,32 +2850,27 @@
     });
 
     const metricKey = _rkv2HistMetric === 'posicion' ? idxPos : idxPts;
-    const muchosParticipantes = participantes.length > 15;
 
-    const datasets = participantes.map((id, idx) => {
-      const color = _rkv2HistColor(idx);
+    const datasets = seleccionados.map((id, idx) => {
+      const color = _RKV2_HIST_SEL_COLORS[idx] || _rkv2HistColor(idx);
       const serie = historial.map(punto => {
         const reg = (punto.datos || []).find(row => row[idxId] === id);
         return reg ? reg[metricKey] : null;
       });
-      const esYo = id === _MI_ID_RKV2;
       return {
         label: _rkv2NombrePorId(id),
+        _playerId: id,
         data: serie,
         borderColor: color,
         backgroundColor: color,
         spanGaps: true,
         tension: .3,
-        pointRadius: muchosParticipantes ? 0 : (esYo ? 3 : 2),
+        pointRadius: idx === 0 ? 3 : 2,
         pointHitRadius: 8,
         pointHoverRadius: 5,
-        borderWidth: esYo ? 3 : 1.4,
+        borderWidth: idx === 0 ? 3 : 1.6,
       };
     });
-
-    legendEl.innerHTML = datasets.map(ds =>
-      `<div class="rkv2__hist-legend-item"><span class="rkv2__hist-legend-dot" style="background:${ds.borderColor}"></span>${_esc(ds.label)}</div>`
-    ).join('');
 
     if (_rkv2HistChart) { _rkv2HistChart.destroy(); _rkv2HistChart = null; }
     const ctx = document.getElementById('rkv2-hist-canvas').getContext('2d');
@@ -2698,17 +2880,25 @@
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        animation: muchosParticipantes ? false : { duration: 400 },
-        interaction: { mode: 'nearest', axis: 'x', intersect: false },
+        animation: { duration: 400 },
+        interaction: { mode: 'index', axis: 'x', intersect: false },
         plugins: {
           legend: { display: false },
           tooltip: {
+            mode: 'index', intersect: false,
             callbacks: {
+              // Solo información de los jugadores seleccionados (1 a 3), nunca de los 21.
               title: items => {
                 const i = items[0]?.dataIndex;
                 if (i == null) return '';
                 const d = new Date(fullDates[i]);
-                return isNaN(d) ? fullDates[i] : d.toLocaleString('es-CO');
+                return isNaN(d) ? fullDates[i] : d.toLocaleString('es-CO', { day:'numeric', month:'long', hour:'2-digit', minute:'2-digit' });
+              },
+              label: item => {
+                const punto = historial[item.dataIndex];
+                const reg = (punto.datos || []).find(row => row[idxId] === item.dataset._playerId);
+                if (!reg) return `${item.dataset.label}: sin dato`;
+                return `${item.dataset.label} — Posición: ${reg[idxPos]}° · Puntos: ${reg[idxPts]}`;
               }
             }
           }
@@ -2727,6 +2917,121 @@
         }
       }
     });
+
+    _rkv2HistRenderStats(_rkv2HistJugadorId);
+  }
+
+  // ── Estadísticas resumen del jugador principal ───────────────────────
+  function _rkv2HistCalcStats(playerId) {
+    const historial = _rkv2HistData || [];
+    const posiciones = [], puntos = [];
+    historial.forEach(punto => {
+      const reg = (punto.datos || []).find(row => row[0] === playerId);
+      if (reg) { posiciones.push(reg[1]); puntos.push(reg[2]); }
+    });
+    if (!posiciones.length) return null;
+
+    const posActual = posiciones[posiciones.length - 1];
+    const mejorPos   = Math.min(...posiciones);
+    const peorPos    = Math.max(...posiciones);
+    let maxSubida = 0, maxBajada = 0;
+    for (let i = 1; i < posiciones.length; i++) {
+      const delta = posiciones[i - 1] - posiciones[i]; // positivo = subió (posición numérica menor = mejor)
+      if (delta > maxSubida) maxSubida = delta;
+      if (-delta > maxBajada) maxBajada = -delta;
+    }
+    return { posActual, mejorPos, peorPos, maxSubida, maxBajada, ptsActual: puntos[puntos.length - 1] };
+  }
+
+  function _rkv2HistRenderStats(playerId) {
+    const el = document.getElementById('rkv2-hist-stats');
+    if (!el) return;
+    const s = _rkv2HistCalcStats(playerId);
+    if (!s) { el.innerHTML = ''; return; }
+    el.innerHTML = `
+      <div class="rkv2__hist-stat"><div class="rkv2__hist-stat-label">Posición actual</div><div class="rkv2__hist-stat-value">${s.posActual}°</div></div>
+      <div class="rkv2__hist-stat"><div class="rkv2__hist-stat-label">Mejor posición</div><div class="rkv2__hist-stat-value gold">${s.mejorPos}°</div></div>
+      <div class="rkv2__hist-stat"><div class="rkv2__hist-stat-label">Peor posición</div><div class="rkv2__hist-stat-value">${s.peorPos}°</div></div>
+      <div class="rkv2__hist-stat"><div class="rkv2__hist-stat-label">Mayor subida</div><div class="rkv2__hist-stat-value up">${s.maxSubida ? '▲' + s.maxSubida : '—'}</div></div>
+      <div class="rkv2__hist-stat"><div class="rkv2__hist-stat-label">Mayor bajada</div><div class="rkv2__hist-stat-value down">${s.maxBajada ? '▼' + s.maxBajada : '—'}</div></div>
+      <div class="rkv2__hist-stat"><div class="rkv2__hist-stat-label">Puntos actuales</div><div class="rkv2__hist-stat-value">${s.ptsActual}</div></div>
+    `;
+  }
+
+  // ── Vista "Por fecha": cómo se veía el ranking completo ese día ──────
+  function _rkv2FmtFechaLarga(fecha) {
+    const d = new Date(fecha);
+    if (isNaN(d)) return fecha;
+    const txt  = d.toLocaleDateString('es-CO', { day: 'numeric', month: 'long' });
+    const hora = d.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
+    return `${txt} · ${hora}`;
+  }
+
+  function _rkv2HistFechaPoblarSelect() {
+    const sel = document.getElementById('rkv2-hist-fecha-select');
+    if (!sel) return;
+    const historial = _rkv2HistData || [];
+    if (!historial.length) { sel.innerHTML = ''; return; }
+    const prevValue = sel.value;
+    // El historial ya viene ordenado cronológicamente ascendente (más
+    // reciente al final); se listan del más reciente al más antiguo.
+    sel.innerHTML = historial.map((p, i) =>
+      `<option value="${i}">${_rkv2FmtFechaLarga(p.fecha)}${i === historial.length - 1 ? ' (más reciente)' : ''}</option>`
+    ).reverse().join('');
+    const defaultIdx = historial.length - 1;
+    if (prevValue !== '' && historial[parseInt(prevValue, 10)]) {
+      sel.value = prevValue;
+    } else {
+      sel.value = String(defaultIdx);
+    }
+  }
+
+  function _rkv2HistFechaRender() {
+    const cont = document.getElementById('rkv2-hist-fecha-tabla');
+    const sel  = document.getElementById('rkv2-hist-fecha-select');
+    if (!cont || !sel) return;
+    const historial = _rkv2HistData || [];
+    if (!historial.length) {
+      cont.innerHTML = '<div class="rkv2__hist-empty">Todavía no hay historial acumulado para esta categoría.</div>';
+      return;
+    }
+    const idx = parseInt(sel.value, 10);
+    const entry = historial[idx];
+    if (!entry) { cont.innerHTML = ''; return; }
+
+    const key = _RKV2_TAB_KEY[_rkv2ActiveTab] || 'ranking_global';
+    const actuales = (_rkv2Cache && _rkv2Cache[key]) || [];
+    const fotoPorId = {};
+    actuales.forEach(r => { fotoPorId[r.id] = r.foto; });
+
+    const filas = (entry.datos || []).slice().sort((a, b) => a[1] - b[1]); // por posición asc
+
+    const rowsHTML = filas.map(row => {
+      const [id, pos, pts] = row;
+      const esYo = (+id === +_MI_ID_RKV2);
+      let medalHTML;
+      if (pos === 1)      medalHTML = '<span class="rkv2__medal">🥇</span>';
+      else if (pos === 2) medalHTML = '<span class="rkv2__medal">🥈</span>';
+      else if (pos === 3) medalHTML = '<span class="rkv2__medal">🥉</span>';
+      else medalHTML = `<span class="rkv2__pos-num">${pos}</span>`;
+      const foto = fotoPorId[id];
+      const avatarHTML = foto
+        ? `<img class="rkv2__avatar" src="${clUrl(_esc(foto),'avatar')}" alt="" loading="lazy">`
+        : `<div class="rkv2__avatar">👤</div>`;
+      return `<tr class="${esYo ? 'rkv2__yo' : ''}" data-pos="${pos}">
+        <td><div class="rkv2__pos-cell">${medalHTML}</div></td>
+        <td><div class="rkv2__player">${avatarHTML}<div><span class="rkv2__player-name">${_esc(_rkv2NombrePorId(id))}</span>${esYo ? '<span class="rkv2__yo-badge">(tú)</span>' : ''}</div></div></td>
+        <td class="rkv2__pts">${pts}</td>
+      </tr>`;
+    }).join('');
+
+    cont.innerHTML = `
+      <div class="rkv2__wrap rkv2__hist-date-table">
+        <table class="rkv2__table">
+          <thead><tr><th>#</th><th>Jugador</th><th class="th-r">Pts</th></tr></thead>
+          <tbody>${rowsHTML}</tbody>
+        </table>
+      </div>`;
   }
 
   // ── Carga desde API ─────────────────────────────────────────────────
